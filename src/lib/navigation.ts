@@ -1,8 +1,9 @@
+import { roles, type Role } from "@/domain/access/contracts";
+
+export { roles };
+export type { Role };
+
 /** Approved Figma URL map ONLY: not implemented routes or an authorization policy. */
-export const roles = [
-  "student", "institute", "provider", "admin", "organization", "benefactor",
-] as const;
-export type Role = (typeof roles)[number];
 type RouteReference = {
   readonly href: string;
   readonly title: string;
