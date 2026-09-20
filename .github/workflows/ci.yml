@@ -3,6 +3,10 @@ on:
   push:
     branches: [main]
   pull_request:
+
+permissions:
+  contents: read
+
 jobs:
   foundation:
     runs-on: ubuntu-latest
@@ -11,9 +15,22 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      # Until package-lock.json is generated and committed, npm install is
-      # temporary. Switch to npm ci immediately after committing the lockfile.
-      - run: npm install --no-audit --no-fund
+      # npm 10.9.8 crashes in Arborist on the initial dependency resolution.
+      - name: Use npm 11
+        run: npm install --global npm@11 --no-audit --no-fund
+      - name: Generate bootstrap lockfile if missing
+        run: |
+          if [ ! -f package-lock.json ]; then
+            npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          fi
+      - name: Export bootstrap lockfile
+        if: hashFiles('package-lock.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: dena-package-lock
+          path: package-lock.json
+      - name: Install deterministically
+        run: npm ci --no-audit --no-fund
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run test
