@@ -1,7 +1,8 @@
 @import "tailwindcss";
 
-/* Design tokens read from Dena / Student App / Dashboard (Figma 153:2).
-   Font binaries are intentionally not bundled until sourced and license-checked. */
+/* Visual reference: Dena Figma, Student Dashboard 153:2.
+   Self-hosted OFL-1.1 font packages are imported in layout.tsx.
+   No unsupported kshd axis is applied: packaged Estedad provides wght. */
 :root {
   --dena-purple: #5b4ce2;
   --dena-deepviolet: #352b68;
@@ -27,7 +28,6 @@
   --ring: #5b4ce2;
   --radius: 0.75rem;
 }
-
 @theme inline {
   --color-dena: var(--dena-purple);
   --color-dena-brand: var(--dena-purple);
@@ -54,14 +54,15 @@
   --color-ring: var(--ring);
   --radius-lg: var(--radius);
 }
-
 html { direction: rtl; }
 body {
   margin: 0;
   color: var(--dena-ink);
   background: var(--dena-bg);
-  font-family: Vazirmatn, Tahoma, sans-serif;
+  font-family: "Vazirmatn Variable", Tahoma, sans-serif;
 }
-h1, h2, h3 { font-family: "Estedad-VF", Estedad, Vazirmatn, Tahoma, sans-serif; }
+h1, h2, h3 {
+  font-family: "Estedad Variable", "Vazirmatn Variable", Tahoma, sans-serif;
+}
 a, button { -webkit-tap-highlight-color: transparent; }
 :focus-visible { outline: 2px solid var(--dena-purple); outline-offset: 3px; }

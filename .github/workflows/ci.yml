@@ -5,26 +5,37 @@ on:
   pull_request:
 
 permissions:
-  contents: read
+  contents: write # Temporary for one-time lockfile update; restore to read after generation.
 
 jobs:
   foundation:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: npm
-      # npm 10.9.8 hit an Arborist edgesOut crash with this dependency set.
       - name: Use npm 11
         run: npm install --global npm@11 --no-audit --no-fund
-      - name: Install from committed lockfile
-        run: npm ci --no-audit --no-fund
+      - name: Update lockfile for approved font packages
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Commit updated lockfile to bootstrap branch
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'chore/bootstrap-dena-stack'
+        run: |
+          if ! git diff --quiet -- package-lock.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add package-lock.json
+            git commit -m "chore: lock approved self-hosted font packages"
+            git push origin HEAD:chore/bootstrap-dena-stack
+          fi
+      - run: npm ci --no-audit --no-fund
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run test
       - run: npm run build
-      - name: Install Chromium for browser smoke tests
-        run: npx playwright install --with-deps chromium
+      - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e

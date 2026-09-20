@@ -7,7 +7,7 @@ import { previewHref, roleDescriptions, roleLabels } from "@/lib/preview";
 
 export default function HomePage() {
   return (
-    <main className="mx-auto min-h-screen max-w-6xl px-5 py-8 md:px-10 md:py-14">
+    <main id="main-content" className="mx-auto min-h-screen max-w-6xl px-5 py-8 md:px-10 md:py-14">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <Image src="/dena-app-logo.png" alt="دنا" width={83} height={48} priority />
         <span className="rounded-full border border-dena-border bg-white px-4 py-2 text-xs font-semibold text-dena-brand">

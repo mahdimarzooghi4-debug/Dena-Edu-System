@@ -63,7 +63,7 @@ export function DenaShell({ role, currentHref, title, children }: Props) {
           بازگشت به صفحهٔ اصلی
         </Link>
       </aside>
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 bg-white">
         <header className="flex min-h-[84px] flex-wrap items-center justify-between gap-3 border-b border-dena-border bg-white px-5 py-4 md:px-10">
           <div>
             <p className="font-bold">{title}</p>
@@ -71,7 +71,7 @@ export function DenaShell({ role, currentHref, title, children }: Props) {
           </div>
           <p className="text-xs font-semibold text-dena-brand">پیش‌نمایش رابط کاربری · بدون دادهٔ واقعی</p>
         </header>
-        <main className="mx-auto w-full max-w-[1168px] px-5 py-8 md:px-10">
+        <main id="main-content" className="mx-auto w-full max-w-[1168px] px-5 py-8 md:px-10">
           {children}
         </main>
       </div>
