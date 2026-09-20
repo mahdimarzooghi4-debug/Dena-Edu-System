@@ -103,9 +103,10 @@ export function canReadTechnicalTicket(
   actor: AccessContext,
   ticket: TechnicalTicketOwnership,
 ): boolean {
-  return ticket.requesterUserId === actor.userId ||
+  return actor.memberships.length > 0 &&
+    (ticket.requesterUserId === actor.userId ||
     actor.memberships.some(
       (membership) =>
         membership.role === "admin" && membership.canHandleTechnicalSupport,
-    );
+    ));
 }

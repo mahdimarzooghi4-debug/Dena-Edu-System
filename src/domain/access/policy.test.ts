@@ -132,6 +132,7 @@ describe("trusted-server access contracts, not route middleware", () => {
       ticketId: ids.ticket, requesterUserId: ids.user,
     });
     expect(canReadTechnicalTicket(actor([{ role: "student" }]), ticket)).toBe(true);
+    expect(canReadTechnicalTicket(actor([]), ticket)).toBe(false);
     expect(canReadTechnicalTicket(actor([{ role: "student" }], ids.other), ticket)).toBe(false);
     expect(canReadTechnicalTicket(actor([{ role: "admin", canHandleTechnicalSupport: false }], ids.other), ticket)).toBe(false);
     expect(canReadTechnicalTicket(actor([{ role: "admin", canHandleTechnicalSupport: true }], ids.other), ticket)).toBe(true);

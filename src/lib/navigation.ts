@@ -1,4 +1,4 @@
-import { roles, type Role } from "@/domain/access/contracts";
+import { roles, type Role } from "../domain/access/contracts";
 
 export { roles };
 export type { Role };
