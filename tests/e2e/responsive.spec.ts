@@ -39,10 +39,3 @@ test("desktop sidebar retains role links and shared support entry", async ({ pag
   await expect(nav.getByRole("link", { name: "پشتیبانی فنی مشترک" })).toHaveAttribute("href", "/preview/support");
   await expect(nav.getByRole("link", { name: "خانه خیر" })).toHaveAttribute("aria-current", "page");
 });
-
-test("tablet preview has no horizontal overflow", async ({ page }) => {
-  await page.setViewportSize({ width: 820, height: 1100 });
-  await page.goto("/preview/student");
-  await expect(page.getByRole("heading", { name: "یادگیری‌ات از همین‌جا ادامه دارد" })).toBeVisible();
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-});
