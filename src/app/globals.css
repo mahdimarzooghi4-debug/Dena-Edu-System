@@ -1,22 +1,60 @@
 @import "tailwindcss";
 
-/* Dena Figma tokens. Add legal local Estedad/Vazirmatn files before visual QA.
-   No placeholder or external font binaries are bundled in this scaffold. */
+/* Design tokens read from Dena / Student App / Dashboard (Figma 153:2).
+   Font binaries are intentionally not bundled until sourced and license-checked. */
 :root {
   --dena-purple: #5b4ce2;
+  --dena-deepviolet: #352b68;
   --dena-mint: #42cfa7;
   --dena-orange: #f59e0b;
   --dena-institute-verified: #3a74e8;
   --dena-bg: #f7f6fb;
+  --dena-lavender: #eae7ff;
+  --dena-border: #e5e1ed;
   --dena-ink: #2b2544;
   --dena-muted: #756f83;
+  --background: #f7f6fb;
+  --foreground: #2b2544;
+  --card: #fff;
+  --card-foreground: #2b2544;
+  --primary: #5b4ce2;
+  --primary-foreground: #fff;
+  --secondary: #eae7ff;
+  --secondary-foreground: #352b68;
+  --muted: #f7f6fb;
+  --muted-foreground: #756f83;
+  --border: #e5e1ed;
+  --ring: #5b4ce2;
+  --radius: 0.75rem;
 }
+
 @theme inline {
   --color-dena: var(--dena-purple);
+  --color-dena-brand: var(--dena-purple);
+  --color-dena-deep: var(--dena-deepviolet);
   --color-dena-bg: var(--dena-bg);
+  --color-dena-lavender: var(--dena-lavender);
+  --color-dena-border: var(--dena-border);
   --color-dena-ink: var(--dena-ink);
   --color-dena-muted: var(--dena-muted);
+  --color-dena-mint: var(--dena-mint);
+  --color-dena-orange: var(--dena-orange);
+  --color-dena-blue: var(--dena-institute-verified);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --radius-lg: var(--radius);
 }
+
 html { direction: rtl; }
 body {
   margin: 0;
@@ -24,4 +62,6 @@ body {
   background: var(--dena-bg);
   font-family: Vazirmatn, Tahoma, sans-serif;
 }
-h1, h2, h3 { font-family: "Estedad-VF", Vazirmatn, Tahoma, sans-serif; }
+h1, h2, h3 { font-family: "Estedad-VF", Estedad, Vazirmatn, Tahoma, sans-serif; }
+a, button { -webkit-tap-highlight-color: transparent; }
+:focus-visible { outline: 2px solid var(--dena-purple); outline-offset: 3px; }
