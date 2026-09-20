@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+/* Dena Figma tokens. Add legal local Estedad/Vazirmatn files before visual QA.
+   No placeholder or external font binaries are bundled in this scaffold. */
+:root {
+  --dena-purple: #5b4ce2;
+  --dena-mint: #42cfa7;
+  --dena-orange: #f59e0b;
+  --dena-institute-verified: #3a74e8;
+  --dena-bg: #f7f6fb;
+  --dena-ink: #2b2544;
+  --dena-muted: #756f83;
+}
+@theme inline {
+  --color-dena: var(--dena-purple);
+  --color-dena-bg: var(--dena-bg);
+  --color-dena-ink: var(--dena-ink);
+  --color-dena-muted: var(--dena-muted);
+}
+html { direction: rtl; }
+body {
+  margin: 0;
+  color: var(--dena-ink);
+  background: var(--dena-bg);
+  font-family: Vazirmatn, Tahoma, sans-serif;
+}
+h1, h2, h3 { font-family: "Estedad-VF", Vazirmatn, Tahoma, sans-serif; }

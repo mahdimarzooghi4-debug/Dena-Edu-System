@@ -1,0 +1,20 @@
+name: Foundation checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  foundation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      # Until package-lock.json is generated and committed, npm install is
+      # temporary. Switch to npm ci immediately after committing the lockfile.
+      - run: npm install --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run test
+      - run: npm run build
