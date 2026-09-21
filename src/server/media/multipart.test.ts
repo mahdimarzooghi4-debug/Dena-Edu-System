@@ -1,8 +1,8 @@
-import { createHmac } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
   MAX_MULTIPART_BYTES, MULTIPART_PART_BYTES, planMultipart,
-  quarantineKey, validateStorageParts, verifyProcessingAttestation,
+  quarantineKey, validateStorageParts, verifyQuarantineStream, verifyProcessingAttestation,
   verifyProcessedObject, verifyQuarantineObject, type ProcessingAttestation,
 } from "./multipart";
 
@@ -86,5 +86,68 @@ describe("separately signed scan/transcode attestations", () => {
     expect(verifyProcessedObject(report, { key: report.outputKey,
       bytes: report.outputBytes, sha256: digest,
       private: true, contentType: "video/mp4" })).toBe(false);
+  });
+});
+
+describe("independent streaming private object digest, without buffering 5 GiB", () => {
+  const mp4 = Buffer.from(
+    "00000018667479706d7034326d70343269736f6d00000000", "hex",
+  );
+  const bytes = 16 * 1024 * 1024 + 19;
+  const data = Buffer.alloc(bytes);
+  mp4.copy(data);
+  const actualHash = createHash("sha256").update(data).digest("hex");
+  const stored = (stream: AsyncIterable<Uint8Array>, overrides = {}) => ({
+    key: `quarantine/${uploadId}`, private: true,
+    contentType: "video/mp4", stream, ...overrides,
+  });
+  const chunks = async function* (source: Buffer) {
+    for (let n = 0; n < source.length; n += 131_071) {
+      yield source.subarray(n, Math.min(n + 131_071, source.length));
+    }
+  };
+  it("hashes every byte of a >16 MiB private object incrementally", async () => {
+    expect(await verifyQuarantineStream(
+      uploadId, bytes, actualHash, stored(chunks(data)),
+    )).toBe(true);
+    expect(await verifyQuarantineStream(
+      uploadId, bytes, actualHash, stored(chunks(data), { private: false }),
+    )).toBe(false);
+    expect(await verifyQuarantineStream(
+      uploadId, bytes, actualHash, stored(chunks(data), {
+        key: `private/${uploadId}`,
+      }),
+    )).toBe(false);
+    expect(await verifyQuarantineStream(
+      uploadId, bytes, actualHash, stored(chunks(data), {
+        contentType: "application/octet-stream",
+      }),
+    )).toBe(false);
+  });
+  it("rejects mutated bytes, truncated/extra streams and invalid MP4", async () => {
+    const changed = Buffer.from(data);
+    changed[bytes - 9] ^= 0xff;
+    expect(await verifyQuarantineStream(
+      uploadId, bytes, actualHash, stored(chunks(changed)),
+    )).toBe(false);
+    expect(await verifyQuarantineStream(
+      uploadId, bytes, actualHash, stored(chunks(data.subarray(0, bytes - 1))),
+    )).toBe(false);
+    const extra = Buffer.concat([data, Buffer.from([0])]);
+    expect(await verifyQuarantineStream(
+      uploadId, bytes, actualHash, stored(chunks(extra)),
+    )).toBe(false);
+    const invalid = Buffer.from(data);
+    invalid.write("nope", 4, "ascii");
+    const invalidHash = createHash("sha256").update(invalid).digest("hex");
+    expect(await verifyQuarantineStream(
+      uploadId, bytes, invalidHash, stored(chunks(invalid)),
+    )).toBe(false);
+    async function* broken(): AsyncIterable<Uint8Array> {
+      yield mp4; throw new Error("broken private stream");
+    }
+    expect(await verifyQuarantineStream(
+      uploadId, bytes, actualHash, stored(broken()),
+    )).toBe(false);
   });
 });

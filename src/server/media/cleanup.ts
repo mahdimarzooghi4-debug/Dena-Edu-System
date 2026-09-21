@@ -127,8 +127,9 @@ export async function claimCleanupJobs(limit: number) {
   }));
 }
 
-/** A failed DELETE must never be recorded as completed. 404 is idempotent
- * success; other status, timeout or thrown fetch queues a bounded retry.
+/** Never record success until origin ACKS a durable no-late-write fence.
+ * Both 204 and 404 need X-Dena-Fenced: 1. An unfenced 404 is NOT success.
+ * Production adapters must persist this tombstone across origin restarts.
  */
 export async function finishCleanupJob(
   uploadId: string, leaseToken: string, ok: boolean, reason = "origin_unavailable",
@@ -177,7 +178,8 @@ export async function runQuarantineCleanup(limit: number) {
       });
       await response.body?.cancel();
     } catch { /* retry by durable job */ }
-    const ok = response?.status === 204 || response?.status === 404;
+    const ok = (response?.status === 204 || response?.status === 404) &&
+      response.headers.get("x-dena-fenced") === "1";
     const state = await finishCleanupJob(job.uploadId, job.leaseToken, ok);
     results.push({ uploadId: job.uploadId, status: state });
   }

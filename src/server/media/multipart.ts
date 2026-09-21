@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 
 /**
  * Vendor-independent contracts only. No storage grant is minted here: an
@@ -118,4 +118,55 @@ export function verifyProcessedObject(
     stored.bytes === report.outputBytes &&
     stored.sha256 === report.outputSha256 &&
     stored.contentType === "video/mp4";
+}
+
+/** Independently hash the ENTIRE private quarantine object as streamed bytes.
+ * No ETag, storage-reported whole-file hash or client-provided manifest is
+ * treated as proof. This pure verifier does NOT publish, scan or transcode.
+ * An adapter must supply a truly private stream for the exact server key.
+ */
+export async function verifyQuarantineStream(
+  uploadId: string,
+  expectedBytes: number,
+  expectedSha256: string,
+  object: { key: string; private: boolean; contentType: string;
+    stream: AsyncIterable<Uint8Array> },
+): Promise<boolean> {
+  if (!Number.isSafeInteger(expectedBytes) || expectedBytes < 16 ||
+      expectedBytes > MAX_MULTIPART_BYTES ||
+      !sha.test(expectedSha256) ||
+      object?.key !== quarantineKey(uploadId) ||
+      object.private !== true || object.contentType !== "video/mp4" ||
+      !object.stream || typeof object.stream[Symbol.asyncIterator] !== "function") {
+    return false;
+  }
+  const hasher = createHash("sha256");
+  let total = 0;
+  let first = Buffer.alloc(0);
+  try {
+    for await (const chunk of object.stream) {
+      if (!(chunk instanceof Uint8Array) || chunk.byteLength === 0) {
+        return false;
+      }
+      total += chunk.byteLength;
+      if (total > expectedBytes) return false;
+      hasher.update(chunk);
+      if (first.length < 64) {
+        first = Buffer.concat([first, Buffer.from(chunk.subarray(0, 64 - first.length))]);
+      }
+    }
+  } catch {
+    return false;
+  }
+  // Minimal ISO BMFF ftyp structure check only; never an AV/codec verdict.
+  // The first box can be up to the streamed bytes, not necessarily 16.
+  if (total !== expectedBytes || first.length < 16 ||
+      first.readUInt32BE(0) < 16 ||
+      first.readUInt32BE(0) > total ||
+      first.toString("ascii", 4, 8) !== "ftyp" ||
+      !/^[a-zA-Z0-9 ]{4}$/.test(first.toString("ascii", 8, 12))) {
+    return false;
+  }
+  const actual = hasher.digest();
+  return timingSafeEqual(actual, Buffer.from(expectedSha256, "hex"));
 }

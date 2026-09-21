@@ -46,3 +46,9 @@ Replay matches all original metadata, refuses any changed owner/content and neve
 ## رابط فارسی برنامه‌ریزی حجم بالا
 
 در صفحهٔ ارائه‌دهنده `/provider/courses/:courseId/media`، هنگام روشن بودن **صرفاً** `DENA_MULTIPART_PLANNING_ENABLED` یک کارت مستقل برای ورود عنوان، اندازهٔ دقیق و هش SHA-256 کل فایل، مشاهدهٔ تعداد بخش‌ها/انقضا، فهرست شخصی و لغو طرح فعال نمایش داده می‌شود. فرم عمدی **فایل را انتخاب یا بخشی از آن را به سرور یا storage ارسال نمی‌کند**؛ هش از ابزار محلی مستقل محاسبه می‌شود تا browser در تلاش برای hash کل ۵ GiB به حافظه نیاز نداشته باشد. طرح‌های قبلی بعد از لغو نظارت مؤسسه همچنان مشاهده/لغو می‌شوند؛ ایجاد فقط در draft و approval انجام می‌شود و API بار دیگر بررسی می‌کند. تست مرورگر باید عدم ارسال بایت و لغو idempotent را تأیید کند. این رابط، UI انتشار ویدئو یا direct upload نیست.
+
+## قرارداد حذف همراه با فنس و راستی‌آزمایی جریانی کامل
+
+Cleanup تنها وقتی `DELETE /quarantine/<server UUID>` را موفق می‌داند که origin خصوصی به **هر دو** پاسخ 204 یا 404 هدر `X-Dena-Fenced: 1` بدهد. این اعلام باید به معنی ممنوعیت دائمی PUT جدید و نوشتن‌های دیرهنگام همان UUID باشد؛ 404 بدون tombstone پایدار کافی نیست. در mock CI، PUT حتی پس از DELETE/404 فنس‌شده پاسخ 410 می‌گیرد و بایت‌ها هرگز دوباره ساخته نمی‌شوند؛ شکست 503 یا پاسخ 204 بدون فنس job را در صف retry نگه می‌دارد. این tombstone اکنون صرفاً حافظهٔ mock localhost است و برای production باید در storage adapter/DB پایدار و در برابر restart، multipart و race واقعی atomic باشد.
+
+`verifyQuarantineStream` در `src/server/media/multipart.ts` کل فایل خصوصی را به‌صورت async iterable و SHA-256 افزایشی بدون تجمیع ۵ GiB در حافظه می‌خواند؛ size دقیق، key سرورساخت، private بودن، نوع MP4 و حداقل ftyp را نیز fail-closed بررسی می‌کند. آزمون بیش از ۱۶ MiB و حالت digest نادرست، تغییر انتهای فایل، truncation، بایت اضافه و stream error را می‌پوشاند. این verifier هنوز به مسیر تولیدی `complete multipart` متصل نیست و **به‌تنهایی آنتی‌ویروس یا ترنسکد واقعی نیست**.
