@@ -2,7 +2,8 @@ import { createHash, createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
   MAX_MULTIPART_BYTES, MULTIPART_PART_BYTES, planMultipart,
-  quarantineKey, validateStorageParts, verifyQuarantineStream, verifyProcessingAttestation,
+  quarantineKey, validateStorageParts, verifyQuarantineStream, verifyProcessedStream,
+  verifyProcessingAttestation,
   verifyProcessedObject, verifyQuarantineObject, type ProcessingAttestation,
 } from "./multipart";
 
@@ -150,4 +151,29 @@ describe("independent streaming private object digest, without buffering 5 GiB",
       uploadId, bytes, actualHash, stored(broken()),
     )).toBe(false);
   });
+  it("checks actual private processed bytes against a DIFFERENT output digest", async () => {
+    const processed = Buffer.concat([data, Buffer.from([1, 2, 3, 4])]);
+    const outputHash = createHash("sha256").update(processed).digest("hex");
+    const key = assetId + "/" + assetId + ".mp4";
+    const expected = { key, bytes: processed.length, sha256: outputHash };
+    expect(await verifyProcessedStream(
+      expected, stored(chunks(processed), { key }),
+    )).toBe(true);
+    expect(await verifyProcessedStream(
+      expected, stored(chunks(data), { key }),
+    )).toBe(false);
+    const changed = Buffer.from(processed);
+    changed[changed.length - 1] ^= 0xff;
+    expect(await verifyProcessedStream(
+      expected, stored(chunks(changed), { key }),
+    )).toBe(false);
+    expect(await verifyProcessedStream(
+      expected, stored(chunks(processed), { key: "private/" + key }),
+    )).toBe(false);
+    expect(await verifyProcessedStream(
+      { ...expected, key: "../evil" },
+      stored(chunks(processed), { key: "../evil" }),
+    )).toBe(false);
+  });
+
 });
