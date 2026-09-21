@@ -52,6 +52,8 @@ jobs:
       DENA_DB_INTEGRATION: "1"
       DENA_SMS_ENABLED: "1"
       DENA_MEDIA_ENABLED: "1"
+      DENA_INGEST_ENABLED: "1"
+      DENA_MEDIA_PROCESSOR_ENABLED: "1"
       DENA_PRIVATE_MEDIA_ORIGIN_URL: http://127.0.0.1:4318/
       DENA_SMS_GATEWAY_URL: http://127.0.0.1:4317/send
     steps:
@@ -75,6 +77,9 @@ jobs:
           media_token=$(openssl rand -hex 32)
           echo "::add-mask::$media_token"
           echo "DENA_PRIVATE_MEDIA_ORIGIN_TOKEN=$media_token" >> "$GITHUB_ENV"
+          worker_token=$(openssl rand -hex 32)
+          echo "::add-mask::$worker_token"
+          echo "DENA_MEDIA_PROCESSOR_TOKEN=$worker_token" >> "$GITHUB_ENV"
       - name: Generate reviewed Drizzle migration candidate
         run: npx drizzle-kit generate
       - name: Preserve generated migration for review
