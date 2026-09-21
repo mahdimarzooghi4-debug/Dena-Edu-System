@@ -2,9 +2,10 @@ import { and, eq } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { getDb } from "../../../../../../db";
-import { courses, memberships, supervisionGrants } from "../../../../../../db/schema";
+import { courses, memberships, privateMediaAssets, supervisionGrants } from "../../../../../../db/schema";
 import { getServerAccessContext } from "../../../../../../server/access/actor";
 import { validSameOrigin } from "../../../../../../server/access/role-application-contracts";
+import { configuredPrivateMediaOrigin } from "../../../../../../server/student/private-media";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,6 +34,10 @@ export async function POST(
   if (!parsed.success) return NextResponse.json({ error: "Invalid request" }, {
     status: 400, headers: noStore,
   });
+  // Free-video launch is unavailable until private delivery is configured.
+  if (!configuredPrivateMediaOrigin()) return NextResponse.json({
+    error: "Private media unavailable",
+  }, { status: 503, headers: noStore });
   const result = await getDb().transaction(async (tx) => {
     const [course] = await tx.select().from(courses)
       .where(eq(courses.id, courseId)).limit(1).for("update");
@@ -62,6 +67,12 @@ export async function POST(
         eq(memberships.status, "active"),
       )).limit(1).for("share");
     if (!approver) return null;
+    const [video] = await tx.select({ id: privateMediaAssets.id })
+      .from(privateMediaAssets).where(and(
+        eq(privateMediaAssets.courseId, course.id),
+        eq(privateMediaAssets.status, "ready"),
+      )).limit(1).for("share");
+    if (!video) return null;
     if (course.publicationStatus === "published") {
       return { courseId, publicationStatus: "published" as const, replayed: true };
     }
