@@ -13,7 +13,7 @@
 ## جلوگیری از سوءاستفاده
 
 - Better Auth rate limiting با storage پایدار PostgreSQL و قوانین اختصاصی send/verify، مستقل از تعداد instanceها؛ `allowedAttempts:3` کد ناموفق را محدود می‌کند.
-- `dena_otp_dispatch_limits`: برای HMAC شماره در یک پنجره ۶۰ دقیقه‌ای حداکثر سه dispatch و حداقل ۶۰ ثانیه فاصله؛ UPSERT شرطی اتمیک PostgreSQL. داده throttle به شماره خام متکی نیست؛ زمان‌بندی حفظ/پاک‌سازی باید در deployment تعریف شود.
+- `dena_otp_dispatch_limits`: برای HMAC شماره در پنجره یک‌ساعته از اولین ارسال حداکثر سه dispatch و حداقل ۶۰ ثانیه فاصله؛ UPSERT شرطی اتمیک PostgreSQL. داده throttle به شماره خام متکی نیست؛ زمان‌بندی حفظ/پاک‌سازی باید در deployment تعریف شود.
 - TLS برای SMS gateway اجباری؛ فقط هنگام `DENA_DB_INTEGRATION=1` مقصد `127.0.0.1` با HTTP جهت mock CI مجاز است. **متغیر `DENA_DB_INTEGRATION` هرگز در محیط واقعی تنظیم نشود.**
 - در صورت تنظیم‌نشدن vendor یا خطا در ارسال، login fail-closed است. نه OTP، نه شماره موبایل و نه token در log برنامه چاپ نشود.
 - endpoint اختصاصی دریافت کد `/__test__/code` متعلق به mock فقط-localhost `scripts/test-sms-gateway.mjs` است؛ **هیچ endpoint دریافت OTP در برنامه Next.js یا محیط production وجود ندارد.**
