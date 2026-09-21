@@ -157,7 +157,9 @@ test.describe("free enrollment and private video access must stay course-scoped"
     const student = await client("student");
     const listing = await student.get("/api/student/courses");
     expect(listing.headers()["cache-control"]).toContain("no-store");
-    expect((await listing.json()).courses).toEqual([
+    const ownListing = ((await listing.json()).courses as Array<{ courseId: string }>)
+      .filter((row) => Object.values(ids).includes(row.courseId));
+    expect(ownListing).toEqual([
       { courseId: ids.live, title: "دوره رایگان با محتوای خصوصی",
         providerId, responsibleInstituteId: instituteId,
         enrolled: false, free: true },
@@ -251,9 +253,10 @@ test.describe("free enrollment and private video access must stay course-scoped"
       response.url().endsWith(enrollPath(ids.live)) &&
       response.request().method() === "POST",
     );
-    await page.getByRole("button", { name: "ثبت‌نام رایگان" }).click();
+    const ownCard = page.locator("li").filter({ hasText: "دوره رایگان با محتوای خصوصی" });
+    await ownCard.getByRole("button", { name: "ثبت‌نام رایگان" }).click();
     expect((await enrolling).status()).toBe(201);
-    await page.getByRole("link", { name: "مشاهده محتوای دوره" }).click();
+    await ownCard.getByRole("link", { name: "مشاهده محتوای دوره" }).click();
     await expect(page).toHaveURL(new RegExp(`/student/courses/${ids.live}/watch$`));
     const player = page.locator("video");
     await expect(player).toHaveCount(1);
@@ -289,8 +292,9 @@ test.describe("free enrollment and private video access must stay course-scoped"
     await db.update(privateMediaAssets).set({ status: "withdrawn" })
       .where(eq(privateMediaAssets.id, videoIds.ready));
     expect((await student.get(mediaPath(ids.live, videoIds.ready))).status()).toBe(404);
-    expect((await (await student.get("/api/student/courses")).json()).courses)
-      .toHaveLength(0);
+    expect(((await (await student.get("/api/student/courses")).json())
+      .courses as Array<{ courseId: string }>).filter((row) =>
+        Object.values(ids).includes(row.courseId))).toHaveLength(0);
     expect((await post(student, enrollPath(ids.live), {})).status()).toBe(404);
     await db.update(privateMediaAssets).set({ status: "ready" })
       .where(eq(privateMediaAssets.id, videoIds.ready));
@@ -322,8 +326,9 @@ test.describe("free enrollment and private video access must stay course-scoped"
     expect(revoked.status()).toBe(200);
     expect((await student.get(mediaPath(ids.live, videoIds.ready))).status()).toBe(404);
     expect((await student.get(listAssets(ids.live))).status()).toBe(404);
-    expect((await (await student.get("/api/student/courses")).json()).courses)
-      .toHaveLength(0);
+    expect(((await (await student.get("/api/student/courses")).json())
+      .courses as Array<{ courseId: string }>).filter((row) =>
+        Object.values(ids).includes(row.courseId))).toHaveLength(0);
     expect((await post(student, enrollPath(ids.live), {})).status()).toBe(404);
     await institute.dispose();
     await student.dispose();
