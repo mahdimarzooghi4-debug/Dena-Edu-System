@@ -10,9 +10,9 @@ import type {
 } from "./contracts";
 
 /**
- * Side-effect-free authorization predicates for a future trusted server
- * gateway. Deny by default; roles alone cannot grant tenant/resource access.
- * NONE of these predicates is wired to a real route or API yet.
+ * Side-effect-free authorization predicates. Deny by default; roles alone
+ * cannot grant tenant/resource access. Only course-supervision checks are
+ * currently used by a real route; other policies remain domain contracts.
  */
 export function hasApprovedCourseSupervision(
   course: ProviderCourse,
