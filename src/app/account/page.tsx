@@ -50,7 +50,17 @@ export default async function AccountPage() {
           پنل‌های عملیاتی و اطلاعات دوره‌ها در این مرحله هنوز منتشر نشده‌اند.
           این صفحه فقط وضعیت نشست و نقش‌های معتبر شما را نمایش می‌دهد.
         </p>
-        <Link href="/" className={buttonClassName("outline", "self-start")}>بازگشت به صفحه اصلی</Link>
+        <div className="flex flex-wrap gap-3">
+          <Link href="/account/role-applications" className={buttonClassName("secondary")}>
+            درخواست و پیگیری نقش سازمانی
+          </Link>
+          {actor.memberships.some((entry) => entry.role === "admin") && (
+            <Link href="/admin/role-applications" className={buttonClassName()}>
+              صف بررسی درخواست‌های نقش
+            </Link>
+          )}
+          <Link href="/" className={buttonClassName("outline")}>بازگشت به صفحه اصلی</Link>
+        </div>
       </Card>
     </main>
   );
