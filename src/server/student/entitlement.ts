@@ -10,33 +10,33 @@ const institute = alias(memberships, "free_course_institute");
 const approver = alias(memberships, "free_course_approver");
 const student = alias(memberships, "free_course_student");
 
-const validSupervision = and(
+function validSupervision(db: ReturnType<typeof getDb>) { return and(
   eq(supervisionGrants.status, "approved"),
   eq(supervisionGrants.courseId, courses.id),
   eq(supervisionGrants.providerId, courses.providerId),
   eq(supervisionGrants.instituteId, courses.responsibleInstituteId),
-  exists(getDb().select({ id: provider.id }).from(provider).where(and(
+  exists(db.select({ id: provider.id }).from(provider).where(and(
     eq(provider.role, "provider"), eq(provider.status, "active"),
     eq(provider.providerId, courses.providerId),
   ))),
-  exists(getDb().select({ id: institute.id }).from(institute).where(and(
+  exists(db.select({ id: institute.id }).from(institute).where(and(
     eq(institute.role, "institute"), eq(institute.status, "active"),
     eq(institute.instituteId, courses.responsibleInstituteId),
   ))),
-  exists(getDb().select({ id: approver.id }).from(approver).where(and(
+  exists(db.select({ id: approver.id }).from(approver).where(and(
     eq(approver.userId, supervisionGrants.approvedByInstituteUserId),
     eq(approver.role, "institute"), eq(approver.status, "active"),
     eq(approver.instituteId, courses.responsibleInstituteId),
   ))),
-);
+); }
 
 /** Base conditions are applied again on *every* catalog, enrollment, asset
  * manifest and byte-range request. No role, courseId or enrollment from client
  * is an authorization token.
  */
-export const listedFreeCourse = and(
-  eq(courses.publicationStatus, "published"), validSupervision,
-);
+export function listedFreeCourse(db: ReturnType<typeof getDb>) { return and(
+  eq(courses.publicationStatus, "published"), validSupervision(db),
+); }
 
 export async function hasStudentEntitlement(
   studentUserId: string, courseId: string,
@@ -55,7 +55,7 @@ export async function hasStudentEntitlement(
         eq(student.userId, studentUserId),
         eq(student.role, "student"), eq(student.status, "active"),
       ))),
-      listedFreeCourse,
+      listedFreeCourse(db),
     )).limit(1);
   return Boolean(access);
 }
