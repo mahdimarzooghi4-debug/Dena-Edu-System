@@ -54,6 +54,16 @@ export default async function AccountPage() {
           <Link href="/account/role-applications" className={buttonClassName("secondary")}>
             درخواست و پیگیری نقش سازمانی
           </Link>
+          {actor.memberships.some((entry) => entry.role === "provider") && (
+            <Link href="/provider/supervision" className={buttonClassName("secondary")}>
+              درخواست نظارت دوره‌های من
+            </Link>
+          )}
+          {actor.memberships.some((entry) => entry.role === "institute") && (
+            <Link href="/institute/providers" className={buttonClassName("secondary")}>
+              بررسی درخواست نظارت دوره‌ها
+            </Link>
+          )}
           {actor.memberships.some((entry) => entry.role === "admin") && (
             <Link href="/admin/role-applications" className={buttonClassName()}>
               صف بررسی درخواست‌های نقش
