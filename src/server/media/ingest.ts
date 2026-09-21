@@ -24,7 +24,9 @@ export function isValidMp4Header(bytes: Buffer): boolean {
 export function secureWorkerToken(value: string | null): boolean {
   const secret = process.env.DENA_MEDIA_PROCESSOR_TOKEN;
   if (process.env.DENA_MEDIA_PROCESSOR_ENABLED !== "1" ||
-      !secret || secret.length < 32 || !value?.startsWith("Bearer ")) return false;
+      !secret || secret.length < 32 ||
+      secret === process.env.DENA_PRIVATE_MEDIA_ORIGIN_TOKEN ||
+      !value?.startsWith("Bearer ")) return false;
   const provided = Buffer.from(value.slice(7));
   const expected = Buffer.from(secret);
   return provided.length === expected.length &&
@@ -226,7 +228,8 @@ export async function receiveQuarantinedUpload(
  */
 export async function completeAttestedIngest(uploadId: string) {
   const media = configuredPrivateMediaOrigin();
-  if (!media || process.env.DENA_MEDIA_PROCESSOR_ENABLED !== "1") {
+  if (!media || process.env.DENA_MEDIA_PROCESSOR_ENABLED !== "1" ||
+      process.env.DENA_MEDIA_PROCESSOR_TOKEN === media.token) {
     return "unavailable" as const;
   }
   return getDb().transaction(async (tx) => {
