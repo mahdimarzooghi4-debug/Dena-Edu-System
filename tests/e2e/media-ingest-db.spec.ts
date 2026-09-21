@@ -20,6 +20,7 @@ test.describe("pilot quarantine ingest and independent worker attestation", () =
     [name, randomUUID()])) as Record<keyof typeof users, string>;
   const providerId = randomUUID(), instituteId = randomUUID();
   const courseId = randomUUID();
+  const uiCourseId = randomUUID();
   const fixture = Buffer.from(
     "00000018667479706d7034326d70343269736f6d00000000", "hex",
   );
@@ -100,28 +101,33 @@ test.describe("pilot quarantine ingest and independent worker attestation", () =
       userId: users[name as keyof typeof users],
       token, expiresAt: new Date(Date.now() + 3_600_000),
     })));
-    await db.insert(courses).values({
-      id: courseId, providerId, responsibleInstituteId: instituteId,
-      title: "دوره آزمایشی ingest ایمن",
-      createdByProviderUserId: users.provider, clientRequestId: randomUUID(),
-    });
-    await db.insert(supervisionGrants).values({
-      courseId, providerId, instituteId,
-      status: "approved", requestedByProviderUserId: users.provider,
-      approvedByInstituteUserId: users.institute, approvedAt: new Date(),
-    });
+    await db.insert(courses).values([
+      { id: courseId, providerId, responsibleInstituteId: instituteId,
+        title: "دوره آزمایشی ingest ایمن",
+        createdByProviderUserId: users.provider, clientRequestId: randomUUID() },
+      { id: uiCourseId, providerId, responsibleInstituteId: instituteId,
+        title: "دوره تست فرم دریافت ویدئو",
+        createdByProviderUserId: users.provider, clientRequestId: randomUUID() },
+    ]);
+    await db.insert(supervisionGrants).values([courseId, uiCourseId].map(
+      (id) => ({
+        courseId: id, providerId, instituteId,
+        status: "approved" as const, requestedByProviderUserId: users.provider,
+        approvedByInstituteUserId: users.institute, approvedAt: new Date(),
+      }),
+    ));
   });
 
   test.afterAll(async () => {
     await db.delete(studentEnrollments)
       .where(eq(studentEnrollments.courseId, courseId));
     await db.delete(privateMediaAssets)
-      .where(eq(privateMediaAssets.courseId, courseId));
+      .where(inArray(privateMediaAssets.courseId, [courseId, uiCourseId]));
     await db.delete(mediaIngests)
-      .where(eq(mediaIngests.courseId, courseId));
+      .where(inArray(mediaIngests.courseId, [courseId, uiCourseId]));
     await db.delete(supervisionGrants)
-      .where(eq(supervisionGrants.courseId, courseId));
-    await db.delete(courses).where(eq(courses.id, courseId));
+      .where(inArray(supervisionGrants.courseId, [courseId, uiCourseId]));
+    await db.delete(courses).where(inArray(courses.id, [courseId, uiCourseId]));
     await db.delete(memberships)
       .where(inArray(memberships.userId, Object.values(users)));
     await db.delete(verifiedEntities)
@@ -288,4 +294,41 @@ test.describe("pilot quarantine ingest and independent worker attestation", () =
     await provider.dispose();
     await workerClient.dispose();
   });
+
+  test("provider browser form uploads only to quarantine and displays worker state", async ({ page }) => {
+    const signed = await serializeSignedCookie(
+      "better-auth.session_token", tokens.provider, process.env.BETTER_AUTH_SECRET!,
+    );
+    await page.context().addCookies([{
+      name: "better-auth.session_token",
+      value: signed.split(";")[0].split("=").slice(1).join("="),
+      domain: "localhost", path: "/", httpOnly: true,
+      secure: false, sameSite: "Lax",
+    }]);
+    await page.goto(`http://localhost:3000/provider/courses/${uiCourseId}/media`);
+    await expect(page.getByRole("heading", {
+      name: "دریافت آزمایشی ویدئو",
+    })).toBeVisible();
+    await page.getByLabel("عنوان ویدئو").fill("بخش کوچک تست مرورگر");
+    await page.getByLabel("فایل MP4 آزمایشی (حداکثر ۸ مگابایت)")
+      .setInputFiles({
+        name: "sample.mp4", mimeType: "video/mp4", buffer: fixture,
+      });
+    const received = page.waitForResponse((res) =>
+      res.url().includes(`/api/provider/courses/${uiCourseId}/media-ingest/`)
+      && res.request().method() === "PUT",
+    );
+    await page.getByRole("button", { name: "انتقال امن به قرنطینه" }).click();
+    expect((await received).status()).toBe(202);
+    await expect(page.getByRole("status")).toContainText("قرنطینه");
+    await expect(page.getByText("در قرنطینه؛ منتظر بررسی مستقل")).toBeVisible();
+    const [job] = await db.select().from(mediaIngests).where(
+      eq(mediaIngests.courseId, uiCourseId),
+    );
+    expect(job.status).toBe("quarantined");
+    expect((await db.select().from(privateMediaAssets).where(
+      eq(privateMediaAssets.courseId, uiCourseId),
+    ))).toHaveLength(0);
+  });
+
 });
