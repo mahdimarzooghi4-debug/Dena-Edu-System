@@ -1,5 +1,5 @@
 import {
-  bigint, boolean, check, index, integer, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid,
+  bigint, boolean, check, foreignKey, index, integer, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { roles } from "../domain/access/contracts";
@@ -128,7 +128,16 @@ export const courses = pgTable("dena_courses", {
   providerId: uuid("provider_id").notNull(),
   responsibleInstituteId: uuid("responsible_institute_id").notNull(),
   title: text("title").notNull(),
+  // Nullable only for legacy, data-free foundation fixtures; all API-created
+  // courses set both fields and validate the provider's active membership.
+  createdByProviderUserId: uuid("created_by_provider_user_id")
+    .references(() => user.id, { onDelete: "restrict" }),
+  clientRequestId: uuid("client_request_id"),
 }, (table) => [
+  uniqueIndex("dena_courses_provider_request_uidx").on(table.providerId, table.clientRequestId),
+  uniqueIndex("dena_courses_scope_fk_uidx").on(
+    table.id, table.providerId, table.responsibleInstituteId,
+  ),
   index("dena_courses_provider_idx").on(table.providerId),
   index("dena_courses_institute_idx").on(table.responsibleInstituteId),
 ]);
@@ -140,6 +149,9 @@ export const supervisionGrants = pgTable("dena_supervision_grants", {
   providerId: uuid("provider_id").notNull(),
   instituteId: uuid("institute_id").notNull(),
   status: supervisionStatus("status").notNull().default("requested"),
+  requestedByProviderUserId: uuid("requested_by_provider_user_id")
+    .references(() => user.id, { onDelete: "restrict" }),
+  requestedAt: timestamp("requested_at", { withTimezone: true }).notNull().defaultNow(),
   approvedByInstituteUserId: uuid("approved_by_institute_user_id").references(() => user.id),
   approvedAt: timestamp("approved_at", { withTimezone: true }),
 }, (table) => [
@@ -148,6 +160,38 @@ export const supervisionGrants = pgTable("dena_supervision_grants", {
     (approved_by_institute_user_id IS NOT NULL AND approved_at IS NOT NULL)
   `),
   index("dena_supervision_institute_idx").on(table.instituteId, table.status),
+  foreignKey({
+    columns: [table.courseId, table.providerId, table.instituteId],
+    foreignColumns: [courses.id, courses.providerId, courses.responsibleInstituteId],
+    name: "dena_supervision_matching_course_fk",
+  }).onDelete("cascade"),
+]);
+
+/** Audit events are insert-only in app routes. Production DB identity must
+ * separately deny UPDATE/DELETE on this table before live launch.
+ */
+export const supervisionEventKind = pgEnum("dena_supervision_event_kind", [
+  "requested", "approved", "rejected", "revoked",
+]);
+export const supervisionEvents = pgTable("dena_supervision_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  courseId: uuid("course_id").notNull().references(() => courses.id, {
+    onDelete: "restrict",
+  }),
+  providerId: uuid("provider_id").notNull(),
+  instituteId: uuid("institute_id").notNull(),
+  actorUserId: uuid("actor_user_id").notNull().references(() => user.id, {
+    onDelete: "restrict",
+  }),
+  kind: supervisionEventKind("kind").notNull(),
+  reason: text("reason"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("dena_supervision_events_course_idx").on(table.courseId, table.createdAt),
+  check("dena_supervision_event_reason_ck", sql`
+    (kind = 'requested' AND reason IS NULL)
+    OR (kind <> 'requested' AND reason IS NOT NULL)
+  `),
 ]);
 
 /**
