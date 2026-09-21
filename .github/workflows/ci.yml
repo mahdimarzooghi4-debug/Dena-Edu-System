@@ -72,6 +72,20 @@ jobs:
           echo "DENA_SMS_GATEWAY_TOKEN=$mock_token" >> "$GITHUB_ENV"
       - name: Generate reviewed Drizzle migration candidate
         run: npx drizzle-kit generate
+      - name: Preserve generated migration for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: drizzle-migration-candidate
+          path: drizzle/
+          if-no-files-found: error
+      # Temporary schema-only text export for committing generated migration.
+      - name: Export migration candidate
+        run: |
+          for f in drizzle/*.sql drizzle/meta/*.json; do
+            echo "DENA_MIGRATION_START ${f}"
+            base64 -w 256 "${f}"
+            echo "DENA_MIGRATION_END"
+          done
       - name: Verify generated migration files have been committed
         run: |
           if [ -n "$(git status --porcelain -- drizzle/)" ]; then
@@ -79,12 +93,6 @@ jobs:
             git status --short -- drizzle/
             exit 1
           fi
-      - name: Preserve generated migration for review
-        uses: actions/upload-artifact@v4
-        with:
-          name: drizzle-migration-candidate
-          path: drizzle/
-          if-no-files-found: error
       - name: Apply migrations to disposable PostgreSQL
         run: npx drizzle-kit migrate
       - name: Build for database-backed browser tests
