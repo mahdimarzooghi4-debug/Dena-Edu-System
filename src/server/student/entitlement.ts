@@ -2,7 +2,7 @@ import { and, eq, exists } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { getDb } from "../../db";
 import {
-  courses, memberships, studentEnrollments, supervisionGrants,
+  courses, memberships, privateMediaAssets, studentEnrollments, supervisionGrants,
 } from "../../db/schema";
 
 const provider = alias(memberships, "free_course_provider");
@@ -36,6 +36,11 @@ function validSupervision(db: ReturnType<typeof getDb>) { return and(
  */
 export function listedFreeCourse(db: ReturnType<typeof getDb>) { return and(
   eq(courses.publicationStatus, "published"), validSupervision(db),
+  exists(db.select({ id: privateMediaAssets.id })
+    .from(privateMediaAssets).where(and(
+      eq(privateMediaAssets.courseId, courses.id),
+      eq(privateMediaAssets.status, "ready"),
+    ))),
 ); }
 
 export async function hasStudentEntitlement(
