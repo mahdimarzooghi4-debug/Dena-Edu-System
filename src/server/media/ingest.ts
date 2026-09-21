@@ -2,7 +2,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { and, eq, sql } from "drizzle-orm";
 import { getDb } from "../../db";
 import {
-  courses, mediaIngests, mediaProcessingJobs, memberships, privateMediaAssets, supervisionGrants,
+  courses, mediaIngests, mediaMultipartPlans, mediaProcessingJobs, memberships, privateMediaAssets, supervisionGrants,
 } from "../../db/schema";
 import { configuredPrivateMediaOrigin } from "../student/private-media";
 import {
@@ -95,10 +95,27 @@ export async function reserveIngest(userId: string, courseId: string, input: Ing
         replayed: true };
     }
 
+    const [planConflict] = await tx.select({ id: mediaMultipartPlans.id })
+      .from(mediaMultipartPlans).where(and(
+        eq(mediaMultipartPlans.courseId, courseId),
+        eq(mediaMultipartPlans.requestId, input.clientRequestId),
+      )).limit(1);
+    if (planConflict) throw new IngestError("conflict");
+    await tx.update(mediaMultipartPlans).set({ status: "expired" }).where(and(
+      eq(mediaMultipartPlans.courseId, courseId),
+      eq(mediaMultipartPlans.status, "planned"),
+      sql`${mediaMultipartPlans.expiresAt} <= now()`,
+    ));
     const [{ count }] = await tx.select({
       count: sql<number>`count(*)::int`,
     }).from(mediaIngests).where(eq(mediaIngests.courseId, courseId));
-    if (count >= 20) throw new IngestError("limit_reached");
+    const [{ planned }] = await tx.select({
+      planned: sql<number>`count(*)::int`,
+    }).from(mediaMultipartPlans).where(and(
+      eq(mediaMultipartPlans.courseId, courseId),
+      eq(mediaMultipartPlans.status, "planned"),
+    ));
+    if (count + planned >= 20) throw new IngestError("limit_reached");
     const [created] = await tx.insert(mediaIngests).values({
       courseId, providerId: course.providerId, createdByUserId: userId,
       requestId: input.clientRequestId, title: input.title,
