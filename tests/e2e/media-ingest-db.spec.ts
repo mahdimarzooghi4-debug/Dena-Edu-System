@@ -354,6 +354,44 @@ test.describe("pilot quarantine ingest and independent worker attestation", () =
     expect((await db.select().from(privateMediaAssets)
       .where(eq(privateMediaAssets.courseId, courseId))).length).toBe(0);
     expect(await processMock(job.id, job.assetId)).toBe(200);
+    // A valid signed report can be stale when stored source bytes change.
+    const sourcePath = "http://127.0.0.1:4318/quarantine/" + job.id;
+    const originHeaders = { Authorization:
+      "Bearer " + process.env.DENA_PRIVATE_MEDIA_ORIGIN_TOKEN };
+    expect((await fetch(
+      "http://127.0.0.1:4318/__test__/mutate-source/" + job.id, {
+        method: "POST", headers: originHeaders,
+      },
+    )).status).toBe(200);
+    expect((await worker(workerClient, job.id, undefined, currentLease)).status()).toBe(409);
+    expect((await db.select().from(privateMediaAssets)
+      .where(eq(privateMediaAssets.courseId, courseId))).length).toBe(0);
+    // Repair ONLY the isolated test double; production requires immutability.
+    expect((await fetch(sourcePath, {
+      method: "PUT",
+      headers: { ...originHeaders, "Content-Type": "video/mp4",
+        "X-Dena-Sha256": sha256 },
+      body: new Uint8Array(fixture),
+    })).status).toBe(201);
+    expect(await processMock(job.id, job.assetId)).toBe(200);
+
+    // HEAD can match the SIGNED report while actual GET output has changed.
+    expect((await fetch(
+      "http://127.0.0.1:4318/__test__/mutate-private/" + job.id, {
+        method: "POST", headers: originHeaders,
+      },
+    )).status).toBe(200);
+    const forgedHead = await fetch(
+      "http://127.0.0.1:4318/private/" + courseId + "/" + job.assetId + ".mp4", {
+        method: "HEAD", headers: originHeaders,
+      },
+    );
+    expect(forgedHead.headers.get("x-dena-sha256")).toBe(report.outputSha256);
+    expect(forgedHead.headers.get("content-length")).toBe(String(report.outputBytes));
+    expect((await worker(workerClient, job.id, undefined, currentLease)).status()).toBe(409);
+    expect((await db.select().from(privateMediaAssets)
+      .where(eq(privateMediaAssets.courseId, courseId))).length).toBe(0);
+    expect(await processMock(job.id, job.assetId)).toBe(200);
     await db.update(mediaProcessingJobs).set({
       leaseUntil: new Date(Date.now() - 1000),
     }).where(eq(mediaProcessingJobs.uploadId, job.id));
