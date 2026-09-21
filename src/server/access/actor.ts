@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { getDb } from "../../db";
 import { memberships } from "../../db/schema";
-import { auth } from "../../lib/auth";
+import { getAuth } from "../../lib/auth";
 import { toAccessContext } from "./membership";
 
 /**
@@ -10,7 +10,7 @@ import { toAccessContext } from "./membership";
  * actor. Never accept role, userId or membership claims from params/body/cookies.
  */
 export async function getServerAccessContext() {
-  const activeSession = await auth.api.getSession({
+  const activeSession = await getAuth().api.getSession({
     headers: await headers(),
     query: { disableCookieCache: true },
   });
