@@ -120,22 +120,24 @@ export function verifyProcessedObject(
     stored.contentType === "video/mp4";
 }
 
-/** Independently hash the ENTIRE private quarantine object as streamed bytes.
- * No ETag, storage-reported whole-file hash or client-provided manifest is
- * treated as proof. This pure verifier does NOT publish, scan or transcode.
- * An adapter must supply a truly private stream for the exact server key.
+/** Independently hash the ENTIRE private object as streamed bytes. Never trust
+ * multipart ETags or storage-declared whole-file hashes. This is not scanning.
+ * Caller must use an authenticated, truly private and immutable origin.
  */
-export async function verifyQuarantineStream(
-  uploadId: string,
+type StreamedPrivateObject = {
+  key: string; private: boolean; contentType: string;
+  stream: AsyncIterable<Uint8Array>;
+};
+async function verifyStreamedPrivateObject(
+  expectedKey: string,
   expectedBytes: number,
   expectedSha256: string,
-  object: { key: string; private: boolean; contentType: string;
-    stream: AsyncIterable<Uint8Array> },
+  object: StreamedPrivateObject,
 ): Promise<boolean> {
   if (!Number.isSafeInteger(expectedBytes) || expectedBytes < 16 ||
       expectedBytes > MAX_MULTIPART_BYTES ||
       !sha.test(expectedSha256) ||
-      object?.key !== quarantineKey(uploadId) ||
+      object?.key !== expectedKey ||
       object.private !== true || object.contentType !== "video/mp4" ||
       !object.stream || typeof object.stream[Symbol.asyncIterator] !== "function") {
     return false;
@@ -145,9 +147,7 @@ export async function verifyQuarantineStream(
   let first = Buffer.alloc(0);
   try {
     for await (const chunk of object.stream) {
-      if (!(chunk instanceof Uint8Array) || chunk.byteLength === 0) {
-        return false;
-      }
+      if (!(chunk instanceof Uint8Array) || chunk.byteLength === 0) return false;
       total += chunk.byteLength;
       if (total > expectedBytes) return false;
       hasher.update(chunk);
@@ -158,15 +158,36 @@ export async function verifyQuarantineStream(
   } catch {
     return false;
   }
-  // Minimal ISO BMFF ftyp structure check only; never an AV/codec verdict.
-  // The first box can be up to the streamed bytes, not necessarily 16.
+  // ftyp is ONLY a shallow container header check, not an AV/codec verdict.
   if (total !== expectedBytes || first.length < 16 ||
-      first.readUInt32BE(0) < 16 ||
-      first.readUInt32BE(0) > total ||
+      first.readUInt32BE(0) < 16 || first.readUInt32BE(0) > total ||
       first.toString("ascii", 4, 8) !== "ftyp" ||
-      !/^[a-zA-Z0-9 ]{4}$/.test(first.toString("ascii", 8, 12))) {
-    return false;
+      !/^[a-zA-Z0-9 ]{4}$/.test(first.toString("ascii", 8, 12))) return false;
+  return timingSafeEqual(hasher.digest(), Buffer.from(expectedSha256, "hex"));
+}
+
+export function verifyQuarantineStream(
+  uploadId: string,
+  expectedBytes: number,
+  expectedSha256: string,
+  object: StreamedPrivateObject,
+): Promise<boolean> {
+  return verifyStreamedPrivateObject(
+    quarantineKey(uploadId), expectedBytes, expectedSha256, object,
+  );
+}
+
+/** Processed bytes may have a DIFFERENT hash/size from the raw input.
+ * Only a server-constructed private MP4 key may be accepted.
+ */
+export function verifyProcessedStream(
+  expected: { key: string; bytes: number; sha256: string },
+  object: StreamedPrivateObject,
+): Promise<boolean> {
+  if (!/^[0-9a-f-]{36}\/[0-9a-f-]{36}\.mp4$/.test(expected.key)) {
+    return Promise.resolve(false);
   }
-  const actual = hasher.digest();
-  return timingSafeEqual(actual, Buffer.from(expectedSha256, "hex"));
+  return verifyStreamedPrivateObject(
+    expected.key, expected.bytes, expected.sha256, object,
+  );
 }

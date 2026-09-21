@@ -6,7 +6,8 @@ import {
 } from "../../db/schema";
 import { configuredPrivateMediaOrigin } from "../student/private-media";
 import {
-  verifyProcessedObject, verifyProcessingAttestation, type ProcessingAttestation,
+  verifyProcessedObject, verifyProcessedStream, verifyQuarantineStream,
+  verifyProcessingAttestation, type ProcessingAttestation,
 } from "./multipart";
 
 export const MAX_PILOT_UPLOAD_BYTES = 8 * 1024 * 1024;
@@ -251,6 +252,52 @@ export async function receiveQuarantinedUpload(
  * private origin's inspection attestation and checks the final MP4 location.
  * The worker's request body can never assert clean/transcoded/ready itself.
  */
+/** GET actual private bytes, not just HEAD metadata. Cancellation stops
+ * reading immediately on any mismatch and on overlong streams.
+ * null = transport unavailable; false = invalid bytes/metadata.
+ */
+async function verifyOriginBytes(
+  origin: URL, token: string, path: string,
+  expected: { key: string; bytes: number; sha256: string },
+  sourceUploadId?: string,
+): Promise<boolean | null> {
+  const response = await fetch(new URL(path, origin), {
+    method: "GET", redirect: "error", cache: "no-store",
+    headers: { Authorization: "Bearer " + token },
+    signal: AbortSignal.timeout(20_000),
+  }).catch(() => null);
+  if (!response || response.status !== 200 || !response.body) {
+    await response?.body?.cancel().catch(() => {});
+    return null;
+  }
+  if (Number(response.headers.get("content-length")) !== expected.bytes ||
+      response.headers.get("x-dena-private") !== "1" ||
+      response.headers.get("content-type")?.split(";")[0].trim() !== "video/mp4") {
+    await response.body.cancel().catch(() => {});
+    return false;
+  }
+  const reader = response.body.getReader();
+  async function* chunks(): AsyncGenerator<Uint8Array> {
+    try {
+      while (true) {
+        const next = await reader.read();
+        if (next.done) break;
+        yield next.value;
+      }
+    } finally {
+      await reader.cancel().catch(() => {});
+      reader.releaseLock();
+    }
+  }
+  const object = {
+    key: expected.key, private: true, contentType: "video/mp4",
+    stream: chunks(),
+  };
+  return sourceUploadId
+    ? verifyQuarantineStream(sourceUploadId, expected.bytes, expected.sha256, object)
+    : verifyProcessedStream(expected, object);
+}
+
 export async function completeAttestedIngest(uploadId: string, leaseToken: string) {
   const media = configuredPrivateMediaOrigin();
   const signingKey = process.env.DENA_MEDIA_ATTESTATION_HMAC_KEY;
@@ -326,6 +373,16 @@ export async function completeAttestedIngest(uploadId: string, leaseToken: strin
       keyId, uploadId, sourceBytes: job.expectedBytes,
       sourceSha256: job.expectedSha256, outputKey: assetKey,
     }, signingKey)) return "conflict" as const;
+    // Re-read CURRENT quarantine bytes independently of a signed report.
+    // A valid report cannot cover subsequently replaced or corrupted bytes.
+    const sourceVerified = await verifyOriginBytes(
+      media.origin, media.token, "/quarantine/" + uploadId, {
+        key: "quarantine/" + uploadId,
+        bytes: job.expectedBytes, sha256: job.expectedSha256,
+      }, uploadId,
+    );
+    if (sourceVerified === null) return "unavailable" as const;
+    if (!sourceVerified) return "conflict" as const;
     const head = await fetch(new URL(`/private/${assetKey}`, media.origin), {
       method: "HEAD", redirect: "error", cache: "no-store",
       headers: { Authorization: `Bearer ${media.token}` },
@@ -344,6 +401,14 @@ export async function completeAttestedIngest(uploadId: string, leaseToken: strin
     };
     await head.body?.cancel();
     if (!verifyProcessedObject(report, stored)) return "conflict" as const;
+    // HEAD/ETag is NOT independent proof of final output integrity.
+    const outputVerified = await verifyOriginBytes(
+      media.origin, media.token, "/private/" + assetKey, {
+        key: assetKey, bytes: report.outputBytes, sha256: report.outputSha256,
+      },
+    );
+    if (outputVerified === null) return "unavailable" as const;
+    if (!outputVerified) return "conflict" as const;
     await tx.insert(privateMediaAssets).values({
       id: job.assetId, courseId: job.courseId, title: job.title,
       objectKey: assetKey, status: "ready",
