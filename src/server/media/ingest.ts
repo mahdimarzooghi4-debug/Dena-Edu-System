@@ -208,7 +208,7 @@ export async function receiveQuarantinedUpload(
       await upstream.body?.cancel(); return "unavailable";
     }
     await upstream.body?.cancel();
-    return db.transaction(async (tx) => {
+    return await db.transaction(async (tx) => {
       const [updated] = await tx.update(mediaIngests).set({
         status: "quarantined", uploadedAt: new Date(),
       }).where(and(eq(mediaIngests.id, uploadId),
