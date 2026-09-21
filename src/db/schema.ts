@@ -1,5 +1,5 @@
 import {
-  boolean, check, index, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid,
+  bigint, boolean, check, index, integer, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { roles } from "../domain/access/contracts";
@@ -12,6 +12,8 @@ export const user = pgTable("user", {
   email: text("email").notNull().unique(),
   emailVerified: boolean("emailVerified").notNull().default(false),
   image: text("image"),
+  phoneNumber: text("phoneNumber").unique(),
+  phoneNumberVerified: boolean("phoneNumberVerified").notNull().default(false),
   createdAt: timestamp("createdAt", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updatedAt", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -55,6 +57,21 @@ export const verification = pgTable("verification", {
   updatedAt: timestamp("updatedAt", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [index("verification_identifier_idx").on(table.identifier)]);
 
+// Shared DB-backed Better Auth limiter; never per-process memory for OTP.
+export const rateLimit = pgTable("rateLimit", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  key: text("key").notNull().unique(),
+  count: integer("count").notNull(),
+  lastRequest: bigint("lastRequest", { mode: "number" }).notNull(),
+});
+
+export const otpDispatchLimits = pgTable("dena_otp_dispatch_limits", {
+  phoneHash: text("phone_hash").primaryKey(), // HMAC, never the phone number
+  lastSentAt: timestamp("last_sent_at", { withTimezone: true }).notNull(),
+  windowStartedAt: timestamp("window_started_at", { withTimezone: true }).notNull(),
+  count: integer("count").notNull(),
+});
+
 export const denaRole = pgEnum("dena_role", roles);
 export const membershipStatus = pgEnum("dena_membership_status", ["active", "suspended", "revoked"]);
 export const memberships = pgTable("dena_memberships", {
@@ -71,6 +88,7 @@ export const memberships = pgTable("dena_memberships", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
   index("dena_memberships_active_user_idx").on(table.userId, table.status),
+  uniqueIndex("dena_one_student_membership_per_user").on(table.userId).where(sql`role = 'student'`),
   // Enforce one and only one scope matching the role; prevent tech support flag
   // from being used by any non-admin role.
   check("dena_membership_role_scope_ck", sql`
