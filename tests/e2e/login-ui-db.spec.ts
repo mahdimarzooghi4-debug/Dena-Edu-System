@@ -12,9 +12,9 @@ test("mobile UI verifies OTP and creates student only, then signs out", async ({
   try {
     await page.goto("/login");
     await expect(page.getByRole("heading", { name: "ورود یا ثبت‌نام" })).toBeVisible();
-    await page.getByLabel("شماره موبایل").fill("۰" + phone.slice(3).replace(/^9/, "9"));
-    // The full pasted display value is a Persian-leading local 09... number.
-    await page.getByLabel("شماره موبایل").fill("0" + phone.slice(3));
+    const local = "0" + phone.slice(3);
+    const persian = local.replace(/\d/g, (digit) => "۰۱۲۳۴۵۶۷۸۹"[Number(digit)]);
+    await page.getByLabel("شماره موبایل").fill(persian);
     await page.getByRole("button", { name: "دریافت کد تأیید" }).click();
     await expect(page.getByLabel("کد تأیید")).toBeVisible();
 
