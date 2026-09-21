@@ -723,4 +723,82 @@ test.describe("pilot quarantine ingest and independent worker attestation", () =
     await outsider.dispose();
   });
 
+  test("provider browser plans large video metadata without transferring bytes and cancels after revoke", async ({ page }) => {
+    const signed = await serializeSignedCookie(
+      "better-auth.session_token", tokens.provider, process.env.BETTER_AUTH_SECRET!,
+    );
+    await page.context().addCookies([{
+      name: "better-auth.session_token",
+      value: signed.split(";")[0].split("=").slice(1).join("="),
+      domain: "localhost", path: "/", httpOnly: true,
+      secure: false, sameSite: "Lax",
+    }]);
+    const before = await db.select().from(mediaIngests)
+      .where(eq(mediaIngests.courseId, uiCourseId));
+    const transfers: string[] = [];
+    page.on("request", request => {
+      if (request.method() === "PUT" ||
+          request.url().includes("/multipart/parts/")) {
+        transfers.push(request.url());
+      }
+    });
+    await page.goto(`http://localhost:3000/provider/courses/${uiCourseId}/media`);
+    await expect(page.getByRole("heading", {
+      name: "برنامه‌ریزی ویدئوی حجیم بدون آپلود",
+    })).toBeVisible();
+    await expect(page.getByText("فقط برنامه‌ریزی؛ آپلود واقعی فعال نیست")).toBeVisible();
+    await page.getByLabel("عنوان طرح ویدئوی حجیم").fill("طرح رابط فارسی بدون آپلود");
+    await page.getByLabel("اندازهٔ دقیق کل فایل (بایت)").fill("16777217");
+    await page.getByLabel("SHA-256 کل فایل (۶۴ رقم هگز)").fill(sha256);
+    const newPlan = page.waitForResponse(response =>
+      response.url().endsWith(`/api/provider/courses/${uiCourseId}/multipart-plans`) &&
+      response.request().method() === "POST",
+    );
+    await page.getByRole("button", {
+      name: "ثبت طرح بدون آپلود فایل",
+    }).click();
+    const response = await newPlan;
+    expect(response.status()).toBe(201);
+    expect(response.request().headers()["content-type"]).toContain("application/json");
+    const created = await response.json();
+    expect(created.plan).toMatchObject({
+      parts: [{ partNumber: 1, bytes: 16 * 1024 * 1024 },
+        { partNumber: 2, bytes: 1 }],
+    });
+    await expect(page.getByRole("heading", {
+      name: "خلاصهٔ طرح؛ نه مجوز آپلود",
+    })).toBeVisible();
+    await expect(page.getByText("طرح فعال؛ بدون انتقال فایل")).toBeVisible();
+    expect(transfers).toEqual([]);
+    expect((await db.select().from(mediaIngests)
+      .where(eq(mediaIngests.courseId, uiCourseId))).length).toBe(before.length);
+    expect(await db.select().from(privateMediaAssets)
+      .where(eq(privateMediaAssets.courseId, uiCourseId))).toEqual([]);
+    await db.update(supervisionGrants).set({
+      status: "revoked", approvedAt: null, approvedByInstituteUserId: null,
+    }).where(eq(supervisionGrants.courseId, uiCourseId));
+    await page.reload();
+    await expect(page.getByText(
+      "طرح‌های قبلی خود را همچنان می‌توانید مشاهده و لغو کنید.",
+      { exact: false },
+    )).toBeVisible();
+    await expect(page.getByRole("button", {
+      name: "ثبت طرح بدون آپلود فایل",
+    })).toHaveCount(0);
+    const cancelled = page.waitForResponse(res =>
+      res.url().endsWith(`/multipart-plans/${created.uploadId}/cancel`) &&
+      res.request().method() === "POST",
+    );
+    await page.getByRole("button", {
+      name: "لغو طرح «طرح رابط فارسی بدون آپلود»",
+    }).click();
+    expect((await cancelled).status()).toBe(200);
+    await expect(page.getByText("لغوشده؛ بدون مجوز آپلود")).toBeVisible();
+    expect(transfers).toEqual([]);
+    await db.update(supervisionGrants).set({
+      status: "approved", approvedAt: new Date(),
+      approvedByInstituteUserId: users.institute,
+    }).where(eq(supervisionGrants.courseId, uiCourseId));
+  });
+
 });
