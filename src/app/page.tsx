@@ -22,7 +22,10 @@ export default function HomePage() {
           در این مرحله تنها می‌توانید پوستهٔ عمومی صفحات را ببینید و هیچ سرویس آموزشی یا مالی فعال نیست.
         </p>
         <div className="mt-7 flex flex-wrap gap-3">
-          <Link href={previewHref("student", navigation.student[0].href)} className={buttonClassName()}>
+          <Link href="/login" className={buttonClassName()}>
+            ورود و ثبت‌نام
+          </Link>
+          <Link href={previewHref("student", navigation.student[0].href)} className={buttonClassName("secondary")}>
             مشاهدهٔ پوستهٔ دانش‌آموز
           </Link>
           <a href={FIGMA_FILE_URL} target="_blank" rel="noopener noreferrer" className={buttonClassName("outline")}>
