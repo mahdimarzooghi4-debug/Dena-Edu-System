@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getServerAccessContext } from "../../../../../../../../server/access/actor";
+import { getServerAccessContext } from "../../../../../../../server/access/actor";
 import {
   configuredPrivateMediaOrigin, getApprovedPrivateAsset, safeMediaRange,
-} from "../../../../../../../../server/student/private-media";
+} from "../../../../../../../server/student/private-media";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
