@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
+import { serializeSignedCookie } from "better-call";
 import { test, expect, request, type APIRequestContext } from "@playwright/test";
 import { getDb } from "../../src/db";
 import { courses, memberships, session, supervisionGrants, user } from "../../src/db/schema";
@@ -26,12 +27,15 @@ test.describe("DB-backed actor and supervised-course access", () => {
     expired: randomUUID(),
   };
   const baseURL = "http://127.0.0.1:3000";
-  const cookie = (token: string) => `better-auth.session_token=${token}`;
+  // Better Auth rejects raw session tokens; use its cookie signer (better-call).
+  const cookie = (token: string) => serializeSignedCookie(
+    "better-auth.session_token", token, process.env.BETTER_AUTH_SECRET!,
+  ).then((setCookie) => setCookie.split(";")[0]);
 
   async function client(token?: string): Promise<APIRequestContext> {
     return request.newContext({
       baseURL,
-      extraHTTPHeaders: token ? { Cookie: cookie(token) } : {},
+      extraHTTPHeaders: token ? { Cookie: await cookie(token) } : {},
     });
   }
 
