@@ -1,7 +1,7 @@
 import { and, eq, or } from "drizzle-orm";
 import { getDb } from "../../db";
 import {
-  courses, memberships, studentEnrollments, supervisionGrants,
+  courses, memberships, privateMediaAssets, studentEnrollments, supervisionGrants,
 } from "../../db/schema";
 
 export type StudentEnrollmentErrorKind =
@@ -41,6 +41,12 @@ export async function enrollFreeCourse(
     if (!grant?.approvedByInstituteUserId || !grant.approvedAt) {
       throw new StudentEnrollmentError("not_available");
     }
+    const [media] = await tx.select({ id: privateMediaAssets.id })
+      .from(privateMediaAssets).where(and(
+        eq(privateMediaAssets.courseId, courseId),
+        eq(privateMediaAssets.status, "ready"),
+      )).limit(1).for("share");
+    if (!media) throw new StudentEnrollmentError("not_available");
     const active = await tx.select({
       id: memberships.id, role: memberships.role,
       providerId: memberships.providerId, instituteId: memberships.instituteId,
