@@ -28,6 +28,7 @@ const unfencedDeletes = new Set();
 const tombstones = new Set();
 const inspections = new Map();
 const privateAssets = new Map();
+const fakePrivateHead = new Map();
 const health = "/health";
 const reply = (res, status, data) => {
   res.writeHead(status, { "Content-Type": "application/json", "Cache-Control": "no-store" });
@@ -71,6 +72,25 @@ const server = createServer(async (req, res) => {
   if (req.method === "POST" && unfenced) {
     unfencedDeletes.add(unfenced[1]);
     return reply(res, 200, { failNextFence: true });
+  }
+  // CI-only private read; a real origin must require separate service auth.
+  if (req.method === "GET" && quarantineMatch) {
+    const bytes = quarantined.get(quarantineMatch[1]);
+    if (!bytes) return reply(res, 404, {});
+    res.writeHead(200, {
+      "Content-Type": "video/mp4", "Content-Length": bytes.length,
+      "X-Dena-Private": "1",
+    });
+    res.end(bytes); return;
+  }
+  const corruptSource = new RegExp("^/__test__/mutate-source/(" + uuid + ")$").exec(req.url ?? "");
+  if (req.method === "POST" && corruptSource) {
+    const bytes = quarantined.get(corruptSource[1]);
+    if (!bytes) return reply(res, 404, {});
+    const changed = Buffer.from(bytes);
+    changed[changed.length - 1] ^= 0xff;
+    quarantined.set(corruptSource[1], changed);
+    return reply(res, 200, { corrupted: true });
   }
   if (req.method === "HEAD" && quarantineMatch) {
     const bytes = quarantined.get(quarantineMatch[1]);
@@ -122,6 +142,7 @@ const server = createServer(async (req, res) => {
       .digest("hex");
     inspections.set(processMatch[1], { ...report, signature });
     privateAssets.set(assetKey, output);
+    fakePrivateHead.delete(assetKey);
     return reply(res, 200, { processed: true });
   }
   // CI-only report tampering; this double is NEVER a real scanner.
@@ -138,15 +159,32 @@ const server = createServer(async (req, res) => {
     return report ? reply(res, 200, report) : reply(res, 404, {});
   }
 
+  const corruptPrivate = new RegExp("^/__test__/mutate-private/(" + uuid + ")$").exec(req.url ?? "");
+  if (req.method === "POST" && corruptPrivate) {
+    const report = inspections.get(corruptPrivate[1]);
+    const existing = report && privateAssets.get(report.outputKey);
+    if (!report || !existing) return reply(res, 404, {});
+    const modified = Buffer.from(existing);
+    modified[modified.length - 1] ^= 0xff;
+    privateAssets.set(report.outputKey, modified);
+    // Spoof HEAD to prove the verifier rejects corrupt GET bytes independently.
+    fakePrivateHead.set(report.outputKey, {
+      size: report.outputBytes, digest: report.outputSha256,
+    });
+    return reply(res, 200, { corrupted: true, headSpoofed: true });
+  }
   const mediaMatch = new RegExp(`^/private/(${uuid}/${uuid}\\.mp4)$`).exec(req.url ?? "");
   if (!mediaMatch || !["GET", "HEAD"].includes(req.method ?? "")) return reply(res, 404, {});
   const bytes = privateAssets.get(mediaMatch[1]) ?? fixture;
   res.setHeader("Content-Type", "video/mp4");
   res.setHeader("Accept-Ranges", "bytes");
+  res.setHeader("X-Dena-Private", "1");
   if (req.method === "HEAD") {
+    const spoof = fakePrivateHead.get(mediaMatch[1]);
     res.writeHead(200, {
-      "Content-Length": bytes.length,
-      "X-Dena-Sha256": createHash("sha256").update(bytes).digest("hex"),
+      "Content-Length": spoof?.size ?? bytes.length,
+      "X-Dena-Sha256": spoof?.digest ??
+        createHash("sha256").update(bytes).digest("hex"),
       "X-Dena-Private": "1",
     }); res.end(); return;
   }
