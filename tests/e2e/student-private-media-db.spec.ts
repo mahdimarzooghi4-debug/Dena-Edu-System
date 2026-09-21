@@ -134,6 +134,8 @@ test.describe("free enrollment and private video access must stay course-scoped"
     expect((await provider.get(mediaPath(ids.live, videoIds.ready))).status()).toBe(404);
     expect((await post(provider, `/api/provider/courses/${ids.pending}/publication`,
       { action: "publish" })).status()).toBe(404);
+    expect((await post(provider, `/api/provider/courses/${ids.draft}/publication`,
+      { action: "publish" })).status()).toBe(404); // no ready video
     expect((await provider.post(
       `/api/provider/courses/${ids.live}/publication`, {
         data: { action: "publish" }, headers: { Origin: "https://attacker.invalid" },
@@ -282,6 +284,16 @@ test.describe("free enrollment and private video access must stay course-scoped"
     await db.update(memberships).set({ status: "active" })
       .where(and(eq(memberships.userId, users.student),
         eq(memberships.role, "student")));
+    expect((await student.get(mediaPath(ids.live, videoIds.ready))).status()).toBe(200);
+
+    await db.update(privateMediaAssets).set({ status: "withdrawn" })
+      .where(eq(privateMediaAssets.id, videoIds.ready));
+    expect((await student.get(mediaPath(ids.live, videoIds.ready))).status()).toBe(404);
+    expect((await (await student.get("/api/student/courses")).json()).courses)
+      .toHaveLength(0);
+    expect((await post(student, enrollPath(ids.live), {})).status()).toBe(404);
+    await db.update(privateMediaAssets).set({ status: "ready" })
+      .where(eq(privateMediaAssets.id, videoIds.ready));
     expect((await student.get(mediaPath(ids.live, videoIds.ready))).status()).toBe(200);
 
     // Supervision remains invalid when its *actual institute approver* or
