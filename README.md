@@ -4,7 +4,7 @@
 
 ## پشتهٔ تأییدشده
 
-Next.js App Router + React + TypeScript؛ Tailwind CSS 4 + قرارداد shadcn/ui؛ PostgreSQL + Drizzle ORM؛ Better Auth؛ React Hook Form + Zod؛ Vitest + Playwright. جزئیات پشته در [ADR-0001](docs/decisions/0001-technology-stack.md) و هدف معماری مقیاس‌پذیر برای پنج میلیون کاربر همزمان در [ADR-0002](docs/decisions/0002-five-million-concurrent-architecture.md) آمده است؛ ظرفیت هدف هنوز با تست بار و قرارداد CDN/زیرساخت تأیید نشده است.
+Next.js App Router + React + TypeScript؛ Tailwind CSS 4 + قرارداد shadcn/ui؛ PostgreSQL + Drizzle ORM؛ Better Auth؛ React Hook Form + Zod؛ Vitest + Playwright. جزئیات پشته در [ADR-0001](docs/decisions/0001-technology-stack.md) و هدف معماری مقیاس‌پذیر برای پنج میلیون کاربر همزمان در [ADR-0002](docs/decisions/0002-five-million-concurrent-architecture.md) و برنامهٔ ارزیابی زیرساخت ایران و رشد مرحله‌ای در [ADR-0003](docs/decisions/0003-iran-deployment-and-capacity-rollout.md) آمده است؛ ظرفیت هدف هنوز با تست بار و قرارداد CDN/زیرساخت تأیید نشده است.
 
 ## راه‌اندازی توسعه
 
