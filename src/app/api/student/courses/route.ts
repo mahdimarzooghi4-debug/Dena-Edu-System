@@ -1,4 +1,4 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, exists } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { getDb } from "../../../../db";
 import {
@@ -26,17 +26,17 @@ export async function GET() {
     courseId: courses.id, title: courses.title,
     providerId: courses.providerId,
     responsibleInstituteId: courses.responsibleInstituteId,
+    enrolled: exists(db.select({ id: studentEnrollments.id })
+      .from(studentEnrollments).where(and(
+        eq(studentEnrollments.courseId, courses.id),
+        eq(studentEnrollments.studentUserId, actor.userId),
+        eq(studentEnrollments.status, "active"),
+      ))),
   }).from(courses).innerJoin(
     supervisionGrants, eq(supervisionGrants.courseId, courses.id),
   ).where(listedFreeCourse(db))
     .orderBy(asc(courses.title)).limit(50);
-  const enrolled = await db.select({ courseId: studentEnrollments.courseId })
-    .from(studentEnrollments).where(and(
-      eq(studentEnrollments.studentUserId, actor.userId),
-      eq(studentEnrollments.status, "active"),
-    )).limit(50);
-  const own = new Set(enrolled.map((row) => row.courseId));
   return NextResponse.json({
-    courses: rows.map((row) => ({ ...row, free: true, enrolled: own.has(row.courseId) })),
+    courses: rows.map((row) => ({ ...row, free: true })),
   }, { headers: noStore });
 }
