@@ -62,7 +62,7 @@ test.describe("pilot quarantine ingest and independent worker attestation", () =
   }
   async function worker(ctx: APIRequestContext, id: string,
       token = process.env.DENA_MEDIA_PROCESSOR_TOKEN!,
-      leaseToken = randomUUID()) {
+      leaseToken: string = randomUUID()) {
     return ctx.post(callbackPath(id), {
       data: { leaseToken }, headers: { Authorization: `Bearer ${token}` },
     });

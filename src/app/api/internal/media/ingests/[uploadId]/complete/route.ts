@@ -24,12 +24,13 @@ export async function POST(
     error: "Not found",
   }, { status: 404, headers: noStore });
   const body: unknown = await request.json().catch(() => null);
-  if (!z.object({}).strict().safeParse(body).success) {
+  const parsed = z.object({ leaseToken: z.uuid() }).strict().safeParse(body);
+  if (!parsed.success) {
     return NextResponse.json({ error: "Invalid request" }, {
       status: 400, headers: noStore,
     });
   }
-  const result = await completeAttestedIngest(uploadId);
+  const result = await completeAttestedIngest(uploadId, parsed.data.leaseToken);
   return result === "ready"
     ? NextResponse.json({ uploadId, status: "ready" }, { headers: noStore })
     : NextResponse.json({ error: result }, {
