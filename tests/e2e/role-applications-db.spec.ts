@@ -172,7 +172,7 @@ test.describe("reviewed role requests, scoped grants and audit on PostgreSQL", (
     await admin.dispose();
   });
 
-  test("rejected role does not grant scope; no self-review even for admins", async () => {
+  test("rejected role does not grant scope; no self-review even for admins", async ({ page }) => {
     const applicant = await client("applicant");
     const rejection = await submit(applicant, {
       role: "provider", proposedName: "ارائه‌دهنده آزمایشی",
@@ -183,9 +183,27 @@ test.describe("reviewed role requests, scoped grants and audit on PostgreSQL", (
     requestIds.push(rejectedId);
 
     const admin = await client("reviewer");
-    expect((await decide(admin, rejectedId, {
-      action: "reject", reason: "مدرک لازم برای تایید ارائه‌دهنده ارائه نشده است.",
-    })).status()).toBe(200);
+    // Exercise the *actual* guarded admin review page and clicked reject button.
+    const signed = await serializeSignedCookie(
+      "better-auth.session_token", token.reviewer, process.env.BETTER_AUTH_SECRET!,
+    );
+    await page.context().addCookies([{
+      name: "better-auth.session_token",
+      value: signed.split(";")[0].split("=").slice(1).join("="),
+      domain: "localhost", path: "/", httpOnly: true, secure: false, sameSite: "Lax",
+    }]);
+    await page.goto("http://localhost:3000/admin/role-applications");
+    await expect(page.getByRole("heading", { name: "درخواست‌های نقش سازمانی" })).toBeVisible();
+    const entry = page.locator("li").filter({ hasText: "ارائه‌دهنده آزمایشی" });
+    await expect(entry).toBeVisible();
+    await entry.getByLabel("دلیل تصمیم").fill("مدرک لازم برای تایید ارائه‌دهنده ارائه نشده است.");
+    const requestDone = page.waitForResponse((res) =>
+      res.url().endsWith(`/api/admin/role-applications/${rejectedId}/decision`)
+      && res.request().method() === "POST",
+    );
+    await entry.getByRole("button", { name: "رد درخواست با دلیل" }).click();
+    expect((await requestDone).status()).toBe(200);
+    await expect(page.getByRole("status")).toContainText("تصمیم و سوابق آن ثبت شد.");
     expect((await submit(applicant, {
       role: "provider", proposedName: "ارائه‌دهنده آزمایشی",
       statement: "درخواست دوم بدون بازگشایی رسمی پرونده تایید نمی شود.",
