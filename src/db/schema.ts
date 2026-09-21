@@ -123,11 +123,17 @@ export const memberships = pgTable("dena_memberships", {
 export const supervisionStatus = pgEnum("dena_supervision_status", [
   "requested", "approved", "revoked",
 ]);
+export const coursePublicationStatus = pgEnum("dena_course_publication_status", [
+  "draft", "published", "archived",
+]);
 export const courses = pgTable("dena_courses", {
   id: uuid("id").primaryKey().defaultRandom(),
   providerId: uuid("provider_id").notNull(),
   responsibleInstituteId: uuid("responsible_institute_id").notNull(),
   title: text("title").notNull(),
+  // Explicit free-only launch; paid enrollment is deliberately NOT available.
+  publicationStatus: coursePublicationStatus("publication_status").notNull().default("draft"),
+  publishedAt: timestamp("published_at", { withTimezone: true }),
   // Nullable only for legacy, data-free foundation fixtures; all API-created
   // courses set both fields and validate the provider's active membership.
   createdByProviderUserId: uuid("created_by_provider_user_id")
@@ -191,6 +197,52 @@ export const supervisionEvents = pgTable("dena_supervision_events", {
   check("dena_supervision_event_reason_ck", sql`
     (kind = 'requested' AND reason IS NULL)
     OR (kind <> 'requested' AND reason IS NOT NULL)
+  `),
+]);
+
+/** Free student access only. Never infer a paid entitlement from these rows. */
+export const enrollmentStatus = pgEnum("dena_enrollment_status", ["active", "cancelled"]);
+export const studentEnrollments = pgTable("dena_student_enrollments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  courseId: uuid("course_id").notNull().references(() => courses.id, {
+    onDelete: "restrict",
+  }),
+  studentUserId: uuid("student_user_id").notNull().references(() => user.id, {
+    onDelete: "restrict",
+  }),
+  status: enrollmentStatus("status").notNull().default("active"),
+  enrolledAt: timestamp("enrolled_at", { withTimezone: true }).notNull().defaultNow(),
+  cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+}, (table) => [
+  uniqueIndex("dena_student_course_enrollment_uidx").on(
+    table.studentUserId, table.courseId,
+  ),
+  index("dena_enrollment_course_idx").on(table.courseId, table.status),
+  check("dena_enrollment_cancel_ck", sql`
+    (status = 'active' AND cancelled_at IS NULL)
+    OR (status = 'cancelled' AND cancelled_at IS NOT NULL)
+  `),
+]);
+
+/** Private media records are created only by a future trusted ingest workflow,
+ * never by user-provided file URLs or an exposed provider create-asset endpoint.
+ */
+export const mediaAssetStatus = pgEnum("dena_media_asset_status", [
+  "ready", "withdrawn",
+]);
+export const privateMediaAssets = pgTable("dena_private_media_assets", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  courseId: uuid("course_id").notNull().references(() => courses.id, {
+    onDelete: "restrict",
+  }),
+  title: text("title").notNull(),
+  objectKey: text("object_key").notNull().unique(),
+  status: mediaAssetStatus("status").notNull().default("ready"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("dena_private_media_course_idx").on(table.courseId, table.status),
+  check("dena_private_media_key_ck", sql`
+    object_key = course_id::text || '/' || id::text || '.mp4'
   `),
 ]);
 
