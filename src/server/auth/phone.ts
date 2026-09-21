@@ -48,13 +48,16 @@ export function smsGatewayUrl(): string {
   return value;
 }
 
-/** Atomically enforce a 60-second cooldown and three sends per rolling hour
+/** Atomically enforce a 60-second cooldown and three sends per one-hour window from first send
  * per HMAC(phone). Multiple Next.js replicas share the same PostgreSQL limit.
  */
 async function takeDispatchSlot(phone: string) {
   const now = new Date();
   const minuteAgo = new Date(now.getTime() - 60_000);
   const hourAgo = new Date(now.getTime() - 3_600_000);
+  const hourAgoIso = hourAgo.toISOString();
+  const minuteAgoIso = minuteAgo.toISOString();
+  const nowIso = now.toISOString();
   const hash = hmacPhone(phone);
   const [allowed] = await getDb().insert(otpDispatchLimits).values({
     phoneHash: hash, lastSentAt: now, windowStartedAt: now, count: 1,
@@ -62,11 +65,11 @@ async function takeDispatchSlot(phone: string) {
     target: otpDispatchLimits.phoneHash,
     set: {
       lastSentAt: now,
-      windowStartedAt: sql`CASE WHEN ${otpDispatchLimits.windowStartedAt} <= ${hourAgo} THEN ${now} ELSE ${otpDispatchLimits.windowStartedAt} END`,
-      count: sql`CASE WHEN ${otpDispatchLimits.windowStartedAt} <= ${hourAgo} THEN 1 ELSE ${otpDispatchLimits.count} + 1 END`,
+      windowStartedAt: sql`CASE WHEN ${otpDispatchLimits.windowStartedAt} <= ${hourAgoIso} THEN ${nowIso} ELSE ${otpDispatchLimits.windowStartedAt} END`,
+      count: sql`CASE WHEN ${otpDispatchLimits.windowStartedAt} <= ${hourAgoIso} THEN 1 ELSE ${otpDispatchLimits.count} + 1 END`,
     },
-    setWhere: sql`${otpDispatchLimits.lastSentAt} <= ${minuteAgo} AND
-      (${otpDispatchLimits.windowStartedAt} <= ${hourAgo} OR ${otpDispatchLimits.count} < 3)`,
+    setWhere: sql`${otpDispatchLimits.lastSentAt} <= ${minuteAgoIso} AND
+      (${otpDispatchLimits.windowStartedAt} <= ${hourAgoIso} OR ${otpDispatchLimits.count} < 3)`,
   }).returning({ phoneHash: otpDispatchLimits.phoneHash });
   if (!allowed) throw new APIError("TOO_MANY_REQUESTS", { message: "OTP request limit reached" });
 }
