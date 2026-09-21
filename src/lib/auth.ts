@@ -9,21 +9,31 @@ function required(name: "BETTER_AUTH_SECRET" | "BETTER_AUTH_URL"): string {
   return value;
 }
 
-export const auth = betterAuth({
-  appName: "دنا",
-  baseURL: required("BETTER_AUTH_URL"),
-  secret: required("BETTER_AUTH_SECRET"),
-  database: drizzleAdapter(getDb(), {
-    provider: "pg",
-    schema: { user, session, account, verification },
-  }),
-  advanced: {
-    database: { generateId: "uuid" },
-  },
-  session: {
-    cookieCache: { enabled: false }, // immediate revocation checks matter
-  },
-  // No verified SMS or email provider has been selected. Do not expose public
-  // credentials signup or assign roles from user-supplied identity fields.
-  emailAndPassword: { enabled: false },
-});
+function createAuth() {
+  return betterAuth({
+    appName: "دنا",
+    baseURL: required("BETTER_AUTH_URL"),
+    secret: required("BETTER_AUTH_SECRET"),
+    database: drizzleAdapter(getDb(), {
+      provider: "pg",
+      schema: { user, session, account, verification },
+    }),
+    advanced: {
+      database: { generateId: "uuid" },
+    },
+    session: {
+      cookieCache: { enabled: false }, // immediate revocation checks matter
+    },
+    // No verified SMS or email provider has been selected. Do not expose public
+    // credentials signup or assign roles from user-supplied identity fields.
+    emailAndPassword: { enabled: false },
+  });
+}
+
+// Do not require production secrets during Next.js build/preview route discovery.
+// Fail closed when a live auth request actually reaches this integration.
+let instance: ReturnType<typeof createAuth> | undefined;
+export function getAuth() {
+  instance ??= createAuth();
+  return instance;
+}
