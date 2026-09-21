@@ -5,10 +5,12 @@ import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 import { Card } from "../../../../../components/ui/card";
 import { MediaIngestForm } from "../../../../../components/provider/media-ingest-form";
+import { MultipartPlanningForm } from "../../../../../components/provider/multipart-planning-form";
 import { getDb } from "../../../../../db";
 import { courses, supervisionGrants } from "../../../../../db/schema";
 import { getServerAccessContext } from "../../../../../server/access/actor";
 import { ingestAvailable } from "../../../../../server/media/ingest";
+import { multipartPlanningEnabled } from "../../../../../server/media/multipart-control";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -63,6 +65,16 @@ export default async function ProviderMediaPage({
             دوره باید پیش‌نویس، مورد تأیید مؤسسه و متصل به origin خصوصی باشد.
           </p>}
       </Card>
+      {multipartPlanningEnabled() && <Card className="mt-6 rounded-[24px] p-6 md:p-10">
+        <p className="text-sm font-bold text-dena-brand">کنترل‌پلین آزمایشی</p>
+        <h2 className="mt-3 text-xl font-extrabold">برنامه‌ریزی ویدئوی حجیم بدون آپلود</h2>
+        <p className="my-5 text-sm leading-8 text-dena-muted">
+          این فرم جدا از دریافت آزمایشی ۸ مگابایتی است و هیچ فایلی را ارسال نمی‌کند.
+        </p>
+        <MultipartPlanningForm courseId={courseId} canCreate={
+          course.publicationStatus === "draft" && course.supervisionStatus === "approved"
+        } />
+      </Card>}
     </main>
   );
 }
