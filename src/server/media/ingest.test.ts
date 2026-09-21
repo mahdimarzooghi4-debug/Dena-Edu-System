@@ -53,6 +53,11 @@ describe("pilot ingest deny-by-default contracts", () => {
     expect(secureWorkerToken(null)).toBe(false);
     expect(secureWorkerToken("Bearer x".repeat(8))).toBe(false);
     expect(secureWorkerToken(credential)).toBe(true);
+    process.env.DENA_PRIVATE_MEDIA_ORIGIN_TOKEN =
+      process.env.DENA_MEDIA_PROCESSOR_TOKEN;
+    expect(secureWorkerToken(credential)).toBe(false);
+    process.env.DENA_PRIVATE_MEDIA_ORIGIN_TOKEN = "origin".repeat(8);
+    expect(secureWorkerToken(credential)).toBe(true);
     expect(secureWorkerToken(credential + "x")).toBe(false);
   });
 });
