@@ -4,7 +4,7 @@ import { serializeSignedCookie } from "better-call";
 import { expect, request, test, type APIRequestContext } from "@playwright/test";
 import { getDb } from "../../src/db";
 import {
-  courses, mediaIngests, memberships, privateMediaAssets, session,
+  courses, mediaIngests, mediaProcessingJobs, memberships, privateMediaAssets, session,
   studentEnrollments, supervisionGrants, user, verifiedEntities,
 } from "../../src/db/schema";
 
@@ -123,6 +123,11 @@ test.describe("pilot quarantine ingest and independent worker attestation", () =
       .where(eq(studentEnrollments.courseId, courseId));
     await db.delete(privateMediaAssets)
       .where(inArray(privateMediaAssets.courseId, [courseId, uiCourseId]));
+    await db.delete(mediaProcessingJobs).where(inArray(
+      mediaProcessingJobs.uploadId,
+      db.select({ id: mediaIngests.id }).from(mediaIngests)
+        .where(inArray(mediaIngests.courseId, [courseId, uiCourseId])),
+    ));
     await db.delete(mediaIngests)
       .where(inArray(mediaIngests.courseId, [courseId, uiCourseId]));
     await db.delete(supervisionGrants)
@@ -232,6 +237,68 @@ test.describe("pilot quarantine ingest and independent worker attestation", () =
     await provider.dispose();
   });
 
+  test("durable leases reject replay and retry with backoff", async () => {
+    const [ingest] = await db.select().from(mediaIngests).where(and(
+      eq(mediaIngests.courseId, courseId),
+      eq(mediaIngests.expectedSha256, sha256),
+    ));
+    const [queued] = await db.select().from(mediaProcessingJobs)
+      .where(eq(mediaProcessingJobs.uploadId, ingest.id));
+    expect(queued.status).toBe("queued");
+    expect(queued.attempts).toBe(0);
+    const caller = await client();
+    const claim = "/api/internal/media-jobs/claim";
+    const fail = `/api/internal/media-jobs/${ingest.id}/fail`;
+    expect((await caller.post(claim, { data: { limit: 1 } })).status()).toBe(404);
+    const auth = { Authorization: `Bearer ${process.env.DENA_MEDIA_PROCESSOR_TOKEN}` };
+    expect((await caller.post(claim, {
+      data: { limit: 0 }, headers: auth,
+    })).status()).toBe(400);
+    const first = await caller.post(claim, {
+      data: { limit: 1 }, headers: auth,
+    });
+    expect(first.status()).toBe(200);
+    const jobs = (await first.json()).jobs;
+    expect(jobs).toEqual([expect.objectContaining({
+      uploadId: ingest.id, attempts: 1,
+    })]);
+    expect((await (await caller.post(claim, {
+      data: { limit: 1 }, headers: auth,
+    })).json()).jobs).toEqual([]);
+    expect((await caller.post(fail, {
+      data: { leaseToken: randomUUID(), reason: "temporary failure" },
+      headers: auth,
+    })).status()).toBe(409);
+    const rescheduled = await caller.post(fail, {
+      data: { leaseToken: jobs[0].leaseToken, reason: "temporary failure" },
+      headers: auth,
+    });
+    expect(rescheduled.status()).toBe(200);
+    expect((await rescheduled.json()).status).toBe("queued");
+    const [retry] = await db.select().from(mediaProcessingJobs)
+      .where(eq(mediaProcessingJobs.uploadId, ingest.id));
+    expect(retry.attempts).toBe(1);
+    expect(retry.nextAttemptAt.getTime()).toBeGreaterThan(Date.now());
+    expect((await (await caller.post(claim, {
+      data: { limit: 1 }, headers: auth,
+    })).json()).jobs).toEqual([]);
+    await db.update(mediaProcessingJobs).set({
+      nextAttemptAt: new Date(Date.now() - 1000),
+    }).where(eq(mediaProcessingJobs.uploadId, ingest.id));
+    const second = (await (await caller.post(claim, {
+      data: { limit: 1 }, headers: auth,
+    })).json()).jobs;
+    expect(second).toEqual([expect.objectContaining({
+      uploadId: ingest.id, attempts: 2,
+    })]);
+    expect(second[0].leaseToken).not.toBe(jobs[0].leaseToken);
+    expect((await caller.post(fail, {
+      data: { leaseToken: jobs[0].leaseToken, reason: "stale lease" },
+      headers: auth,
+    })).status()).toBe(409);
+    await caller.dispose();
+  });
+
   test("only attested worker event creates ready asset and unlocks free publication", async () => {
     const [job] = await db.select().from(mediaIngests).where(and(
       eq(mediaIngests.courseId, courseId),
@@ -248,6 +315,10 @@ test.describe("pilot quarantine ingest and independent worker attestation", () =
     expect(completed.status()).toBe(200);
     expect(await completed.json()).toEqual({ uploadId: job.id, status: "ready" });
     expect((await worker(workerClient, job.id)).status()).toBe(200);
+    const [finishedQueue] = await db.select().from(mediaProcessingJobs)
+      .where(eq(mediaProcessingJobs.uploadId, job.id));
+    expect(finishedQueue.status).toBe("done");
+    expect(finishedQueue.leaseToken).toBeNull();
     const [asset] = await db.select().from(privateMediaAssets).where(and(
       eq(privateMediaAssets.id, job.assetId),
       eq(privateMediaAssets.courseId, courseId),
