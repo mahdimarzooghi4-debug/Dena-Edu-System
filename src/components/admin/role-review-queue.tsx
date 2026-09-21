@@ -40,7 +40,7 @@ export function RoleReviewQueue() {
     event.preventDefault();
     if (busyId) return;
     const form = new FormData(event.currentTarget);
-    const action = form.get("action");
+    const action = (event.nativeEvent as SubmitEvent).submitter?.getAttribute("value");
     if (action !== "approve" && action !== "reject") return;
     const reason = String(form.get("reason") ?? "").trim();
     const body = action === "approve"
