@@ -1,9 +1,10 @@
 import { betterAuth } from "better-auth";
 import { phoneNumber } from "better-auth/plugins";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { getDb } from "../db";
 import { account, rateLimit, session, user, verification } from "../db/schema";
-import { isCanonicalIranMobile, sendSmsOtp, temporaryPhoneEmail } from "../server/auth/phone";
+import { isCanonicalIranMobile, reserveOtpDispatch, sendSmsOtp, smsGatewayUrl, temporaryPhoneEmail } from "../server/auth/phone";
 
 function required(name: "BETTER_AUTH_SECRET" | "BETTER_AUTH_URL"): string {
   const value = process.env[name];
@@ -25,6 +26,18 @@ function createAuth() {
     },
     session: {
       cookieCache: { enabled: false }, // immediate revocation checks matter
+    },
+    hooks: {
+      before: createAuthMiddleware(async (ctx) => {
+        if (ctx.path !== "/phone-number/send-otp") return;
+        const body = ctx.body as { phoneNumber?: unknown } | undefined;
+        if (typeof body?.phoneNumber !== "string" ||
+            !isCanonicalIranMobile(body.phoneNumber)) {
+          throw new APIError("BAD_REQUEST", { message: "Canonical Iranian mobile required" });
+        }
+        smsGatewayUrl(); // fail closed before code generation and quota write
+        await reserveOtpDispatch(body.phoneNumber);
+      }),
     },
     rateLimit: {
       enabled: true,
