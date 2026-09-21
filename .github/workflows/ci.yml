@@ -50,6 +50,8 @@ jobs:
       DATABASE_URL: postgresql://dena_test:dena_test@127.0.0.1:5432/dena_integration
       BETTER_AUTH_URL: http://localhost:3000
       DENA_DB_INTEGRATION: "1"
+      DENA_SMS_ENABLED: "1"
+      DENA_SMS_GATEWAY_URL: http://127.0.0.1:4317/send
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -61,7 +63,13 @@ jobs:
       - name: Install from committed lockfile
         run: npm ci --no-audit --no-fund
       - name: Generate disposable integration secret
-        run: echo "BETTER_AUTH_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+        run: |
+          secret=$(openssl rand -hex 32)
+          echo "::add-mask::$secret"
+          echo "BETTER_AUTH_SECRET=$secret" >> "$GITHUB_ENV"
+          mock_token=$(openssl rand -hex 32)
+          echo "::add-mask::$mock_token"
+          echo "DENA_SMS_GATEWAY_TOKEN=$mock_token" >> "$GITHUB_ENV"
       - name: Generate reviewed Drizzle migration candidate
         run: npx drizzle-kit generate
       - name: Verify generated migration files have been committed
@@ -83,5 +91,13 @@ jobs:
         run: npm run build
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
-      - name: Verify persisted session and course scope over HTTP
+      - name: Start local-only fake SMS transport
+        run: |
+          node scripts/test-sms-gateway.mjs > /tmp/dena-sms-mock.log 2>&1 &
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            if curl --fail --silent --header "Authorization: Bearer $DENA_SMS_GATEWAY_TOKEN" http://127.0.0.1:4317/health > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Verify OTP, persisted session and scoped access over HTTP
         run: npm run test:e2e:db
