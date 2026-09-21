@@ -124,18 +124,50 @@ export async function receiveQuarantinedUpload(
       length > MAX_PILOT_UPLOAD_BYTES ||
       request.headers.get("content-type") !== "video/mp4") return "invalid";
   const db = getDb();
-  const [intent] = await db.select().from(mediaIngests)
-    .where(and(eq(mediaIngests.id, uploadId),
-      eq(mediaIngests.courseId, courseId),
-      eq(mediaIngests.createdByUserId, userId))).limit(1);
-  if (!intent) return "not_found";
-  if (length !== intent.expectedBytes) return "invalid";
-
-  const [locked] = await db.update(mediaIngests).set({ status: "uploading" })
-    .where(and(eq(mediaIngests.id, uploadId),
-      eq(mediaIngests.status, "reserved")))
-    .returning({ id: mediaIngests.id });
-  if (!locked) return "conflict";
+  // The reservation may outlive a provider's role, a course's draft state or
+  // institute approval. Re-check those facts and claim the upload atomically.
+  const intent = await db.transaction(async (tx) => {
+    const [course] = await tx.select().from(courses)
+      .where(eq(courses.id, courseId)).limit(1).for("update");
+    if (!course || course.publicationStatus !== "draft") return "not_found" as const;
+    const [job] = await tx.select().from(mediaIngests).where(and(
+      eq(mediaIngests.id, uploadId), eq(mediaIngests.courseId, courseId),
+      eq(mediaIngests.createdByUserId, userId),
+      eq(mediaIngests.providerId, course.providerId),
+    )).limit(1).for("update");
+    if (!job) return "not_found" as const;
+    if (job.status !== "reserved") return "conflict" as const;
+    if (length !== job.expectedBytes) return "invalid" as const;
+    const [provider] = await tx.select({ id: memberships.id })
+      .from(memberships).where(and(
+        eq(memberships.userId, userId),
+        eq(memberships.role, "provider"),
+        eq(memberships.providerId, course.providerId),
+        eq(memberships.status, "active"),
+      )).limit(1).for("share");
+    const [grant] = await tx.select().from(supervisionGrants)
+      .where(and(
+        eq(supervisionGrants.courseId, courseId),
+        eq(supervisionGrants.providerId, course.providerId),
+        eq(supervisionGrants.instituteId, course.responsibleInstituteId),
+        eq(supervisionGrants.status, "approved"),
+      )).limit(1).for("share");
+    if (!provider || !grant?.approvedByInstituteUserId || !grant.approvedAt) {
+      return "not_found" as const;
+    }
+    const [approver] = await tx.select({ id: memberships.id })
+      .from(memberships).where(and(
+        eq(memberships.userId, grant.approvedByInstituteUserId),
+        eq(memberships.role, "institute"),
+        eq(memberships.instituteId, course.responsibleInstituteId),
+        eq(memberships.status, "active"),
+      )).limit(1).for("share");
+    if (!approver) return "not_found" as const;
+    await tx.update(mediaIngests).set({ status: "uploading" })
+      .where(eq(mediaIngests.id, uploadId));
+    return job;
+  });
+  if (typeof intent === "string") return intent;
   let failure = "upload_failed";
   try {
     const reader = request.body?.getReader();
