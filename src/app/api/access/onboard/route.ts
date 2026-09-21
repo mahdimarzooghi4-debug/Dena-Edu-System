@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
 import { headers } from "next/headers";
 import { z } from "zod";
@@ -41,12 +41,13 @@ export async function POST(request: NextRequest) {
   }
   await db.insert(memberships).values({
     userId: authSession.user.id, role: "student",
-  }).onConflictDoNothing({ target: memberships.userId,
-    targetWhere: undefined,
-  });
+  }).onConflictDoNothing();
   // Intentionally does NOT reactivate a suspended/revoked student membership.
   const rows = await db.select({ status: memberships.status })
-    .from(memberships).where(eq(memberships.userId, authSession.user.id));
+    .from(memberships).where(and(
+      eq(memberships.userId, authSession.user.id),
+      eq(memberships.role, "student"),
+    ));
   const activeStudent = rows.some((row) => row.status === "active");
   return NextResponse.json(activeStudent
     ? { role: "student", onboarded: true }
