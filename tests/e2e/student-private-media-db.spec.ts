@@ -284,6 +284,24 @@ test.describe("free enrollment and private video access must stay course-scoped"
         eq(memberships.role, "student")));
     expect((await student.get(mediaPath(ids.live, videoIds.ready))).status()).toBe(200);
 
+    // Supervision remains invalid when its *actual institute approver* or
+    // course provider loses the associated active membership.
+    await db.update(memberships).set({ status: "suspended" })
+      .where(and(eq(memberships.userId, users.institute),
+        eq(memberships.role, "institute")));
+    expect((await student.get(mediaPath(ids.live, videoIds.ready))).status()).toBe(404);
+    await db.update(memberships).set({ status: "active" })
+      .where(and(eq(memberships.userId, users.institute),
+        eq(memberships.role, "institute")));
+    await db.update(memberships).set({ status: "suspended" })
+      .where(and(eq(memberships.userId, users.provider),
+        eq(memberships.role, "provider")));
+    expect((await student.get(mediaPath(ids.live, videoIds.ready))).status()).toBe(404);
+    await db.update(memberships).set({ status: "active" })
+      .where(and(eq(memberships.userId, users.provider),
+        eq(memberships.role, "provider")));
+    expect((await student.get(mediaPath(ids.live, videoIds.ready))).status()).toBe(200);
+
     const institute = await client("institute");
     const revoked = await post(institute, decisionPath(ids.live), {
       action: "revoke",
