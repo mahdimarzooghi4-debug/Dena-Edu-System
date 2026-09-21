@@ -180,7 +180,7 @@ test.describe("pilot quarantine ingest and independent worker attestation", () =
     const [{ id, assetId }] = await db.select({
       id: mediaIngests.id, assetId: mediaIngests.assetId,
     }).from(mediaIngests).where(eq(mediaIngests.courseId, courseId));
-    expect((await worker(provider, id)).status()).toBe(404);
+    expect((await worker(provider, id)).status()).toBe(409);
     const outsider = await client("outsider");
     expect((await upload(outsider, id, fixture)).status()).toBe(403);
     await outsider.dispose();
@@ -222,7 +222,7 @@ test.describe("pilot quarantine ingest and independent worker attestation", () =
       .where(eq(privateMediaAssets.courseId, courseId))).length).toBe(0);
     expect((await worker(provider, id, "bad-token")).status()).toBe(404);
     // Even the real internal token cannot trust a caller claiming ready:
-    expect((await worker(provider, id)).status()).toBe(404); // no token available to browser user
+    expect((await worker(provider, id)).status()).toBe(503); // unprocessed origin report
     await provider.dispose();
   });
 
