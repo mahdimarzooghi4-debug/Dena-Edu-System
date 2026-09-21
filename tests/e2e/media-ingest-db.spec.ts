@@ -4,7 +4,7 @@ import { serializeSignedCookie } from "better-call";
 import { expect, request, test, type APIRequestContext } from "@playwright/test";
 import { getDb } from "../../src/db";
 import {
-  courses, mediaCleanupJobs, mediaIngests, mediaProcessingJobs, memberships, privateMediaAssets, session,
+  courses, mediaCleanupJobs, mediaIngests, mediaMultipartPlans, mediaProcessingJobs, memberships, privateMediaAssets, session,
   studentEnrollments, supervisionGrants, user, verifiedEntities,
 } from "../../src/db/schema";
 
@@ -134,6 +134,9 @@ test.describe("pilot quarantine ingest and independent worker attestation", () =
       .where(eq(studentEnrollments.courseId, courseId));
     await db.delete(privateMediaAssets)
       .where(inArray(privateMediaAssets.courseId, [courseId, uiCourseId]));
+    await db.delete(mediaMultipartPlans).where(inArray(
+      mediaMultipartPlans.courseId, [courseId, uiCourseId],
+    ));
     await db.delete(mediaCleanupJobs).where(inArray(
       mediaCleanupJobs.uploadId,
       db.select({ id: mediaIngests.id }).from(mediaIngests)
@@ -518,6 +521,104 @@ test.describe("pilot quarantine ingest and independent worker attestation", () =
     })).status).toBe(200);
     await uploader.dispose();
     await anonymous.dispose();
+  });
+
+  test("durable multipart dry-run planning is scoped, idempotent and has NO upload grants", async () => {
+    const endpoint = `/api/provider/courses/${uiCourseId}/multipart-plans`;
+    const payload = {
+      title: "ویدئوی حجیم آزمایشی بدون ارسال بایت",
+      clientRequestId: randomUUID(),
+      expectedBytes: 16 * 1024 * 1024 + 9,
+      sha256,
+    };
+    const visitor = await client();
+    const outsider = await client("outsider");
+    const provider = await client("provider");
+    const postPlan = (metadata: object, origin = "http://localhost:3000") =>
+      provider.post(endpoint, { data: metadata, headers: { Origin: origin } });
+    expect((await visitor.post(endpoint, {
+      data: payload, headers: { Origin: "http://localhost:3000" },
+    })).status()).toBe(401);
+    expect((await outsider.post(endpoint, {
+      data: payload, headers: { Origin: "http://localhost:3000" },
+    })).status()).toBe(403);
+    expect((await postPlan(payload, "https://evil.example")).status()).toBe(403);
+    expect((await postPlan({ ...payload, uploadUrl: "https://evil.example" })).status()).toBe(400);
+    expect((await postPlan({ ...payload, expectedBytes: 16 * 1024 * 1024 })).status()).toBe(400);
+    expect((await postPlan({ ...payload, expectedBytes: 5 * 1024 ** 3 + 1 })).status()).toBe(400);
+    const response = await postPlan(payload);
+    expect(response.status()).toBe(201);
+    expect(response.headers()["cache-control"]).toContain("no-store");
+    const created = await response.json();
+    expect(created).toMatchObject({
+      status: "planned", replayed: false,
+      plan: {
+        key: `quarantine/${created.uploadId}`,
+        ttlSeconds: 900,
+        parts: [
+          { partNumber: 1, bytes: 16 * 1024 * 1024 },
+          { partNumber: 2, bytes: 9 },
+        ],
+      },
+    });
+    expect(created.uploadId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(Date.parse(created.expiresAt)).toBeGreaterThan(Date.now());
+    const serialized = JSON.stringify(created);
+    expect(serialized).not.toMatch(/presigned|signedUrl|uploadUrl|storageUploadId|bucket/i);
+    expect((await postPlan(payload)).status()).toBe(200);
+    const replay = await (await postPlan(payload)).json();
+    expect(replay.uploadId).toBe(created.uploadId);
+    expect(replay.expiresAt).toBe(created.expiresAt);
+    expect((await postPlan({ ...payload, title: "تغییر غیرمجاز" })).status()).toBe(409);
+    expect((await post(provider, { ...body,
+      clientRequestId: payload.clientRequestId,
+    })).status()).toBe(409);
+    const [stored] = await db.select().from(mediaMultipartPlans)
+      .where(eq(mediaMultipartPlans.id, created.uploadId));
+    expect(stored.expectedBytes).toBe(payload.expectedBytes);
+    expect(stored.createdByUserId).toBe(users.provider);
+    expect(stored.status).toBe("planned");
+    expect((await db.select().from(privateMediaAssets)
+      .where(eq(privateMediaAssets.courseId, uiCourseId))).length).toBe(0);
+
+    await db.update(supervisionGrants).set({
+      status: "revoked", approvedAt: null, approvedByInstituteUserId: null,
+    }).where(eq(supervisionGrants.courseId, uiCourseId));
+    expect((await postPlan(payload)).status()).toBe(404);
+    await db.update(supervisionGrants).set({
+      status: "approved", approvedAt: new Date(),
+      approvedByInstituteUserId: users.institute,
+    }).where(eq(supervisionGrants.courseId, uiCourseId));
+    await db.update(memberships).set({ status: "suspended" }).where(and(
+      eq(memberships.userId, users.institute),
+      eq(memberships.role, "institute"),
+    ));
+    expect((await postPlan(payload)).status()).toBe(404);
+    await db.update(memberships).set({ status: "active" }).where(and(
+      eq(memberships.userId, users.institute),
+      eq(memberships.role, "institute"),
+    ));
+
+    await db.update(mediaMultipartPlans).set({
+      expiresAt: new Date(Date.now() - 1000),
+    }).where(eq(mediaMultipartPlans.id, created.uploadId));
+    const expired = await postPlan(payload);
+    expect(expired.status()).toBe(200);
+    expect(await expired.json()).toMatchObject({
+      uploadId: created.uploadId, status: "expired", plan: null,
+    });
+    const fresh = await postPlan({ ...payload,
+      clientRequestId: randomUUID(), expectedBytes: 5 * 1024 ** 3,
+    });
+    expect(fresh.status()).toBe(201);
+    expect((await fresh.json()).plan.parts).toHaveLength(320);
+    const [after] = await db.select().from(mediaMultipartPlans)
+      .where(eq(mediaMultipartPlans.id, created.uploadId));
+    expect(after.status).toBe("expired");
+    expect((await postPlan(payload)).status()).toBe(200);
+    await visitor.dispose();
+    await outsider.dispose();
+    await provider.dispose();
   });
 
 });
