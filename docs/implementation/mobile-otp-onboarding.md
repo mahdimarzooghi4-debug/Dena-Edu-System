@@ -1,0 +1,38 @@
+# ورود موبایلی و عضویت اولیهٔ دنا — مرحله اتصال قابل تست
+
+**وضعیت:** کد Better Auth phone-number + adapter ارسال پیامک و آزمون یکپارچهٔ PostgreSQL/HTTP در branch قرار گرفته‌اند. ارائه‌دهنده واقعی SMS/OTP انتخاب یا متصل نشده؛ قابلیت پیش‌فرض **خاموش** است و پنل عملیاتی به کاربران واقعی عرضه نشده است.
+
+## مسیر موردنظر
+
+1. رابط کاربر شماره موبایل ایرانی را با `normalizeIranMobile` به `+989XXXXXXXXX` تبدیل می‌کند. API فقط قالب canonical را می‌پذیرد تا یک شماره چند حساب نشود.
+2. Better Auth `POST /api/auth/phone-number/send-otp` کد شش‌رقمی با انقضای ۳۰۰ ثانیه ایجاد می‌کند؛ ارسال فقط از adapter سروری `src/server/auth/phone.ts` و تنها با `DENA_SMS_ENABLED=1`، URL معتبر و token انجام می‌شود.
+3. `POST /api/auth/phone-number/verify` کد را بررسی و مصرف می‌کند و، برای شماره جدید، حساب دارای `phoneNumberVerified` می‌سازد. `email` اجباری Better Auth فقط شناسه شبه‌ناشناس و غیرقابل تحویل با HMAC است، نه نشانی ایمیل واقعی یا مجوز ارتباط ایمیلی.
+4. **هویت تأییدشده هیچ نقش ممتاز یا دسترسی به دوره نمی‌گیرد.** `POST /api/access/onboard` با session واقعی، origin هم‌دامنه، body خالی و `phoneNumberVerified=true` فقط یک membership دانش‌آموز می‌سازد. تکرار درخواست idempotent است؛ عضویت تعلیق/لغوشده خودکار بازفعال نمی‌شود.
+5. مجوز مشاهده هر محتوای دانش‌آموز همچنان نیازمند ثبت‌نام در دوره است. مؤسسه/ارائه‌دهنده/ادمین/سازمان/خیر تنها از گردش‌کار مجاز سمت سرور و اسناد لازم عضویت می‌گیرند. انتخاب نقش در UI یا body اختیار نمی‌دهد.
+
+## جلوگیری از سوءاستفاده
+
+- Better Auth rate limiting با storage پایدار PostgreSQL و قوانین اختصاصی send/verify، مستقل از تعداد instanceها؛ `allowedAttempts:3` کد ناموفق را محدود می‌کند.
+- `dena_otp_dispatch_limits`: برای HMAC شماره در یک پنجره ۶۰ دقیقه‌ای حداکثر سه dispatch و حداقل ۶۰ ثانیه فاصله؛ UPSERT شرطی اتمیک PostgreSQL. داده throttle به شماره خام متکی نیست؛ زمان‌بندی حفظ/پاک‌سازی باید در deployment تعریف شود.
+- TLS برای SMS gateway اجباری؛ فقط هنگام `DENA_DB_INTEGRATION=1` مقصد `127.0.0.1` با HTTP جهت mock CI مجاز است. **متغیر `DENA_DB_INTEGRATION` هرگز در محیط واقعی تنظیم نشود.**
+- در صورت تنظیم‌نشدن vendor یا خطا در ارسال، login fail-closed است. نه OTP، نه شماره موبایل و نه token در log برنامه چاپ نشود.
+- endpoint اختصاصی دریافت کد `/__test__/code` متعلق به mock فقط-localhost `scripts/test-sms-gateway.mjs` است؛ **هیچ endpoint دریافت OTP در برنامه Next.js یا محیط production وجود ندارد.**
+- قبل از عرضه واقعی: WAF/edge throttling، ضد سوءاستفاده IP/دستگاه و ارسال گروهی، سیاست هزینه پیامک، قرارداد تحویل، سناریوی اختلال اپراتورها، سقف retry و مشاهده‌پذیری امن، retention/privacy برای داده‌های کم‌سن و فرآیند رضایت لازم مطابق تصمیم حقوقی پروژه.
+
+## API قرارداد SMS (آداپتور قابل تعویض)
+
+`DENA_SMS_GATEWAY_URL` باید HTTPS باشد و `POST` با Authorization Bearer بپذیرد:
+
+```json
+{"phoneNumber":"+989121234567","code":"123456","purpose":"dena-login"}
+```
+
+خروجی موفق باید status 2xx باشد؛ adapter پاسخ vendor را به SDK/HTTP ثابت دنا نگاشت می‌کند. این **قرارداد داخلی برای انتخاب vendor بعدی است** و به این معنی نیست که هر پیامک‌رسان ایرانی همین endpoint را ارائه می‌دهد. پس از انتخاب vendor، فقط adapter را برای API واقعی آن تنظیم و تست می‌کنیم. نمونه کد بالا ساختگی است؛ راز عملیاتی را commit نکنید.
+
+## تست و migration
+
+`src/server/auth/phone.test.ts`: نرمال‌سازی شماره و fail-closed بودن آداپتور.  
+`tests/e2e/phone-otp-db.spec.ts`: mock SMS خصوصی روی localhost + PostgreSQL موقت CI؛ تأیید کد، رد نقش admin از body، الزام origin، عضویت student یک‌باره و ممنوعیت بازفعال‌سازی revoked.  
+`drizzle/`: migration شماره موبایل، پایگاه rate limit و budget ارسال باید **پس از بررسی** commit شود و drift در CI رد شود.
+
+`DENA_SMS_ENABLED=0` در `.env.example` عمدی است. HTTPS و URL واقعی بدون قرارداد و سهمیه پیامک فعال نشوند.
