@@ -1,8 +1,8 @@
-import { and, asc, eq, exists } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { getDb } from "../../../../db";
 import {
-  courses, memberships, studentEnrollments, supervisionGrants,
+  courses, studentEnrollments, supervisionGrants,
 } from "../../../../db/schema";
 import { getServerAccessContext } from "../../../../server/access/actor";
 import { listedFreeCourse } from "../../../../server/student/entitlement";
