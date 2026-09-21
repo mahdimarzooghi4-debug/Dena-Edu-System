@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+test.skip(process.env.DENA_DB_INTEGRATION === "1", "offline-only UI");
+
 test("Persian login explains when SMS is not configured and never simulates an OTP", async ({ page }) => {
   await page.goto("/login");
   await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
