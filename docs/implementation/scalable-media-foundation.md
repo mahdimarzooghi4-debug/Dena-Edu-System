@@ -8,7 +8,7 @@
 - فقط پس از بازبینی **عضویت فعال ارائه‌دهنده، مالکیت دورهٔ draft و approval مؤسسه و تأییدکنندهٔ فعال** یک upload session را در bucket خصوصی ایجاد کند؛ هیچ URL/key/bucket/callback از کلاینت نپذیرد.
 - امضای هر part را به upload UUID، کلید قرنطینه، part number، اندازه، checksum و TTL محدود کند؛ CORS صرفاً origin اپ را مجاز کند؛ مجوز list/read/delete عمومی ندهد. expiry و quota سراسری با PostgreSQL و rate limiter توزیع‌شده enforce شوند.
 - قبل از complete، بخش‌ها را مستقل از اظهارات کلاینت از storage list کند، manifest را بررسی کند، object کامل را سروری از storage verify کند و سپس durable processing job را enqueue کند. اگر storage امکان whole-object SHA ندارد، به digest multipart/ETag اتکا نکند؛ یک stream verifier مستقل لازم است.
-- در خطا multipart را abort کند و پس از TTL فایل/part رهاشده را از bucket واقعی حذف کند. `abandonStalePilotUploads` فقط metadata را رد می‌کند و شناسه‌ها را برای reaper برمی‌گرداند؛ **فایل واقعی را پاک نمی‌کند و هنوز زمان‌بندی نشده است**.
+- در خطا multipart را abort کند و پس از TTL فایل/part رهاشده را از bucket واقعی حذف کند. سرویس cleanup فعلی تنها برای **ingest پایلوت** و `quarantine/<UUID>` قرارداد DELETE و صف retry دارد؛ نه abortِ multipart و نه cron عملیاتی و نه bucket واقعی متصل شده‌اند.
 
 ## صف PostgreSQL (هم‌اکنون در ingest پایلوت متصل)
 
