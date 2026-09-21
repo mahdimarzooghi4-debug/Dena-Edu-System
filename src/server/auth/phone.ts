@@ -51,7 +51,7 @@ export function smsGatewayUrl(): string {
 /** Atomically enforce a 60-second cooldown and three sends per one-hour window from first send
  * per HMAC(phone). Multiple Next.js replicas share the same PostgreSQL limit.
  */
-async function takeDispatchSlot(phone: string) {
+export async function reserveOtpDispatch(phone: string) {
   const now = new Date();
   const minuteAgo = new Date(now.getTime() - 60_000);
   const hourAgo = new Date(now.getTime() - 3_600_000);
@@ -74,13 +74,14 @@ async function takeDispatchSlot(phone: string) {
   if (!allowed) throw new APIError("TOO_MANY_REQUESTS", { message: "OTP request limit reached" });
 }
 
-/** Provider-neutral JSON gateway contract; vendor mapping remains in this adapter. */
+/** Provider-neutral JSON gateway contract. Caller must reserve quota BEFORE
+ * Better Auth generates/replaces the OTP, not here after code generation.
+ */
 export async function sendSmsOtp(phoneNumber: string, code: string): Promise<void> {
   if (!isCanonicalIranMobile(phoneNumber) || !/^\d{6}$/.test(code)) {
     throw new APIError("BAD_REQUEST", { message: "Invalid phone or OTP format" });
   }
   const url = smsGatewayUrl(); // fail closed before consuming phone quota
-  await takeDispatchSlot(phoneNumber);
   const result = await fetch(url, {
     method: "POST",
     headers: {
