@@ -70,6 +70,16 @@ jobs:
           name: drizzle-migration-candidate
           path: drizzle/
           if-no-files-found: error
+      # Temporary, schema-only transfer: output is public migration metadata, not secrets.
+      # Remove after checking the generated files into the branch.
+      - name: Export generated migration text for repository commit
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'chore/bootstrap-dena-stack'
+        run: |
+          for f in drizzle/*.sql drizzle/meta/*.json; do
+            echo "DENA_MIGRATION_START ${f}"
+            base64 -w 256 "${f}"
+            echo "DENA_MIGRATION_END"
+          done
       - name: Apply migrations to disposable PostgreSQL
         run: npx drizzle-kit migrate
       - name: Build for database-backed browser tests
