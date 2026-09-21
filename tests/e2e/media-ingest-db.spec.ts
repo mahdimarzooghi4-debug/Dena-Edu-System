@@ -624,4 +624,103 @@ test.describe("pilot quarantine ingest and independent worker attestation", () =
     await provider.dispose();
   });
 
+  test("multipart listing/cancellation is scoped, idempotent and works after institute revocation", async () => {
+    const provider = await client("provider");
+    const outsider = await client("outsider");
+    const root = `/api/provider/courses/${uiCourseId}/multipart-plans`;
+    const metadata = {
+      title: "طرح قابل لغو ویدئوی جدید",
+      clientRequestId: randomUUID(),
+      expectedBytes: 16 * 1024 * 1024 + 1,
+      sha256,
+    };
+    const origin = { Origin: "http://localhost:3000" };
+    expect((await outsider.get(root)).status()).toBe(403);
+    const created = await provider.post(root, { data: metadata, headers: origin });
+    expect(created.status()).toBe(201);
+    const plan = await created.json();
+    const cancel = `${root}/${plan.uploadId}/cancel`;
+    const badCourse = `/api/provider/courses/${courseId}/multipart-plans/${plan.uploadId}/cancel`;
+    expect((await provider.get(root)).status()).toBe(200);
+    const listed = (await (await provider.get(root)).json()).plans;
+    expect(listed).toContainEqual(expect.objectContaining({
+      uploadId: plan.uploadId, status: "planned",
+      expectedBytes: metadata.expectedBytes,
+    }));
+    expect(JSON.stringify(listed)).not.toMatch(/uploadUrl|signedUrl|storageUploadId|bucket/i);
+    expect((await provider.post(cancel, {
+      data: {}, headers: { Origin: "https://evil.example" },
+    })).status()).toBe(403);
+    expect((await provider.post(cancel, {
+      data: { path: "/private/secret" }, headers: origin,
+    })).status()).toBe(400);
+    expect((await outsider.post(cancel, {
+      data: {}, headers: origin,
+    })).status()).toBe(403);
+    expect((await provider.post(badCourse, {
+      data: {}, headers: origin,
+    })).status()).toBe(404);
+
+    // Even after INSTITUTE revocation the owner must be able to cancel an
+    // inert plan. A normal replay/create still needs active supervision.
+    await db.update(supervisionGrants).set({
+      status: "revoked", approvedAt: null, approvedByInstituteUserId: null,
+    }).where(eq(supervisionGrants.courseId, uiCourseId));
+    expect((await provider.post(root, {
+      data: metadata, headers: origin,
+    })).status()).toBe(404);
+    const cancelled = await provider.post(cancel, {
+      data: {}, headers: origin,
+    });
+    expect(cancelled.status()).toBe(200);
+    expect(await cancelled.json()).toEqual({
+      uploadId: plan.uploadId, status: "cancelled",
+    });
+    expect((await (await provider.post(cancel, {
+      data: {}, headers: origin,
+    })).json()).status).toBe("cancelled");
+    expect((await (await provider.get(root)).json()).plans).toContainEqual(
+      expect.objectContaining({
+        uploadId: plan.uploadId, status: "cancelled",
+      }),
+    );
+    const [saved] = await db.select().from(mediaMultipartPlans)
+      .where(eq(mediaMultipartPlans.id, plan.uploadId));
+    expect(saved.cancelledAt).toBeInstanceOf(Date);
+
+    await db.update(supervisionGrants).set({
+      status: "approved", approvedAt: new Date(),
+      approvedByInstituteUserId: users.institute,
+    }).where(eq(supervisionGrants.courseId, uiCourseId));
+    const replay = await provider.post(root, {
+      data: metadata, headers: origin,
+    });
+    expect(replay.status()).toBe(200);
+    expect(await replay.json()).toMatchObject({
+      uploadId: plan.uploadId, status: "cancelled",
+      replayed: true, plan: null,
+    });
+    const newId = await provider.post(root, {
+      data: { ...metadata, clientRequestId: randomUUID() },
+      headers: origin,
+    });
+    expect(newId.status()).toBe(201);
+    expect((await newId.json()).uploadId).not.toBe(plan.uploadId);
+    const staleId = (await newId.json()).uploadId;
+    await db.update(mediaMultipartPlans).set({
+      expiresAt: new Date(Date.now() - 1000),
+    }).where(eq(mediaMultipartPlans.id, staleId));
+    const staleCancel = await provider.post(
+      `${root}/${staleId}/cancel`, { data: {}, headers: origin },
+    );
+    expect(staleCancel.status()).toBe(200);
+    expect((await staleCancel.json()).status).toBe("expired");
+    const [expired] = await db.select().from(mediaMultipartPlans)
+      .where(eq(mediaMultipartPlans.id, staleId));
+    expect(expired.status).toBe("expired");
+    expect(expired.cancelledAt).toBeNull();
+    await provider.dispose();
+    await outsider.dispose();
+  });
+
 });
