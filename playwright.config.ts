@@ -2,6 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./tests/e2e",
+  testIgnore: process.env.DENA_DB_INTEGRATION === "1" ? [] : ["**/access-db.spec.ts"],
   use: { baseURL: "http://127.0.0.1:3000", ...devices["Desktop Chrome"] },
   webServer: {
     command: "npm run dev",
