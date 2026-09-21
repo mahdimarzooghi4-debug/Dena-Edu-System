@@ -570,9 +570,12 @@ test.describe("pilot quarantine ingest and independent worker attestation", () =
     expect(replay.uploadId).toBe(created.uploadId);
     expect(replay.expiresAt).toBe(created.expiresAt);
     expect((await postPlan({ ...payload, title: "تغییر غیرمجاز" })).status()).toBe(409);
-    expect((await post(provider, { ...body,
-      clientRequestId: payload.clientRequestId,
-    })).status()).toBe(409);
+    expect((await provider.post(
+      `/api/provider/courses/${uiCourseId}/media-ingest`, {
+        data: { ...body, clientRequestId: payload.clientRequestId },
+        headers: { Origin: "http://localhost:3000" },
+      },
+    )).status()).toBe(409);
     const [stored] = await db.select().from(mediaMultipartPlans)
       .where(eq(mediaMultipartPlans.id, created.uploadId));
     expect(stored.expectedBytes).toBe(payload.expectedBytes);
