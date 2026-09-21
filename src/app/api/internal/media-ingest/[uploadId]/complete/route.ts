@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import {
   completeAttestedIngest, secureWorkerToken,
-} from "../../../../../../../server/media/ingest";
+} from "../../../../../../server/media/ingest";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
