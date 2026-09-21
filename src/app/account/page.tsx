@@ -54,6 +54,11 @@ export default async function AccountPage() {
           <Link href="/account/role-applications" className={buttonClassName("secondary")}>
             درخواست و پیگیری نقش سازمانی
           </Link>
+          {actor.memberships.some((entry) => entry.role === "student") && (
+            <Link href="/student/courses" className={buttonClassName("secondary")}>
+              دوره‌های رایگان و ثبت‌نام من
+            </Link>
+          )}
           {actor.memberships.some((entry) => entry.role === "provider") && (
             <Link href="/provider/supervision" className={buttonClassName("secondary")}>
               درخواست نظارت دوره‌های من
