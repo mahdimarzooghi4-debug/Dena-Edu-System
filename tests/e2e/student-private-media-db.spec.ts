@@ -276,8 +276,8 @@ test.describe("free enrollment and private video access must stay course-scoped"
     await db.update(memberships).set({ status: "suspended" })
       .where(and(eq(memberships.userId, users.student),
         eq(memberships.role, "student")));
-    expect((await student.get(mediaPath(ids.live, videoIds.ready))).status()).toBe(404);
-    expect((await student.get(listAssets(ids.live))).status()).toBe(404);
+    expect((await student.get(mediaPath(ids.live, videoIds.ready))).status()).toBe(401);
+    expect((await student.get(listAssets(ids.live))).status()).toBe(401);
     expect((await post(student, enrollPath(ids.live), {})).status()).toBe(401);
     await db.update(memberships).set({ status: "active" })
       .where(and(eq(memberships.userId, users.student),
