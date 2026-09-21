@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import Link from "next/link";
 import { Button } from "../ui/button";
 
 type Course = {
@@ -169,6 +170,12 @@ export function CourseSupervisionRequest({ providerIds }: { providerIds: string[
                   وضعیت انتشار: {item.publicationStatus === "published" ? "منتشرشده"
                     : item.publicationStatus === "archived" ? "بایگانی‌شده" : "پیش‌نویس"}
                 </p>
+                {item.supervisionStatus === "approved" && item.publicationStatus === "draft" && (
+                  <Link href={`/provider/courses/${item.courseId}/media`}
+                    className="mt-3 inline-block rounded-xl border border-dena-border px-4 py-3 text-sm font-bold text-dena-deep">
+                    دریافت و پیگیری ویدئو در قرنطینه
+                  </Link>
+                )}
                 {item.supervisionStatus === "approved" && item.publicationStatus === "draft" && (
                   <Button type="button" disabled={busy}
                     onClick={() => publish(item.courseId)} className="mt-3 disabled:opacity-50">
