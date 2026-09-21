@@ -240,6 +240,74 @@ test.describe("course-scoped provider requests and independent institute decisio
     await institute.dispose();
   });
 
+  test("real provider request and institute decision screens use scoped live APIs", async ({ page }) => {
+    const providerCookie = await serializeSignedCookie(
+      "better-auth.session_token", tokens.provider, process.env.BETTER_AUTH_SECRET!,
+    );
+    await page.context().addCookies([{
+      name: "better-auth.session_token",
+      value: providerCookie.split(";")[0].split("=").slice(1).join("="),
+      domain: "localhost", path: "/", httpOnly: true, secure: false, sameSite: "Lax",
+    }]);
+    await page.goto("http://localhost:3000/provider/supervision");
+    await expect(page.getByRole("heading", {
+      name: "درخواست نظارت برای هر دوره",
+    })).toBeVisible();
+    const uiTitle = "دوره مرور عملی درخواست و پاسخ مؤسسه";
+    await page.getByLabel("عنوان دوره").fill(uiTitle);
+    await page.getByLabel("شناسه مؤسسه ناظر").fill(scopes.institute);
+    const createResponse = page.waitForResponse((response) =>
+      response.url().endsWith("/api/provider/courses") &&
+      response.request().method() === "POST",
+    );
+    await page.getByRole("button", { name: "ثبت درخواست نظارت" }).click();
+    expect((await createResponse).status()).toBe(201);
+    await expect(page.getByRole("status")).toContainText("در انتظار بررسی مؤسسه");
+
+    const provider = await client("provider");
+    const listing = await provider.get("/api/provider/courses");
+    const course = ((await listing.json()).courses as Array<{
+      courseId: string; title: string;
+    }>).find((row) => row.title === uiTitle);
+    expect(course).toBeDefined();
+    const uiCourseId = course!.courseId;
+    courseIds.push(uiCourseId);
+    expect((await authorized(provider, uiCourseId)).status()).toBe(404);
+    await provider.dispose();
+
+    await page.context().clearCookies();
+    const instituteCookie = await serializeSignedCookie(
+      "better-auth.session_token", tokens.institute, process.env.BETTER_AUTH_SECRET!,
+    );
+    await page.context().addCookies([{
+      name: "better-auth.session_token",
+      value: instituteCookie.split(";")[0].split("=").slice(1).join("="),
+      domain: "localhost", path: "/", httpOnly: true, secure: false, sameSite: "Lax",
+    }]);
+    await page.goto("http://localhost:3000/institute/providers");
+    await expect(page.getByRole("heading", {
+      name: "درخواست‌های دوره‌های ارائه‌دهندگان",
+    })).toBeVisible();
+    const entry = page.locator("li").filter({ hasText: uiTitle });
+    await expect(entry).toBeVisible();
+    await entry.getByLabel("دلیل تصمیم").fill(
+      "این دوره توسط نماینده مستقل مؤسسه بررسی و برای نظارت تأیید شد.",
+    );
+    const approveResponse = page.waitForResponse((response) =>
+      response.url().endsWith(
+        `/api/institute/supervision/${uiCourseId}/decision`,
+      ) && response.request().method() === "POST",
+    );
+    await entry.getByRole("button", {
+      name: "تأیید نظارت همین دوره",
+    }).click();
+    expect((await approveResponse).status()).toBe(200);
+    await expect(entry).toContainText("تأیید شده");
+    const scoped = await client("provider");
+    expect((await authorized(scoped, uiCourseId)).status()).toBe(200);
+    await scoped.dispose();
+  });
+
   test("institute revokes an approval and rejects unapproved course independently", async () => {
     const [a, b] = courseIds;
     const institute = await client("institute");
