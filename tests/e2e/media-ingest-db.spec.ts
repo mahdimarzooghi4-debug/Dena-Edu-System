@@ -399,6 +399,32 @@ test.describe("pilot quarantine ingest and independent worker attestation", () =
     await db.update(mediaProcessingJobs).set({
       leaseUntil: new Date(Date.now() + 120_000),
     }).where(eq(mediaProcessingJobs.uploadId, job.id));
+
+    // Verifying actual bytes MUST NOT keep PostgreSQL row/share locks open.
+    // While the private GET is stalled, revoke supervision. The update must
+    // commit promptly, and the callback must reject at its FINAL DB check.
+    const privateDelay = "http://127.0.0.1:4318/__test__/delay-output-get/" + job.id;
+    const privateStatus = "http://127.0.0.1:4318/__test__/delay-output-status/" + job.id;
+    expect((await fetch(privateDelay, {
+      method: "POST", headers: originHeaders,
+    })).status).toBe(200);
+    const pending = worker(workerClient, job.id, undefined, currentLease);
+    await expect.poll(async () => (await (await fetch(privateStatus, {
+      headers: originHeaders,
+    })).json()).active as boolean, { timeout: 5000 }).toBe(true);
+    const startRevoke = Date.now();
+    await db.update(supervisionGrants).set({
+      status: "revoked", approvedAt: null, approvedByInstituteUserId: null,
+    }).where(eq(supervisionGrants.courseId, courseId));
+    expect(Date.now() - startRevoke).toBeLessThan(1100);
+    expect((await pending).status()).toBe(409);
+    expect(await db.select().from(privateMediaAssets)
+      .where(eq(privateMediaAssets.courseId, courseId))).toEqual([]);
+    await db.update(supervisionGrants).set({
+      status: "approved", approvedAt: new Date(),
+      approvedByInstituteUserId: users.institute,
+    }).where(eq(supervisionGrants.courseId, courseId));
+    expect(await processMock(job.id, job.assetId)).toBe(200);
     const completed = await worker(workerClient, job.id, undefined, currentLease);
     expect(completed.status()).toBe(200);
     expect(await completed.json()).toEqual({ uploadId: job.id, status: "ready" });
