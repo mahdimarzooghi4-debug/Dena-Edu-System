@@ -1,9 +1,8 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 import { getDb } from "../../db";
 import {
   courses, memberships, studentEnrollments, supervisionGrants,
 } from "../../db/schema";
-import { hasStudentEntitlement } from "./entitlement";
 
 export type StudentEnrollmentErrorKind =
   | "not_student" | "not_available" | "enrollment_cancelled";
@@ -48,6 +47,12 @@ export async function enrollFreeCourse(
       userId: memberships.userId,
     }).from(memberships).where(and(
       eq(memberships.status, "active"),
+      or(
+        and(eq(memberships.role, "provider"),
+          eq(memberships.providerId, course.providerId)),
+        and(eq(memberships.role, "institute"),
+          eq(memberships.instituteId, course.responsibleInstituteId)),
+      ),
     )).for("share");
     const providerActive = active.some((row) =>
       row.role === "provider" && row.providerId === course.providerId);
