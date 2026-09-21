@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f6fb">
+  <meta name="description" content="معرفی دنا؛ زیرساخت در حال توسعهٔ آموزش و پیگیری یادگیری با فضاهای دانش‌آموز، مؤسسه، ارائه‌دهنده، سازمان و خیر.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="دنا | دانش‌آموزان نوآفرین ایران">
+  <meta property="og:description" content="پیش‌نمایش معرفی دنا؛ یادگیری، با نقش روشن برای همه.">
+  <meta property="og:image" content="/logo.png">
+  <link rel="icon" type="image/png" href="/logo.png">
+  <title>دنا | دانش‌آموزان نوآفرین ایران</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --purple: #5b4ce2; --deep: #352b68; --mint: #42cfa7;
+      --orange: #f59e0b; --blue: #3a74e8; --bg: #f7f6fb;
+      --lavender: #eae7ff; --border: #e5e1ed;
+      --ink: #2b2544; --muted: #756f83;
+    }
+    * {box-sizing:border-box}
+    html {scroll-behavior:smooth}
+    body {margin:0;background:var(--bg);color:var(--ink);font-family:Tahoma,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+    a {color:inherit;text-decoration:none}
+    button,a { -webkit-tap-highlight-color:transparent}
+    :focus-visible {outline:3px solid var(--purple);outline-offset:4px}
+    .skip {position:absolute;top:-100px;right:16px;z-index:100;padding:12px 18px;border-radius:14px;background:var(--deep);color:white}
+    .skip:focus {top:12px}
+    .wrap {width:min(1160px,calc(100% - 44px));margin-inline:auto}
+    header {background:rgba(255,255,255,.92);border-bottom:1px solid var(--border)}
+    .nav {display:flex;justify-content:space-between;align-items:center;gap:16px;min-height:87px}
+    .brand {display:inline-flex;align-items:center;gap:13px}
+    .brand img {width:83px;height:48px;object-fit:contain}
+    .brand-sub {font-size:12px;color:var(--muted);font-weight:bold}
+    .nav-links {display:flex;align-items:center;gap:25px;font-size:13px;font-weight:bold;color:var(--deep)}
+    .nav-links a:hover {color:var(--purple)}
+    .badge {display:inline-flex;align-items:center;gap:8px;border:1px solid #d9d3fb;background:#fff;padding:8px 13px;border-radius:999px;font-size:12px;font-weight:bold;color:var(--purple)}
+    .dot {width:7px;height:7px;background:var(--mint);border-radius:50%;box-shadow:0 0 0 4px #42cfa722}
+    .hero {position:relative;isolation:isolate;overflow:hidden;margin-top:38px;padding:65px 63px;border:1px solid #e6e0ff;border-radius:32px;background:radial-gradient(circle at 0 0,#fff 0,transparent 43%),linear-gradient(120deg,#e6e1ff 1%,#f0edff 58%,#f8f6ff 100%);box-shadow:0 14px 38px #33256b0b}
+    .hero:before,.hero:after {content:"";position:absolute;border-radius:50%;z-index:-1;pointer-events:none}
+    .hero:before {width:350px;height:350px;left:-130px;top:-165px;border:40px solid #ffffff5d}
+    .hero:after {width:430px;height:430px;left:12%;bottom:-300px;background:#bdb3ff55}
+    .hero-grid {display:grid;grid-template-columns:1.06fr .94fr;gap:42px;align-items:center}
+    .eyebrow {color:var(--purple);font-size:14px;font-weight:800;letter-spacing:-.2px}
+    h1,h2,h3,p {margin-top:0}
+    h1 {font-size:clamp(32px,4.2vw,53px);line-height:1.62;letter-spacing:-1.9px;color:var(--deep);margin:17px 0}
+    .hero-copy {font-size:16px;line-height:2.24;max-width:570px;color:#514b67;margin:0 0 26px}
+    .actions {display:flex;flex-wrap:wrap;gap:12px}
+    .btn {display:inline-flex;min-height:49px;align-items:center;justify-content:center;padding:11px 20px;border-radius:14px;font-size:13px;font-weight:800;transition:transform .2s,background-color .2s}
+    .btn:hover {transform:translateY(-2px)}
+    .btn.primary {background:var(--purple);color:white;box-shadow:0 8px 20px #5b4ce236}
+    .btn.primary:hover {background:var(--deep)}
+    .btn.outline {border:1px solid #b9b0ee;background:#ffffffba;color:var(--deep)}
+    .hero-note {display:flex;gap:8px;align-items:flex-start;margin:25px 0 0;font-size:12px;line-height:2;color:#6f6688}
+    .hero-note svg {flex:none;margin-top:5px}
+    .mock {position:relative;direction:rtl;background:white;border:1px solid #e4e0f0;border-radius:26px;box-shadow:0 25px 60px #3e337133;overflow:hidden;transform:rotate(-2deg);max-width:435px;margin-inline:auto}
+    .mock-top {background:#fff;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #eeebf5;padding:15px 17px}
+    .mock-logo {display:flex;align-items:center;gap:8px;font-size:12px;color:var(--deep);font-weight:800}
+    .mock-logo i {display:inline-block;width:23px;height:23px;border-radius:7px;background:linear-gradient(135deg,var(--purple),#9e95f1)}
+    .mock-pill {font-size:10px;color:#655a98;background:#f2efff;border-radius:30px;padding:6px 9px}
+    .mock-body {padding:18px}
+    .mock-hello {color:var(--deep);font-size:16px;font-weight:900}
+    .mock-small {color:var(--muted);font-size:10px;line-height:2}
+    .mock-feature {padding:17px;margin:16px 0;border-radius:18px;background:linear-gradient(115deg,#5b4ce2,#8070eb);color:white}
+    .mock-feature b {display:block;font-size:14px;margin-bottom:9px}
+    .mock-feature span {font-size:10px;line-height:2;color:#f1eaff}
+    .mock-tiles {display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+    .mock-tile {border:1px solid #ede9f4;border-radius:13px;padding:13px 8px 12px;text-align:center}
+    .mock-icon {margin:auto auto 9px;width:27px;height:27px;display:grid;place-items:center;border-radius:9px;background:#eae7ff;color:var(--purple);font-size:13px}
+    .mock-tile:nth-child(2) .mock-icon{background:#dcf8ee;color:#14866b}
+    .mock-tile:nth-child(3) .mock-icon{background:#fff2dd;color:#b9790a}
+    .mock-tile b {display:block;font-size:10px;color:var(--deep)}
+    .mock-line {width:55%;height:7px;background:#efecf7;border-radius:4px;margin-top:9px;margin-inline:auto}
+    .mock-foot {margin-top:15px;font-size:10px;color:var(--muted);background:#f8f7fb;border-radius:12px;padding:11px 13px}
+    .mock-tag {position:absolute;left:-6px;top:28px;transform:rotate(3deg);font-size:11px;color:#fff;background:var(--deep);padding:8px 11px;border-radius:10px}
+    .strip {display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px}
+    .strip-item {background:white;border:1px solid var(--border);border-radius:19px;padding:20px;display:flex;align-items:center;gap:14px;min-height:88px}
+    .strip-icon {flex:none;display:grid;place-items:center;width:41px;height:41px;border-radius:13px;background:#eeebff;color:var(--purple);font-size:18px}
+    .strip-item:nth-child(2) .strip-icon {background:#def8ef;color:#128b6d}
+    .strip-item:nth-child(3) .strip-icon {background:#fff3de;color:#a96d09}
+    .strip strong {display:block;font-size:13px;color:var(--deep)}
+    .strip p {margin:5px 0 0;font-size:11px;line-height:1.8;color:var(--muted)}
+    .section {padding-top:94px}
+    .section-head {max-width:690px;margin-bottom:30px}
+    .section-kicker {display:inline-block;background:#ebe8ff;color:var(--purple);border-radius:999px;padding:8px 14px;font-size:12px;font-weight:bold;margin-bottom:14px}
+    h2 {font-size:clamp(23px,3vw,34px);color:var(--deep);letter-spacing:-1px;margin-bottom:10px;line-height:1.7}
+    .section-head p {color:var(--muted);font-size:14px;line-height:2.1;margin:0}
+    .roles {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+    .role {border:1px solid var(--border);border-radius:22px;background:#fff;padding:26px 23px 23px;min-height:212px;transition:transform .2s,box-shadow .2s}
+    .role:hover {transform:translateY(-3px);box-shadow:0 12px 32px #3429670f}
+    .role-icon {width:45px;height:45px;border-radius:13px;display:grid;place-items:center;background:#eeebff;color:var(--purple);font-size:21px;font-weight:900;margin-bottom:18px}
+    .role:nth-child(2) .role-icon,.role:nth-child(5) .role-icon {background:#dcf7ee;color:#168b70}
+    .role:nth-child(3) .role-icon,.role:nth-child(6) .role-icon {background:#fff0d7;color:#b87711}
+    .role h3 {font-size:17px;color:var(--deep);margin:0 0 9px}
+    .role p {font-size:12px;line-height:2.2;color:var(--muted);margin:0}
+    .story {margin-top:88px;background:var(--deep);border-radius:30px;color:white;padding:43px 46px;display:grid;grid-template-columns:1fr 1fr;gap:44px;align-items:center;overflow:hidden;position:relative}
+    .story:before {content:"";position:absolute;width:350px;height:350px;border:52px solid #ffffff0e;border-radius:50%;left:-180px;top:-230px}
+    .story h2 {color:white;margin-bottom:9px}
+    .story p {font-size:13px;line-height:2.3;color:#e3def5;margin:0}
+    .flow {position:relative;display:grid;gap:10px}
+    .flow div {border:1px solid #b5a9ee55;border-radius:13px;background:#ffffff10;padding:13px 15px;font-size:12px;display:flex;gap:10px;align-items:center}
+    .flow i {display:grid;place-items:center;font-style:normal;flex:none;width:26px;height:26px;border-radius:9px;background:#e1dfff;color:var(--deep);font-weight:900}
+    .bottom {display:flex;align-items:center;justify-content:space-between;gap:25px;flex-wrap:wrap;margin-top:65px;padding:28px 0 36px;border-top:1px solid var(--border);font-size:12px;line-height:2.1;color:var(--muted)}
+    .bottom strong {display:block;color:var(--deep);font-size:14px}
+    .bottom p {margin:0}
+    .bottom a {color:var(--purple);font-weight:bold;text-decoration:underline;text-underline-offset:4px}
+    @media (max-width:920px) {
+      .nav-links {display:none}
+      .hero {padding:44px 32px}
+      .hero-grid {grid-template-columns:1fr;gap:45px}
+      .mock {width:min(100%,420px)}
+      .roles {grid-template-columns:repeat(2,minmax(0,1fr))}
+    }
+    @media (max-width:600px) {
+      .wrap {width:min(100% - 30px,1160px)}
+      .nav {min-height:77px}
+      .brand-sub {font-size:10px}
+      .nav .badge {max-width:150px;font-size:10px;line-height:1.7}
+      .hero {margin-top:18px;padding:35px 22px;border-radius:23px}
+      h1 {font-size:32px;line-height:1.65}
+      .hero-copy {font-size:13px}
+      .actions .btn {flex:1}
+      .mock {transform:none}
+      .strip {grid-template-columns:1fr}
+      .strip-item {min-height:75px}
+      .section {padding-top:67px}
+      .roles {grid-template-columns:1fr}
+      .role {min-height:unset}
+      .story {margin-top:67px;grid-template-columns:1fr;padding:30px 23px;gap:25px;border-radius:23px}
+      .bottom {margin-top:50px}
+    }
+    @media (prefers-reduced-motion:reduce) {html{scroll-behavior:auto}.btn,.role{transition:none}}
+  </style>
+</head>
+<body>
+  <a class="skip" href="#main-content">رفتن به محتوای اصلی</a>
+  <header>
+    <nav class="wrap nav" aria-label="ناوبری اصلی">
+      <a class="brand" href="#top" aria-label="دنا، بازگشت به ابتدای صفحه">
+        <img src="/logo.png" alt="لوگوی دنا" width="83" height="48">
+        <span class="brand-sub">دانش‌آموزان نوآفرین ایران</span>
+      </a>
+      <div class="nav-links">
+        <a href="#about">نگاه دنا</a>
+        <a href="#spaces">فضاهای دنا</a>
+        <a href="#supervision">مسیر دوره</a>
+      </div>
+      <span class="badge"><span class="dot" aria-hidden="true"></span>پیش‌نمایش معرفی · در حال توسعه</span>
+    </nav>
+  </header>
+  <main id="main-content" class="wrap">
+    <section id="top" class="hero" aria-labelledby="hero-title">
+      <div class="hero-grid">
+        <div>
+          <span class="eyebrow">دنا · دانش‌آموزان نوآفرین ایران</span>
+          <h1 id="hero-title">یادگیری، با نقش روشن<br>برای همه.</h1>
+          <p class="hero-copy">چشم‌انداز دنا، یک بستر فنی یکپارچه برای آموزش ضبط‌شده، تمرین، آزمون و پیگیری مسیر یادگیری است؛ جایی که دانش‌آموز، مؤسسه و ارائه‌دهنده هرکدام فضای مشخص خود را دارند.</p>
+          <div class="actions">
+            <a class="btn primary" href="#spaces">آشنایی با فضاهای دنا <span aria-hidden="true" style="margin-right:11px">←</span></a>
+            <a class="btn outline" href="#about">بیشتر دربارهٔ ایده</a>
+          </div>
+          <p class="hero-note">
+            <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 10v6m0-9h.01"/></svg>
+            این صفحه تنها پیش‌نمایش معرفی است؛ ثبت‌نام، پرداخت و خدمات آموزشی عملیاتی ارائه نمی‌کند.
+          </p>
+        </div>
+        <div>
+          <div class="mock" role="img" aria-label="طرح مفهومی و بدون دادهٔ واقعی از فضای دانش‌آموز دنا">
+            <div class="mock-top"><span class="mock-logo"><i aria-hidden="true"></i> فضای دانش‌آموز</span><span class="mock-pill">نمای مفهومی</span></div>
+            <div class="mock-body">
+              <div class="mock-hello">مسیر یادگیری، از همین‌جا</div>
+              <p class="mock-small">یک تجربهٔ ساده برای دیدن محتوا و دنبال‌کردن پیشرفت</p>
+              <div class="mock-feature"><b>یادگیری در دسترس، قدم‌به‌قدم</b><span>دوره‌ها، تمرین‌ها و آزمون‌ها در کنار یکدیگر</span></div>
+              <div class="mock-tiles">
+                <div class="mock-tile"><div class="mock-icon" aria-hidden="true">◧</div><b>دوره‌ها</b><div class="mock-line"></div></div>
+                <div class="mock-tile"><div class="mock-icon" aria-hidden="true">✓</div><b>تمرین‌ها</b><div class="mock-line"></div></div>
+                <div class="mock-tile"><div class="mock-icon" aria-hidden="true">✦</div><b>مسیر رشد</b><div class="mock-line"></div></div>
+              </div>
+              <div class="mock-foot">تصویری از طراحی تجربهٔ کاربری، نه حساب یا نتیجهٔ واقعی</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section id="about" class="strip" aria-label="سه اصل طراحی دنا">
+      <div class="strip-item"><span class="strip-icon" aria-hidden="true">◇</span><div><strong>فضای شخصی یادگیری</strong><p>محتوا و فعالیت‌ها با نمای ویژهٔ دانش‌آموز</p></div></div>
+      <div class="strip-item"><span class="strip-icon" aria-hidden="true">✓</span><div><strong>نظارت مشخص هر دوره</strong><p>مسئولیت آموزشی با مؤسسهٔ همان دوره</p></div></div>
+      <div class="strip-item"><span class="strip-icon" aria-hidden="true">✧</span><div><strong>هستهٔ نرم‌افزاری مشترک</strong><p>فضاهای متفاوت بر پایهٔ یک تجربهٔ هماهنگ</p></div></div>
+    </section>
+    <section id="spaces" class="section" aria-labelledby="spaces-title">
+      <div class="section-head">
+        <span class="section-kicker">اکوسیستم دنا</span>
+        <h2 id="spaces-title">شش فضا، یک مسیر مشترک</h2>
+        <p>هر گروه با مسئولیت و سطح دسترسی روشن در طراحی محصول دیده شده است. این موارد چشم‌انداز و پیش‌نمایش ساختار سامانه‌اند، نه اعلام فعال‌بودن تمامی پنل‌ها.</p>
+      </div>
+      <div class="roles">
+        <article class="role"><div class="role-icon" aria-hidden="true">✎</div><h3>دانش‌آموز</h3><p>دوره‌های ضبط‌شده، تمرین، آزمون و مسیر یادگیری در فضای شخصی.</p></article>
+        <article class="role"><div class="role-icon" aria-hidden="true">⌂</div><h3>مؤسسه</h3><p>مدیریت و نظارت آموزشی در حوزهٔ مسئولیت همان مؤسسه.</p></article>
+        <article class="role"><div class="role-icon" aria-hidden="true">◫</div><h3>ارائه‌دهندهٔ تحت نظارت</h3><p>ساخت و پیگیری دوره با تأیید مستقل مؤسسه برای هر دوره.</p></article>
+        <article class="role"><div class="role-icon" aria-hidden="true">⚙</div><h3>ادمین فنی</h3><p>رسیدگی به عملیات، بررسی دسترسی‌ها و پشتیبانی فنی سامانه.</p></article>
+        <article class="role"><div class="role-icon" aria-hidden="true">▤</div><h3>سازمان</h3><p>مدیریت دسترسی سازمانی و گزارش‌های مجاز و تجمیعی.</p></article>
+        <article class="role"><div class="role-icon" aria-hidden="true">♡</div><h3>خیر</h3><p>چشم‌انداز پیگیری حمایت‌ها و گزارش‌های تجمیعی مجاز.</p></article>
+      </div>
+    </section>
+    <section class="story" id="supervision" aria-labelledby="story-title">
+      <div>
+        <span class="eyebrow" style="color:#bcb3ff">رویکرد دنا</span>
+        <h2 id="story-title">فناوری، جای مسئولیت آموزشی را نمی‌گیرد.</h2>
+        <p>دنا برای میزبانی فنی و نظم‌دادن به تجربهٔ یادگیری طراحی می‌شود؛ مسئولیت محتوای آموزشی و تصمیم نظارتی هر دوره بر عهدهٔ ارائه‌دهنده و مؤسسهٔ مسئول همان دوره باقی می‌ماند.</p>
+      </div>
+      <div class="flow" aria-label="نقشهٔ مفهومی مسیر یک دوره">
+        <div><i>۱</i> پیشنهاد دوره توسط ارائه‌دهنده</div>
+        <div><i>۲</i> بررسی مستقل مؤسسهٔ ناظر</div>
+        <div><i>۳</i> آماده‌سازی محتوا و کنترل دسترسی</div>
+        <div><i>۴</i> تجربهٔ یادگیری دانش‌آموز</div>
+      </div>
+    </section>
+  </main>
+  <footer class="wrap bottom">
+    <div><strong>دنا · دانش‌آموزان نوآفرین ایران</strong><p>پیش‌نمایش معرفی محصول؛ این نسخه خدمات آموزشی یا مالی عملیاتی ارائه نمی‌کند.</p></div>
+    <div><p>دنا مؤسسهٔ آموزشی یا صادرکنندهٔ مجوز رسمی نیست.</p><a href="#top">بازگشت به بالا ↑</a></div>
+  </footer>
+</body>
+</html>
