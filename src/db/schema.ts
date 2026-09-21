@@ -349,7 +349,6 @@ export const mediaCleanupJobs = pgTable("dena_media_cleanup_jobs", {
   `),
 ]);
 
-
 /** Durable DRY-RUN multipart plans. No storage session/part grant exists yet.
  * Separate from the intentionally memory-bounded 8-MiB pilot ingest table.
  */
@@ -376,71 +375,7 @@ export const mediaMultipartPlans = pgTable("dena_media_multipart_plans", {
     expected_bytes > 16777216 AND expected_bytes <= 5368709120
   `),
   check("dena_multipart_sha_ck", sql`
-    expected_sha256 ~ '^[0-9a-f]{64} Each applicant may submit
- * one reviewed request per role; approval provisions a NEW verified entity
- * scoped to its own UUID, not an applicant-supplied tenant ID.
- */
-export const elevatedRole = pgEnum("dena_elevated_role", [
-  "institute", "provider", "organization", "benefactor",
-]);
-export const roleApplicationStatus = pgEnum("dena_role_application_status", [
-  "pending", "approved", "rejected",
-]);
-export const roleApplicationEventKind = pgEnum("dena_role_application_event_kind", [
-  "submitted", "approved", "rejected",
-]);
-
-export const verifiedEntities = pgTable("dena_verified_entities", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  role: elevatedRole("role").notNull(),
-  name: text("name").notNull(),
-  evidenceReference: text("evidence_reference").notNull(),
-  verifiedByUserId: uuid("verified_by_user_id").notNull()
-    .references(() => user.id, { onDelete: "restrict" }),
-  verifiedAt: timestamp("verified_at", { withTimezone: true }).notNull().defaultNow(),
-});
-
-export const roleApplications = pgTable("dena_role_applications", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id").notNull().references(() => user.id, { onDelete: "restrict" }),
-  requestedRole: elevatedRole("requested_role").notNull(),
-  proposedName: text("proposed_name").notNull(),
-  statement: text("statement").notNull(),
-  status: roleApplicationStatus("status").notNull().default("pending"),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
-  reviewerUserId: uuid("reviewer_user_id").references(() => user.id, { onDelete: "restrict" }),
-  decisionReason: text("decision_reason"),
-  assignedScopeId: uuid("assigned_scope_id").references(() => verifiedEntities.id, { onDelete: "restrict" }),
-}, (table) => [
-  uniqueIndex("dena_role_applicant_role_uidx").on(table.userId, table.requestedRole),
-  index("dena_role_review_queue_idx").on(table.status, table.createdAt),
-  check("dena_role_application_review_ck", sql`
-    (status = 'pending' AND reviewed_at IS NULL AND reviewer_user_id IS NULL
-      AND decision_reason IS NULL AND assigned_scope_id IS NULL)
-    OR
-    (status = 'rejected' AND reviewed_at IS NOT NULL AND reviewer_user_id IS NOT NULL
-      AND decision_reason IS NOT NULL AND assigned_scope_id IS NULL)
-    OR
-    (status = 'approved' AND reviewed_at IS NOT NULL AND reviewer_user_id IS NOT NULL
-      AND decision_reason IS NOT NULL AND assigned_scope_id IS NOT NULL)
-  `),
-]);
-
-export const roleApplicationEvents = pgTable("dena_role_application_events", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  applicationId: uuid("application_id").notNull()
-    .references(() => roleApplications.id, { onDelete: "restrict" }),
-  actorUserId: uuid("actor_user_id").notNull()
-    .references(() => user.id, { onDelete: "restrict" }),
-  kind: roleApplicationEventKind("kind").notNull(),
-  assignedScopeId: uuid("assigned_scope_id")
-    .references(() => verifiedEntities.id, { onDelete: "restrict" }),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-}, (table) => [
-  index("dena_role_events_application_idx").on(table.applicationId, table.createdAt),
-]);
-
+    expected_sha256 ~ '^[0-9a-f]{64}$'
   `),
   check("dena_multipart_status_ck", sql`
     status IN ('planned', 'expired')
