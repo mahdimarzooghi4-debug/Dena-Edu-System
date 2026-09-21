@@ -368,6 +368,7 @@ export const mediaMultipartPlans = pgTable("dena_media_multipart_plans", {
   status: text("status").notNull().default("planned"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
 }, (table) => [
   uniqueIndex("dena_multipart_course_request_uidx").on(table.courseId, table.requestId),
   index("dena_multipart_status_expiry_idx").on(table.status, table.expiresAt),
@@ -378,7 +379,11 @@ export const mediaMultipartPlans = pgTable("dena_media_multipart_plans", {
     expected_sha256 ~ '^[0-9a-f]{64}$'
   `),
   check("dena_multipart_status_ck", sql`
-    status IN ('planned', 'expired')
+    status IN ('planned', 'expired', 'cancelled')
+  `),
+  check("dena_multipart_cancel_ck", sql`
+    (status = 'cancelled' AND cancelled_at IS NOT NULL)
+    OR (status <> 'cancelled' AND cancelled_at IS NULL)
   `),
 ]);
 

@@ -4,7 +4,7 @@ import { getServerAccessContext } from "../../../../../../server/access/actor";
 import { validSameOrigin } from "../../../../../../server/access/role-application-contracts";
 import { IngestError } from "../../../../../../server/media/ingest";
 import {
-  MIN_MULTIPART_BYTES, multipartPlanningEnabled, reserveMultipartPlan,
+  MIN_MULTIPART_BYTES, listOwnMultipartPlans, multipartPlanningEnabled, reserveMultipartPlan,
 } from "../../../../../../server/media/multipart-control";
 import { MAX_MULTIPART_BYTES } from "../../../../../../server/media/multipart";
 
@@ -55,6 +55,38 @@ export async function POST(request: NextRequest,
     return NextResponse.json({ error: error.kind }, {
       status: error.kind === "not_provider" ? 403 :
         error.kind === "not_available" ? 404 : 409,
+      headers: noStore,
+    });
+  }
+}
+
+export async function GET(_request: NextRequest,
+  { params }: { params: Promise<{ courseId: string }> },
+) {
+  const actor = await getServerAccessContext();
+  if (!actor) return NextResponse.json({ error: "Unauthorized" }, {
+    status: 401, headers: noStore,
+  });
+  if (!actor.memberships.some(m => m.role === "provider")) {
+    return NextResponse.json({ error: "Forbidden" }, {
+      status: 403, headers: noStore,
+    });
+  }
+  const { courseId } = await params;
+  if (!z.uuid().safeParse(courseId).success) return NextResponse.json({
+    error: "Not found",
+  }, { status: 404, headers: noStore });
+  if (!multipartPlanningEnabled()) return NextResponse.json({
+    error: "Planning unavailable",
+  }, { status: 503, headers: noStore });
+  try {
+    return NextResponse.json({
+      plans: await listOwnMultipartPlans(actor.userId, courseId),
+    }, { headers: noStore });
+  } catch (error) {
+    if (!(error instanceof IngestError)) throw error;
+    return NextResponse.json({ error: error.kind }, {
+      status: error.kind === "not_provider" ? 403 : 404,
       headers: noStore,
     });
   }

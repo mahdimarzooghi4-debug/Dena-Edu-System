@@ -64,6 +64,13 @@
       "when": 1790017200000,
       "tag": "0008_dena_multipart_plans",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790018100000,
+      "tag": "0009_dena_multipart_cancel",
+      "breakpoints": true
     }
   ]
 }
