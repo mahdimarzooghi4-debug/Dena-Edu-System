@@ -211,7 +211,7 @@ test.describe("pilot quarantine ingest and independent worker attestation", () =
       .where(eq(mediaIngests.id, wrongId));
     expect(failed.status).toBe("rejected");
     expect((await upload(provider, wrongId, fixture)).status()).toBe(409);
-    expect((await processMock(id, assetId)).toBe(404);
+    expect(await processMock(id, assetId)).toBe(404);
     expect((await upload(provider, id, fixture)).status()).toBe(202);
     expect((await upload(provider, id, fixture)).status()).toBe(409);
     const [uploaded] = await db.select().from(mediaIngests)
