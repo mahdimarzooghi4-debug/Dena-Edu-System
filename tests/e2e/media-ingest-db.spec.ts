@@ -441,7 +441,7 @@ test.describe("pilot quarantine ingest and independent worker attestation", () =
     );
     await page.getByRole("button", { name: "انتقال امن به قرنطینه" }).click();
     expect((await received).status()).toBe(202);
-    await expect(page.getByRole("status")).toContainText("قرنطینه");
+    await expect(page.getByRole("status").first()).toContainText("قرنطینه");
     await expect(page.getByText("در قرنطینه؛ منتظر بررسی مستقل")).toBeVisible();
     const [job] = await db.select().from(mediaIngests).where(
       eq(mediaIngests.courseId, uiCourseId),
