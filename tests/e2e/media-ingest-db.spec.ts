@@ -4,7 +4,7 @@ import { serializeSignedCookie } from "better-call";
 import { expect, request, test, type APIRequestContext } from "@playwright/test";
 import { getDb } from "../../src/db";
 import {
-  courses, mediaIngests, mediaProcessingJobs, memberships, privateMediaAssets, session,
+  courses, mediaCleanupJobs, mediaIngests, mediaProcessingJobs, memberships, privateMediaAssets, session,
   studentEnrollments, supervisionGrants, user, verifiedEntities,
 } from "../../src/db/schema";
 
@@ -134,6 +134,11 @@ test.describe("pilot quarantine ingest and independent worker attestation", () =
       .where(eq(studentEnrollments.courseId, courseId));
     await db.delete(privateMediaAssets)
       .where(inArray(privateMediaAssets.courseId, [courseId, uiCourseId]));
+    await db.delete(mediaCleanupJobs).where(inArray(
+      mediaCleanupJobs.uploadId,
+      db.select({ id: mediaIngests.id }).from(mediaIngests)
+        .where(inArray(mediaIngests.courseId, [courseId, uiCourseId])),
+    ));
     await db.delete(mediaProcessingJobs).where(inArray(
       mediaProcessingJobs.uploadId,
       db.select({ id: mediaIngests.id }).from(mediaIngests)
@@ -442,6 +447,77 @@ test.describe("pilot quarantine ingest and independent worker attestation", () =
     expect((await db.select().from(privateMediaAssets).where(
       eq(privateMediaAssets.courseId, uiCourseId),
     ))).toHaveLength(0);
+  });
+
+  test("cleanup is separately authorized, retries storage failures and never deletes ready assets", async () => {
+    const uploader = await client("provider");
+    const anonymous = await client();
+    const endpoint = "/api/internal/media-cleanup/run";
+    const auth = { Authorization: `Bearer ${process.env.DENA_MEDIA_CLEANUP_TOKEN}` };
+    expect((await anonymous.post(endpoint, { data: { limit: 2 } })).status()).toBe(404);
+    expect((await uploader.post(endpoint, {
+      data: { limit: 2 }, headers: {
+        Authorization: `Bearer ${process.env.DENA_MEDIA_PROCESSOR_TOKEN}`,
+      },
+    })).status()).toBe(404);
+    expect((await anonymous.post(endpoint, {
+      data: { limit: 11 }, headers: auth,
+    })).status()).toBe(400);
+    const uploadId = randomUUID(), old = new Date(Date.now() - 2 * 3_600_000);
+    await db.insert(mediaIngests).values({
+      id: uploadId, courseId: uiCourseId, providerId,
+      createdByUserId: users.provider, requestId: randomUUID(),
+      title: "failed quarantined test object", expectedBytes: fixture.length,
+      expectedSha256: sha256, status: "rejected",
+      rejectionReason: "invalid_media", createdAt: old, completedAt: old,
+    });
+    const storage = `http://127.0.0.1:4318/quarantine/${uploadId}`;
+    const storageAuth = { Authorization:
+      `Bearer ${process.env.DENA_PRIVATE_MEDIA_ORIGIN_TOKEN}` };
+    expect((await fetch(storage, { method: "PUT", headers: {
+      ...storageAuth, "Content-Type": "video/mp4", "X-Dena-Sha256": sha256,
+    }, body: new Uint8Array(fixture) })).status).toBe(201);
+    expect((await fetch(storage, { method: "HEAD", headers: storageAuth })).status).toBe(200);
+    expect((await fetch(`http://127.0.0.1:4318/__test__/fail-delete/${uploadId}`, {
+      method: "POST", headers: storageAuth,
+    })).status).toBe(200);
+    const run = () => anonymous.post(endpoint, { data: { limit: 10 }, headers: auth });
+    const first = await run();
+    expect(first.status()).toBe(200);
+    expect((await first.json()).results).toContainEqual({
+      uploadId, status: "pending",
+    });
+    const [retry] = await db.select().from(mediaCleanupJobs)
+      .where(eq(mediaCleanupJobs.uploadId, uploadId));
+    expect(retry.attempts).toBe(1);
+    expect(retry.nextAttemptAt.getTime()).toBeGreaterThan(Date.now());
+    expect((await fetch(storage, { method: "HEAD", headers: storageAuth })).status).toBe(200);
+    const premature = await run();
+    expect((await premature.json()).results).not.toContainEqual(
+      expect.objectContaining({ uploadId }),
+    );
+    await db.update(mediaCleanupJobs).set({
+      nextAttemptAt: new Date(Date.now() - 1000),
+    }).where(eq(mediaCleanupJobs.uploadId, uploadId));
+    const second = await run();
+    expect((await second.json()).results).toContainEqual({
+      uploadId, status: "done",
+    });
+    expect((await fetch(storage, { method: "HEAD", headers: storageAuth })).status).toBe(404);
+    const [cleaned] = await db.select().from(mediaCleanupJobs)
+      .where(eq(mediaCleanupJobs.uploadId, uploadId));
+    expect(cleaned.attempts).toBe(2);
+    expect(cleaned.completedAt).toBeInstanceOf(Date);
+    expect((await (await run()).json()).results).toEqual([]);
+    // A distinct ready asset survives reaper calls; only /quarantine is deleted.
+    const [ready] = await db.select().from(privateMediaAssets)
+      .where(eq(privateMediaAssets.courseId, courseId));
+    expect(ready.status).toBe("ready");
+    expect((await fetch(`http://127.0.0.1:4318/private/${ready.objectKey}`, {
+      method: "HEAD", headers: storageAuth,
+    })).status).toBe(200);
+    await uploader.dispose();
+    await anonymous.dispose();
   });
 
 });
