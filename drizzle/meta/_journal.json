@@ -15,6 +15,13 @@
       "when": 1789998190837,
       "tag": "0001_magical_silver_surfer",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790000885215,
+      "tag": "0002_cloudy_master_chief",
+      "breakpoints": true
     }
   ]
 }
