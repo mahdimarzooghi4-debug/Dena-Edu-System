@@ -3,21 +3,8 @@ import { sql } from "drizzle-orm";
 import { APIError } from "better-auth/api";
 import { getDb } from "../../db";
 import { otpDispatchLimits } from "../../db/schema";
-
-export const IRAN_MOBILE = /^\+989\d{9}$/;
-
-export function normalizeIranMobile(input: string): string | null {
-  const ascii = input.replace(/[۰-۹٠-٩]/g, (char) => {
-    const code = char.charCodeAt(0);
-    return String(code >= 0x6f0 && code <= 0x6f9 ? code - 0x6f0 : code - 0x660);
-  }).replace(/[\s-]/g, "");
-  const canonical = ascii.startsWith("09") ? "+98" + ascii.slice(1) : ascii;
-  return IRAN_MOBILE.test(canonical) ? canonical : null;
-}
-
-export function isCanonicalIranMobile(value: string): boolean {
-  return IRAN_MOBILE.test(value);
-}
+import { isCanonicalIranMobile } from "../../lib/phone-number";
+export { normalizeIranMobile, isCanonicalIranMobile } from "../../lib/phone-number";
 
 function hmacPhone(phone: string): string {
   const secret = process.env.BETTER_AUTH_SECRET;
