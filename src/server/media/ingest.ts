@@ -311,7 +311,80 @@ export async function completeAttestedIngest(uploadId: string, leaseToken: strin
       process.env.DENA_MEDIA_PROCESSOR_TOKEN === media.token) {
     return "unavailable" as const;
   }
-  return getDb().transaction(async (tx) => {
+  // Preflight without database locks. Never start private I/O for an unknown
+  // job or a callback not holding the live processing lease. All facts below
+  // are checked AGAIN, with locks, immediately before committing "ready".
+  const db = getDb();
+  const [initial] = await db.select().from(mediaIngests)
+    .where(eq(mediaIngests.id, uploadId)).limit(1);
+  if (!initial) return "not_found" as const;
+  if (initial.status === "ready") return "ready" as const;
+  if (initial.status !== "quarantined") return "conflict" as const;
+  const [initialLease] = await db.select().from(mediaProcessingJobs)
+    .where(eq(mediaProcessingJobs.uploadId, uploadId)).limit(1);
+  if (!initialLease || initialLease.status !== "leased" ||
+      initialLease.leaseToken !== leaseToken ||
+      !initialLease.leaseUntil || initialLease.leaseUntil <= new Date()) {
+    return "conflict" as const;
+  }
+
+  const inspection = await fetch(
+    new URL(`/inspection/${uploadId}`, media.origin), {
+      headers: { Authorization: `Bearer ${media.token}` },
+      redirect: "error", cache: "no-store",
+      signal: AbortSignal.timeout(10_000),
+    },
+  ).catch(() => null);
+  if (!inspection || inspection.status !== 200) {
+    await inspection?.body?.cancel(); return "unavailable" as const;
+  }
+  const rawReport: unknown = await inspection.json().catch(() => null);
+  const assetKey = `${initial.courseId}/${initial.assetId}.mp4`;
+  // The origin supplies bytes but does NOT get to attest them in production.
+  // Only a distinct isolated scanner's signing key may create this report.
+  const report = rawReport as ProcessingAttestation;
+  if (!verifyProcessingAttestation(report, {
+    keyId, uploadId, sourceBytes: initial.expectedBytes,
+    sourceSha256: initial.expectedSha256, outputKey: assetKey,
+  }, signingKey)) return "conflict" as const;
+  // Re-read CURRENT quarantine bytes independently of a signed report.
+  // A valid report cannot cover subsequently replaced or corrupted bytes.
+  const sourceVerified = await verifyOriginBytes(
+    media.origin, media.token, "/quarantine/" + uploadId, {
+      key: "quarantine/" + uploadId,
+      bytes: initial.expectedBytes, sha256: initial.expectedSha256,
+    }, uploadId,
+  );
+  if (sourceVerified === null) return "unavailable" as const;
+  if (!sourceVerified) return "conflict" as const;
+  const head = await fetch(new URL(`/private/${assetKey}`, media.origin), {
+    method: "HEAD", redirect: "error", cache: "no-store",
+    headers: { Authorization: `Bearer ${media.token}` },
+    signal: AbortSignal.timeout(10_000),
+  }).catch(() => null);
+  if (!head || head.status !== 200) {
+    await head?.body?.cancel();
+    return "unavailable" as const;
+  }
+  const stored = {
+    key: assetKey,
+    bytes: Number(head.headers.get("content-length")),
+    sha256: head.headers.get("x-dena-sha256") ?? "",
+    contentType: head.headers.get("content-type")?.split(";")[0].trim() ?? "",
+    private: head.headers.get("x-dena-private") === "1",
+  };
+  await head.body?.cancel();
+  if (!verifyProcessedObject(report, stored)) return "conflict" as const;
+  // HEAD/ETag is NOT independent proof of final output integrity.
+  const outputVerified = await verifyOriginBytes(
+    media.origin, media.token, "/private/" + assetKey, {
+      key: assetKey, bytes: report.outputBytes, sha256: report.outputSha256,
+    },
+  );
+  if (outputVerified === null) return "unavailable" as const;
+  if (!outputVerified) return "conflict" as const;
+
+  return db.transaction(async (tx) => {
     const [job] = await tx.select().from(mediaIngests)
       .where(eq(mediaIngests.id, uploadId)).limit(1).for("update");
     if (!job) return "not_found" as const;
@@ -354,61 +427,25 @@ export async function completeAttestedIngest(uploadId: string, leaseToken: strin
       )).limit(1).for("share");
     if (!provider || !approver) return "conflict" as const;
 
-    const inspection = await fetch(
-      new URL(`/inspection/${uploadId}`, media.origin), {
-        headers: { Authorization: `Bearer ${media.token}` },
-        redirect: "error", cache: "no-store",
-        signal: AbortSignal.timeout(10_000),
-      },
-    ).catch(() => null);
-    if (!inspection || inspection.status !== 200) {
-      await inspection?.body?.cancel(); return "unavailable" as const;
-    }
-    const rawReport: unknown = await inspection.json().catch(() => null);
-    const assetKey = `${job.courseId}/${job.assetId}.mp4`;
-    // The origin supplies bytes but does NOT get to attest them in production.
-    // Only a distinct isolated scanner's signing key may create this report.
-    const report = rawReport as ProcessingAttestation;
+    // The initial unauthenticated reads are advisory. The row lock, live lease,
+    // active provider, institute grant/approver and draft publication status
+    // are all authoritative here. Never publish on a stale verification.
+    if (job.assetId !== initial.assetId ||
+        job.courseId !== initial.courseId ||
+        job.providerId !== initial.providerId ||
+        job.createdByUserId !== initial.createdByUserId ||
+        job.expectedBytes !== initial.expectedBytes ||
+        job.expectedSha256 !== initial.expectedSha256) return "conflict" as const;
     if (!verifyProcessingAttestation(report, {
       keyId, uploadId, sourceBytes: job.expectedBytes,
-      sourceSha256: job.expectedSha256, outputKey: assetKey,
+      sourceSha256: job.expectedSha256,
+      outputKey: job.courseId + "/" + job.assetId + ".mp4",
     }, signingKey)) return "conflict" as const;
-    // Re-read CURRENT quarantine bytes independently of a signed report.
-    // A valid report cannot cover subsequently replaced or corrupted bytes.
-    const sourceVerified = await verifyOriginBytes(
-      media.origin, media.token, "/quarantine/" + uploadId, {
-        key: "quarantine/" + uploadId,
-        bytes: job.expectedBytes, sha256: job.expectedSha256,
-      }, uploadId,
-    );
-    if (sourceVerified === null) return "unavailable" as const;
-    if (!sourceVerified) return "conflict" as const;
-    const head = await fetch(new URL(`/private/${assetKey}`, media.origin), {
-      method: "HEAD", redirect: "error", cache: "no-store",
-      headers: { Authorization: `Bearer ${media.token}` },
-      signal: AbortSignal.timeout(10_000),
-    }).catch(() => null);
-    if (!head || head.status !== 200) {
-      await head?.body?.cancel();
-      return "unavailable" as const;
+    // A lease may have expired during slow private GETs, without another
+    // callback changing the row: recheck wall time at commit.
+    if (!leased.leaseUntil || leased.leaseUntil <= new Date()) {
+      return "conflict" as const;
     }
-    const stored = {
-      key: assetKey,
-      bytes: Number(head.headers.get("content-length")),
-      sha256: head.headers.get("x-dena-sha256") ?? "",
-      contentType: head.headers.get("content-type")?.split(";")[0].trim() ?? "",
-      private: head.headers.get("x-dena-private") === "1",
-    };
-    await head.body?.cancel();
-    if (!verifyProcessedObject(report, stored)) return "conflict" as const;
-    // HEAD/ETag is NOT independent proof of final output integrity.
-    const outputVerified = await verifyOriginBytes(
-      media.origin, media.token, "/private/" + assetKey, {
-        key: assetKey, bytes: report.outputBytes, sha256: report.outputSha256,
-      },
-    );
-    if (outputVerified === null) return "unavailable" as const;
-    if (!outputVerified) return "conflict" as const;
     await tx.insert(privateMediaAssets).values({
       id: job.assetId, courseId: job.courseId, title: job.title,
       objectKey: assetKey, status: "ready",
