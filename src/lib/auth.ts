@@ -1,7 +1,9 @@
 import { betterAuth } from "better-auth";
+import { phoneNumber } from "better-auth/plugins";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { getDb } from "../db";
-import { account, session, user, verification } from "../db/schema";
+import { account, rateLimit, session, user, verification } from "../db/schema";
+import { isCanonicalIranMobile, sendSmsOtp, temporaryPhoneEmail } from "../server/auth/phone";
 
 function required(name: "BETTER_AUTH_SECRET" | "BETTER_AUTH_URL"): string {
   const value = process.env[name];
@@ -16,7 +18,7 @@ function createAuth() {
     secret: required("BETTER_AUTH_SECRET"),
     database: drizzleAdapter(getDb(), {
       provider: "pg",
-      schema: { user, session, account, verification },
+      schema: { user, session, account, verification, rateLimit },
     }),
     advanced: {
       database: { generateId: "uuid" },
@@ -24,8 +26,29 @@ function createAuth() {
     session: {
       cookieCache: { enabled: false }, // immediate revocation checks matter
     },
-    // No verified SMS or email provider has been selected. Do not expose public
-    // credentials signup or assign roles from user-supplied identity fields.
+    rateLimit: {
+      enabled: true,
+      storage: "database",
+      window: 60,
+      max: 40,
+      customRules: {
+        "/phone-number/send-otp": { window: 60, max: 5 },
+        "/phone-number/verify": { window: 60, max: 8 },
+      },
+    },
+    plugins: [phoneNumber({
+      otpLength: 6,
+      expiresIn: 300,
+      allowedAttempts: 3,
+      phoneNumberValidator: isCanonicalIranMobile,
+      sendOTP: async ({ phoneNumber, code }) => sendSmsOtp(phoneNumber, code),
+      signUpOnVerification: {
+        getTempEmail: temporaryPhoneEmail,
+        getTempName: () => "کاربر دنا",
+      },
+    })],
+    // Registration only after verified phone; no public credential signup.
+    // Verified identity is NOT an elevated membership.
     emailAndPassword: { enabled: false },
   });
 }
