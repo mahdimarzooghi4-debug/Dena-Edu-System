@@ -82,15 +82,3 @@ export async function deadLetterExpiredLeases() {
   )).returning({ uploadId: mediaProcessingJobs.uploadId });
 }
 
-/** Metadata reaper only: returns IDs for a future private-store abort/delete
- * adapter. It NEVER asserts that an object was deleted.
- */
-export async function abandonStalePilotUploads() {
-  return getDb().update(mediaIngests).set({
-    status: "rejected", rejectionReason: "stale_upload",
-    completedAt: new Date(),
-  }).where(and(
-    sql`${mediaIngests.status} IN ('reserved', 'uploading')`,
-    sql`${mediaIngests.createdAt} < now() - interval '24 hours'`,
-  )).returning({ uploadId: mediaIngests.id });
-}

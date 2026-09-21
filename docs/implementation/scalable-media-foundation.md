@@ -24,3 +24,9 @@ Migration `0006_dena_processing_queue.sql` جدول `dena_media_processing_jobs`
 ## تحویل امن در مقیاس
 
 مسیر دانش‌آموز هنوز session/enrollment/grant را برای هر Range کنترل و از private origin stream می‌کند؛ CDN/edge واقعی فعال نیست. پیش از edge، مجوز کوتاه‌عمر مقید به asset و کاربر/نشست، سیاست no-public-origin، revocation، purge/cache-key خصوصی، replay limit، time skew، race با revoke، مشاهده‌پذیری و تست فشار لازم‌اند. هیچ ادعای ۵ میلیون کاربر هم‌زمان از این تغییر نتیجه نمی‌شود.
+
+## پاک‌سازی پایدار قرنطینه (مرحلهٔ بعد)
+
+Migration `0007_dena_media_cleanup.sql` یک ledger جدا برای cleanup با lease دو دقیقه‌ای، retry نمایی، سقف ۵ تلاش و dead-letter می‌سازد. `POST /api/internal/media-cleanup/run` با `{limit:1..10}` تنها با `DENA_MEDIA_CLEANUP_ENABLED=1` و Bearer اختصاصی `DENA_MEDIA_CLEANUP_TOKEN` (مجزا از origin/worker/signature) اجرا می‌شود. در وضعیت پیش‌فرض خاموش است و **cron یا storage واقعی متصل نشده**؛ اجرا نیازمند trigger عملیاتی امن است.
+
+Sweep فقط `reserved` قدیمی‌تر از ۲۴ ساعت را رد می‌کند، `quarantined` دارای job در dead-letter قدیمی‌تر از ۱ ساعت را رد می‌کند و `rejected` قدیمی‌تر از ۱ ساعت و فاقد asset ساخته‌شده را وارد cleanup می‌کند. `uploading` به‌صورت خودکار حذف نمی‌شود چون ممکن است انتقال طولانی هنوز در حال نوشتن باشد. Cleanup فقط `DELETE /quarantine/<server UUID>` روی origin خصوصی با Bearer سروری می‌زند؛ 204/404 به معنای موفقیت، خطا/timeout به retry پایدار منجر می‌شود. هرگز `/private` یا ویدئوی ready حذف نمی‌شود. CI فقط حذف در mock loopback را می‌سنجد؛ adapter واقعی باید multipartهای ناقص را abort کند، حذف versioned objects را بررسی کند، نوشتن دیرهنگام پس از TTL را منع کند، و وضعیت حذف، audit و alertهای dead-letter را متصل کند.

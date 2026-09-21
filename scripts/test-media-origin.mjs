@@ -23,6 +23,7 @@ const fields = [
 const fixture = Buffer.from("00000018667479706d7034326d70343269736f6d00000000", "hex");
 const uuid = "[0-9a-f-]{36}";
 const quarantined = new Map();
+const deleteFailures = new Set();
 const inspections = new Map();
 const privateAssets = new Map();
 const health = "/health";
@@ -52,6 +53,79 @@ const server = createServer(async (req, res) => {
     if (req.headers["x-dena-sha256"] !== digest) return reply(res, 400, {});
     quarantined.set(quarantineMatch[1], bytes);
     return reply(res, 201, { quarantined: true });
+  }
+
+  // CI-only object storage deletion double; NEVER deploy in production.
+  const failDelete = new RegExp(`^/__test__/fail-delete/(${uuid})import { createHash, createHmac } from "node:crypto";
+import { createServer } from "node:http";
+
+// LOCAL TEST DOUBLE only. This pretends to inspect/transcode for CI; it is
+// emphatically NOT an antivirus, storage backend or production transcoder.
+if (process.env.DENA_DB_INTEGRATION !== "1") {
+  throw new Error("Media mock requires isolated DB integration");
+}
+const token = process.env.DENA_PRIVATE_MEDIA_ORIGIN_TOKEN;
+if (!token || token.length < 16) throw new Error("Missing media integration token");
+const signer = process.env.DENA_MEDIA_ATTESTATION_HMAC_KEY;
+const signerId = process.env.DENA_MEDIA_ATTESTATION_KEY_ID;
+if (!signer || signer.length < 32 || !signerId ||
+    signer === token || signer === process.env.DENA_MEDIA_PROCESSOR_TOKEN) {
+  throw new Error("Missing independent MOCK attestation signer");
+}
+const fields = [
+  "version", "keyId", "uploadId", "sourceBytes", "sourceSha256",
+  "outputBytes", "outputSha256", "outputKey", "scanner",
+  "processorVersion", "scannedAt", "malware", "format",
+];
+
+const fixture = Buffer.from("00000018667479706d7034326d70343269736f6d00000000", "hex");
+const uuid = "[0-9a-f-]{36}";
+const quarantined = new Map();
+const deleteFailures = new Set();
+const inspections = new Map();
+const privateAssets = new Map();
+const health = "/health";
+const reply = (res, status, data) => {
+  res.writeHead(status, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+  res.end(JSON.stringify(data));
+};
+
+const server = createServer(async (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  if (req.headers.authorization !== `Bearer ${token}`) {
+    return reply(res, 401, { error: "Unauthorized" });
+  }
+  if (req.method === "GET" && req.url === health) return reply(res, 200, { ready: true });
+  const quarantineMatch = new RegExp(`^/quarantine/(${uuid})$`).exec(req.url ?? "");
+  if (req.method === "PUT" && quarantineMatch) {
+    if (req.headers["content-type"] !== "video/mp4") return reply(res, 400, {});
+    let length = 0;
+    const chunks = [];
+    for await (const part of req) {
+      length += part.length;
+      if (length > 8 * 1024 * 1024) return reply(res, 413, {});
+      chunks.push(part);
+    }
+    const bytes = Buffer.concat(chunks);
+    const digest = createHash("sha256").update(bytes).digest("hex");
+    if (req.headers["x-dena-sha256"] !== digest) return reply(res, 400, {});
+    quarantined.set(quarantineMatch[1], bytes);
+    return reply(res, 201, { quarantined: true });
+  }
+
+).exec(req.url ?? "");
+  if (req.method === "POST" && failDelete) {
+    deleteFailures.add(failDelete[1]);
+    return reply(res, 200, { failNext: true });
+  }
+  if (req.method === "HEAD" && quarantineMatch) {
+    const bytes = quarantined.get(quarantineMatch[1]);
+    res.writeHead(bytes ? 200 : 404); res.end(); return;
+  }
+  if (req.method === "DELETE" && quarantineMatch) {
+    if (deleteFailures.delete(quarantineMatch[1])) return reply(res, 503, {});
+    if (!quarantined.delete(quarantineMatch[1])) return reply(res, 404, {});
+    res.writeHead(204); res.end(); return;
   }
 
   // Explicit CI test action, NOT a real scan. Only existing quarantined bytes

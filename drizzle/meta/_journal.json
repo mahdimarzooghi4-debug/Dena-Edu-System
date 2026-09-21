@@ -50,6 +50,13 @@
       "when": 1790014900000,
       "tag": "0006_dena_processing_queue",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790016000000,
+      "tag": "0007_dena_media_cleanup",
+      "breakpoints": true
     }
   ]
 }

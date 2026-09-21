@@ -55,6 +55,7 @@ jobs:
       DENA_INGEST_ENABLED: "1"
       DENA_MEDIA_PROCESSOR_ENABLED: "1"
       DENA_MEDIA_ATTESTATION_ENABLED: "1"
+      DENA_MEDIA_CLEANUP_ENABLED: "1"
       DENA_MEDIA_ATTESTATION_KEY_ID: ci-mock-signer-v1
       DENA_PRIVATE_MEDIA_ORIGIN_URL: http://127.0.0.1:4318/
       DENA_SMS_GATEWAY_URL: http://127.0.0.1:4317/send
@@ -85,6 +86,9 @@ jobs:
           signing_key=$(openssl rand -hex 32)
           echo "::add-mask::$signing_key"
           echo "DENA_MEDIA_ATTESTATION_HMAC_KEY=$signing_key" >> "$GITHUB_ENV"
+          cleanup_token=$(openssl rand -hex 32)
+          echo "::add-mask::$cleanup_token"
+          echo "DENA_MEDIA_CLEANUP_TOKEN=$cleanup_token" >> "$GITHUB_ENV"
       - name: Generate reviewed Drizzle migration candidate
         run: npx drizzle-kit generate
       - name: Preserve generated migration for review
