@@ -27,6 +27,7 @@ export async function GET() {
   const rows = await getDb().select({
     courseId: courses.id,
     title: courses.title,
+    publicationStatus: courses.publicationStatus,
     providerId: courses.providerId,
     responsibleInstituteId: courses.responsibleInstituteId,
     supervisionStatus: supervisionGrants.status,
