@@ -33,8 +33,19 @@ export function RoleReviewQueue() {
   }, []);
 
   useEffect(() => {
-    void reload().catch(() => setProblem("دریافت درخواست‌های در انتظار بررسی ممکن نشد."));
-  }, [reload]);
+    const controller = new AbortController();
+    void fetch("/api/admin/role-applications", {
+      credentials: "same-origin", cache: "no-store", signal: controller.signal,
+    }).then(async (response) => {
+      if (!response.ok) throw new Error("queue_unavailable");
+      return response.json() as Promise<{ pending: Application[] }>;
+    }).then((data) => {
+      if (!controller.signal.aborted) setItems(data.pending);
+    }).catch(() => {
+      if (!controller.signal.aborted) setProblem("دریافت درخواست‌های در انتظار بررسی ممکن نشد.");
+    });
+    return () => controller.abort();
+  }, []);
 
   async function submit(event: FormEvent<HTMLFormElement>, id: string) {
     event.preventDefault();
