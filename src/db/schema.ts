@@ -292,6 +292,33 @@ export const mediaIngests = pgTable("dena_media_ingests", {
   `),
 ]);
 
+/** Durable, vendor-neutral scan/transcode dispatch; no public asset or
+ * storage grants are ever derived from queue rows.
+ */
+export const processingJobStatus = pgEnum("dena_processing_job_status", [
+  "queued", "leased", "done", "dead",
+]);
+export const mediaProcessingJobs = pgTable("dena_media_processing_jobs", {
+  uploadId: uuid("upload_id").primaryKey().references(() => mediaIngests.id, {
+    onDelete: "restrict",
+  }),
+  status: processingJobStatus("status").notNull().default("queued"),
+  attempts: integer("attempts").notNull().default(0),
+  leaseToken: uuid("lease_token"),
+  leaseUntil: timestamp("lease_until", { withTimezone: true }),
+  nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }).notNull().defaultNow(),
+  lastError: text("last_error"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("dena_processing_claim_idx").on(table.status, table.nextAttemptAt),
+  check("dena_processing_attempts_ck", sql`attempts >= 0 AND attempts <= 5`),
+  check("dena_processing_lease_ck", sql`
+    (status = 'leased' AND lease_token IS NOT NULL AND lease_until IS NOT NULL)
+    OR (status <> 'leased' AND lease_token IS NULL AND lease_until IS NULL)
+  `),
+]);
+
 /**
  * Privileged identities are NOT created by signup. Each applicant may submit
  * one reviewed request per role; approval provisions a NEW verified entity

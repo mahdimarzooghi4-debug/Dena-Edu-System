@@ -43,6 +43,13 @@
       "when": 1790010044747,
       "tag": "0005_pretty_revanche",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790014900000,
+      "tag": "0006_dena_processing_queue",
+      "breakpoints": true
     }
   ]
 }

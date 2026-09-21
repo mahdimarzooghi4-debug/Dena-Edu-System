@@ -2,7 +2,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { and, eq, sql } from "drizzle-orm";
 import { getDb } from "../../db";
 import {
-  courses, mediaIngests, memberships, privateMediaAssets, supervisionGrants,
+  courses, mediaIngests, mediaProcessingJobs, memberships, privateMediaAssets, supervisionGrants,
 } from "../../db/schema";
 import { configuredPrivateMediaOrigin } from "../student/private-media";
 
@@ -208,12 +208,17 @@ export async function receiveQuarantinedUpload(
       await upstream.body?.cancel(); return "unavailable";
     }
     await upstream.body?.cancel();
-    const [updated] = await db.update(mediaIngests).set({
-      status: "quarantined", uploadedAt: new Date(),
-    }).where(and(eq(mediaIngests.id, uploadId),
-      eq(mediaIngests.status, "uploading")))
-      .returning({ id: mediaIngests.id });
-    return updated ? "quarantined" : "conflict";
+    return db.transaction(async (tx) => {
+      const [updated] = await tx.update(mediaIngests).set({
+        status: "quarantined", uploadedAt: new Date(),
+      }).where(and(eq(mediaIngests.id, uploadId),
+        eq(mediaIngests.status, "uploading")))
+        .returning({ id: mediaIngests.id });
+      if (!updated) return "conflict" as const;
+      await tx.insert(mediaProcessingJobs).values({ uploadId })
+        .onConflictDoNothing();
+      return "quarantined" as const;
+    });
   } catch {
     return "unavailable";
   } finally {
@@ -304,6 +309,11 @@ export async function completeAttestedIngest(uploadId: string) {
     await tx.update(mediaIngests).set({
       status: "ready", completedAt: new Date(),
     }).where(eq(mediaIngests.id, uploadId));
+    // Legacy pilot callback remains supported. A future real worker will also
+    // present its lease; never infer scanner provenance from queue status.
+    await tx.update(mediaProcessingJobs).set({
+      status: "done", leaseToken: null, leaseUntil: null, updatedAt: new Date(),
+    }).where(eq(mediaProcessingJobs.uploadId, uploadId));
     return "ready" as const;
   });
 }
