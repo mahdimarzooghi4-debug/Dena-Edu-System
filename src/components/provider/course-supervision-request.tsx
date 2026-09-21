@@ -9,6 +9,7 @@ type Course = {
   responsibleInstituteId: string;
   title: string;
   supervisionStatus: "requested" | "approved" | "revoked";
+  publicationStatus: "draft" | "published" | "archived";
 };
 const labels = {
   requested: "در انتظار بررسی مؤسسه",
@@ -25,6 +26,32 @@ export function CourseSupervisionRequest({ providerIds }: { providerIds: string[
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const requestId = useRef<string | null>(null);
+
+  async function publish(courseId: string) {
+    if (busy) return;
+    setBusy(true); setError(""); setNotice("");
+    try {
+      const response = await fetch(
+        `/api/provider/courses/${encodeURIComponent(courseId)}/publication`, {
+          method: "POST", credentials: "same-origin", cache: "no-store",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "publish" }),
+        },
+      );
+      if (!response.ok) {
+        setError(response.status === 503
+          ? "پخش خصوصی هنوز در این محیط فعال نشده است."
+          : "انتشار ممکن نیست؛ ویدئوی آماده، نظارت معتبر و عضویت فعال لازم است.");
+        return;
+      }
+      await refresh();
+      setNotice("دوره رایگان منتشر شد؛ ثبت‌نام همچنان نیازمند مجوز همان دانش‌آموز است.");
+    } catch {
+      setError("ارتباط برقرار نشد؛ وضعیت انتشار دوره را دوباره بررسی کنید.");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function refresh() {
     const result = await fetch("/api/provider/courses", {
@@ -138,6 +165,16 @@ export function CourseSupervisionRequest({ providerIds }: { providerIds: string[
                 <p className="mt-2 text-sm font-semibold text-dena-deep">
                   {labels[item.supervisionStatus]}
                 </p>
+                <p className="mt-2 text-sm text-dena-muted">
+                  وضعیت انتشار: {item.publicationStatus === "published" ? "منتشرشده"
+                    : item.publicationStatus === "archived" ? "بایگانی‌شده" : "پیش‌نویس"}
+                </p>
+                {item.supervisionStatus === "approved" && item.publicationStatus === "draft" && (
+                  <Button type="button" disabled={busy}
+                    onClick={() => publish(item.courseId)} className="mt-3 disabled:opacity-50">
+                    انتشار رایگان با محتوای آماده
+                  </Button>
+                )}
               </li>)}
           </ul>}
       </section>
