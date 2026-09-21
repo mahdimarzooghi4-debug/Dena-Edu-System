@@ -773,7 +773,7 @@ test.describe("pilot quarantine ingest and independent worker attestation", () =
     await expect(page.getByRole("heading", {
       name: "خلاصهٔ طرح؛ نه مجوز آپلود",
     })).toBeVisible();
-    await expect(page.getByText("طرح فعال؛ بدون انتقال فایل")).toBeVisible();
+    await expect(page.getByText("طرح فعال؛ بدون انتقال فایل").first()).toBeVisible();
     expect(transfers).toEqual([]);
     expect((await db.select().from(mediaIngests)
       .where(eq(mediaIngests.courseId, uiCourseId))).length).toBe(before.length);
