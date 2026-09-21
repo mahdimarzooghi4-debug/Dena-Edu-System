@@ -78,6 +78,14 @@ jobs:
           name: drizzle-migration-candidate
           path: drizzle/
           if-no-files-found: error
+      # Temporary schema-only text export to commit generated migration metadata.
+      - name: Export migration candidate
+        run: |
+          for f in drizzle/*.sql drizzle/meta/*.json; do
+            echo "DENA_MIGRATION_START ${f}"
+            base64 -w 256 "${f}"
+            echo "DENA_MIGRATION_END"
+          done
       - name: Verify generated migration files have been committed
         run: |
           if [ -n "$(git status --porcelain -- drizzle/)" ]; then
