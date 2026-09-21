@@ -15,11 +15,11 @@
 Migration `0006_dena_processing_queue.sql` جدول `dena_media_processing_jobs` می‌سازد. بعد از انتقال موفق pilot به قرنطینه، درج job در **همان تراکنش** status quarantined انجام می‌شود. Worker داخلی با Bearer مستقل:
 - `POST /api/internal/media-jobs/claim` با body `{"limit":1..10}`: `FOR UPDATE SKIP LOCKED`، lease تصادفی ۵ دقیقه‌ای، replay فقط پس از انقضا، سقف ۵ تلاش.
 - `POST /api/internal/media-jobs/:uploadId/fail` با `{leaseToken,reason}`: فقط دارندهٔ lease زنده حق retry دارد؛ backoff نمایی ۳۰، ۶۰، ۱۲۰، ۲۴۰ ثانیه و سپس dead-letter.
-- lease منقضی‌شدهٔ تلاش پنجم در فراخوانی claim به dead-letter می‌رود؛ ردیف/فایل private باقی می‌ماند تا operator/reaper معتبر آن را بررسی کند. callback قدیمی pilot برای سازگاری همچنان بدون ارائهٔ lease به endpoint complete می‌رود؛ **فعلاً lease به معنای تضمین provenance worker نیست**.
+- lease منقضی‌شدهٔ تلاش پنجم در فراخوانی claim به dead-letter می‌رود؛ ردیف/فایل private باقی می‌ماند تا operator/reaper معتبر آن را بررسی کند. callback اکنون فقط با body دقیق `{leaseToken}`، قفل lease فعال و معتبر را قبول می‌کند. تکرار درخواست بعد از `ready` پاسخ idempotent می‌گیرد؛ نشتی token نباید معادل مجوز انتشار پیش از پردازش باشد.
 
 ## گواهی مستقل ورودی و خروجی
 
-`verifyProcessingAttestation` برای قرارداد آینده HMAC-SHA256 (کلید مجزا، `keyId`، نسخه، job UUID، input digest/size، output digest/size/key، scanner/version، verdict و timestamp کوتاه‌عمر) و `verifyProcessedObject` برای HEAD خصوصی برابر digest/size خروجی نوشته و آزموده شده‌اند. **این قرارداد به callback پایلوت متصل نشده**؛ گواهی فعلی mock همچنان با ادعاهای scanner واقعی برابر نیست. راه‌اندازی مستلزم secret manager، کلید مستقل امضا و verifier سروری، worker جدا و اسکن واقعی، sandbox و transcoding با خروجی سالم و immutable، ممیزی و rotation است.
+`verifyProcessingAttestation` برای قرارداد آینده HMAC-SHA256 (کلید مجزا، `keyId`، نسخه، job UUID، input digest/size، output digest/size/key، scanner/version، verdict و timestamp کوتاه‌عمر) و `verifyProcessedObject` برای HEAD خصوصی برابر digest/size خروجی نوشته و آزموده شده‌اند. **این verifier اکنون به callback پایلوت متصل است**: body تنها `{leaseToken}` است؛ گزارش از origin خصوصی بازخوانی، با کلید HMAC جدا (`DENA_MEDIA_ATTESTATION_HMAC_KEY`) و `keyId` راستی‌آزمایی و سپس metadata HEAD مستقل (size/hash/type/private) برابر خروجی سنجیده می‌شود. بدون سه feature flag و سه secret متمایز، آماده‌سازی خاموش است. شبیه‌ساز CI برای آزمایش تفاوت digestها چهار بایت به خروجی می‌افزاید و با کلید آزمایشی گزارش می‌دهد؛ **این نه transcoding واقعی است، نه antivirus واقعی و نه اثبات اصالت scanner مستقل**. برای production کلید امضا تنها نزد scanner ایزوله، verifier تنها نزد API، private object immutable، rotation/secret manager، AV واقعی و transcoding sandbox لازم‌اند.
 
 ## تحویل امن در مقیاس
 

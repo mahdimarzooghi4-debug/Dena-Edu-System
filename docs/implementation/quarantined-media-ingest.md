@@ -26,3 +26,7 @@
 ## CI
 
 `tests/e2e/media-ingest-db.spec.ts`: عدم دسترسی بی‌نشست/student؛ Origin/role/status/object URL تزریقی؛ درخواست idempotent و body conflict؛ رد فایل با hash نادرست؛ role suspension/revoked grant در زمان آپلود؛ دریافت quarantined ولی نبود asset آماده؛ عدم پذیرش notification بدون Bearer یا بدون گزارش بازرسی؛ پردازش mock صریح localhost + تأیید مستقل از origin، ایجاد یک asset و publish/free-enrollment/video byte-range. `src/server/media/ingest.test.ts` default-off، sniff header و تفکیک token worker را بررسی می‌کند. **موفقیت این تست به معنی گذر آزمون scanner واقعی نیست**.
+
+
+## سخت‌گیری تکمیلی callback در مرحلهٔ بعد
+`POST /api/internal/media-ingest/:uploadId/complete` اکنون علاوه بر Bearer worker دقیقاً `{leaseToken: UUID}` می‌خواهد؛ lease باید در جدول صف هنوز فعال باشد. گزارش با `DENA_MEDIA_ATTESTATION_HMAC_KEY` جدا از worker/origin token و `DENA_MEDIA_ATTESTATION_KEY_ID` بررسی می‌شود؛ digest/bytes خروجی و HEAD مستقل الزامی‌اند. توضیح‌های قدیمی همین سند درباره body `{}` و `transcoded: true` فقط تاریخچهٔ پایلوت قبلی‌اند، نه قرارداد فعلی. تست mock هنوز آنتی‌ویروس یا پردازشگر واقعی نیست.

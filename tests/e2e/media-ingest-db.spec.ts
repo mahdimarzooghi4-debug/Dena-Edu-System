@@ -61,9 +61,10 @@ test.describe("pilot quarantine ingest and independent worker attestation", () =
     });
   }
   async function worker(ctx: APIRequestContext, id: string,
-      token = process.env.DENA_MEDIA_PROCESSOR_TOKEN!) {
+      token = process.env.DENA_MEDIA_PROCESSOR_TOKEN!,
+      leaseToken = randomUUID()) {
     return ctx.post(callbackPath(id), {
-      data: {}, headers: { Authorization: `Bearer ${token}` },
+      data: { leaseToken }, headers: { Authorization: `Bearer ${token}` },
     });
   }
   async function processMock(uploadId: string, assetId: string) {
@@ -75,6 +76,16 @@ test.describe("pilot quarantine ingest and independent worker attestation", () =
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ courseId, assetId }),
+      },
+    );
+    return response.status;
+  }
+
+  async function corruptMock(uploadId: string) {
+    const response = await fetch(
+      `http://127.0.0.1:4318/__test__/corrupt/${uploadId}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${process.env.DENA_PRIVATE_MEDIA_ORIGIN_TOKEN}` },
       },
     );
     return response.status;
@@ -232,8 +243,13 @@ test.describe("pilot quarantine ingest and independent worker attestation", () =
     expect((await db.select().from(privateMediaAssets)
       .where(eq(privateMediaAssets.courseId, courseId))).length).toBe(0);
     expect((await worker(provider, id, "bad-token")).status()).toBe(404);
-    // Even the real internal token cannot trust a caller claiming ready:
-    expect((await worker(provider, id)).status()).toBe(503); // unprocessed origin report
+    // No live lease: the real worker credential alone cannot publish.
+    expect((await worker(provider, id)).status()).toBe(409);
+    expect((await provider.post(callbackPath(id), {
+      data: {}, headers: {
+        Authorization: `Bearer ${process.env.DENA_MEDIA_PROCESSOR_TOKEN}`,
+      },
+    })).status()).toBe(400);
     await provider.dispose();
   });
 
@@ -305,16 +321,42 @@ test.describe("pilot quarantine ingest and independent worker attestation", () =
       eq(mediaIngests.expectedSha256, sha256),
     ));
     const workerClient = await client();
-    expect((await worker(workerClient, job.id, "x".repeat(32))).status()).toBe(404);
-    const readyBefore = await worker(workerClient, job.id);
+    const [queue] = await db.select().from(mediaProcessingJobs)
+      .where(eq(mediaProcessingJobs.uploadId, job.id));
+    expect(queue.status).toBe("leased");
+    const currentLease = queue.leaseToken!;
+    expect((await worker(workerClient, job.id, "x".repeat(32), currentLease)).status()).toBe(404);
+    expect((await worker(workerClient, job.id, undefined, randomUUID())).status()).toBe(409);
+    const readyBefore = await worker(workerClient, job.id, undefined, currentLease);
     expect(readyBefore.status()).toBe(503);
     expect((await db.select().from(privateMediaAssets)
       .where(eq(privateMediaAssets.courseId, courseId))).length).toBe(0);
     expect(await processMock(job.id, job.assetId)).toBe(200);
-    const completed = await worker(workerClient, job.id);
+    // The source and processed output have DIFFERENT hashes/sizes in CI.
+    const report = await (await fetch(
+      `http://127.0.0.1:4318/inspection/${job.id}`, {
+        headers: { Authorization: `Bearer ${process.env.DENA_PRIVATE_MEDIA_ORIGIN_TOKEN}` },
+      },
+    )).json();
+    expect(report.sourceSha256).toBe(job.expectedSha256);
+    expect(report.outputSha256).not.toBe(job.expectedSha256);
+    expect(report.outputBytes).toBe(fixture.length + 4);
+    expect(await corruptMock(job.id)).toBe(200);
+    expect((await worker(workerClient, job.id, undefined, currentLease)).status()).toBe(409);
+    expect((await db.select().from(privateMediaAssets)
+      .where(eq(privateMediaAssets.courseId, courseId))).length).toBe(0);
+    expect(await processMock(job.id, job.assetId)).toBe(200);
+    await db.update(mediaProcessingJobs).set({
+      leaseUntil: new Date(Date.now() - 1000),
+    }).where(eq(mediaProcessingJobs.uploadId, job.id));
+    expect((await worker(workerClient, job.id, undefined, currentLease)).status()).toBe(409);
+    await db.update(mediaProcessingJobs).set({
+      leaseUntil: new Date(Date.now() + 120_000),
+    }).where(eq(mediaProcessingJobs.uploadId, job.id));
+    const completed = await worker(workerClient, job.id, undefined, currentLease);
     expect(completed.status()).toBe(200);
     expect(await completed.json()).toEqual({ uploadId: job.id, status: "ready" });
-    expect((await worker(workerClient, job.id)).status()).toBe(200);
+    expect((await worker(workerClient, job.id, undefined, currentLease)).status()).toBe(200);
     const [finishedQueue] = await db.select().from(mediaProcessingJobs)
       .where(eq(mediaProcessingJobs.uploadId, job.id));
     expect(finishedQueue.status).toBe("done");

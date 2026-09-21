@@ -5,6 +5,9 @@ import {
   courses, mediaIngests, mediaProcessingJobs, memberships, privateMediaAssets, supervisionGrants,
 } from "../../db/schema";
 import { configuredPrivateMediaOrigin } from "../student/private-media";
+import {
+  verifyProcessedObject, verifyProcessingAttestation, type ProcessingAttestation,
+} from "./multipart";
 
 export const MAX_PILOT_UPLOAD_BYTES = 8 * 1024 * 1024;
 
@@ -231,9 +234,16 @@ export async function receiveQuarantinedUpload(
  * private origin's inspection attestation and checks the final MP4 location.
  * The worker's request body can never assert clean/transcoded/ready itself.
  */
-export async function completeAttestedIngest(uploadId: string) {
+export async function completeAttestedIngest(uploadId: string, leaseToken: string) {
   const media = configuredPrivateMediaOrigin();
+  const signingKey = process.env.DENA_MEDIA_ATTESTATION_HMAC_KEY;
+  const keyId = process.env.DENA_MEDIA_ATTESTATION_KEY_ID;
   if (!media || process.env.DENA_MEDIA_PROCESSOR_ENABLED !== "1" ||
+      process.env.DENA_MEDIA_ATTESTATION_ENABLED !== "1" ||
+      !signingKey || signingKey.length < 32 ||
+      !keyId || !/^[a-zA-Z0-9._-]{3,100}$/.test(keyId) ||
+      signingKey === media.token ||
+      signingKey === process.env.DENA_MEDIA_PROCESSOR_TOKEN ||
       process.env.DENA_MEDIA_PROCESSOR_TOKEN === media.token) {
     return "unavailable" as const;
   }
@@ -243,6 +253,16 @@ export async function completeAttestedIngest(uploadId: string) {
     if (!job) return "not_found" as const;
     if (job.status === "ready") return "ready" as const;
     if (job.status !== "quarantined") return "conflict" as const;
+    // Fencing: callback credentials alone are insufficient. The caller must
+    // own the live DB lease. Late retries cannot publish an orphaned output.
+    const [leased] = await tx.select().from(mediaProcessingJobs)
+      .where(eq(mediaProcessingJobs.uploadId, uploadId))
+      .limit(1).for("update");
+    if (!leased || leased.status !== "leased" ||
+        leased.leaseToken !== leaseToken ||
+        !leased.leaseUntil || leased.leaseUntil <= new Date()) {
+      return "conflict" as const;
+    }
     const [course] = await tx.select().from(courses)
       .where(eq(courses.id, job.courseId)).limit(1).for("share");
     const [grant] = await tx.select().from(supervisionGrants)
@@ -280,28 +300,33 @@ export async function completeAttestedIngest(uploadId: string) {
     if (!inspection || inspection.status !== 200) {
       await inspection?.body?.cancel(); return "unavailable" as const;
     }
-    const report: unknown = await inspection.json().catch(() => null);
+    const rawReport: unknown = await inspection.json().catch(() => null);
     const assetKey = `${job.courseId}/${job.assetId}.mp4`;
-    if (typeof report !== "object" || report === null ||
-        !("sha256" in report) || report.sha256 !== job.expectedSha256 ||
-        !("bytes" in report) || report.bytes !== job.expectedBytes ||
-        !("malware" in report) || report.malware !== "clean" ||
-        !("transcoded" in report) || report.transcoded !== true ||
-        !("format" in report) || report.format !== "mp4" ||
-        !("assetKey" in report) || report.assetKey !== assetKey) {
-      return "conflict" as const;
-    }
+    // The origin supplies bytes but does NOT get to attest them in production.
+    // Only a distinct isolated scanner's signing key may create this report.
+    const report = rawReport as ProcessingAttestation;
+    if (!verifyProcessingAttestation(report, {
+      keyId, uploadId, sourceBytes: job.expectedBytes,
+      sourceSha256: job.expectedSha256, outputKey: assetKey,
+    }, signingKey)) return "conflict" as const;
     const head = await fetch(new URL(`/private/${assetKey}`, media.origin), {
       method: "HEAD", redirect: "error", cache: "no-store",
       headers: { Authorization: `Bearer ${media.token}` },
       signal: AbortSignal.timeout(10_000),
     }).catch(() => null);
-    if (!head || head.status !== 200 ||
-        head.headers.get("content-type")?.split(";")[0] !== "video/mp4") {
+    if (!head || head.status !== 200) {
       await head?.body?.cancel();
       return "unavailable" as const;
     }
+    const stored = {
+      key: assetKey,
+      bytes: Number(head.headers.get("content-length")),
+      sha256: head.headers.get("x-dena-sha256") ?? "",
+      contentType: head.headers.get("content-type")?.split(";")[0].trim() ?? "",
+      private: head.headers.get("x-dena-private") === "1",
+    };
     await head.body?.cancel();
+    if (!verifyProcessedObject(report, stored)) return "conflict" as const;
     await tx.insert(privateMediaAssets).values({
       id: job.assetId, courseId: job.courseId, title: job.title,
       objectKey: assetKey, status: "ready",
@@ -309,11 +334,11 @@ export async function completeAttestedIngest(uploadId: string) {
     await tx.update(mediaIngests).set({
       status: "ready", completedAt: new Date(),
     }).where(eq(mediaIngests.id, uploadId));
-    // Legacy pilot callback remains supported. A future real worker will also
-    // present its lease; never infer scanner provenance from queue status.
     await tx.update(mediaProcessingJobs).set({
       status: "done", leaseToken: null, leaseUntil: null, updatedAt: new Date(),
-    }).where(eq(mediaProcessingJobs.uploadId, uploadId));
+    }).where(and(eq(mediaProcessingJobs.uploadId, uploadId),
+      eq(mediaProcessingJobs.leaseToken, leaseToken),
+      eq(mediaProcessingJobs.status, "leased")));
     return "ready" as const;
   });
 }
