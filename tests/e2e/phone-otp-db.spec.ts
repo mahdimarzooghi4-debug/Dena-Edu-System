@@ -29,6 +29,12 @@ test.describe("verified mobile onboarding (disposable DB + SMS mock)", () => {
       const { code } = await codeResponse.json() as { code: string };
       expect(code).toMatch(/^\d{6}$/);
 
+      const immediateResend = await browser.post("/api/auth/phone-number/send-otp", {
+        data: { phoneNumber: phone },
+      });
+      expect(immediateResend.status()).toBe(429);
+      // A rejected resend must not invalidate the already delivered OTP.
+
       const invalid = await browser.post("/api/auth/phone-number/verify", {
         data: { phoneNumber: phone, code: "not-an-otp" },
       });
