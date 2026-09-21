@@ -29,6 +29,8 @@ const tombstones = new Set();
 const inspections = new Map();
 const privateAssets = new Map();
 const fakePrivateHead = new Map();
+const delayedPrivateGets = new Set();
+const activePrivateGets = new Set();
 const health = "/health";
 const reply = (res, status, data) => {
   res.writeHead(status, { "Content-Type": "application/json", "Cache-Control": "no-store" });
@@ -173,9 +175,33 @@ const server = createServer(async (req, res) => {
     });
     return reply(res, 200, { corrupted: true, headSpoofed: true });
   }
+  const delayPrivate = new RegExp("^/__test__/delay-output-get/(" + uuid + ")$").exec(req.url ?? "");
+  if (req.method === "POST" && delayPrivate) {
+    delayedPrivateGets.add(delayPrivate[1]);
+    return reply(res, 200, { delayed: true });
+  }
+  const delayStatus = new RegExp("^/__test__/delay-output-status/(" + uuid + ")$").exec(req.url ?? "");
+  if (req.method === "GET" && delayStatus) {
+    return reply(res, 200, { active: activePrivateGets.has(delayStatus[1]) });
+  }
   const mediaMatch = new RegExp(`^/private/(${uuid}/${uuid}\\.mp4)$`).exec(req.url ?? "");
   if (!mediaMatch || !["GET", "HEAD"].includes(req.method ?? "")) return reply(res, 404, {});
   const bytes = privateAssets.get(mediaMatch[1]) ?? fixture;
+  // CI-only slow GET: prove DB locks are NOT held while bytes stream and
+  // that revoke/lease changes during this I/O prevent ready publication.
+  if (req.method === "GET") {
+    const matching = [...inspections].find(
+      ([, report]) => report.outputKey === mediaMatch[1] &&
+        delayedPrivateGets.has(report.uploadId),
+    );
+    if (matching) {
+      const id = matching[1].uploadId;
+      delayedPrivateGets.delete(id);
+      activePrivateGets.add(id);
+      await new Promise(resolve => setTimeout(resolve, 1600));
+      activePrivateGets.delete(id);
+    }
+  }
   res.setHeader("Content-Type", "video/mp4");
   res.setHeader("Accept-Ranges", "bytes");
   res.setHeader("X-Dena-Private", "1");
