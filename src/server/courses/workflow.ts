@@ -1,4 +1,5 @@
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, ne, notExists } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { getDb } from "../../db";
 import {
   courses, memberships, supervisionEvents, supervisionGrants, verifiedEntities,
@@ -46,12 +47,18 @@ export async function createSupervisedCourse(
       )).limit(1);
     if (!verifiedInstitute) throw new CourseWorkflowError("institute_unavailable");
 
+    const overlap = alias(memberships, "dena_provider_conflict");
     const [independentInstitute] = await tx.select({ id: memberships.id })
       .from(memberships).where(and(
         eq(memberships.role, "institute"),
         eq(memberships.instituteId, payload.responsibleInstituteId),
         eq(memberships.status, "active"),
         ne(memberships.userId, providerUserId),
+        notExists(tx.select({ id: overlap.id }).from(overlap).where(and(
+          eq(overlap.userId, memberships.userId),
+          eq(overlap.role, "provider"),
+          eq(overlap.providerId, payload.providerId),
+        ))),
       )).limit(1).for("share");
     if (!independentInstitute) throw new CourseWorkflowError("institute_unavailable");
 
