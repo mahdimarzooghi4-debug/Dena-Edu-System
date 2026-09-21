@@ -28,3 +28,53 @@ jobs:
       - name: Install Chromium for browser smoke tests
         run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+
+  db-integration:
+    name: PostgreSQL + Auth integration
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: dena_test
+          POSTGRES_PASSWORD: dena_test
+          POSTGRES_DB: dena_integration
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U dena_test -d dena_integration"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 15
+    env:
+      DATABASE_URL: postgresql://dena_test:dena_test@127.0.0.1:5432/dena_integration
+      BETTER_AUTH_URL: http://localhost:3000
+      DENA_DB_INTEGRATION: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Use npm 11
+        run: npm install --global npm@11 --no-audit --no-fund
+      - name: Install from committed lockfile
+        run: npm ci --no-audit --no-fund
+      - name: Generate disposable integration secret
+        run: echo "BETTER_AUTH_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+      - name: Generate reviewed Drizzle migration candidate
+        run: npx drizzle-kit generate
+      - name: Preserve generated migration for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: drizzle-migration-candidate
+          path: drizzle/
+          if-no-files-found: error
+      - name: Apply migrations to disposable PostgreSQL
+        run: npx drizzle-kit migrate
+      - name: Build for database-backed browser tests
+        run: npm run build
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Verify persisted session and course scope over HTTP
+        run: npm run test:e2e:db
