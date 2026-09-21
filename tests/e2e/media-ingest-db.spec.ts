@@ -507,6 +507,11 @@ test.describe("pilot quarantine ingest and independent worker attestation", () =
       uploadId, status: "done",
     });
     expect((await fetch(storage, { method: "HEAD", headers: storageAuth })).status).toBe(404);
+    const late = await fetch(storage, { method: "PUT", headers: {
+      ...storageAuth, "Content-Type": "video/mp4", "X-Dena-Sha256": sha256,
+    }, body: new Uint8Array(fixture) });
+    expect(late.status).toBe(410);
+    expect((await fetch(storage, { method: "HEAD", headers: storageAuth })).status).toBe(404);
     const [cleaned] = await db.select().from(mediaCleanupJobs)
       .where(eq(mediaCleanupJobs.uploadId, uploadId));
     expect(cleaned.attempts).toBe(2);
@@ -799,6 +804,72 @@ test.describe("pilot quarantine ingest and independent worker attestation", () =
       status: "approved", approvedAt: new Date(),
       approvedByInstituteUserId: users.institute,
     }).where(eq(supervisionGrants.courseId, uiCourseId));
+  });
+
+  test("cleanup rejects unfenced 204 and fences even missing objects against late writes", async () => {
+    const caller = await client();
+    const auth = { Authorization: `Bearer ${process.env.DENA_MEDIA_CLEANUP_TOKEN}` };
+    const storageAuth = { Authorization:
+      `Bearer ${process.env.DENA_PRIVATE_MEDIA_ORIGIN_TOKEN}` };
+    const newRejected = async () => {
+      const id = randomUUID(), old = new Date(Date.now() - 2 * 3_600_000);
+      await db.insert(mediaIngests).values({
+        id, courseId: uiCourseId, providerId,
+        createdByUserId: users.provider, requestId: randomUUID(),
+        title: "quarantine deletion fencing test",
+        expectedBytes: fixture.length, expectedSha256: sha256,
+        status: "rejected", rejectionReason: "invalid_media",
+        createdAt: old, completedAt: old,
+      });
+      return id;
+    };
+    const endpoint = "/api/internal/media-cleanup/run";
+    const run = () => caller.post(endpoint, {
+      data: { limit: 10 }, headers: auth,
+    });
+    const uploadId = await newRejected();
+    const storage = `http://127.0.0.1:4318/quarantine/${uploadId}`;
+    const put = () => fetch(storage, {
+      method: "PUT",
+      headers: { ...storageAuth, "Content-Type": "video/mp4",
+        "X-Dena-Sha256": sha256 },
+      body: new Uint8Array(fixture),
+    });
+    expect((await put()).status).toBe(201);
+    expect((await fetch(`http://127.0.0.1:4318/__test__/unfenced-delete/${uploadId}`, {
+      method: "POST", headers: storageAuth,
+    })).status).toBe(200);
+    const first = await run();
+    expect((await first.json()).results).toContainEqual({
+      uploadId, status: "pending",
+    });
+    expect((await fetch(storage, { method: "HEAD", headers: storageAuth })).status).toBe(200);
+    const [pending] = await db.select().from(mediaCleanupJobs)
+      .where(eq(mediaCleanupJobs.uploadId, uploadId));
+    expect(pending.lastError).toBe("origin_unavailable");
+    expect(pending.attempts).toBe(1);
+    await db.update(mediaCleanupJobs).set({
+      nextAttemptAt: new Date(Date.now() - 1000),
+    }).where(eq(mediaCleanupJobs.uploadId, uploadId));
+    expect((await (await run()).json()).results).toContainEqual({
+      uploadId, status: "done",
+    });
+    expect((await put()).status).toBe(410);
+
+    const neverUploaded = await newRejected();
+    const missingPath = `http://127.0.0.1:4318/quarantine/${neverUploaded}`;
+    expect((await fetch(missingPath, { method: "HEAD",
+      headers: storageAuth })).status).toBe(404);
+    const gone = await run();
+    expect((await gone.json()).results).toContainEqual({
+      uploadId: neverUploaded, status: "done",
+    });
+    expect((await fetch(missingPath, {
+      method: "PUT", headers: { ...storageAuth,
+        "Content-Type": "video/mp4", "X-Dena-Sha256": sha256 },
+      body: new Uint8Array(fixture),
+    })).status).toBe(410);
+    await caller.dispose();
   });
 
 });
