@@ -798,7 +798,9 @@ test.describe("pilot quarantine ingest and independent worker attestation", () =
       name: "لغو طرح «طرح رابط فارسی بدون آپلود»",
     }).click();
     expect((await cancelled).status()).toBe(200);
-    await expect(page.getByText("لغوشده؛ بدون مجوز آپلود")).toBeVisible();
+    await expect(page.getByRole("listitem").filter({
+      hasText: "طرح رابط فارسی بدون آپلود",
+    }).getByText("لغوشده؛ بدون مجوز آپلود")).toBeVisible();
     expect(transfers).toEqual([]);
     await db.update(supervisionGrants).set({
       status: "approved", approvedAt: new Date(),
