@@ -250,7 +250,7 @@ export const privateMediaAssets = pgTable("dena_private_media_assets", {
  * callback, followed by server-side origin verification, can create a ready asset.
  */
 export const ingestStatus = pgEnum("dena_media_ingest_status", [
-  "reserved", "quarantined", "ready", "rejected",
+  "reserved", "uploading", "quarantined", "ready", "rejected",
 ]);
 export const mediaIngests = pgTable("dena_media_ingests", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -281,8 +281,8 @@ export const mediaIngests = pgTable("dena_media_ingests", {
     expected_sha256 ~ '^[0-9a-f]{64}$'
   `),
   check("dena_ingest_state_ck", sql`
-    (status = 'reserved' AND uploaded_at IS NULL AND completed_at IS NULL
-      AND rejection_reason IS NULL)
+    (status IN ('reserved', 'uploading') AND uploaded_at IS NULL
+      AND completed_at IS NULL AND rejection_reason IS NULL)
     OR (status = 'quarantined' AND uploaded_at IS NOT NULL
       AND completed_at IS NULL AND rejection_reason IS NULL)
     OR (status = 'ready' AND uploaded_at IS NOT NULL
