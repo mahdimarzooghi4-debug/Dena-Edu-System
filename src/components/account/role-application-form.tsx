@@ -39,8 +39,19 @@ export function RoleApplicationForm() {
   }, []);
 
   useEffect(() => {
-    void reload().catch(() => setError("دریافت وضعیت درخواست‌ها ممکن نشد."));
-  }, [reload]);
+    const controller = new AbortController();
+    void fetch("/api/access/role-applications", {
+      credentials: "same-origin", cache: "no-store", signal: controller.signal,
+    }).then(async (response) => {
+      if (!response.ok) throw new Error("queue_unavailable");
+      return response.json() as Promise<{ applications: Application[] }>;
+    }).then((data) => {
+      if (!controller.signal.aborted) setItems(data.applications);
+    }).catch(() => {
+      if (!controller.signal.aborted) setError("دریافت وضعیت درخواست‌ها ممکن نشد.");
+    });
+    return () => controller.abort();
+  }, []);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
