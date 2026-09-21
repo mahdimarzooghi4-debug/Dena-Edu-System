@@ -64,22 +64,19 @@ jobs:
         run: echo "BETTER_AUTH_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
       - name: Generate reviewed Drizzle migration candidate
         run: npx drizzle-kit generate
+      - name: Verify generated migration files have been committed
+        run: |
+          if [ -n "$(git status --porcelain -- drizzle/)" ]; then
+            echo "Drizzle schema drift: commit reviewed migration SQL and metadata."
+            git status --short -- drizzle/
+            exit 1
+          fi
       - name: Preserve generated migration for review
         uses: actions/upload-artifact@v4
         with:
           name: drizzle-migration-candidate
           path: drizzle/
           if-no-files-found: error
-      # Temporary, schema-only transfer: output is public migration metadata, not secrets.
-      # Remove after checking the generated files into the branch.
-      - name: Export generated migration text for repository commit
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'chore/bootstrap-dena-stack'
-        run: |
-          for f in drizzle/*.sql drizzle/meta/*.json; do
-            echo "DENA_MIGRATION_START ${f}"
-            base64 -w 256 "${f}"
-            echo "DENA_MIGRATION_END"
-          done
       - name: Apply migrations to disposable PostgreSQL
         run: npx drizzle-kit migrate
       - name: Build for database-backed browser tests
