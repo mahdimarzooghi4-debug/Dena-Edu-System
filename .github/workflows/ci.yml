@@ -51,6 +51,8 @@ jobs:
       BETTER_AUTH_URL: http://localhost:3000
       DENA_DB_INTEGRATION: "1"
       DENA_SMS_ENABLED: "1"
+      DENA_MEDIA_ENABLED: "1"
+      DENA_PRIVATE_MEDIA_ORIGIN_URL: http://127.0.0.1:4318/
       DENA_SMS_GATEWAY_URL: http://127.0.0.1:4317/send
     steps:
       - uses: actions/checkout@v4
@@ -70,6 +72,9 @@ jobs:
           mock_token=$(openssl rand -hex 32)
           echo "::add-mask::$mock_token"
           echo "DENA_SMS_GATEWAY_TOKEN=$mock_token" >> "$GITHUB_ENV"
+          media_token=$(openssl rand -hex 32)
+          echo "::add-mask::$media_token"
+          echo "DENA_PRIVATE_MEDIA_ORIGIN_TOKEN=$media_token" >> "$GITHUB_ENV"
       - name: Generate reviewed Drizzle migration candidate
         run: npx drizzle-kit generate
       - name: Preserve generated migration for review
@@ -96,6 +101,14 @@ jobs:
           node scripts/test-sms-gateway.mjs > /tmp/dena-sms-mock.log 2>&1 &
           for i in 1 2 3 4 5 6 7 8 9 10; do
             if curl --fail --silent --header "Authorization: Bearer $DENA_SMS_GATEWAY_TOKEN" http://127.0.0.1:4317/health > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Start localhost-only private MP4 origin mock
+        run: |
+          node scripts/test-media-origin.mjs > /tmp/dena-media-mock.log 2>&1 &
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            if curl --fail --silent --header "Authorization: Bearer $DENA_PRIVATE_MEDIA_ORIGIN_TOKEN" http://127.0.0.1:4318/health > /dev/null; then exit 0; fi
             sleep 1
           done
           exit 1
