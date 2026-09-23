@@ -1,10 +1,8 @@
-import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getDb } from "../../../../../../db";
-import { privateMediaAssets } from "../../../../../../db/schema";
 import { getServerAccessContext } from "../../../../../../server/access/actor";
 import { hasStudentEntitlement } from "../../../../../../server/student/entitlement";
+import { getStudentVideoProgress } from "../../../../../../server/student/video-progress";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,12 +23,7 @@ export async function GET(
       status: 404, headers: noStore,
     });
   }
-  const rows = await getDb().select({
-    assetId: privateMediaAssets.id, title: privateMediaAssets.title,
-  }).from(privateMediaAssets).where(and(
-    eq(privateMediaAssets.courseId, courseId),
-    eq(privateMediaAssets.status, "ready"),
-  )).limit(50);
+  const rows = await getStudentVideoProgress(actor.userId, courseId);
   // NO objectKey, origin URL, token, CDN hostname, storage location or PII.
   return NextResponse.json({ courseId, assets: rows }, { headers: noStore });
 }
