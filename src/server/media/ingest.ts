@@ -5,6 +5,7 @@ import {
   courses, mediaIngests, mediaMultipartPlans, mediaProcessingJobs, memberships, privateMediaAssets, supervisionGrants,
 } from "../../db/schema";
 import { configuredPrivateMediaOrigin } from "../student/private-media";
+import { readBoundedInspectionReport } from "./inspection-report";
 import {
   verifyProcessedObject, verifyProcessedStream, verifyQuarantineStream,
   verifyProcessingAttestation, type ProcessingAttestation,
@@ -338,7 +339,7 @@ export async function completeAttestedIngest(uploadId: string, leaseToken: strin
   if (!inspection || inspection.status !== 200) {
     await inspection?.body?.cancel(); return "unavailable" as const;
   }
-  const rawReport: unknown = await inspection.json().catch(() => null);
+  const rawReport: unknown = await readBoundedInspectionReport(inspection);
   const assetKey = `${initial.courseId}/${initial.assetId}.mp4`;
   // The origin supplies bytes but does NOT get to attest them in production.
   // Only a distinct isolated scanner's signing key may create this report.
