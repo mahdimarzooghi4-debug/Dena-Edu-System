@@ -163,6 +163,10 @@ export function CourseSupervisionRequest({ providerIds }: { providerIds: string[
                 <p className="mt-2 text-xs text-dena-muted">
                   شناسه دوره: <bdi dir="ltr">{item.courseId}</bdi>
                 </p>
+                <Link href={`/provider/courses/${item.courseId}`}
+                  className="mt-3 inline-block text-sm font-bold text-dena-brand hover:underline">
+                  جزئیات و وضعیت همین دوره
+                </Link>
                 <p className="mt-2 text-sm font-semibold text-dena-deep">
                   {labels[item.supervisionStatus]}
                 </p>

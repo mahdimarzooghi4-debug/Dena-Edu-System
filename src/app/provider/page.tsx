@@ -117,6 +117,10 @@ export default async function ProviderHomePage() {
                 <p className="text-sm text-dena-muted">
                   سؤال تمرینی: {practiceLabels[course.practiceReviewStatus]}
                 </p>
+                <Link href={`/provider/courses/${course.courseId}`}
+                  className={buttonClassName()}>
+                  جزئیات و وضعیت همین دوره
+                </Link>
                 {course.supervisionStatus === "approved" && (
                   <Link href={`/provider/courses/${course.courseId}/practice`}
                     className={buttonClassName("secondary")}>
