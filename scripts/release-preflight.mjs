@@ -52,10 +52,10 @@ function checkUrl(value, label, { root = false, protocols = ["https:"] } = {}) {
  */
 export function assessReleaseEnvironment(env) {
   const blockers = [];
-  if (env.DENA_DB_INTEGRATION === "1") blockers.push("DENA_DB_INTEGRATION:ci_mock_forbidden");
-  if (env.NODE_ENV && env.NODE_ENV !== "production") {
-    blockers.push("NODE_ENV:not_production");
+  if (env.DENA_DB_INTEGRATION && env.DENA_DB_INTEGRATION !== "0") {
+    blockers.push("DENA_DB_INTEGRATION:ci_mock_forbidden");
   }
+  if (env.NODE_ENV !== "production") blockers.push("NODE_ENV:not_production");
   if (!env.DATABASE_URL) blockers.push("DATABASE_URL:missing");
   else {
     try {
@@ -64,6 +64,18 @@ export function assessReleaseEnvironment(env) {
         blockers.push("DATABASE_URL:invalid_protocol");
       }
       if (!db.hostname) blockers.push("DATABASE_URL:missing_host");
+      else if (isLocal(db.hostname)) blockers.push("DATABASE_URL:mock_or_loopback");
+      if (!db.pathname || db.pathname === "/") blockers.push("DATABASE_URL:missing_database");
+      if (db.hash || db.searchParams.has("host") || db.searchParams.has("ssl")) {
+        blockers.push("DATABASE_URL:ambiguous_connection_options");
+      }
+      // Postgres.js consumes sslmode from the URL. "require" encrypts but
+      // does not promise hostname verification; fail closed unless the app
+      // explicitly requests authenticated TLS for the database hostname.
+      const modes = db.searchParams.getAll("sslmode");
+      if (modes.length !== 1 || modes[0] !== "verify-full") {
+        blockers.push("DATABASE_URL:tls_verification_required");
+      }
     } catch { blockers.push("DATABASE_URL:invalid_url"); }
   }
   blockers.push(...checkUrl(env.BETTER_AUTH_URL, "BETTER_AUTH_URL"));
