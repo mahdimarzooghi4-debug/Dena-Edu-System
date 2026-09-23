@@ -121,8 +121,9 @@ export default async function StudentHomePage() {
         <Card>
           <p className="text-sm leading-8 text-dena-muted">
             علامت‌های انجام‌شدهٔ ویدئوها اکنون قابل پیگیری‌اند؛
-            تمرین نمره‌دار و آزمون هنوز عملیاتی نشده‌اند و نتیجه یا
-            درصد پیشرفت تخمینی نمایش داده نمی‌شود.
+            تمرین کوتاه چهارگزینه‌ایِ اختیاری، در صورت ثبت ارائه‌دهنده،
+            کنار ویدئوها فعال است؛ آزمون رسمی و درصد پیشرفت تخمینی
+            همچنان نمایش داده نمی‌شوند.
           </p>
           <Link href="/student/progress"
             className={buttonClassName("secondary", "mt-4")}>
