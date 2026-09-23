@@ -738,6 +738,14 @@ test.describe("free enrollment and private video access must stay course-scoped"
       headers: { Origin: "http://localhost:3000" },
     });
     expect(ownNote.status()).toBe(200);
+    const firstStudent = await client("student");
+    const firstStudentManifest = await (await firstStudent.get(
+      listAssets(ids.live),
+    )).json();
+    expect(firstStudentManifest.assets[0].note).toBeNull();
+    expect(JSON.stringify(firstStudentManifest))
+      .not.toContain("یادداشت در زمان دسترسی");
+    await firstStudent.dispose();
     expect((await post(other,
       `/api/student/courses/${ids.live}/cancel`, {})).status()).toBe(200);
     expect((await other.put(notePath(ids.live, videoIds.ready), {
