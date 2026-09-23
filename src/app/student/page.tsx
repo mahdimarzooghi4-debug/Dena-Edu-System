@@ -33,6 +33,9 @@ export default async function StudentHomePage() {
           className="text-sm font-bold text-dena-brand hover:underline">
           بازگشت به حساب من
         </Link>
+        <Link href="/student/progress" className={buttonClassName()}>
+          پیگیری ویدئوهای انجام‌شده
+        </Link>
         <Link href="/student/courses" className={buttonClassName("secondary")}>
           مشاهده دوره‌های رایگان
         </Link>
@@ -114,9 +117,14 @@ export default async function StudentHomePage() {
         <SectionHeading id="coming-soon">تمرین، آزمون و مسیر رشد</SectionHeading>
         <Card>
           <p className="text-sm leading-8 text-dena-muted">
-            این بخش هنوز به گردش‌کار عملیاتی تمرین، آزمون یا ثبت پیشرفت متصل
-            نشده است؛ هیچ نتیجه یا درصد پیشرفت تخمینی نمایش داده نمی‌شود.
+            علامت‌های انجام‌شدهٔ ویدئوها اکنون قابل پیگیری‌اند؛
+            تمرین نمره‌دار و آزمون هنوز عملیاتی نشده‌اند و نتیجه یا
+            درصد پیشرفت تخمینی نمایش داده نمی‌شود.
           </p>
+          <Link href="/student/progress"
+            className={buttonClassName("secondary", "mt-4")}>
+            دیدن پیگیری شخصی ویدئوها
+          </Link>
         </Card>
       </section>
     </main>
