@@ -38,6 +38,13 @@ test("all six role previews are public static shells, not live panels", async ({
   );
   expect(protectedCourseDetail.status()).toBe(307);
   expect(protectedCourseDetail.headers().location).toBe("/login");
+  const protectedProviderPractice = await request.get(
+    "/provider/courses/11111111-1111-4111-8111-111111111111/practice", {
+      maxRedirects: 0,
+    },
+  );
+  expect(protectedProviderPractice.status()).toBe(307);
+  expect(protectedProviderPractice.headers().location).toBe("/login");
   const protectedStudentProgress = await request.get("/student/progress", {
     maxRedirects: 0,
   });
