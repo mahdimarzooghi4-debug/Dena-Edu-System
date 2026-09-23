@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import Link from "next/link";
 import { Button } from "../ui/button";
 
 type Course = {
@@ -105,6 +106,10 @@ export function SupervisionQueue({ instituteIds }: { instituteIds: string[] }) {
                 <p className="mt-1 text-xs text-dena-muted">
                   ارائه‌دهنده: <bdi dir="ltr">{item.providerId}</bdi>
                 </p>
+                <Link href={`/institute/courses/${item.courseId}`}
+                  className="mt-2 inline-block text-sm font-bold text-dena-brand hover:underline">
+                  پروندهٔ وضعیت همین دوره
+                </Link>
                 <p className="mt-3 text-sm font-semibold text-dena-deep">
                   {statusText[item.supervisionStatus]}
                 </p>

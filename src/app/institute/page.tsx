@@ -107,6 +107,10 @@ export default async function InstituteHomePage() {
                 <p className="text-sm text-dena-muted">
                   انتشار: {publicationLabels[course.publicationStatus]}
                 </p>
+                <Link href={`/institute/courses/${course.courseId}`}
+                  className={buttonClassName()}>
+                  پروندهٔ وضعیت همین دوره
+                </Link>
                 {course.supervisionStatus === "approved" && (
                   <Link href={`/institute/courses/${course.courseId}/practice`}
                     className={buttonClassName("secondary")}>

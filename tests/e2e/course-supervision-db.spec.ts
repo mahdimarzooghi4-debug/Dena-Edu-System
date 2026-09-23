@@ -117,11 +117,20 @@ test.describe("course-scoped provider requests and independent institute decisio
     const anonymousInstitute = await anonymous.get("/institute", { maxRedirects: 0 });
     expect(anonymousInstitute.status()).toBe(307);
     expect(anonymousInstitute.headers().location).toBe("/login");
+    expect((await anonymous.get(
+      `/api/institute/courses/${randomUUID()}/overview`,
+    )).status()).toBe(401);
+    expect((await anonymous.get(
+      `/institute/courses/${randomUUID()}`, { maxRedirects: 0 },
+    )).status()).toBe(307);
     await anonymous.dispose();
 
     const provider = await client("provider");
     expect((await provider.get("/api/institute/supervision")).status()).toBe(403);
     expect((await provider.get("/institute")).status()).toBe(404);
+    expect((await provider.get(
+      `/api/institute/courses/${randomUUID()}/overview`,
+    )).status()).toBe(403);
     expect((await create(provider, {
       ...requestBody, providerId: scopes.otherProvider,
     })).status()).toBe(403);
@@ -250,6 +259,35 @@ test.describe("course-scoped provider requests and independent institute decisio
     expect(instituteHtml).toContain("دوره دوم برای اطمینان از تفکیک مجوز");
     expect(instituteHtml).toContain("در انتظار تصمیم مؤسسه");
     expect(instituteHtml).toContain("بررسی درخواست در صف مؤسسه");
+    expect(instituteHtml).toContain(
+      `/institute/courses/${courseIds[0]}`,
+    );
+    const ownInstituteOverview = await institute.get(
+      `/api/institute/courses/${courseIds[0]}/overview`,
+    );
+    expect(ownInstituteOverview.status()).toBe(200);
+    expect(ownInstituteOverview.headers()["cache-control"])
+      .toContain("private");
+    expect((await ownInstituteOverview.json()).course).toMatchObject({
+      courseId: courseIds[0],
+      providerName: "provider A",
+      supervisionStatus: "requested",
+      publicationStatus: "draft",
+      readyVideos: 0,
+      practiceReviewStatus: "not_created",
+    });
+    const pendingInstitutePage = await (await institute.get(
+      `/institute/courses/${courseIds[0]}`,
+    )).text();
+    expect(pendingInstitutePage).toContain("پروندهٔ نظارت و محتوای همین دوره");
+    expect(pendingInstitutePage).toContain("provider A");
+    expect(pendingInstitutePage).toContain("رفتن به صف بررسی نظارت");
+    expect(pendingInstitutePage).not.toContain(
+      `/institute/courses/${courseIds[0]}/practice`,
+    );
+    expect((await institute.get(
+      "/api/institute/courses/not-a-uuid/overview",
+    )).status()).toBe(404);
     expect((await authorized(institute, courseIds[0])).status()).toBe(404);
     const otherInstitute = await client("otherInstitute");
     expect((await (await otherInstitute.get("/api/institute/supervision")).json())
@@ -259,6 +297,12 @@ test.describe("course-scoped provider requests and independent institute decisio
     expect(await otherInstituteHome.text()).not.toContain(
       "دوره آزمایشی نظارت مستقل دنا",
     );
+    expect((await otherInstitute.get(
+      `/api/institute/courses/${courseIds[0]}/overview`,
+    )).status()).toBe(404);
+    expect((await otherInstitute.get(
+      `/institute/courses/${courseIds[0]}`,
+    )).status()).toBe(404);
     await institute.dispose();
     await otherInstitute.dispose();
     await provider.dispose();
@@ -327,6 +371,20 @@ test.describe("course-scoped provider requests and independent institute decisio
     const instituteHtml = await instituteHome.text();
     expect(instituteHtml).toContain("نظارت همین دوره تأیید شده");
     expect(instituteHtml).toContain("در انتظار تصمیم مؤسسه");
+    const approvedInstitutePage = await (await institute.get(
+      `/institute/courses/${a}`,
+    )).text();
+    expect(approvedInstitutePage).toContain(
+      `/institute/courses/${a}/practice`,
+    );
+    const approvedInstituteOverview = await (await institute.get(
+      `/api/institute/courses/${a}/overview`,
+    )).json();
+    expect(approvedInstituteOverview.course).toMatchObject({
+      supervisionStatus: "approved",
+      readyVideos: 0,
+      practiceReviewStatus: "not_created",
+    });
 
     const events = await db.select().from(supervisionEvents)
       .where(eq(supervisionEvents.courseId, a));
@@ -410,6 +468,15 @@ test.describe("course-scoped provider requests and independent institute decisio
       name: "نظارت بر دوره‌های مؤسسه",
     })).toBeVisible();
     await page.getByRole("link", {
+      name: "پروندهٔ وضعیت همین دوره",
+    }).first().click();
+    await expect(page).toHaveURL(/\/institute\/courses\/[0-9a-f-]+$/);
+    await expect(page.getByText("ارائه‌دهندهٔ ثبت‌شده")).toBeVisible();
+    await page.getByRole("link", {
+      name: "بازگشت به خانهٔ مؤسسه",
+    }).click();
+    await expect(page).toHaveURL(/\/institute$/);
+    await page.getByRole("link", {
       name: "بررسی درخواست‌های نظارت",
     }).click();
     await expect(page).toHaveURL(/\/institute\/providers$/);
@@ -464,6 +531,15 @@ test.describe("course-scoped provider requests and independent institute decisio
     expect(instituteHome.status()).toBe(200);
     const instituteHtml = await instituteHome.text();
     expect(instituteHtml).toContain("نظارت رد یا لغو شده");
+    const revokedInstitutePage = await (await institute.get(
+      `/institute/courses/${a}`,
+    )).text();
+    expect(revokedInstitutePage).toContain(
+      "نظارت همین دوره رد یا لغو شده است",
+    );
+    expect(revokedInstitutePage).not.toContain(
+      `/institute/courses/${a}/practice`,
+    );
     expect((await decide(institute, a, {
       action: "approve", reason: "تأیید مجدد بدون درخواست تازه ممنوع است.",
     })).status()).toBe(409);
