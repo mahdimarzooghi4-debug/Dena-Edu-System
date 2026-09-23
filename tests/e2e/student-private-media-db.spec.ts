@@ -521,6 +521,57 @@ test.describe("free enrollment and private video access must stay course-scoped"
       eq(studentEnrollments.studentUserId, users.student),
     ));
     expect(existing).toHaveLength(1);
+    const privatePractice = await student.get(practicePath(ids.live));
+    expect(privatePractice.status()).toBe(200);
+    expect(privatePractice.headers()["cache-control"]).toContain("private");
+    const initialQuestion = await privatePractice.json();
+    expect(initialQuestion.practice).toMatchObject({
+      courseId: ids.live,
+      prompt: "کدام گزینه پاسخ این سؤال تمرینی در دوره دناست؟",
+      options: ["پاسخ نادرست یک", "پاسخ نادرست دو",
+        "پاسخ درست دوره", "پاسخ نادرست سه"],
+      attempt: null,
+    });
+    expect(JSON.stringify(initialQuestion)).not.toContain("correctOption");
+    expect(JSON.stringify(initialQuestion)).not.toContain("authoredByProviderUserId");
+    expect(JSON.stringify(initialQuestion)).not.toContain(users.otherStudent);
+    expect((await post(student, practicePath(ids.live), {
+      selectedOption: 4,
+    })).status()).toBe(400);
+    expect((await post(student, practicePath(ids.live), {
+      selectedOption: 2, correct: true,
+    })).status()).toBe(400);
+    expect((await student.post(practicePath(ids.live), {
+      data: { selectedOption: 2 },
+      headers: { Origin: "https://attacker.invalid" },
+    })).status()).toBe(403);
+    const wrongAttempt = await post(student, practicePath(ids.live), {
+      selectedOption: 1,
+    });
+    expect(wrongAttempt.status()).toBe(201);
+    expect(await wrongAttempt.json()).toMatchObject({
+      courseId: ids.live, selectedOption: 1,
+      correct: false, replayed: false,
+    });
+    const retryAnswer = await post(student, practicePath(ids.live), {
+      selectedOption: 2,
+    });
+    expect(retryAnswer.status()).toBe(200);
+    expect(await retryAnswer.json()).toMatchObject({
+      selectedOption: 1, correct: false, replayed: true,
+    });
+    expect((await (await student.get(practicePath(ids.live))).json())
+      .practice.attempt).toMatchObject({
+        selectedOption: 1, correct: false,
+    });
+    const ownPracticeRows = await db.select().from(studentPracticeAttempts)
+      .where(eq(studentPracticeAttempts.studentUserId, users.student));
+    expect(ownPracticeRows).toHaveLength(1);
+    expect(ownPracticeRows[0].correct).toBe(false);
+    const otherPractice = await client("otherStudent");
+    expect((await otherPractice.get(practicePath(ids.live))).status())
+      .toBe(404);
+    await otherPractice.dispose();
     const firstOverview = await student.get("/api/student/progress");
     expect(firstOverview.status()).toBe(200);
     expect(firstOverview.headers()["cache-control"]).toContain("private");
@@ -805,6 +856,33 @@ test.describe("free enrollment and private video access must stay course-scoped"
     await expect(player).toHaveCount(1);
     await expect(player).toHaveAttribute("src",
       mediaPath(ids.live, videoIds.ready));
+    await expect(page.getByRole("heading", {
+      name: "تمرین کوتاه این دوره",
+    })).toBeVisible();
+    expect(await page.locator("main").textContent()).not.toContain(
+      "correctOption",
+    );
+    const practiceResponse = page.waitForResponse((response) =>
+      response.url().endsWith(practicePath(ids.live)) &&
+      response.request().method() === "POST",
+    );
+    await page.getByRole("radio", {
+      name: "پاسخ درست دوره",
+    }).check();
+    await page.getByRole("button", {
+      name: "ثبت نهایی پاسخ تمرین",
+    }).click();
+    expect((await practiceResponse).status()).toBe(201);
+    await expect(page.getByText(
+      "پاسخ این تمرین درست بود.", { exact: false },
+    )).toBeVisible();
+    await page.reload();
+    await expect(page.getByText(
+      "پاسخ این تمرین درست بود.", { exact: false },
+    )).toBeVisible();
+    await expect(page.getByRole("button", {
+      name: "ثبت نهایی پاسخ تمرین",
+    })).toHaveCount(0);
     const noteBox = page.getByRole("textbox", {
       name: "یادداشت شخصی برای بخش اول دوره",
     });
@@ -895,6 +973,10 @@ test.describe("free enrollment and private video access must stay course-scoped"
       .toBe(404);
     expect((await other.get(mediaPath(ids.live, videoIds.ready))).status()).toBe(404);
     expect((await other.get(listAssets(ids.live))).status()).toBe(404);
+    expect((await other.get(practicePath(ids.live))).status()).toBe(404);
+    expect((await post(other, practicePath(ids.live), {
+      selectedOption: 0,
+    })).status()).toBe(404);
     const cancelledCourse = await (await other.get(
       `/api/student/courses/${ids.live}`,
     )).json();
@@ -955,6 +1037,7 @@ test.describe("free enrollment and private video access must stay course-scoped"
     expect(existingNote.status()).toBe(200);
     await db.update(privateMediaAssets).set({ status: "withdrawn" })
       .where(eq(privateMediaAssets.id, videoIds.ready));
+    expect((await student.get(practicePath(ids.live))).status()).toBe(404);
     expect((await student.put(notePath(ids.live, videoIds.ready), {
       data: { note: "پس از برداشتن ویدئو" },
       headers: { Origin: "http://localhost:3000" },
@@ -975,6 +1058,10 @@ test.describe("free enrollment and private video access must stay course-scoped"
       .displayedMarkedVideos).toBe(1);
     expect((await (await student.get(listAssets(ids.live))).json())
       .assets[0].note).toBe("یادداشت فقط در دوره مجاز");
+    expect((await (await student.get(practicePath(ids.live))).json())
+      .practice.attempt).toMatchObject({
+        selectedOption: 1, correct: false,
+      });
 
     // Supervision remains invalid when its *actual institute approver* or
     // course provider loses the associated active membership.
@@ -1006,6 +1093,10 @@ test.describe("free enrollment and private video access must stay course-scoped"
     expect((await student.get(`/student/courses/${ids.live}`)).status())
       .toBe(404);
     expect((await student.get(listAssets(ids.live))).status()).toBe(404);
+    expect((await student.get(practicePath(ids.live))).status()).toBe(404);
+    expect((await post(student, practicePath(ids.live), {
+      selectedOption: 2,
+    })).status()).toBe(404);
     expect((await student.put(notePath(ids.live, videoIds.ready), {
       data: { note: "پس از لغو نظارت" },
       headers: { Origin: "http://localhost:3000" },
