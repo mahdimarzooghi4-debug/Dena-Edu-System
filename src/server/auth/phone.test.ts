@@ -1,3 +1,4 @@
+import { createServer } from "node:http";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   isCanonicalIranMobile, normalizeIranMobile, sendSmsOtp, smsGatewayUrl, temporaryPhoneEmail,
@@ -89,6 +90,69 @@ describe("Iran mobile input and gateway safeguards", () => {
     fetchMock.mockRejectedValueOnce(new Error("123456 +989121234567 secret-vendor-response"));
     await expect(sendSmsOtp("+989121234567", "123456"))
       .rejects.toThrow("SMS delivery temporarily unavailable");
+  });
+
+  it.each([
+    "https://localhost/send",
+    "https://localhost./send",
+    "https://sms.localhost/send",
+    "https://127.0.0.2/send",
+    "https://[::1]/send",
+    "https://[::ffff:127.0.0.1]/send",
+    "https://0.0.0.0/send",
+    "https://169.254.169.254/latest/meta-data",
+  ])("refuses HTTPS SMS requests to obvious local addresses: %s", (url) => {
+    process.env.DENA_SMS_ENABLED = "1";
+    process.env.DENA_SMS_GATEWAY_TOKEN = "s".repeat(32);
+    process.env.DENA_DB_INTEGRATION = "0";
+    process.env.DENA_SMS_GATEWAY_URL = url;
+    expect(() => smsGatewayUrl()).toThrow("SMS gateway URL is not allowed");
+  });
+
+  it("with real local HTTP servers never forwards OTP data to a 307 redirect target", async () => {
+    let targetHits = 0;
+    let gatewayHits = 0;
+    let received = "";
+    const target = createServer((_req, res) => {
+      targetHits++;
+      res.writeHead(204);
+      res.end();
+    });
+    const listen = (server: ReturnType<typeof createServer>) =>
+      new Promise<number>((resolve, reject) => {
+        server.once("error", reject);
+        server.listen(0, "127.0.0.1", () => {
+          server.off("error", reject);
+          const addr = server.address();
+          if (!addr || typeof addr === "string") reject(new Error("Missing mock port"));
+          else resolve(addr.port);
+        });
+      });
+    const targetPort = await listen(target);
+    const gateway = createServer(async (req, res) => {
+      gatewayHits++;
+      for await (const chunk of req) received += chunk.toString();
+      res.writeHead(307, { Location: `http://127.0.0.1:${targetPort}/steal` });
+      res.end();
+    });
+    try {
+      const gatewayPort = await listen(gateway);
+      process.env.DENA_DB_INTEGRATION = "1";
+      process.env.DENA_SMS_ENABLED = "1";
+      process.env.DENA_SMS_GATEWAY_URL = `http://127.0.0.1:${gatewayPort}/send`;
+      process.env.DENA_SMS_GATEWAY_TOKEN = "test-" + "k".repeat(32);
+      await expect(sendSmsOtp("+989121234567", "123456"))
+        .rejects.toThrow("SMS delivery temporarily unavailable");
+      expect(gatewayHits).toBe(1);
+      expect(JSON.parse(received)).toEqual({
+        phoneNumber: "+989121234567", code: "123456", purpose: "dena-login",
+      });
+      expect(targetHits).toBe(0);
+    } finally {
+      await Promise.all([gateway, target].map(server =>
+        new Promise<void>((resolve, reject) =>
+          server.close(error => error ? reject(error) : resolve()))));
+    }
   });
 
   it("disallows missing gateway or remote plain HTTP even when enabled", () => {
