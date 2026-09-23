@@ -1,0 +1,131 @@
+name: Foundation checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  foundation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      # npm 10.9.8 hit an Arborist edgesOut crash during bootstrap.
+      - name: Use npm 11
+        run: npm install --global npm@11 --no-audit --no-fund
+      - name: Install from committed lockfile
+        run: npm ci --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run test
+      - run: npm run build
+      - name: Install Chromium for browser smoke tests
+        run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+
+  db-integration:
+    name: PostgreSQL + Auth integration
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: dena_test
+          POSTGRES_PASSWORD: dena_test
+          POSTGRES_DB: dena_integration
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U dena_test -d dena_integration"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 15
+    env:
+      DATABASE_URL: postgresql://dena_test:dena_test@127.0.0.1:5432/dena_integration
+      BETTER_AUTH_URL: http://localhost:3000
+      DENA_DB_INTEGRATION: "1"
+      DENA_SMS_ENABLED: "1"
+      DENA_MEDIA_ENABLED: "1"
+      DENA_INGEST_ENABLED: "1"
+      DENA_MEDIA_PROCESSOR_ENABLED: "1"
+      DENA_MEDIA_ATTESTATION_ENABLED: "1"
+      DENA_MEDIA_CLEANUP_ENABLED: "1"
+      DENA_MULTIPART_PLANNING_ENABLED: "1"
+      DENA_MEDIA_ATTESTATION_KEY_ID: ci-mock-signer-v1
+      DENA_PRIVATE_MEDIA_ORIGIN_URL: http://127.0.0.1:4318/
+      DENA_SMS_GATEWAY_URL: http://127.0.0.1:4317/send
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Use npm 11
+        run: npm install --global npm@11 --no-audit --no-fund
+      - name: Install from committed lockfile
+        run: npm ci --no-audit --no-fund
+      - name: Generate disposable integration secret
+        run: |
+          secret=$(openssl rand -hex 32)
+          echo "::add-mask::$secret"
+          echo "BETTER_AUTH_SECRET=$secret" >> "$GITHUB_ENV"
+          mock_token=$(openssl rand -hex 32)
+          echo "::add-mask::$mock_token"
+          echo "DENA_SMS_GATEWAY_TOKEN=$mock_token" >> "$GITHUB_ENV"
+          media_token=$(openssl rand -hex 32)
+          echo "::add-mask::$media_token"
+          echo "DENA_PRIVATE_MEDIA_ORIGIN_TOKEN=$media_token" >> "$GITHUB_ENV"
+          worker_token=$(openssl rand -hex 32)
+          echo "::add-mask::$worker_token"
+          echo "DENA_MEDIA_PROCESSOR_TOKEN=$worker_token" >> "$GITHUB_ENV"
+          signing_key=$(openssl rand -hex 32)
+          echo "::add-mask::$signing_key"
+          echo "DENA_MEDIA_ATTESTATION_HMAC_KEY=$signing_key" >> "$GITHUB_ENV"
+          cleanup_token=$(openssl rand -hex 32)
+          echo "::add-mask::$cleanup_token"
+          echo "DENA_MEDIA_CLEANUP_TOKEN=$cleanup_token" >> "$GITHUB_ENV"
+      - name: Generate reviewed Drizzle migration candidate
+        run: npx drizzle-kit generate
+      - name: Preserve generated migration for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: drizzle-migration-candidate
+          path: drizzle/
+          if-no-files-found: error
+      - name: Verify generated migration files have been committed
+        run: |
+          if [ -n "$(git status --porcelain -- drizzle/)" ]; then
+            echo "Drizzle schema drift: commit reviewed migration SQL and metadata."
+            git status --short -- drizzle/
+            exit 1
+          fi
+      - name: Apply migrations to disposable PostgreSQL
+        run: npx drizzle-kit migrate
+      - name: Build for database-backed browser tests
+        run: npm run build
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Start local-only fake SMS transport
+        run: |
+          node scripts/test-sms-gateway.mjs > /tmp/dena-sms-mock.log 2>&1 &
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            if curl --fail --silent --header "Authorization: Bearer $DENA_SMS_GATEWAY_TOKEN" http://127.0.0.1:4317/health > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Start localhost-only private MP4 origin mock
+        run: |
+          node scripts/test-media-origin.mjs > /tmp/dena-media-mock.log 2>&1 &
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            if curl --fail --silent --header "Authorization: Bearer $DENA_PRIVATE_MEDIA_ORIGIN_TOKEN" http://127.0.0.1:4318/health > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Verify OTP, persisted session and scoped access over HTTP
+        run: npm run test:e2e:db

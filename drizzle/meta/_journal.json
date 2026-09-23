@@ -1,0 +1,104 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1789997066963,
+      "tag": "0000_flashy_the_captain",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789998190837,
+      "tag": "0001_magical_silver_surfer",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790000885215,
+      "tag": "0002_cloudy_master_chief",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790002923672,
+      "tag": "0003_massive_hobgoblin",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790004089960,
+      "tag": "0004_orange_mongoose",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790010044747,
+      "tag": "0005_pretty_revanche",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790014900000,
+      "tag": "0006_dena_processing_queue",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790016000000,
+      "tag": "0007_dena_media_cleanup",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790017200000,
+      "tag": "0008_dena_multipart_plans",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790018100000,
+      "tag": "0009_dena_multipart_cancel",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790160000000,
+      "tag": "0010_dena_student_video_completions",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790163600000,
+      "tag": "0011_dena_student_video_notes",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1790170000000,
+      "tag": "0012_dena_course_practice",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1790173600000,
+      "tag": "0013_dena_practice_institute_review",
+      "breakpoints": true
+    }
+  ]
+}
