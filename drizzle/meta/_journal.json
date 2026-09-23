@@ -78,6 +78,13 @@
       "when": 1790160000000,
       "tag": "0010_dena_student_video_completions",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790163600000,
+      "tag": "0011_dena_student_video_notes",
+      "breakpoints": true
     }
   ]
 }
