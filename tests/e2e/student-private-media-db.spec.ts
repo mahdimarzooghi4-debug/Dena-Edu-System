@@ -486,7 +486,7 @@ test.describe("free enrollment and private video access must stay course-scoped"
     for (const invalid of [
       {}, { note: "" }, { note: "   " },
       { note: "x".repeat(2001) }, { note: "private", role: "admin" },
-      { note: "line\\u0000break" },
+      { note: "line\u0000break" },
     ]) {
       expect((await student.put(ownNotePath, {
         data: invalid, headers,
