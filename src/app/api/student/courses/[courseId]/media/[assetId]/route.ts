@@ -56,7 +56,7 @@ export async function GET(
   // byte framing. Only these validated metadata fields cross the proxy.
   // No upstream Location, Set-Cookie, CORS or origin address can escape.
   const framed = validatedPrivateMediaResponse(upstream.status, range, upstream.headers);
-  if (!framed) {
+  if (!framed || !upstream.body) {
     await upstream.body?.cancel();
     return deny(503);
   }
