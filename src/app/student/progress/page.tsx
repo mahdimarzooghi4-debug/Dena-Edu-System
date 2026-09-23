@@ -120,8 +120,9 @@ export default async function StudentProgressPage() {
       <Card>
         <h2 className="text-lg font-extrabold">تمرین و آزمون</h2>
         <p className="mt-3 text-sm leading-8 text-dena-muted">
-          تمرین نمره‌دار، آزمون، سنجش زمان تماشا و گزارش رسمی یادگیری
-          هنوز در این مرحله عملیاتی نیستند.
+          تمرین چهارگزینه‌ایِ یک‌سؤالی در صفحهٔ تماشای دوره‌های دارای سؤال
+          موجود است؛ آزمون رسمی، مدرک، سنجش زمان تماشا و گزارش رسمی
+          یادگیری هنوز عملیاتی نیستند.
         </p>
       </Card>
     </main>
