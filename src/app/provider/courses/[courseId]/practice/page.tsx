@@ -54,6 +54,18 @@ export default async function ProviderPracticePage({
               ))}
             </ol>
             <p className="text-sm text-dena-muted">
+              وضعیت بررسی مؤسسه: {state.question.reviewStatus === "pending"
+                ? "در انتظار تصمیم مستقل مؤسسه"
+                : state.question.reviewStatus === "approved"
+                  ? "تأییدشده برای نمایش به دانش‌آموز"
+                  : "ردشده و از دانش‌آموز پنهان"}
+            </p>
+            {state.question.reviewReason && (
+              <p className="text-sm leading-7 text-dena-muted">
+                دلیل تصمیم مؤسسه: {state.question.reviewReason}
+              </p>
+            )}
+            <p className="text-sm text-dena-muted">
               سؤال نهایی شده است؛ تغییر و حذف در نسخهٔ آزمایشی فعال نیست.
             </p>
           </section>
