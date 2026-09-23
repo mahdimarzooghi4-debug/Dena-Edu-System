@@ -669,6 +669,29 @@ test.describe("free enrollment and private video access must stay course-scoped"
     await expect(player).toHaveCount(1);
     await expect(player).toHaveAttribute("src",
       mediaPath(ids.live, videoIds.ready));
+    const noteBox = page.getByRole("textbox", {
+      name: "یادداشت شخصی برای بخش اول دوره",
+    });
+    await noteBox.fill("نکتهٔ شخصی مرورگر");
+    const noteSaved = page.waitForResponse((response) =>
+      response.url().endsWith(notePath(ids.live, videoIds.ready)) &&
+      response.request().method() === "PUT",
+    );
+    await page.getByRole("button", { name: "ذخیره یادداشت شخصی" }).click();
+    expect((await noteSaved).status()).toBe(200);
+    await page.reload();
+    await expect(page.getByRole("textbox", {
+      name: "یادداشت شخصی برای بخش اول دوره",
+    })).toHaveValue("نکتهٔ شخصی مرورگر");
+    const noteRemoved = page.waitForResponse((response) =>
+      response.url().endsWith(notePath(ids.live, videoIds.ready)) &&
+      response.request().method() === "DELETE",
+    );
+    await page.getByRole("button", { name: "حذف یادداشت شخصی" }).click();
+    expect((await noteRemoved).status()).toBe(200);
+    await expect(page.getByRole("textbox", {
+      name: "یادداشت شخصی برای بخش اول دوره",
+    })).toHaveValue("");
     await expect(page.getByText("هنوز انجام‌شده علامت نخورده")).toBeVisible();
     const markResponse = page.waitForResponse((response) =>
       response.url().endsWith(progressPath(ids.live, videoIds.ready)) &&
@@ -710,8 +733,20 @@ test.describe("free enrollment and private video access must stay course-scoped"
     })).status()).toBe(206);
     expect((await post(other, progressPath(ids.live, videoIds.ready), {})).status())
       .toBe(201);
+    const ownNote = await other.put(notePath(ids.live, videoIds.ready), {
+      data: { note: "یادداشت در زمان دسترسی" },
+      headers: { Origin: "http://localhost:3000" },
+    });
+    expect(ownNote.status()).toBe(200);
     expect((await post(other,
       `/api/student/courses/${ids.live}/cancel`, {})).status()).toBe(200);
+    expect((await other.put(notePath(ids.live, videoIds.ready), {
+      data: { note: "ویرایش نامجاز پس از انصراف" },
+      headers: { Origin: "http://localhost:3000" },
+    })).status()).toBe(404);
+    expect((await other.delete(notePath(ids.live, videoIds.ready), {
+      headers: { Origin: "http://localhost:3000" },
+    })).status()).toBe(404);
     expect((await post(other, progressPath(ids.live, videoIds.ready), {})).status())
       .toBe(404);
     expect((await other.get(mediaPath(ids.live, videoIds.ready))).status()).toBe(404);
@@ -742,6 +777,10 @@ test.describe("free enrollment and private video access must stay course-scoped"
     expect(suspendedHome.status()).toBe(307);
     expect((await student.get(listAssets(ids.live))).status()).toBe(401);
     expect((await student.get("/api/student/progress")).status()).toBe(401);
+    expect((await student.put(notePath(ids.live, videoIds.ready), {
+      data: { note: "نکتهٔ دانش‌آموز معلق" },
+      headers: { Origin: "http://localhost:3000" },
+    })).status()).toBe(401);
     const suspendedProgress = await student.get("/student/progress", {
       maxRedirects: 0,
     });
@@ -758,8 +797,17 @@ test.describe("free enrollment and private video access must stay course-scoped"
       .toBe(201);
     expect((await (await student.get("/api/student/progress")).json())
       .displayedMarkedVideos).toBe(1);
+    const existingNote = await student.put(notePath(ids.live, videoIds.ready), {
+      data: { note: "یادداشت فقط در دوره مجاز" },
+      headers: { Origin: "http://localhost:3000" },
+    });
+    expect(existingNote.status()).toBe(200);
     await db.update(privateMediaAssets).set({ status: "withdrawn" })
       .where(eq(privateMediaAssets.id, videoIds.ready));
+    expect((await student.put(notePath(ids.live, videoIds.ready), {
+      data: { note: "پس از برداشتن ویدئو" },
+      headers: { Origin: "http://localhost:3000" },
+    })).status()).toBe(404);
     expect((await (await student.get("/api/student/progress")).json())
       .courses).toHaveLength(0);
     expect((await student.get(mediaPath(ids.live, videoIds.ready))).status()).toBe(404);
@@ -774,6 +822,8 @@ test.describe("free enrollment and private video access must stay course-scoped"
     expect((await student.get(mediaPath(ids.live, videoIds.ready))).status()).toBe(200);
     expect((await (await student.get("/api/student/progress")).json())
       .displayedMarkedVideos).toBe(1);
+    expect((await (await student.get(listAssets(ids.live))).json())
+      .assets[0].note).toBe("یادداشت فقط در دوره مجاز");
 
     // Supervision remains invalid when its *actual institute approver* or
     // course provider loses the associated active membership.
@@ -801,6 +851,10 @@ test.describe("free enrollment and private video access must stay course-scoped"
     expect(revoked.status()).toBe(200);
     expect((await student.get(mediaPath(ids.live, videoIds.ready))).status()).toBe(404);
     expect((await student.get(listAssets(ids.live))).status()).toBe(404);
+    expect((await student.put(notePath(ids.live, videoIds.ready), {
+      data: { note: "پس از لغو نظارت" },
+      headers: { Origin: "http://localhost:3000" },
+    })).status()).toBe(404);
     expect((await (await student.get("/api/student/progress")).json())
       .courses).toHaveLength(0);
     expect(await (await student.get("/student/progress")).text()).not.toContain(
