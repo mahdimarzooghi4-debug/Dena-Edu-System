@@ -284,6 +284,57 @@ export const studentVideoNotes = pgTable("dena_student_video_notes", {
   `),
 ]);
 
+/** One immutable provider-authored practice question per course for the pilot.
+ * The correct answer is NEVER returned from a student read endpoint.
+ * Course-level institute approval is not independent review of question text.
+ */
+export const coursePracticeQuestions = pgTable("dena_course_practice_questions", {
+  courseId: uuid("course_id").primaryKey()
+    .references(() => courses.id, { onDelete: "restrict" }),
+  prompt: text("prompt").notNull(),
+  option0: text("option_0").notNull(),
+  option1: text("option_1").notNull(),
+  option2: text("option_2").notNull(),
+  option3: text("option_3").notNull(),
+  correctOption: integer("correct_option").notNull(),
+  authoredByProviderUserId: uuid("authored_by_provider_user_id").notNull()
+    .references(() => user.id, { onDelete: "restrict" }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull().defaultNow(),
+}, (table) => [
+  check("dena_practice_question_bounds_ck", sql`
+    char_length(prompt) BETWEEN 10 AND 500 AND btrim(prompt) <> ''
+    AND char_length(option_0) BETWEEN 1 AND 160 AND btrim(option_0) <> ''
+    AND char_length(option_1) BETWEEN 1 AND 160 AND btrim(option_1) <> ''
+    AND char_length(option_2) BETWEEN 1 AND 160 AND btrim(option_2) <> ''
+    AND char_length(option_3) BETWEEN 1 AND 160 AND btrim(option_3) <> ''
+    AND correct_option BETWEEN 0 AND 3
+  `),
+]);
+
+/** A single durable formative answer per active student and course.
+ * This is not a certificate or an official academic score.
+ */
+export const studentPracticeAttempts = pgTable("dena_student_practice_attempts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  courseId: uuid("course_id").notNull()
+    .references(() => coursePracticeQuestions.courseId, { onDelete: "restrict" }),
+  studentUserId: uuid("student_user_id").notNull()
+    .references(() => user.id, { onDelete: "restrict" }),
+  selectedOption: integer("selected_option").notNull(),
+  correct: boolean("correct").notNull(),
+  submittedAt: timestamp("submitted_at", { withTimezone: true })
+    .notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("dena_practice_attempt_student_course_uidx").on(
+    table.studentUserId, table.courseId,
+  ),
+  index("dena_practice_attempt_course_idx").on(table.courseId),
+  check("dena_practice_selected_option_ck", sql`
+    selected_option BETWEEN 0 AND 3
+  `),
+]);
+
 /** Uploads are quarantined first; ONLY a separately authenticated processing
  * callback, followed by server-side origin verification, can create a ready asset.
  */
