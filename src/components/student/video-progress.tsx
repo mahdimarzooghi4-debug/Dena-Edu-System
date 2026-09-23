@@ -15,6 +15,9 @@ export function VideoProgress({
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const marked = items.filter((item) => item.completed).length;
+  // Same currently entitled, ready-only manifest used by the watch page.
+  // A voluntary completion marker never means that bytes were watched.
+  const nextUnmarked = items.find((item) => !item.completed);
 
   async function toggle(video: Video) {
     if (busyId) return;
@@ -56,13 +59,22 @@ export function VideoProgress({
         <strong>{items.length.toLocaleString("fa-IR")}</strong> ویدئوی
         نمایش‌داده‌شده. این علامت نمره یا اثبات تماشای کامل نیست.
       </p>
+      {nextUnmarked && (
+        <a href="#next-unmarked-video"
+          className="inline-block text-sm font-bold text-dena-brand underline-offset-4 hover:underline">
+          رفتن به نخستین ویدئوی بی‌علامت
+        </a>
+      )}
       <div role="status" aria-live="polite" className="text-sm leading-7">
         {error && <p className="text-red-700">{error}</p>}
         {!error && notice && <p className="text-dena-deep">{notice}</p>}
       </div>
       {items.map((video) => (
         <section key={video.assetId} aria-label={video.title}
-          className="space-y-3 rounded-xl border border-dena-border p-4">
+          id={video.assetId === nextUnmarked?.assetId
+            ? "next-unmarked-video" : `video-${video.assetId}`}
+          tabIndex={-1}
+          className="scroll-mt-6 space-y-3 rounded-xl border border-dena-border p-4">
           <h2 className="text-lg font-bold">{video.title}</h2>
           <video controls preload="none" playsInline
             controlsList="nodownload" className="aspect-video w-full rounded-xl bg-black"

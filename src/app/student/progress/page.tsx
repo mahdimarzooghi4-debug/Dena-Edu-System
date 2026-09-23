@@ -135,10 +135,24 @@ export default async function StudentProgressPage() {
                     </p>
                   )}
                 </div>
-                <Link href={`/student/courses/${course.courseId}/watch`}
-                  className={buttonClassName()}>
-                  مشاهده و تغییر علامت ویدئوها
-                </Link>
+                {course.markedVideos < course.readyVideos ? (
+                  <Link
+                    href={`/student/courses/${course.courseId}/watch#next-unmarked-video`}
+                    className={buttonClassName()}>
+                    رفتن به نخستین ویدئوی بی‌علامت
+                  </Link>
+                ) : course.practice.state === "not_attempted" ? (
+                  <Link
+                    href={`/student/courses/${course.courseId}/watch#course-practice-heading`}
+                    className={buttonClassName()}>
+                    پاسخ به تمرین کوتاه تأییدشده
+                  </Link>
+                ) : (
+                  <Link href={`/student/courses/${course.courseId}/watch`}
+                    className={buttonClassName()}>
+                    مرور محتوای دوره
+                  </Link>
+                )}
               </li>
             ))}
           </ul>

@@ -667,6 +667,23 @@ test.describe("free enrollment and private video access must stay course-scoped"
     expect(JSON.stringify(beforeAnswerSummary)).not.toContain(
       "correctOption",
     );
+    const firstNextStep = await (await student.get("/student/progress")).text();
+    expect(firstNextStep).toContain("رفتن به نخستین ویدئوی بی‌علامت");
+    expect(firstNextStep).toContain(
+      `/student/courses/${ids.live}/watch#next-unmarked-video`,
+    );
+    // All self-marked videos and an unanswered approved question recommend
+    // practice instead. Undo the marker to leave the shared fixture intact.
+    expect((await post(student, progressPath(ids.live, videoIds.ready), {}))
+      .status()).toBe(201);
+    const nextPractice = await (await student.get("/student/progress")).text();
+    expect(nextPractice).toContain("پاسخ به تمرین کوتاه تأییدشده");
+    expect(nextPractice).toContain(
+      `/student/courses/${ids.live}/watch#course-practice-heading`,
+    );
+    expect((await student.delete(progressPath(ids.live, videoIds.ready), {
+      headers: { Origin: "http://localhost:3000" },
+    })).status()).toBe(200);
     expect((await post(student, practicePath(ids.live), {
       selectedOption: 4,
     })).status()).toBe(400);
@@ -746,6 +763,7 @@ test.describe("free enrollment and private video access must stay course-scoped"
       "/student/progress",
     )).text();
     expect(practiceProgressHtml).toContain("پاسخ همین تمرین درست نبود.");
+    expect(practiceProgressHtml).toContain("رفتن به نخستین ویدئوی بی‌علامت");
     // Next SSR interleaves React comment boundaries between text nodes.
     // Exact participation counts are asserted in the JSON payload above.
     expect(practiceProgressHtml).toContain(
@@ -814,6 +832,8 @@ test.describe("free enrollment and private video access must stay course-scoped"
     const privateOverviewHtml = await (await student.get("/student/progress")).text();
     expect(privateOverviewHtml).toContain("دوره رایگان با محتوای خصوصی");
     expect(privateOverviewHtml).toContain("ویدئوهایی که خودت انجام‌شده علامت زده‌ای");
+    expect(privateOverviewHtml).toContain("مرور محتوای دوره");
+    expect(privateOverviewHtml).not.toContain("#next-unmarked-video");
     expect(privateOverviewHtml).not.toContain("objectKey");
     expect(privateOverviewHtml).not.toContain(videoIds.withdrawn);
     expect(JSON.stringify(ownProgress)).not.toContain("studentUserId");
@@ -1014,6 +1034,10 @@ test.describe("free enrollment and private video access must stay course-scoped"
     await expect(page.locator("li").filter({
       hasText: "دوره رایگان با محتوای خصوصی",
     })).toContainText("۰ از ۱ ویدئوی آماده");
+    await expect(page.getByRole("link", {
+      name: "رفتن به نخستین ویدئوی بی‌علامت",
+    })).toHaveAttribute("href",
+      `/student/courses/${ids.live}/watch#next-unmarked-video`);
     await page.getByRole("link", {
       name: "بازگشت به خانه دانش‌آموز",
     }).click();
@@ -1024,6 +1048,13 @@ test.describe("free enrollment and private video access must stay course-scoped"
     await expect(player).toHaveCount(1);
     await expect(player).toHaveAttribute("src",
       mediaPath(ids.live, videoIds.ready));
+    await expect(page.locator("#next-unmarked-video")).toContainText(
+      "بخش اول دوره",
+    );
+    await page.getByRole("link", {
+      name: "رفتن به نخستین ویدئوی بی‌علامت",
+    }).click();
+    await expect(page).toHaveURL(/#next-unmarked-video$/);
     await expect(page.getByRole("heading", {
       name: "تمرین کوتاه این دوره",
     })).toBeVisible();
@@ -1084,6 +1115,10 @@ test.describe("free enrollment and private video access must stay course-scoped"
     }).click();
     expect((await markResponse).status()).toBe(201);
     await expect(page.getByText("به انتخاب شما انجام‌شده")).toBeVisible();
+    await expect(page.locator("#next-unmarked-video")).toHaveCount(0);
+    await expect(page.getByRole("link", {
+      name: "رفتن به نخستین ویدئوی بی‌علامت",
+    })).toHaveCount(0);
     await page.reload();
     await expect(page.getByText("به انتخاب شما انجام‌شده")).toBeVisible();
     await page.goto("http://localhost:3000/student/progress");
@@ -1110,7 +1145,7 @@ test.describe("free enrollment and private video access must stay course-scoped"
     expect(otherProgressPayload.displayedAnsweredPractices).toBe(1);
     await otherProgress.dispose();
     await page.getByRole("link", {
-      name: "مشاهده و تغییر علامت ویدئوها",
+      name: "مرور محتوای دوره",
     }).click();
     await expect(page).toHaveURL(new RegExp(
       `/student/courses/${ids.live}/watch$`,
