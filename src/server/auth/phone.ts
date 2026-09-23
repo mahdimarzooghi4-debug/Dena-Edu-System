@@ -26,13 +26,20 @@ export function smsGatewayUrl(): string {
   if (!value || !token || token.length < 16) {
     throw new APIError("SERVICE_UNAVAILABLE", { message: "SMS delivery is not configured" });
   }
-  const url = new URL(value);
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    // Do not include the configured URL: it might contain a vendor credential.
+    throw new APIError("SERVICE_UNAVAILABLE", { message: "SMS delivery is not configured" });
+  }
   const localTest = process.env.DENA_DB_INTEGRATION === "1" &&
     url.protocol === "http:" && url.hostname === "127.0.0.1";
-  if (url.protocol !== "https:" && !localTest) {
-    throw new APIError("SERVICE_UNAVAILABLE", { message: "SMS gateway requires HTTPS" });
+  if ((url.protocol !== "https:" && !localTest) || !url.hostname ||
+      url.username || url.password || url.hash || url.search) {
+    throw new APIError("SERVICE_UNAVAILABLE", { message: "SMS gateway URL is not allowed" });
   }
-  return value;
+  return url.href;
 }
 
 /** Atomically enforce a 60-second cooldown and three sends per one-hour window from first send
@@ -69,18 +76,24 @@ export async function sendSmsOtp(phoneNumber: string, code: string): Promise<voi
     throw new APIError("BAD_REQUEST", { message: "Invalid phone or OTP format" });
   }
   const url = smsGatewayUrl(); // fail closed before consuming phone quota
-  const result = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.DENA_SMS_GATEWAY_TOKEN}`,
-    },
-    body: JSON.stringify({ phoneNumber, code, purpose: "dena-login" }),
-    signal: AbortSignal.timeout(5_000),
-    cache: "no-store",
-  });
-  if (!result.ok) {
-    // Never log code, phone, token, response body or gateway URL.
-    throw new APIError("SERVICE_UNAVAILABLE", { message: "SMS delivery temporarily unavailable" });
+  try {
+    const result = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.DENA_SMS_GATEWAY_TOKEN}`,
+      },
+      body: JSON.stringify({ phoneNumber, code, purpose: "dena-login" }),
+      // A 307/308 can replay the OTP body to another origin. Never follow any
+      // vendor redirect, even if the destination also uses HTTPS.
+      redirect: "error",
+      signal: AbortSignal.timeout(5_000),
+      cache: "no-store",
+    });
+    if (result.ok) return;
+  } catch {
+    // Do not propagate fetch/URL/redirect errors: they can embed an OTP,
+    // phone number, gateway URL or credential in an upstream error message.
   }
+  throw new APIError("SERVICE_UNAVAILABLE", { message: "SMS delivery temporarily unavailable" });
 }
