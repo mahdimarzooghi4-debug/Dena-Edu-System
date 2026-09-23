@@ -374,6 +374,7 @@ test.describe("free enrollment and private video access must stay course-scoped"
     expect(await emptyOverview.json()).toMatchObject({
       courses: [], hasMore: false,
       displayedReadyVideos: 0, displayedMarkedVideos: 0,
+      displayedApprovedPractices: 0, displayedAnsweredPractices: 0,
     });
     const emptyProgressPage = await student.get("/student/progress");
     expect(emptyProgressPage.status()).toBe(200);
@@ -700,18 +701,41 @@ test.describe("free enrollment and private video access must stay course-scoped"
     expect(firstSummary.courses).toEqual([{
       courseId: ids.live, title: "دوره رایگان با محتوای خصوصی",
       readyVideos: 1, markedVideos: 0,
+      practice: {
+        state: "answered", selectedOption: 1, correct: false,
+        submittedAt: expect.any(String),
+      },
     }]);
     expect(firstSummary).toMatchObject({
       hasMore: false, displayedReadyVideos: 1, displayedMarkedVideos: 0,
+      displayedApprovedPractices: 1, displayedAnsweredPractices: 1,
     });
+    expect(firstSummary.courses[0].practice.submittedAt).toBe(
+      ownPracticeRows[0].submittedAt.toISOString(),
+    );
     expect(JSON.stringify(firstSummary)).not.toContain(users.student);
     expect(JSON.stringify(firstSummary)).not.toContain(videoIds.withdrawn);
     expect(JSON.stringify(firstSummary)).not.toContain("objectKey");
+    expect(JSON.stringify(firstSummary)).not.toContain("correctOption");
+    expect(JSON.stringify(firstSummary)).not.toContain(
+      "پاسخ درست دوره",
+    );
+    expect(JSON.stringify(firstSummary)).not.toContain(
+      "authoredByProviderUserId",
+    );
+    const practiceProgressHtml = await (await student.get(
+      "/student/progress",
+    )).text();
+    expect(practiceProgressHtml).toContain("پاسخ همین تمرین درست نبود.");
+    expect(practiceProgressHtml).toContain("۱ از ۱");
+    expect(practiceProgressHtml).not.toContain("پاسخ درست دوره");
     const otherOverviewClient = await client("otherStudent");
     const otherSummary = await (await otherOverviewClient.get(
       "/api/student/progress",
     )).json();
     expect(otherSummary.courses).toHaveLength(0);
+    expect(otherSummary.displayedApprovedPractices).toBe(0);
+    expect(otherSummary.displayedAnsweredPractices).toBe(0);
     await otherOverviewClient.dispose();
     const dashboard = await student.get("/student");
     expect(dashboard.status()).toBe(200);
@@ -1040,9 +1064,28 @@ test.describe("free enrollment and private video access must stay course-scoped"
     await page.reload();
     await expect(page.getByText("به انتخاب شما انجام‌شده")).toBeVisible();
     await page.goto("http://localhost:3000/student/progress");
-    await expect(page.locator("li").filter({
+    const progressCard = page.locator("li").filter({
       hasText: "دوره رایگان با محتوای خصوصی",
-    })).toContainText("۱ از ۱ ویدئوی آماده");
+    });
+    await expect(progressCard).toContainText("۱ از ۱ ویدئوی آماده");
+    await expect(progressCard).toContainText("پاسخ همین تمرین درست بود.");
+    await expect(page.getByText(
+      "تمرین‌های چهارگزینه‌ای تأییدشده که خودت پاسخ داده‌ای",
+    )).toBeVisible();
+    const otherProgress = await client("otherStudent");
+    const otherProgressPayload = await (await otherProgress.get(
+      "/api/student/progress",
+    )).json();
+    expect(otherProgressPayload.courses).toEqual([
+      expect.objectContaining({
+        courseId: ids.live,
+        practice: expect.objectContaining({
+          state: "answered", selectedOption: 2, correct: true,
+        }),
+      }),
+    ]);
+    expect(otherProgressPayload.displayedAnsweredPractices).toBe(1);
+    await otherProgress.dispose();
     await page.getByRole("link", {
       name: "مشاهده و تغییر علامت ویدئوها",
     }).click();
