@@ -288,6 +288,10 @@ export const studentVideoNotes = pgTable("dena_student_video_notes", {
  * The correct answer is NEVER returned from a student read endpoint.
  * Course-level institute approval is not independent review of question text.
  */
+export const practiceReviewStatus = pgEnum("dena_practice_review_status", [
+  "pending", "approved", "rejected",
+]);
+
 export const coursePracticeQuestions = pgTable("dena_course_practice_questions", {
   courseId: uuid("course_id").primaryKey()
     .references(() => courses.id, { onDelete: "restrict" }),
@@ -299,9 +303,22 @@ export const coursePracticeQuestions = pgTable("dena_course_practice_questions",
   correctOption: integer("correct_option").notNull(),
   authoredByProviderUserId: uuid("authored_by_provider_user_id").notNull()
     .references(() => user.id, { onDelete: "restrict" }),
+  reviewStatus: practiceReviewStatus("review_status").notNull().default("pending"),
+  reviewedByInstituteUserId: uuid("reviewed_by_institute_user_id")
+    .references(() => user.id, { onDelete: "restrict" }),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+  reviewReason: text("review_reason"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull().defaultNow(),
 }, (table) => [
+  check("dena_practice_review_state_ck", sql`
+    (review_status = 'pending' AND reviewed_by_institute_user_id IS NULL
+      AND reviewed_at IS NULL AND review_reason IS NULL)
+    OR
+    (review_status IN ('approved', 'rejected')
+      AND reviewed_by_institute_user_id IS NOT NULL
+      AND reviewed_at IS NOT NULL AND review_reason IS NOT NULL)
+  `),
   check("dena_practice_question_bounds_ck", sql`
     char_length(prompt) BETWEEN 10 AND 500 AND btrim(prompt) <> ''
     AND char_length(option_0) BETWEEN 1 AND 160 AND btrim(option_0) <> ''
