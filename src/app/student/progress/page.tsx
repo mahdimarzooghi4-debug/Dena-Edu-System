@@ -6,6 +6,7 @@ import { buttonClassName } from "../../../components/ui/button";
 import { SectionHeading } from "../../../components/ui/section-heading";
 import { getServerAccessContext } from "../../../server/access/actor";
 import { getStudentProgressOverview } from "../../../server/student/progress-overview";
+import { nextStudentCourseAction } from "../../../server/student/next-action";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -135,24 +136,15 @@ export default async function StudentProgressPage() {
                     </p>
                   )}
                 </div>
-                {course.markedVideos < course.readyVideos ? (
-                  <Link
-                    href={`/student/courses/${course.courseId}/watch#next-unmarked-video`}
-                    className={buttonClassName()}>
-                    رفتن به نخستین ویدئوی بی‌علامت
-                  </Link>
-                ) : course.practice.state === "not_attempted" ? (
-                  <Link
-                    href={`/student/courses/${course.courseId}/watch#course-practice-heading`}
-                    className={buttonClassName()}>
-                    پاسخ به تمرین کوتاه تأییدشده
-                  </Link>
-                ) : (
-                  <Link href={`/student/courses/${course.courseId}/watch`}
-                    className={buttonClassName()}>
-                    مرور محتوای دوره
-                  </Link>
-                )}
+                <Link href={nextStudentCourseAction(
+                  course.courseId, course.readyVideos,
+                  course.markedVideos, course.practice.state,
+                ).href} className={buttonClassName()}>
+                  {nextStudentCourseAction(
+                    course.courseId, course.readyVideos,
+                    course.markedVideos, course.practice.state,
+                  ).label}
+                </Link>
               </li>
             ))}
           </ul>

@@ -5,7 +5,8 @@ import { Card } from "../../components/ui/card";
 import { buttonClassName } from "../../components/ui/button";
 import { SectionHeading } from "../../components/ui/section-heading";
 import { getServerAccessContext } from "../../server/access/actor";
-import { getStudentDashboardCourses } from "../../server/student/dashboard";
+import { getStudentProgressOverview } from "../../server/student/progress-overview";
+import { nextStudentCourseAction } from "../../server/student/next-action";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,7 +23,9 @@ export default async function StudentHomePage() {
   if (!actor) redirect("/login");
   if (!actor.memberships.some((entry) => entry.role === "student")) notFound();
 
-  const { courses, hasMore } = await getStudentDashboardCourses(actor.userId);
+  // Reuse the same entitlement-filtered, owner-only rows as /student/progress.
+  // Avoid a second dashboard query that could disagree on the 20-course slice.
+  const { courses, hasMore } = await getStudentProgressOverview(actor.userId);
   const countLabel = hasMore ? "۲۰+" : courses.length.toLocaleString("fa-IR");
 
   return (
@@ -101,9 +104,26 @@ export default async function StudentHomePage() {
                 <p className="text-sm leading-7 text-dena-muted">
                   ثبت‌نام رایگان فعال · نظارت این دوره تأیید شده
                 </p>
-                <Link href={`/student/courses/${course.courseId}/watch`}
-                  className={buttonClassName()}>
-                  ادامه مشاهده ویدئو
+                <p className="text-sm leading-7 text-dena-deep">
+                  علامت‌خورده به انتخاب خودت:{" "}
+                  {course.markedVideos.toLocaleString("fa-IR")} از{" "}
+                  {course.readyVideos.toLocaleString("fa-IR")} ویدئوی آماده
+                </p>
+                <p className="text-xs leading-7 text-dena-muted">
+                  {course.practice.state === "not_attempted"
+                    ? "تمرین کوتاه تأییدشده در انتظار پاسخ توست."
+                    : course.practice.state === "answered"
+                      ? "پاسخ تمرین کوتاه تو ثبت شده است."
+                      : "تمرین کوتاه تأییدشده‌ای در دسترس نیست."}
+                </p>
+                <Link href={nextStudentCourseAction(
+                  course.courseId, course.readyVideos,
+                  course.markedVideos, course.practice.state,
+                ).href} className={buttonClassName()}>
+                  {nextStudentCourseAction(
+                    course.courseId, course.readyVideos,
+                    course.markedVideos, course.practice.state,
+                  ).label}
                 </Link>
               </li>
             ))}
