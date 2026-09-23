@@ -302,15 +302,36 @@ test.describe("free enrollment and private video access must stay course-scoped"
       },
       headers: { Origin: "https://attacker.invalid" },
     })).status()).toBe(403);
-    const approved = await post(institute,
-      institutePracticePath(ids.live), {
-        action: "approve",
-        reason: "سؤال و پاسخ اعلام‌شده با محتوای همین دوره سازگار است.",
-      });
-    expect(approved.status()).toBe(200);
-    expect(await approved.json()).toEqual({
-      courseId: ids.live, reviewStatus: "approved",
-    });
+    await page.context().clearCookies();
+    const instituteCookie = await signed("institute");
+    await page.context().addCookies([{
+      name: "better-auth.session_token",
+      value: instituteCookie.split("=").slice(1).join("="),
+      domain: "localhost", path: "/", httpOnly: true, secure: false,
+      sameSite: "Lax",
+    }]);
+    await page.goto(
+      `http://localhost:3000/institute/courses/${ids.live}/practice`,
+    );
+    await expect(page.getByRole("heading", {
+      name: "دوره رایگان با محتوای خصوصی",
+    })).toBeVisible();
+    await expect(page.getByText(author.prompt)).toBeVisible();
+    await expect(page.getByText(
+      "پاسخ درست دوره — پاسخ درست اعلام‌شده توسط ارائه‌دهنده",
+    )).toBeVisible();
+    await page.getByRole("textbox", {
+      name: "دلیل تصمیم مؤسسه",
+    }).fill("سؤال و پاسخ اعلام‌شده با محتوای همین دوره سازگار است.");
+    const approvedResponse = page.waitForResponse((response) =>
+      response.url().endsWith(institutePracticePath(ids.live)) &&
+      response.request().method() === "POST",
+    );
+    await page.getByRole("button", { name: "تأیید سؤال تمرینی" }).click();
+    expect((await approvedResponse).status()).toBe(200);
+    await expect(page.getByText(
+      "تأییدشده برای نمایش به دانش‌آموز",
+    )).toBeVisible();
     expect((await post(institute, institutePracticePath(ids.live), {
       action: "reject",
       reason: "تصمیم دوباره روی سؤال تمرینی نباید قابل ثبت باشد.",
