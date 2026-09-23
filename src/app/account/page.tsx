@@ -48,7 +48,8 @@ export default async function AccountPage() {
         </section>
         <p className="rounded-xl bg-dena-bg p-4 text-sm leading-7 text-dena-muted">
           پنل‌های کامل عملیاتی هنوز منتشر نشده‌اند؛ بخش محدودی از دوره‌های
-          رایگان دانش‌آموز و گردش‌کار بررسی نقش‌ها به دادهٔ واقعی متصل است.
+          رایگان و یک تمرین کوتاه اختیاری دانش‌آموز و گردش‌کار بررسی نقش‌ها
+          به دادهٔ واقعی متصل است.
           این صفحه فقط وضعیت نشست و نقش‌های معتبر شما را نمایش می‌دهد.
         </p>
         <div className="flex flex-wrap gap-3">
