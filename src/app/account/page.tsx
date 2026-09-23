@@ -76,6 +76,11 @@ export default async function AccountPage() {
             </Link>
           )}
           {actor.memberships.some((entry) => entry.role === "institute") && (
+            <Link href="/institute" className={buttonClassName()}>
+              خانه مؤسسه
+            </Link>
+          )}
+          {actor.memberships.some((entry) => entry.role === "institute") && (
             <Link href="/institute/providers" className={buttonClassName("secondary")}>
               بررسی درخواست نظارت دوره‌ها
             </Link>
