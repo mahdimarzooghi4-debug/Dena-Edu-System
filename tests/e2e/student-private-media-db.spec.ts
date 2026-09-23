@@ -607,6 +607,15 @@ test.describe("free enrollment and private video access must stay course-scoped"
       .where(eq(studentPracticeAttempts.studentUserId, users.student));
     expect(ownPracticeRows).toHaveLength(1);
     expect(ownPracticeRows[0].correct).toBe(false);
+    const practiceProvider = await client("provider");
+    const providerView = JSON.stringify(await (await practiceProvider.get(
+      authorPath(ids.live),
+    )).json());
+    expect(providerView).toContain('"correctOption":2');
+    expect(providerView).not.toContain(users.student);
+    expect(providerView).not.toContain("selectedOption");
+    expect(providerView).not.toContain("submittedAt");
+    await practiceProvider.dispose();
     const otherPractice = await client("otherStudent");
     expect((await otherPractice.get(practicePath(ids.live))).status())
       .toBe(404);
