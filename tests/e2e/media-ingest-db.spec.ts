@@ -349,6 +349,18 @@ test.describe("pilot quarantine ingest and independent worker attestation", () =
     expect(report.sourceSha256).toBe(job.expectedSha256);
     expect(report.outputSha256).not.toBe(job.expectedSha256);
     expect(report.outputBytes).toBe(fixture.length + 4);
+    const oversized = await fetch(
+      "http://127.0.0.1:4318/__test__/oversized-inspection/" + job.id, {
+        method: "POST",
+        headers: { Authorization:
+          "Bearer " + process.env.DENA_PRIVATE_MEDIA_ORIGIN_TOKEN },
+      },
+    );
+    expect(oversized.status).toBe(200);
+    expect((await worker(workerClient, job.id, undefined, currentLease)).status()).toBe(409);
+    expect((await db.select().from(privateMediaAssets)
+      .where(eq(privateMediaAssets.courseId, courseId))).length).toBe(0);
+    // The mock corruption is one-shot, so later verified retries still work.
     expect(await corruptMock(job.id)).toBe(200);
     expect((await worker(workerClient, job.id, undefined, currentLease)).status()).toBe(409);
     expect((await db.select().from(privateMediaAssets)
