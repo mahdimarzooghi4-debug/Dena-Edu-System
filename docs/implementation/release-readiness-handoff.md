@@ -71,6 +71,10 @@
 
 `/benefactor` و `/api/benefactor/overview` با نشست و نقش فعال خیر، فقط entityهای واقعیِ با `role=benefactor` و `benefactor_id` متعلق به کاربر را از PostgreSQL می‌خوانند؛ نام و زمان بررسی داخلی دیده می‌شوند نه مدرک، نام بازبین، هویت دریافت‌کننده، مبلغ ساختگی یا صندوق. API خواندنی `no-store` است؛ آزمون PostgreSQL/HTTP/Playwright پیش و پس از بررسی ادمین، جداسازی دو خیر، scope از نوع organization، تعلیق و ناوبری را پوشش می‌دهد. صندوق حمایت/پرداخت/رسید و audit مالی و حریم خصوصی دریافت‌کننده همچنان پیاده‌سازی/استقرار نشده است. این ششمین **خانهٔ محدود نقش** است، نه تکمیل شش پنل و بک‌اند کل محصول.
 
+## گسترش واقعی فهرست یادگیری دانش‌آموز
+
+کاتالوگ `/api/student/courses` اکنون `q` عنوان و `mine=1` ثبت‌نام خود فرد با `nextCursor` مقید به فیلتر دارد؛ از سقف ۵۰ دورهٔ اولیه فراتر می‌رود و در هر درخواست ۲۰ دورهٔ با حق دسترسی فعلی برمی‌گرداند. UI `/student/courses` جست‌وجو، حالت بی‌نتیجه و «نمایش دوره‌های بیشتر» دارد. `src/server/student/course-catalog.ts` از `listedFreeCourse` مشترک با watch استفاده می‌کند؛ همهٔ صفحه‌ها دوباره permission را می‌سنجند. تست PostgreSQL/Playwright ۵۲ دوره، wildcard به‌صورت literal، سرچ شخصی با ثبت‌نام دو دانش‌آموز و سه صفحه را بررسی می‌کند. این **پیشرفت فهرست دوره** است نه ثبت پیشرفت تماشای ویدئو، آزمون یا آموزش کامل؛ Full-text فارسی، snapshot سراسری، ایندکس‌ها و load testing باز هستند.
+
 ## راهنمای ادامه برای چت جدید
 
 از **head جدید PR #1** و آخرین CI آن شروع کنید، نه snapshotهای قدیمی. ابتدا `README.md`، `docs/implementation/quarantined-media-ingest.md`، `docs/implementation/scalable-media-foundation.md`، `docs/implementation/free-student-enrollment-private-video.md`، `src/server/media/{ingest,multipart,cleanup}.ts`، `src/db/schema.ts` و `drizzle/meta/_journal.json` را بررسی کنید. تغییر واقعی روی `chore/bootstrap-dena-stack` انجام دهید، migration را با Drizzle تولید و commit و هر دو job CI را تا green بررسی کنید. هیچ قابلیت fake scanner، upload حجیم یا ظرفیت ۵M را production ننامید.
