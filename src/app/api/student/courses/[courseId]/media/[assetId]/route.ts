@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getServerAccessContext } from "../../../../../../../server/access/actor";
 import {
-  configuredPrivateMediaOrigin, getApprovedPrivateAsset, safeMediaRange,
+  configuredPrivateMediaOrigin, getApprovedPrivateAsset, safeMediaRange, validatedPrivateMediaResponse,
 } from "../../../../../../../server/student/private-media";
 
 export const runtime = "nodejs";
@@ -52,23 +52,19 @@ export async function GET(
   } catch {
     return deny(503);
   }
+  // The origin is not allowed to return a different range or inconsistent
+  // byte framing. Only these validated metadata fields cross the proxy.
   // No upstream Location, Set-Cookie, CORS or origin address can escape.
-  if (upstream.status !== 200 && upstream.status !== 206) {
-    await upstream.body?.cancel();
-    return deny(503);
-  }
-  const type = upstream.headers.get("content-type")?.split(";")[0].trim();
-  if (type !== "video/mp4" || (range && upstream.status !== 206)) {
+  const framed = validatedPrivateMediaResponse(upstream.status, range, upstream.headers);
+  if (!framed) {
     await upstream.body?.cancel();
     return deny(503);
   }
   const output = new Headers(headers);
   output.set("Content-Type", "video/mp4");
   output.set("Accept-Ranges", "bytes");
-  for (const field of ["Content-Length", "Content-Range"]) {
-    const value = upstream.headers.get(field);
-    if (value) output.set(field, value);
-  }
+  output.set("Content-Length", framed.length);
+  if (framed.range) output.set("Content-Range", framed.range);
   return new Response(upstream.body, {
     status: upstream.status, headers: output,
   });
