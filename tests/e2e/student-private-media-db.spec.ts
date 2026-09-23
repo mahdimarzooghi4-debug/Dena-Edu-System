@@ -37,6 +37,8 @@ test.describe("free enrollment and private video access must stay course-scoped"
     `/api/student/courses/${courseId}/practice`;
   const authorPath = (courseId: string) =>
     `/api/provider/courses/${courseId}/practice`;
+  const institutePracticePath = (courseId: string) =>
+    `/api/institute/courses/${courseId}/practice`;
   const listAssets = (courseId: string) =>
     `/api/student/courses/${courseId}/assets`;
   const enrollPath = (courseId: string) =>
@@ -265,10 +267,60 @@ test.describe("free enrollment and private video access must stay course-scoped"
     expect(ownQuestion.status()).toBe(200);
     expect((await ownQuestion.json()).question).toMatchObject({
       prompt: author.prompt, correctOption: 2,
+      reviewStatus: "pending", reviewReason: null,
     });
+    expect((await provider.get(institutePracticePath(ids.live))).status())
+      .toBe(403);
+    expect((await post(provider, institutePracticePath(ids.live), {
+      action: "approve",
+      reason: "ارائه‌دهنده نباید بتواند سؤال تمرینی خودش را تأیید کند.",
+    })).status()).toBe(403);
     const beforePublish = await client("student");
     expect((await beforePublish.get(practicePath(ids.live))).status()).toBe(404);
     await beforePublish.dispose();
+    const blocked = await post(provider,
+      `/api/provider/courses/${ids.live}/publication`, { action: "publish" });
+    expect(blocked.status()).toBe(409);
+    expect(await blocked.json()).toEqual({
+      error: "practice_review_pending",
+    });
+    const institute = await client("institute");
+    const review = await institute.get(institutePracticePath(ids.live));
+    expect(review.status()).toBe(200);
+    expect((await review.json()).question).toMatchObject({
+      prompt: author.prompt, correctOption: 2,
+      reviewStatus: "pending",
+    });
+    expect((await institute.post(institutePracticePath(ids.live), {
+      data: { action: "approve", reason: "کوتاه" },
+      headers: { Origin: "http://localhost:3000" },
+    })).status()).toBe(400);
+    expect((await institute.post(institutePracticePath(ids.live), {
+      data: {
+        action: "approve",
+        reason: "سؤال و پاسخ اعلام‌شده با محتوای همین دوره سازگار است.",
+      },
+      headers: { Origin: "https://attacker.invalid" },
+    })).status()).toBe(403);
+    const approved = await post(institute,
+      institutePracticePath(ids.live), {
+        action: "approve",
+        reason: "سؤال و پاسخ اعلام‌شده با محتوای همین دوره سازگار است.",
+      });
+    expect(approved.status()).toBe(200);
+    expect(await approved.json()).toEqual({
+      courseId: ids.live, reviewStatus: "approved",
+    });
+    expect((await post(institute, institutePracticePath(ids.live), {
+      action: "reject",
+      reason: "تصمیم دوباره روی سؤال تمرینی نباید قابل ثبت باشد.",
+    })).status()).toBe(409);
+    await institute.dispose();
+    const reviewedQuestion = await provider.get(authorPath(ids.live));
+    expect((await reviewedQuestion.json()).question).toMatchObject({
+      reviewStatus: "approved",
+      reviewReason: "سؤال و پاسخ اعلام‌شده با محتوای همین دوره سازگار است.",
+    });
     const first = await post(provider,
       `/api/provider/courses/${ids.live}/publication`, { action: "publish" });
     expect(first.status()).toBe(200);
