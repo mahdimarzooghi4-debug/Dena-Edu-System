@@ -71,6 +71,13 @@
       "when": 1790018100000,
       "tag": "0009_dena_multipart_cancel",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790160000000,
+      "tag": "0010_dena_student_video_completions",
+      "breakpoints": true
     }
   ]
 }
