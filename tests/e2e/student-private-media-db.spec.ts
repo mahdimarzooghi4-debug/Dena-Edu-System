@@ -286,6 +286,16 @@ test.describe("free enrollment and private video access must stay course-scoped"
       error: "practice_review_pending",
     });
     const institute = await client("institute");
+    const pendingInstituteDashboard = await institute.get("/institute");
+    expect(pendingInstituteDashboard.status()).toBe(200);
+    const pendingInstituteHtml = await pendingInstituteDashboard.text();
+    expect(pendingInstituteHtml).toContain("در انتظار بازبینی مستقل مؤسسه");
+    expect(pendingInstituteHtml).toContain("بازبینی سؤال در انتظار تصمیم");
+    expect(pendingInstituteHtml).toContain(
+      `/institute/courses/${ids.live}/practice`,
+    );
+    expect(pendingInstituteHtml).not.toContain(author.prompt);
+    expect(pendingInstituteHtml).not.toContain("correctOption");
     const review = await institute.get(institutePracticePath(ids.live));
     expect(review.status()).toBe(200);
     expect((await review.json()).question).toMatchObject({
@@ -337,6 +347,14 @@ test.describe("free enrollment and private video access must stay course-scoped"
       action: "reject",
       reason: "تصمیم دوباره روی سؤال تمرینی نباید قابل ثبت باشد.",
     })).status()).toBe(409);
+    const reviewedInstituteHtml = await (await institute.get("/institute")).text();
+    expect(reviewedInstituteHtml).toContain(
+      "تأییدشده برای نمایش به دانش‌آموز",
+    );
+    const instituteLiveCard = reviewedInstituteHtml.slice(
+      reviewedInstituteHtml.indexOf("دوره رایگان با محتوای خصوصی"),
+    );
+    expect(instituteLiveCard).toContain("مشاهدهٔ وضعیت تمرین دوره");
     await institute.dispose();
     const reviewedQuestion = await provider.get(authorPath(ids.live));
     expect((await reviewedQuestion.json()).question).toMatchObject({

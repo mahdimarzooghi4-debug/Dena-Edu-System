@@ -24,6 +24,12 @@ const publicationLabels = {
   published: "منتشرشده",
   archived: "بایگانی‌شده",
 } as const;
+const practiceLabels = {
+  not_created: "ثبت نشده",
+  pending: "در انتظار بازبینی مستقل مؤسسه",
+  approved: "تأییدشده برای نمایش به دانش‌آموز",
+  rejected: "ردشده و از دانش‌آموز پنهان",
+} as const;
 
 export default async function InstituteHomePage() {
   if (!process.env.DATABASE_URL || !process.env.BETTER_AUTH_SECRET ||
@@ -35,6 +41,10 @@ export default async function InstituteHomePage() {
   if (!instituteIds.length) notFound();
 
   const { courses, hasMore } = await getInstituteDashboardCourses(instituteIds);
+  // Only within the same visible, currently institute-scoped 20-course slice.
+  const pendingPractices = courses.filter((course) =>
+    course.supervisionStatus === "approved" &&
+    course.practiceReviewStatus === "pending").length;
   return (
     <main id="main-content"
       className="mx-auto min-h-screen max-w-5xl space-y-8 px-5 py-8 md:px-10 md:py-12">
@@ -73,6 +83,18 @@ export default async function InstituteHomePage() {
             این عدد شمار تمام دوره‌های مؤسسه یا تعداد دانش‌آموزان نیست.
           </p>
         </Card>
+        <Card className="max-w-sm">
+          <p className="text-sm text-dena-muted">
+            سؤال‌های تمرینی در انتظار بازبینی مستقل
+          </p>
+          <p className="mt-2 text-[29px] font-extrabold text-dena-brand">
+            {pendingPractices.toLocaleString("fa-IR")}
+          </p>
+          <p className="mt-1 text-xs leading-7 text-dena-muted">
+            فقط دوره‌های نمایش‌داده‌شده با نظارت تأییدشده؛ این عدد
+            تعداد تمام درخواست‌های مؤسسه نیست.
+          </p>
+        </Card>
       </section>
 
       <section aria-labelledby="institute-courses" className="space-y-4">
@@ -107,6 +129,12 @@ export default async function InstituteHomePage() {
                 <p className="text-sm text-dena-muted">
                   انتشار: {publicationLabels[course.publicationStatus]}
                 </p>
+                <p className="text-sm text-dena-muted">
+                  ویدئوهای آماده: {course.readyVideos.toLocaleString("fa-IR")}
+                </p>
+                <p className="text-sm text-dena-muted">
+                  سؤال تمرینی: {practiceLabels[course.practiceReviewStatus]}
+                </p>
                 <Link href={`/institute/courses/${course.courseId}`}
                   className={buttonClassName()}>
                   پروندهٔ وضعیت همین دوره
@@ -114,7 +142,9 @@ export default async function InstituteHomePage() {
                 {course.supervisionStatus === "approved" && (
                   <Link href={`/institute/courses/${course.courseId}/practice`}
                     className={buttonClassName("secondary")}>
-                    بررسی تمرین دوره
+                    {course.practiceReviewStatus === "pending"
+                      ? "بازبینی سؤال در انتظار تصمیم"
+                      : "مشاهدهٔ وضعیت تمرین دوره"}
                   </Link>
                 )}
                 {course.supervisionStatus === "requested" && (
