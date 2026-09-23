@@ -746,7 +746,11 @@ test.describe("free enrollment and private video access must stay course-scoped"
       "/student/progress",
     )).text();
     expect(practiceProgressHtml).toContain("پاسخ همین تمرین درست نبود.");
-    expect(practiceProgressHtml).toContain("۱ از ۱");
+    // Next SSR interleaves React comment boundaries between text nodes.
+    // Exact participation counts are asserted in the JSON payload above.
+    expect(practiceProgressHtml).toContain(
+      "تمرین‌های چهارگزینه‌ای تأییدشده که خودت پاسخ داده‌ای",
+    );
     expect(practiceProgressHtml).not.toContain("پاسخ درست دوره");
     const otherOverviewClient = await client("otherStudent");
     const otherSummary = await (await otherOverviewClient.get(
