@@ -20,15 +20,18 @@ export class InvalidCourseCatalogQuery extends Error {
 export function readCatalogQuery(searchParams: URLSearchParams) {
   if (["q", "mine", "cursor"].some((name) =>
     searchParams.getAll(name).length > 1)) throw new InvalidCourseCatalogQuery();
-  const q = (searchParams.get("q") ?? "").trim();
-  if (q.length > 80 || /[\u0000-\u001f\u007f]/u.test(q)) {
+  const rawQuery = searchParams.get("q") ?? "";
+  // Reject control bytes BEFORE trim, which would silently drop a trailing LF.
+  if (rawQuery.length > 80 || /[\u0000-\u001f\u007f]/u.test(rawQuery)) {
     throw new InvalidCourseCatalogQuery();
   }
+  const q = rawQuery.trim();
   const mineRaw = searchParams.get("mine");
   if (mineRaw !== null && mineRaw !== "1") throw new InvalidCourseCatalogQuery();
   const mine = mineRaw === "1";
   const raw = searchParams.get("cursor");
-  if (!raw) return { q, mine, cursor: null };
+  if (raw === null) return { q, mine, cursor: null };
+  if (raw.length === 0) throw new InvalidCourseCatalogQuery();
   if (raw.length > 640 || !/^[A-Za-z0-9_-]+$/u.test(raw)) {
     throw new InvalidCourseCatalogQuery();
   }
