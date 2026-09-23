@@ -882,4 +882,127 @@ test.describe("free enrollment and private video access must stay course-scoped"
     await institute.dispose();
     await student.dispose();
   });
+  test("student can erase own retained notes after revoked supervision and cancelled enrollment", async ({ page }) => {
+    const apiPath = "/api/student/private-notes";
+    const origin = { Origin: "http://localhost:3000" };
+    const confirmation = { confirm: "DELETE_ALL_MY_VIDEO_NOTES" };
+    const anonymous = await client();
+    const provider = await client("provider");
+    const student = await client("student");
+    const other = await client("otherStudent");
+
+    expect((await anonymous.get(apiPath)).status()).toBe(401);
+    expect((await anonymous.delete(apiPath, {
+      data: confirmation, headers: origin,
+    })).status()).toBe(401);
+    expect((await provider.get(apiPath)).status()).toBe(403);
+    expect((await provider.delete(apiPath, {
+      data: confirmation, headers: origin,
+    })).status()).toBe(403);
+    expect((await provider.get("/student/privacy")).status()).toBe(404);
+
+    const ownCount = await student.get(apiPath);
+    expect(ownCount.status()).toBe(200);
+    expect(ownCount.headers()["cache-control"]).toContain("private");
+    expect(await ownCount.json()).toEqual({ noteCount: 1 });
+    expect((await other.get(apiPath)).status()).toBe(200);
+    expect(await (await other.get(apiPath)).json()).toEqual({ noteCount: 1 });
+
+    const privacyHtml = await (await student.get("/student/privacy")).text();
+    expect(privacyHtml).toContain("مدیریت و پاک‌کردن یادداشت‌های ویدئویی");
+    expect(privacyHtml).not.toContain("یادداشت فقط در دوره مجاز");
+    expect(privacyHtml).not.toContain(videoIds.ready);
+    expect(privacyHtml).not.toContain("یادداشت در زمان دسترسی");
+
+    for (const data of [
+      {}, { confirm: "DELETE_ALL_MY_VIDEO_NOTES", userId: users.otherStudent },
+      { confirm: "no" },
+    ]) {
+      expect((await student.delete(apiPath, {
+        data, headers: origin,
+      })).status()).toBe(400);
+    }
+    expect((await student.delete(apiPath, {
+      data: confirmation,
+      headers: { Origin: "https://attacker.invalid" },
+    })).status()).toBe(403);
+    expect(await (await student.get(apiPath)).json()).toEqual({ noteCount: 1 });
+
+    const cookie = await signed("student");
+    await page.context().addCookies([{
+      name: "better-auth.session_token",
+      value: cookie.split("=").slice(1).join("="),
+      domain: "localhost", path: "/", httpOnly: true, secure: false,
+      sameSite: "Lax",
+    }]);
+    await page.goto("http://localhost:3000/student");
+    await page.getByRole("link", { name: "مدیریت یادداشت‌های شخصی" }).click();
+    await expect(page).toHaveURL(/\\/student\\/privacy$/);
+    await expect(page.getByRole("heading", {
+      name: "پاک‌کردن همهٔ یادداشت‌های شخصی",
+    })).toBeVisible();
+    const confirmButton = page.getByRole("button", {
+      name: "حذف همه یادداشت‌ها",
+    });
+    const input = page.getByRole("textbox", {
+      name: "برای تأیید، عبارت «حذف همه یادداشت‌ها» را دقیقاً وارد کن",
+    });
+    await expect(confirmButton).toBeDisabled();
+    await input.fill("حذف یادداشت");
+    await expect(confirmButton).toBeDisabled();
+    await input.fill("حذف همه یادداشت‌ها");
+    await expect(confirmButton).toBeEnabled();
+    const deletedResponse = page.waitForResponse((response) =>
+      response.url().endsWith(apiPath) &&
+      response.request().method() === "DELETE",
+    );
+    await confirmButton.click();
+    const deleted = await deletedResponse;
+    expect(deleted.status()).toBe(200);
+    expect(await deleted.json()).toEqual({ deleted: 1, noteCount: 0 });
+    await expect(page.getByText(
+      "یادداشت ویدئویی ذخیره‌شده‌ای برای پاک‌کردن باقی نمانده است.",
+    )).toBeVisible();
+    await page.reload();
+    await expect(page.getByText(
+      "یادداشت ویدئویی ذخیره‌شده‌ای برای پاک‌کردن باقی نمانده است.",
+    )).toBeVisible();
+
+    expect(await (await student.get(apiPath)).json()).toEqual({ noteCount: 0 });
+    expect(await (await other.get(apiPath)).json()).toEqual({ noteCount: 1 });
+    expect((await db.select().from(studentVideoNotes).where(
+      eq(studentVideoNotes.studentUserId, users.student),
+    ))).toHaveLength(0);
+    expect((await db.select().from(studentVideoNotes).where(
+      eq(studentVideoNotes.studentUserId, users.otherStudent),
+    ))).toHaveLength(1);
+    const [marker] = await db.select().from(studentVideoCompletions)
+      .where(and(
+        eq(studentVideoCompletions.studentUserId, users.student),
+        eq(studentVideoCompletions.assetId, videoIds.ready),
+      ));
+    expect(marker).toBeDefined();
+
+    const replay = await other.delete(apiPath, {
+      data: confirmation, headers: origin,
+    });
+    expect(replay.status()).toBe(200);
+    expect(await replay.json()).toEqual({ deleted: 1, noteCount: 0 });
+    const duplicate = await other.delete(apiPath, {
+      data: confirmation, headers: origin,
+    });
+    expect(duplicate.status()).toBe(200);
+    expect(await duplicate.json()).toEqual({ deleted: 0, noteCount: 0 });
+    expect((await db.select().from(studentVideoNotes).where(
+      inArray(studentVideoNotes.studentUserId, [
+        users.student, users.otherStudent,
+      ]),
+    ))).toHaveLength(0);
+
+    await anonymous.dispose();
+    await provider.dispose();
+    await student.dispose();
+    await other.dispose();
+  });
+
 });
