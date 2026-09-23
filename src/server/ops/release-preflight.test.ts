@@ -70,6 +70,18 @@ describe("release preflight only validates static configuration", () => {
     expect(result.stderr).toContain("DENA_DB_INTEGRATION:ci_mock_forbidden");
   });
 
+  it("blocks globally disabled TLS certificate validation", () => {
+    const result = run({ NODE_TLS_REJECT_UNAUTHORIZED: "0" });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("NODE_TLS_REJECT_UNAUTHORIZED:certificate_validation_disabled");
+  });
+
+  it("rejects alternate loopback for HTTPS service URLs", () => {
+    const result = run({ DENA_SMS_GATEWAY_URL: "https://[::1]/send" });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("DENA_SMS_GATEWAY_URL:mock_or_loopback");
+  });
+
   it("fails closed on CI mode, localhost SMS or HTTP private origin, without printing values", () => {
     const result = run({
       DENA_DB_INTEGRATION: "1",
