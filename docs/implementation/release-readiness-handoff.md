@@ -1,5 +1,9 @@
 # تحویل وضعیت دنا و گیت پیکربندی انتشار — ۱۴۰۵/۰۷/۰۱
 
+## مرحلهٔ فعلی پروژه
+
+**پایلوت فنی متصل به PostgreSQL و آماده‌سازی برای staging کنترل‌شده**: گردش‌کار محدود هویت، بررسی نقش، تأیید نظارت دوره، ثبت‌نام رایگان و ویدئوی قرنطینه‌ای/خصوصی در CI موقت آزمایش می‌شود. این «MVP عرضه‌شده» یا «production-ready» نیست؛ اتصال vendor، زیرساخت واقعی، حقوق و حریم خصوصی و آزمون بار هنوز مانده‌اند.
+
 ## وضعیت تأییدشده در GitHub
 
 - مخزن: `mahdimarzooghi4-debug/Dena-Edu-System`، شاخه `chore/bootstrap-dena-stack`، Draft PR شماره ۱.
@@ -8,7 +12,7 @@
 - نظارت مؤسسه **برای هر دوره**، درخواست provider/تأیید مستقل مؤسسه/رد/لغو؛ ثبت‌نام **فقط دوره رایگان** پس از انتشار، grant approved و آماده بودن media، بررسی session و enrollment هنگام هر Range؛ stream از مسیر محافظت‌شده Next.js، نه CDN.
 - Pilot ingest ۸ MiB: رزرو idempotent، SHA-256 و header MP4، قرنطینه، صف پایدار processing با claim/lease/retry/dead-letter، HMAC گواهی source/output و بررسی streaming واقعی، callback با lease؛ پاکسازی quarantine با lease/retry/fence ضد late writes؛ mock فقط localhost در CI.
 - Dry-run multipart برای فایل >۱۶ MiB تا سقف قراردادی ۵ GiB: برنامه ۱۶ MiB، ذخیره metadata/idempotency، expiry و cancel؛ **هیچ storage grant، presigned URL یا آپلود حجیم واقعی صادر نمی‌شود**. مسیر گواهی AV/transcode/CDN/object storage production متصل نیست.
-- Migrationهای Drizzle از ۰۰۰۰ تا **۰۰۰۹** ثبت شده‌اند و اجرای موفق قبلی GitHub Actions `35643793599` برای foundation و PostgreSQL integration هر دو سبز است.
+- ده migration ثبت‌شدهٔ Drizzle از ۰۰۰۰ تا **۰۰۰۹** روی PostgreSQL موقت در CI اعمال می‌شوند. آخرین head و نتیجهٔ نهایی هر دو job از صفحهٔ Draft PR/Actions همان head بررسی شود؛ runهای قدیمی مبنای تأیید تغییر جدید نیستند.
 - هدف ۵M concurrent، **صرفاً هدف ظرفیت**؛ نه benchmark یا تعهد خدمت اثبات‌شده.
 
 ## گیت جدید بررسی پیکربندی
