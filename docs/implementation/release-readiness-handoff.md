@@ -67,6 +67,10 @@
 
 `/organization` و `/api/organization/overview` اکنون فقط پس از session و membership فعال سازمان، نام و زمان بررسی scopeهای سازمانی واقعی خود کاربر را از join با `verifiedEntities.role=organization` می‌خوانند. متقاضی پیش از approval دسترسی ندارد؛ نقش دیگر، سازمان دیگر، scope به نوع اشتباه و عضویت معلق نتیجه‌ای دریافت نمی‌کنند. مستندات محرمانهٔ تأیید، دادهٔ دانش‌آموز، تخصیص دوره، سفارش و آمار جعلی نمایش داده نمی‌شوند. لینک خانه از `/account` اضافه و سناریوی role approval/HTTP/Playwright تست شده است. سازمان هنوز پنل کامل استفاده/اعضا/سفارش ندارد؛ review حقوقی و privacy همچنان باز است.
 
+## خانهٔ محدود واقعی خیر و حامی
+
+`/benefactor` و `/api/benefactor/overview` با نشست و نقش فعال خیر، فقط entityهای واقعیِ با `role=benefactor` و `benefactor_id` متعلق به کاربر را از PostgreSQL می‌خوانند؛ نام و زمان بررسی داخلی دیده می‌شوند نه مدرک، نام بازبین، هویت دریافت‌کننده، مبلغ ساختگی یا صندوق. API خواندنی `no-store` است؛ آزمون PostgreSQL/HTTP/Playwright پیش و پس از بررسی ادمین، جداسازی دو خیر، scope از نوع organization، تعلیق و ناوبری را پوشش می‌دهد. صندوق حمایت/پرداخت/رسید و audit مالی و حریم خصوصی دریافت‌کننده همچنان پیاده‌سازی/استقرار نشده است. این ششمین **خانهٔ محدود نقش** است، نه تکمیل شش پنل و بک‌اند کل محصول.
+
 ## راهنمای ادامه برای چت جدید
 
 از **head جدید PR #1** و آخرین CI آن شروع کنید، نه snapshotهای قدیمی. ابتدا `README.md`، `docs/implementation/quarantined-media-ingest.md`، `docs/implementation/scalable-media-foundation.md`، `docs/implementation/free-student-enrollment-private-video.md`، `src/server/media/{ingest,multipart,cleanup}.ts`، `src/db/schema.ts` و `drizzle/meta/_journal.json` را بررسی کنید. تغییر واقعی روی `chore/bootstrap-dena-stack` انجام دهید، migration را با Drizzle تولید و commit و هر دو job CI را تا green بررسی کنید. هیچ قابلیت fake scanner، upload حجیم یا ظرفیت ۵M را production ننامید.
