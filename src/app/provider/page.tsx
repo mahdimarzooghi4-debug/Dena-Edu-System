@@ -26,6 +26,13 @@ const publicationLabels = {
   archived: "بایگانی‌شده",
 } as const;
 
+const practiceLabels = {
+  not_created: "ثبت نشده",
+  pending: "در انتظار بررسی مستقل مؤسسه",
+  approved: "تأییدشده برای نمایش به دانش‌آموز",
+  rejected: "ردشده و از دانش‌آموز پنهان",
+} as const;
+
 export default async function ProviderHomePage() {
   if (!process.env.DATABASE_URL || !process.env.BETTER_AUTH_SECRET ||
       !process.env.BETTER_AUTH_URL) redirect("/login");
@@ -104,6 +111,12 @@ export default async function ProviderHomePage() {
                 <p className="text-sm text-dena-muted">
                   انتشار: {publicationLabels[course.publicationStatus]}
                 </p>
+                <p className="text-sm text-dena-muted">
+                  ویدئوهای آماده: {course.readyVideos.toLocaleString("fa-IR")}
+                </p>
+                <p className="text-sm text-dena-muted">
+                  سؤال تمرینی: {practiceLabels[course.practiceReviewStatus]}
+                </p>
                 {course.supervisionStatus === "approved" && (
                   <Link href={`/provider/courses/${course.courseId}/practice`}
                     className={buttonClassName("secondary")}>
@@ -133,6 +146,7 @@ export default async function ProviderHomePage() {
         <h2 className="text-lg font-extrabold">دامنهٔ این فاز</h2>
         <p className="mt-3 text-sm leading-8 text-dena-muted">
           یک تمرین چهارگزینه‌ایِ اختیاری برای هر دوره اکنون قابل ثبت است؛
+          شمار ویدئوهای آماده و وضعیت بررسی سؤال فقط metadata واقعی همان دوره‌اند.
           تکلیف جامع، آزمون رسمی، آمار دانش‌آموزان و درآمد هنوز به این صفحه متصل نیستند.
           تأیید نقش ارائه‌دهنده به معنی تأیید خودکار نظارت یا انتشار دوره نیست.
         </p>

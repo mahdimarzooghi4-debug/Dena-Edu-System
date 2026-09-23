@@ -3,6 +3,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { serializeSignedCookie } from "better-call";
 import { expect, request, test, type APIRequestContext } from "@playwright/test";
 import { getDb } from "../../src/db";
+import { getProviderDashboardCourses } from "../../src/server/provider/dashboard";
 import {
   coursePracticeQuestions, courses, memberships, privateMediaAssets,
   session, studentEnrollments, studentPracticeAttempts,
@@ -735,6 +736,23 @@ test.describe("free enrollment and private video access must stay course-scoped"
     expect(providerView).not.toContain(users.student);
     expect(providerView).not.toContain("selectedOption");
     expect(providerView).not.toContain("submittedAt");
+    const ownProviderDashboard = await getProviderDashboardCourses([providerId]);
+    expect(ownProviderDashboard.courses).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          courseId: ids.live,
+          readyVideos: 1,
+          practiceReviewStatus: "approved",
+        }),
+      ]),
+    );
+    const providerHome = await practiceProvider.get("/provider");
+    expect(providerHome.status()).toBe(200);
+    expect(await providerHome.text()).toContain(
+      "تأییدشده برای نمایش به دانش‌آموز",
+    );
+    const scopeOnly = await getProviderDashboardCourses([randomUUID()]);
+    expect(scopeOnly.courses).toEqual([]);
     await practiceProvider.dispose();
     const otherPractice = await client("otherStudent");
     expect((await otherPractice.get(practicePath(ids.live))).status())
