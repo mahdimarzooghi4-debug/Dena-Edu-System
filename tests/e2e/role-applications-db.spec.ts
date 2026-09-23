@@ -86,10 +86,14 @@ test.describe("reviewed role requests, scoped grants and audit on PostgreSQL", (
     const anonymous = await client();
     expect((await anonymous.get("/api/admin/role-applications")).status()).toBe(401);
     expect((await anonymous.get("/api/access/role-applications")).status()).toBe(401);
+    const noSessionAdmin = await anonymous.get("/admin", { maxRedirects: 0 });
+    expect(noSessionAdmin.status()).toBe(307);
+    expect(noSessionAdmin.headers().location).toBe("/login");
     await anonymous.dispose();
 
     const applicant = await client("applicant");
     expect((await applicant.get("/api/admin/role-applications")).status()).toBe(403);
+    expect((await applicant.get("/admin")).status()).toBe(404);
     expect((await submit(applicant, { ...proposed, role: "admin" })).status()).toBe(400);
     expect((await submit(applicant, { ...proposed, instituteId: randomUUID() })).status()).toBe(400);
     expect((await submit(applicant, { ...proposed, role: "student" })).status()).toBe(400);
@@ -134,6 +138,16 @@ test.describe("reviewed role requests, scoped grants and audit on PostgreSQL", (
     expect((await queue.json()).pending).toEqual([
       expect.objectContaining({ id, userId: ids.applicant, role: "institute" }),
     ]);
+    const pendingHome = await admin.get("/admin");
+    expect(pendingHome.status()).toBe(200);
+    const pendingHtml = await pendingHome.text();
+    expect(pendingHtml).toContain("نمای کلی درخواست‌های نقش");
+    expect(pendingHtml).toContain("پژوهشگاه نمونه");
+    expect(pendingHtml).toContain("مؤسسه");
+    expect(pendingHtml).not.toContain("private-review/");
+    expect(pendingHtml).not.toContain(ids.applicant);
+    expect((await admin.get("/account")).status()).toBe(200);
+    expect(await (await admin.get("/account")).text()).toContain('href="/admin"');
 
     expect((await decide(admin, id, { action: "approve",
       reason: "بررسی اولیه انجام شد اما مرجع مدارک هنوز درج نشده است.",
@@ -150,6 +164,9 @@ test.describe("reviewed role requests, scoped grants and audit on PostgreSQL", (
     expect((await decide(admin, id, {
       action: "reject", reason: "امکان اعمال تصمیم دوم بر درخواست نهایی وجود ندارد.",
     })).status()).toBe(409);
+    const completedHome = await admin.get("/admin");
+    expect(completedHome.status()).toBe(200);
+    expect(await completedHome.text()).not.toContain("پژوهشگاه نمونه");
     const member = await db.select().from(memberships)
       .where(and(eq(memberships.userId, ids.applicant),
         eq(memberships.role, "institute")));
@@ -192,7 +209,15 @@ test.describe("reviewed role requests, scoped grants and audit on PostgreSQL", (
       value: signed.split(";")[0].split("=").slice(1).join("="),
       domain: "localhost", path: "/", httpOnly: true, secure: false, sameSite: "Lax",
     }]);
-    await page.goto("http://localhost:3000/admin/role-applications");
+    await page.goto("http://localhost:3000/admin");
+    await expect(page.getByRole("heading", {
+      name: "نمای کلی درخواست‌های نقش",
+    })).toBeVisible();
+    await expect(page.getByRole("heading", {
+      name: "ارائه‌دهنده · ارائه‌دهنده آزمایشی",
+    })).toBeVisible();
+    await page.getByRole("link", { name: "صف بررسی درخواست‌های نقش" }).click();
+    await expect(page).toHaveURL(/\/admin\/role-applications$/);
     await expect(page.getByRole("heading", { name: "درخواست‌های نقش سازمانی" })).toBeVisible();
     const entry = page.locator("li").filter({ hasText: "ارائه‌دهنده آزمایشی" });
     await expect(entry).toBeVisible();
@@ -211,6 +236,9 @@ test.describe("reviewed role requests, scoped grants and audit on PostgreSQL", (
     const [denied] = await db.select().from(roleApplications)
       .where(eq(roleApplications.id, rejectedId));
     expect(denied.assignedScopeId).toBeNull();
+    const rejectedHome = await admin.get("/admin");
+    expect(rejectedHome.status()).toBe(200);
+    expect(await rejectedHome.text()).not.toContain("ارائه‌دهنده آزمایشی");
 
     const self = await submit(admin, {
       role: "benefactor", proposedName: "حامی آزمایشی",
@@ -224,6 +252,9 @@ test.describe("reviewed role requests, scoped grants and audit on PostgreSQL", (
       evidenceReference: "private-review/CI-self-0001",
       reason: "بررسی درخواست خود بازبین به صورت مستقل لازم است.",
     })).status()).toBe(403);
+    const selfPendingHome = await admin.get("/admin");
+    expect(selfPendingHome.status()).toBe(200);
+    expect(await selfPendingHome.text()).toContain("حامی آزمایشی");
 
     const events = await db.select().from(roleApplicationEvents)
       .where(eq(roleApplicationEvents.applicationId, requestIds[0]));
@@ -232,6 +263,9 @@ test.describe("reviewed role requests, scoped grants and audit on PostgreSQL", (
       .where(and(eq(memberships.userId, ids.reviewer),
         eq(memberships.role, "admin")));
     expect((await admin.get("/api/admin/role-applications")).status()).toBe(401);
+    const suspendedHome = await admin.get("/admin", { maxRedirects: 0 });
+    expect(suspendedHome.status()).toBe(307);
+    expect(suspendedHome.headers().location).toBe("/login");
     await admin.dispose();
     await applicant.dispose();
   });
