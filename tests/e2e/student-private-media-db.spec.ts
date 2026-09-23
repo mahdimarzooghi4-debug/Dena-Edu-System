@@ -123,6 +123,9 @@ test.describe("free enrollment and private video access must stay course-scoped"
   test("draft or merely requested courses never enter the free catalog", async () => {
     const anonymous = await client();
     expect((await anonymous.get("/api/student/courses")).status()).toBe(401);
+    const anonymousHome = await anonymous.get("/student", { maxRedirects: 0 });
+    expect(anonymousHome.status()).toBe(307);
+    expect(anonymousHome.headers().location).toBe("/login");
     expect((await anonymous.get(listAssets(ids.live))).status()).toBe(401);
     expect((await anonymous.get(mediaPath(ids.live, videoIds.ready))).status()).toBe(401);
     expect((await post(anonymous, enrollPath(ids.live), {})).status()).toBe(401);
@@ -130,6 +133,7 @@ test.describe("free enrollment and private video access must stay course-scoped"
 
     const provider = await client("provider");
     expect((await provider.get("/api/student/courses")).status()).toBe(403);
+    expect((await provider.get("/student")).status()).toBe(404);
     expect((await post(provider, enrollPath(ids.live), {})).status()).toBe(403);
     expect((await provider.get(mediaPath(ids.live, videoIds.ready))).status()).toBe(404);
     expect((await post(provider, `/api/provider/courses/${ids.pending}/publication`,
@@ -164,6 +168,9 @@ test.describe("free enrollment and private video access must stay course-scoped"
         providerId, responsibleInstituteId: instituteId,
         enrolled: false, free: true },
     ]);
+    const beforeEnrollmentHome = await student.get("/student");
+    expect(beforeEnrollmentHome.status()).toBe(200);
+    expect(await beforeEnrollmentHome.text()).toContain("فعلاً دورهٔ قابل ادامه‌ای نداری");
     expect((await student.get(listAssets(ids.live))).status()).toBe(404);
     expect((await student.get(mediaPath(ids.live, videoIds.ready))).status()).toBe(404);
     expect((await post(student, enrollPath(ids.pending), {})).status()).toBe(404);
@@ -192,6 +199,14 @@ test.describe("free enrollment and private video access must stay course-scoped"
       eq(studentEnrollments.studentUserId, users.student),
     ));
     expect(existing).toHaveLength(1);
+    const dashboard = await student.get("/student");
+    expect(dashboard.status()).toBe(200);
+    const dashboardHtml = await dashboard.text();
+    expect(dashboardHtml).toContain("دوره رایگان با محتوای خصوصی");
+    expect(dashboardHtml).toContain(`/student/courses/${ids.live}/watch`);
+    expect(dashboardHtml).not.toContain("دوره بدون تایید مؤسسه");
+    expect(dashboardHtml).not.toContain(videoIds.withdrawn);
+    expect(dashboardHtml).not.toContain("objectKey");
     const manifest = await student.get(listAssets(ids.live));
     expect(manifest.status()).toBe(200);
     const manifestText = await manifest.text();
@@ -273,7 +288,12 @@ test.describe("free enrollment and private video access must stay course-scoped"
     const ownCard = page.locator("li").filter({ hasText: "دوره رایگان با محتوای خصوصی" });
     await ownCard.getByRole("button", { name: "ثبت‌نام رایگان" }).click();
     expect((await enrolling).status()).toBe(201);
-    await ownCard.getByRole("link", { name: "مشاهده محتوای دوره" }).click();
+    await page.goto("http://localhost:3000/student");
+    await expect(page.getByRole("heading", { name: "نمای کلی یادگیری" })).toBeVisible();
+    await expect(page.getByRole("heading", {
+      name: "دوره رایگان با محتوای خصوصی",
+    })).toBeVisible();
+    await page.getByRole("link", { name: "ادامه مشاهده ویدئو" }).click();
     await expect(page).toHaveURL(new RegExp(`/student/courses/${ids.live}/watch$`));
     const player = page.locator("video");
     await expect(player).toHaveCount(1);
@@ -287,6 +307,11 @@ test.describe("free enrollment and private video access must stay course-scoped"
       `/api/student/courses/${ids.live}/cancel`, {})).status()).toBe(200);
     expect((await other.get(mediaPath(ids.live, videoIds.ready))).status()).toBe(404);
     expect((await other.get(listAssets(ids.live))).status()).toBe(404);
+    const cancelledDashboard = await other.get("/student");
+    expect(cancelledDashboard.status()).toBe(200);
+    expect(await cancelledDashboard.text()).not.toContain(
+      `/student/courses/${ids.live}/watch`,
+    );
     expect((await post(other, enrollPath(ids.live), {})).status()).toBe(409);
     await page.reload();
     await expect(page).toHaveURL(/\/404|\/student\/courses/);
@@ -299,6 +324,8 @@ test.describe("free enrollment and private video access must stay course-scoped"
       .where(and(eq(memberships.userId, users.student),
         eq(memberships.role, "student")));
     expect((await student.get(mediaPath(ids.live, videoIds.ready))).status()).toBe(401);
+    const suspendedHome = await student.get("/student", { maxRedirects: 0 });
+    expect(suspendedHome.status()).toBe(307);
     expect((await student.get(listAssets(ids.live))).status()).toBe(401);
     expect((await post(student, enrollPath(ids.live), {})).status()).toBe(401);
     await db.update(memberships).set({ status: "active" })
@@ -343,6 +370,11 @@ test.describe("free enrollment and private video access must stay course-scoped"
     expect(revoked.status()).toBe(200);
     expect((await student.get(mediaPath(ids.live, videoIds.ready))).status()).toBe(404);
     expect((await student.get(listAssets(ids.live))).status()).toBe(404);
+    const revokedDashboard = await student.get("/student");
+    expect(revokedDashboard.status()).toBe(200);
+    expect(await revokedDashboard.text()).not.toContain(
+      `/student/courses/${ids.live}/watch`,
+    );
     expect(((await (await student.get("/api/student/courses")).json())
       .courses as Array<{ courseId: string }>).filter((row) =>
         (Object.values(ids) as string[]).includes(row.courseId))).toHaveLength(0);
