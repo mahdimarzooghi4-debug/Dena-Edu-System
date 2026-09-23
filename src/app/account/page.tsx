@@ -86,6 +86,11 @@ export default async function AccountPage() {
             </Link>
           )}
           {actor.memberships.some((entry) => entry.role === "admin") && (
+            <Link href="/admin" className={buttonClassName()}>
+              خانه مدیر
+            </Link>
+          )}
+          {actor.memberships.some((entry) => entry.role === "admin") && (
             <Link href="/admin/role-applications" className={buttonClassName()}>
               صف بررسی درخواست‌های نقش
             </Link>
