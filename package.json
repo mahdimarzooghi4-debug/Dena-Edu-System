@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "check:release-config": "node scripts/release-preflight.mjs",
     "test:e2e": "playwright test",
     "test:e2e:db": "playwright test access-db.spec.ts phone-otp-db.spec.ts login-ui-db.spec.ts role-applications-db.spec.ts course-supervision-db.spec.ts student-private-media-db.spec.ts media-ingest-db.spec.ts"
   },
