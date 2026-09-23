@@ -87,6 +87,10 @@
 
 `0011_dena_student_video_notes` + snapshot/journal با قید یکتای کاربر/asset و متن ۱ تا ۲۰۰۰ نویسه افزوده شد. PUT/DELETE note فقط با session و نقش دانش‌آموز فعال و حق دیدن همان ویدئوی آماده، Origin معتبر و JSON محدود کار می‌کند؛ manifest/watch فقط note صاحب همان دانش‌آموز را نشان می‌دهند، گزارش aggregate و پنل سایر نقش‌ها متن را انتخاب نمی‌کنند. UI فارسی ثبت، ویرایش، بارگذاری مجدد و حذف متن مستقل از completed را دارد. HTTP/Playwright رد unauthenticated/foreign/not-enrolled/wrong asset/withdrawn/revoked/cancelled و سوءاستفاده از Origin/طول متن را می‌سنجد. برای production هنوز retention/erasure والدین و کودکان، رمزنگاری داده در rest و ارزیابی حریم خصوصی لازم است؛ یادداشت، تکلیف یا مکاتبه با مربی نیست.
 
+## پاک‌سازی خودخواستهٔ یادداشت ویدئو
+
+`/student/privacy` و `GET/DELETE /api/student/private-notes` تنها بعد از نشست و نقش دانش‌آموز فعال کار می‌کنند؛ شمار رکوردهای یادداشت همان کاربر را حتی برای courseهای revoked یا enrollmentهای cancelled برمی‌گردانند، بدون متن/UUID noteها. حذف فقط با Origin هم‌دامنه و confirmation دقیق انجام می‌شود؛ صفحه نیز تایپ عبارت فارسی و دکمهٔ صریح می‌خواهد. رکورد یادداشت همان user از PostgreSQL فعال پاک می‌شود؛ completion و دادهٔ دیگر دانش‌آموزان دست‌نخورده می‌مانند. در HTTP/Playwright ناشناس/نقش دیگر، body غلط و userId تزریقی، Origin بیگانه، متن محرمانه در صفحه و پاک‌کردن یادداشت دو دانش‌آموز پس از قطع دسترسی بررسی شده است. این **حذف یادداشت از DB فعال** است، نه انطباق حقوقی کامل، پاک‌سازی backup یا حذف همهٔ داده‌های حساب؛ فرآیند درخواست دانش‌آموز تعلیق‌شده و تأیید والد همچنان مورد بررسی است.
+
 ## راهنمای ادامه برای چت جدید
 
 از **head جدید PR #1** و آخرین CI آن شروع کنید، نه snapshotهای قدیمی. ابتدا `README.md`، `docs/implementation/quarantined-media-ingest.md`، `docs/implementation/scalable-media-foundation.md`، `docs/implementation/free-student-enrollment-private-video.md`، `src/server/media/{ingest,multipart,cleanup}.ts`، `src/db/schema.ts` و `drizzle/meta/_journal.json` را بررسی کنید. تغییر واقعی روی `chore/bootstrap-dena-stack` انجام دهید، migration را با Drizzle تولید و commit و هر دو job CI را تا green بررسی کنید. هیچ قابلیت fake scanner، upload حجیم یا ظرفیت ۵M را production ننامید.
