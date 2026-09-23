@@ -21,6 +21,12 @@ export const newPracticeQuestion = z.object({
 export const practiceAnswer = z.object({
   selectedOption: z.number().int().min(0).max(3),
 }).strict();
+export const practiceReviewDecision = z.object({
+  action: z.enum(["approve", "reject"]),
+  reason: z.string().trim().min(15).max(500).refine((value) =>
+    !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/u.test(value),
+  ),
+}).strict();
 export type NewPracticeQuestion = z.infer<typeof newPracticeQuestion>;
 
 export class PracticeUnavailable extends Error {
@@ -82,7 +88,9 @@ export async function getProviderPractice(
     courseId, title: course.title,
     publicationStatus: course.publicationStatus,
     question: question ? { ...toPublicQuestion(question),
-      correctOption: question.correctOption } : null,
+      correctOption: question.correctOption,
+      reviewStatus: question.reviewStatus,
+      reviewReason: question.reviewReason } : null,
   };
 }
 
@@ -153,7 +161,10 @@ export async function getStudentPractice(studentUserId: string, courseId: string
     option2: coursePracticeQuestions.option2,
     option3: coursePracticeQuestions.option3,
   }).from(coursePracticeQuestions)
-    .where(eq(coursePracticeQuestions.courseId, courseId)).limit(1);
+    .where(and(
+      eq(coursePracticeQuestions.courseId, courseId),
+      eq(coursePracticeQuestions.reviewStatus, "approved"),
+    )).limit(1);
   if (!question) return null;
   const [attempt] = await db.select({
     selectedOption: studentPracticeAttempts.selectedOption,
@@ -179,7 +190,10 @@ export async function submitStudentPractice(
     const [question] = await tx.select({
       correctOption: coursePracticeQuestions.correctOption,
     }).from(coursePracticeQuestions)
-      .where(eq(coursePracticeQuestions.courseId, courseId))
+      .where(and(
+        eq(coursePracticeQuestions.courseId, courseId),
+        eq(coursePracticeQuestions.reviewStatus, "approved"),
+      ))
       .limit(1).for("share");
     if (!question) return null;
     const [created] = await tx.insert(studentPracticeAttempts).values({
@@ -204,5 +218,113 @@ export async function submitStudentPractice(
     )).limit(1);
     if (!previous) throw new Error("practice_attempt_conflict");
     return { courseId, ...previous, replayed: true };
+  });
+}
+
+
+/** Institute reviewers can inspect the provider-authored answer key only for
+ * their own actively supervised course. Student identities/attempts are absent.
+ */
+export async function getInstitutePractice(
+  instituteUserId: string, courseId: string,
+) {
+  const db = getDb();
+  const [course] = await db.select({
+    courseId: courses.id, title: courses.title,
+    publicationStatus: courses.publicationStatus,
+    providerId: courses.providerId,
+    instituteId: courses.responsibleInstituteId,
+    supervisionStatus: supervisionGrants.status,
+  }).from(courses).innerJoin(supervisionGrants,
+    eq(supervisionGrants.courseId, courses.id),
+  ).where(eq(courses.id, courseId)).limit(1);
+  if (!course || course.supervisionStatus !== "approved") return null;
+  const active = await db.select({
+    role: memberships.role, providerId: memberships.providerId,
+    instituteId: memberships.instituteId, userId: memberships.userId,
+  }).from(memberships).where(and(
+    eq(memberships.status, "active"),
+    or(
+      and(eq(memberships.role, "institute"),
+        eq(memberships.instituteId, course.instituteId)),
+      and(eq(memberships.role, "provider"),
+        eq(memberships.providerId, course.providerId)),
+    ),
+  ));
+  const reviewerOwnsInstitute = active.some((m) =>
+    m.role === "institute" && m.userId === instituteUserId &&
+    m.instituteId === course.instituteId);
+  const reviewerAlsoProvider = active.some((m) =>
+    m.role === "provider" && m.userId === instituteUserId &&
+    m.providerId === course.providerId);
+  if (!reviewerOwnsInstitute || reviewerAlsoProvider) return null;
+  const [question] = await db.select().from(coursePracticeQuestions)
+    .where(eq(coursePracticeQuestions.courseId, courseId)).limit(1);
+  return {
+    courseId, title: course.title,
+    publicationStatus: course.publicationStatus,
+    question: question ? {
+      ...toPublicQuestion(question),
+      correctOption: question.correctOption,
+      reviewStatus: question.reviewStatus,
+      reviewReason: question.reviewReason,
+    } : null,
+  };
+}
+
+/** One independent institute decision. The provider/author can never call this
+ * path, and a decided question is immutable in the current pilot.
+ */
+export async function decideInstitutePractice(
+  instituteUserId: string, courseId: string,
+  decision: z.infer<typeof practiceReviewDecision>,
+) {
+  return getDb().transaction(async (tx) => {
+    const [course] = await tx.select().from(courses)
+      .where(eq(courses.id, courseId)).limit(1).for("share");
+    if (!course || course.publicationStatus !== "draft") return null;
+    const [grant] = await tx.select().from(supervisionGrants).where(and(
+      eq(supervisionGrants.courseId, courseId),
+      eq(supervisionGrants.providerId, course.providerId),
+      eq(supervisionGrants.instituteId, course.responsibleInstituteId),
+      eq(supervisionGrants.status, "approved"),
+    )).limit(1).for("share");
+    if (!grant) return null;
+    const actors = await tx.select({
+      role: memberships.role, providerId: memberships.providerId,
+      instituteId: memberships.instituteId, userId: memberships.userId,
+    }).from(memberships).where(and(
+      eq(memberships.status, "active"),
+      or(
+        and(eq(memberships.role, "institute"),
+          eq(memberships.instituteId, course.responsibleInstituteId)),
+        and(eq(memberships.role, "provider"),
+          eq(memberships.providerId, course.providerId)),
+      ),
+    )).for("share");
+    if (!actors.some((m) => m.role === "institute" &&
+          m.userId === instituteUserId &&
+          m.instituteId === course.responsibleInstituteId) ||
+        actors.some((m) => m.role === "provider" &&
+          m.userId === instituteUserId && m.providerId === course.providerId)) {
+      return null;
+    }
+    const [question] = await tx.select({
+      status: coursePracticeQuestions.reviewStatus,
+    }).from(coursePracticeQuestions).where(
+      eq(coursePracticeQuestions.courseId, courseId),
+    ).limit(1).for("update");
+    if (!question) return null;
+    if (question.status !== "pending") {
+      throw new PracticeUnavailable("already_created");
+    }
+    const reviewStatus = decision.action === "approve" ? "approved" : "rejected";
+    await tx.update(coursePracticeQuestions).set({
+      reviewStatus,
+      reviewedByInstituteUserId: instituteUserId,
+      reviewedAt: new Date(),
+      reviewReason: decision.reason,
+    }).where(eq(coursePracticeQuestions.courseId, courseId));
+    return { courseId, reviewStatus };
   });
 }
