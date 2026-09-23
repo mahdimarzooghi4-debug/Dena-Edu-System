@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { getDb } from "../../db";
 import { privateMediaAssets } from "../../db/schema";
 import { hasStudentEntitlement } from "./entitlement";
+import { unsafeServiceHostname } from "../ops/unsafe-service-host";
 
 export type ApprovedPrivateAsset = { objectKey: string };
 
@@ -35,6 +36,7 @@ export function configuredPrivateMediaOrigin(): {
   const localOnly = process.env.DENA_DB_INTEGRATION === "1" &&
     origin.protocol === "http:" && origin.hostname === "127.0.0.1";
   if ((origin.protocol !== "https:" && !localOnly) ||
+      !origin.hostname || (!localOnly && unsafeServiceHostname(origin.hostname)) ||
       origin.username || origin.password || origin.search || origin.hash ||
       origin.pathname !== "/" || origin.port === "0") return null;
   return { origin, token };
