@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "../../db";
 import {
@@ -59,7 +59,15 @@ export async function getProviderPractice(
   const active = await db.select({
     role: memberships.role, providerId: memberships.providerId,
     instituteId: memberships.instituteId, userId: memberships.userId,
-  }).from(memberships).where(eq(memberships.status, "active"));
+  }).from(memberships).where(and(
+    eq(memberships.status, "active"),
+    or(
+      and(eq(memberships.role, "provider"),
+        eq(memberships.providerId, course.providerId)),
+      and(eq(memberships.role, "institute"),
+        eq(memberships.instituteId, course.instituteId)),
+    ),
+  ));
   if (!active.some((m) => m.role === "provider" &&
         m.userId === providerUserId && m.providerId === course.providerId) ||
       !active.some((m) => m.role === "institute" &&
@@ -102,7 +110,15 @@ export async function createProviderPractice(
     const actors = await tx.select({
       role: memberships.role, providerId: memberships.providerId,
       instituteId: memberships.instituteId, userId: memberships.userId,
-    }).from(memberships).where(eq(memberships.status, "active")).for("share");
+    }).from(memberships).where(and(
+      eq(memberships.status, "active"),
+      or(
+        and(eq(memberships.role, "provider"),
+          eq(memberships.providerId, course.providerId)),
+        and(eq(memberships.role, "institute"),
+          eq(memberships.instituteId, course.responsibleInstituteId)),
+      ),
+    )).for("share");
     if (!actors.some((m) => m.role === "provider" &&
           m.userId === providerUserId && m.providerId === course.providerId) ||
         !actors.some((m) => m.role === "institute" &&
