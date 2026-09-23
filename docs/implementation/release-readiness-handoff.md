@@ -83,6 +83,10 @@
 
 `src/server/student/progress-overview.ts` اکنون آمار DB-backed ویدئوهای `ready` و علامت‌های self-report همان دانش‌آموز را در هر دورهٔ دارای ثبت‌نام فعال و مجوز واقعی محاسبه می‌کند (حداکثر ۲۰ دورهٔ اخیر، عدد تجمعی فقط برای همان ۲۰ دوره). `/student/progress` و `/api/student/progress` برای student فعال و session محافظت شده‌اند؛ نقش دیگر و مهمان دسترسی ندارند. لینک از `/account` و خانهٔ `/student` برقرار است. رکورد لغوشده یا withdrawn یا نظارت revoked از خروجی فعلی حذف می‌شود، ولی این شمارش **اثبات ویدئوی دیده‌شده یا درصد پیشرفت/نمرهٔ خودکار نیست**؛ آزمون و گزارش یادگیری رسمی هنوز بازند. پوشش DB/Playwright برای دو کاربر، حالت خالی و بازخوانی پس از mark/unmark و لغو مجوز افزوده شد.
 
+## یادداشت خصوصی ویدئو
+
+`0011_dena_student_video_notes` + snapshot/journal با قید یکتای کاربر/asset و متن ۱ تا ۲۰۰۰ نویسه افزوده شد. PUT/DELETE note فقط با session و نقش دانش‌آموز فعال و حق دیدن همان ویدئوی آماده، Origin معتبر و JSON محدود کار می‌کند؛ manifest/watch فقط note صاحب همان دانش‌آموز را نشان می‌دهند، گزارش aggregate و پنل سایر نقش‌ها متن را انتخاب نمی‌کنند. UI فارسی ثبت، ویرایش، بارگذاری مجدد و حذف متن مستقل از completed را دارد. HTTP/Playwright رد unauthenticated/foreign/not-enrolled/wrong asset/withdrawn/revoked/cancelled و سوءاستفاده از Origin/طول متن را می‌سنجد. برای production هنوز retention/erasure والدین و کودکان، رمزنگاری داده در rest و ارزیابی حریم خصوصی لازم است؛ یادداشت، تکلیف یا مکاتبه با مربی نیست.
+
 ## راهنمای ادامه برای چت جدید
 
 از **head جدید PR #1** و آخرین CI آن شروع کنید، نه snapshotهای قدیمی. ابتدا `README.md`، `docs/implementation/quarantined-media-ingest.md`، `docs/implementation/scalable-media-foundation.md`، `docs/implementation/free-student-enrollment-private-video.md`، `src/server/media/{ingest,multipart,cleanup}.ts`، `src/db/schema.ts` و `drizzle/meta/_journal.json` را بررسی کنید. تغییر واقعی روی `chore/bootstrap-dena-stack` انجام دهید، migration را با Drizzle تولید و commit و هر دو job CI را تا green بررسی کنید. هیچ قابلیت fake scanner، upload حجیم یا ظرفیت ۵M را production ننامید.
