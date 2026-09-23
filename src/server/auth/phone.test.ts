@@ -94,6 +94,23 @@ describe("Iran mobile input and gateway safeguards", () => {
       .rejects.toThrow("SMS delivery temporarily unavailable");
   });
 
+  it("rejects an HTTP 202 that explicitly says SMS was not accepted", async () => {
+    process.env.DENA_SMS_ENABLED = "1";
+    process.env.DENA_SMS_GATEWAY_URL = "https://sms.example.test/send";
+    process.env.DENA_SMS_GATEWAY_TOKEN = "token-" + "z".repeat(32);
+    process.env.DENA_DB_INTEGRATION = "0";
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({
+      accepted: false, message: "123456 +989121234567 vendor-secret",
+    }), {
+      status: 202, headers: { "Content-Type": "application/json" },
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(sendSmsOtp("+989121234567", "123456"))
+      .rejects.toThrow("SMS delivery temporarily unavailable");
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(JSON.stringify(fetchMock.mock.results)).not.toContain("vendor-secret");
+  });
+
   it.each([
     "https://localhost/send",
     "https://localhost./send",
