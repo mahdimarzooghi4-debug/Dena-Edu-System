@@ -101,6 +101,7 @@ describe("Iran mobile input and gateway safeguards", () => {
     "https://[::ffff:127.0.0.1]/send",
     "https://0.0.0.0/send",
     "https://169.254.169.254/latest/meta-data",
+    "https://[fe80::1]/send",
   ])("refuses HTTPS SMS requests to obvious local addresses: %s", (url) => {
     process.env.DENA_SMS_ENABLED = "1";
     process.env.DENA_SMS_GATEWAY_TOKEN = "s".repeat(32);
