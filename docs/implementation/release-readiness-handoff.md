@@ -30,3 +30,7 @@
 ## راهنمای ادامه برای چت جدید
 
 از **head جدید PR #1** و آخرین CI آن شروع کنید، نه snapshotهای قدیمی. ابتدا `README.md`، `docs/implementation/quarantined-media-ingest.md`، `docs/implementation/scalable-media-foundation.md`، `docs/implementation/free-student-enrollment-private-video.md`، `src/server/media/{ingest,multipart,cleanup}.ts`، `src/db/schema.ts` و `drizzle/meta/_journal.json` را بررسی کنید. تغییر واقعی روی `chore/bootstrap-dena-stack` انجام دهید، migration را با Drizzle تولید و commit و هر دو job CI را تا green بررسی کنید. هیچ قابلیت fake scanner، upload حجیم یا ظرفیت ۵M را production ننامید.
+
+## سخت‌سازی انتقال OTP به gateway
+
+آداپتور `src/server/auth/phone.ts` اکنون gateway URL خراب یا دارای userinfo/query/fragment را رد می‌کند و با `redirect: "error"` امکان دنبال‌کردن ۳۰۷/۳۰۸ و بازفرستادن body حاوی شماره/OTP را می‌بندد. خطای network/redirect یا پاسخ غیر 2xx فقط خطای عمومی می‌دهد؛ URL، token، OTP، شماره یا متن خطای vendor منعکس نمی‌شود. `src/server/auth/phone.test.ts` این مرزها را با fixture ساختگی می‌سنجد. این کار **اتصال SMS واقعی یا راستی‌آزمایی vendor نیست**؛ آداپتور و flag پیش‌فرض همچنان خاموش‌اند.
