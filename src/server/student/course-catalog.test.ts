@@ -39,6 +39,18 @@ describe("student course catalog query and cursor boundary", () => {
     }
   });
 
+  it("accepts bounded pagination metadata for long Persian course titles", () => {
+    const title = "د".repeat(160);
+    const q = "آ".repeat(80);
+    const cursor = validCursor({
+      title, id: "0d24c530-ef1d-4518-b640-af1524219521",
+      q, mine: false,
+    });
+    expect(cursor.length).toBeGreaterThan(640);
+    const parsed = readCatalogQuery(new URLSearchParams({ q, cursor }));
+    expect(parsed.cursor?.title).toBe(title);
+  });
+
   it("does not reuse a cursor for another student catalog filter", () => {
     const cursor = validCursor({
       title: "آموزش", id: "0d24c530-ef1d-4518-b640-af1524219521",
