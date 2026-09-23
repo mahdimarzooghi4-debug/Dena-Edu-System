@@ -28,7 +28,7 @@ describe("SMS gateway explicit acknowledgement", () => {
     expect(await smsGatewayAccepted(new Response("<html>login</html>", {
       status: 200, headers: { "Content-Type": "text/html" },
     }))).toBe(false);
-    expect(smsGatewayAccepted(new Response("{not-json", {
+    await expect(smsGatewayAccepted(new Response("{not-json", {
       status: 200, headers: { "Content-Type": "application/json" },
     }))).rejects.toThrow();
     expect(await smsGatewayAccepted(new Response(null, {
