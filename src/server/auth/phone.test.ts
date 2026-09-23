@@ -59,7 +59,9 @@ describe("Iran mobile input and gateway safeguards", () => {
     process.env.DENA_SMS_GATEWAY_TOKEN = "token-" + "z".repeat(32);
     process.env.DENA_DB_INTEGRATION = "0";
     const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) =>
-      new Response(null, { status: 202 }));
+      new Response(JSON.stringify({ accepted: true }), {
+        status: 202, headers: { "Content-Type": "application/json" },
+      }));
     vi.stubGlobal("fetch", fetchMock);
 
     await sendSmsOtp("+989121234567", "123456");
