@@ -4,7 +4,8 @@ import { serializeSignedCookie } from "better-call";
 import { expect, request, test, type APIRequestContext } from "@playwright/test";
 import { getDb } from "../../src/db";
 import {
-  courses, memberships, privateMediaAssets, session, studentEnrollments,
+  coursePracticeQuestions, courses, memberships, privateMediaAssets,
+  session, studentEnrollments, studentPracticeAttempts,
   supervisionEvents, supervisionGrants, studentVideoCompletions,
   studentVideoNotes, user, verifiedEntities,
 } from "../../src/db/schema";
@@ -32,6 +33,10 @@ test.describe("free enrollment and private video access must stay course-scoped"
     `${mediaPath(courseId, assetId)}/completion`;
   const notePath = (courseId: string, assetId: string) =>
     `${mediaPath(courseId, assetId)}/note`;
+  const practicePath = (courseId: string) =>
+    `/api/student/courses/${courseId}/practice`;
+  const authorPath = (courseId: string) =>
+    `/api/provider/courses/${courseId}/practice`;
   const listAssets = (courseId: string) =>
     `/api/student/courses/${courseId}/assets`;
   const enrollPath = (courseId: string) =>
@@ -109,6 +114,12 @@ test.describe("free enrollment and private video access must stay course-scoped"
   });
 
   test.afterAll(async () => {
+    await db.delete(studentPracticeAttempts).where(inArray(
+      studentPracticeAttempts.courseId, Object.values(ids),
+    ));
+    await db.delete(coursePracticeQuestions).where(inArray(
+      coursePracticeQuestions.courseId, Object.values(ids),
+    ));
     await db.delete(studentVideoNotes).where(inArray(
       studentVideoNotes.assetId, Object.values(videoIds),
     ));
@@ -135,6 +146,14 @@ test.describe("free enrollment and private video access must stay course-scoped"
     const anonymous = await client();
     expect((await anonymous.get("/api/student/courses")).status()).toBe(401);
     expect((await anonymous.get("/api/student/progress")).status()).toBe(401);
+    expect((await anonymous.get(practicePath(ids.live))).status()).toBe(401);
+    expect((await post(anonymous, practicePath(ids.live), {
+      selectedOption: 0,
+    })).status()).toBe(401);
+    expect((await post(anonymous, authorPath(ids.live), {
+      prompt: "سؤال کوتاه آزمایشی", options: ["یک", "دو", "سه", "چهار"],
+      correctOption: 0,
+    })).status()).toBe(401);
     const noSessionProgress = await anonymous.get("/student/progress", {
       maxRedirects: 0,
     });
@@ -159,6 +178,7 @@ test.describe("free enrollment and private video access must stay course-scoped"
     expect((await provider.get("/student")).status()).toBe(404);
     expect((await provider.get("/student/progress")).status()).toBe(404);
     expect((await provider.get("/api/student/progress")).status()).toBe(403);
+    expect((await provider.get(practicePath(ids.live))).status()).toBe(403);
     expect((await post(provider, enrollPath(ids.live), {})).status()).toBe(403);
     expect((await provider.get(mediaPath(ids.live, videoIds.ready))).status()).toBe(404);
     expect((await post(provider, progressPath(ids.live, videoIds.ready), {})).status())
@@ -178,6 +198,38 @@ test.describe("free enrollment and private video access must stay course-scoped"
     )).status()).toBe(403);
     expect((await post(provider, `/api/provider/courses/${ids.live}/publication`,
       { action: "publish", status: "approved" })).status()).toBe(400);
+    const author = {
+      prompt: "کدام گزینه پاسخ این سؤال تمرینی در دوره دناست؟",
+      options: ["پاسخ نادرست یک", "پاسخ نادرست دو",
+        "پاسخ درست دوره", "پاسخ نادرست سه"],
+      correctOption: 2,
+    };
+    expect((await post(provider, authorPath(ids.pending), author)).status())
+      .toBe(404);
+    expect((await post(provider, authorPath(ids.live), {
+      ...author, correctOption: 4,
+    })).status()).toBe(400);
+    expect((await post(provider, authorPath(ids.live), {
+      ...author, options: ["تکراری", "تکراری", "سه", "چهار"],
+    })).status()).toBe(400);
+    expect((await provider.post(authorPath(ids.live), {
+      data: author, headers: { Origin: "https://attacker.invalid" },
+    })).status()).toBe(403);
+    const createdQuestion = await post(provider, authorPath(ids.live), author);
+    expect(createdQuestion.status()).toBe(201);
+    expect(await createdQuestion.json()).toEqual({
+      courseId: ids.live, created: true,
+    });
+    expect((await post(provider, authorPath(ids.live), author)).status())
+      .toBe(409);
+    const ownQuestion = await provider.get(authorPath(ids.live));
+    expect(ownQuestion.status()).toBe(200);
+    expect((await ownQuestion.json()).question).toMatchObject({
+      prompt: author.prompt, correctOption: 2,
+    });
+    const beforePublish = await client("student");
+    expect((await beforePublish.get(practicePath(ids.live))).status()).toBe(404);
+    await beforePublish.dispose();
     const first = await post(provider,
       `/api/provider/courses/${ids.live}/publication`, { action: "publish" });
     expect(first.status()).toBe(200);
@@ -187,6 +239,8 @@ test.describe("free enrollment and private video access must stay course-scoped"
     const retry = await post(provider,
       `/api/provider/courses/${ids.live}/publication`, { action: "publish" });
     expect((await retry.json()).replayed).toBe(true);
+    expect((await post(provider, authorPath(ids.live), author)).status())
+      .toBe(404);
     await provider.dispose();
 
     const student = await client("student");
@@ -215,6 +269,10 @@ test.describe("free enrollment and private video access must stay course-scoped"
       "فعلاً دورهٔ قابل دسترسی برای پیگیری نداری",
     );
     expect((await student.get(listAssets(ids.live))).status()).toBe(404);
+    expect((await student.get(practicePath(ids.live))).status()).toBe(404);
+    expect((await post(student, practicePath(ids.live), {
+      selectedOption: 2,
+    })).status()).toBe(404);
     expect((await student.get(mediaPath(ids.live, videoIds.ready))).status()).toBe(404);
     expect((await post(student, progressPath(ids.live, videoIds.ready), {})).status())
       .toBe(404);
