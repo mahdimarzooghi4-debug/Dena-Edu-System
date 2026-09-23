@@ -55,6 +55,10 @@
 
 `/provider` با نشست و نقش فعال scoped، تا ۲۰ دورهٔ متعلق به providerهای همان کاربر را با وضعیت واقعی نظارت و انتشار از PostgreSQL نشان می‌دهد. لینک قرنطینه فقط برای دورهٔ پیش‌نویس با نظارت approved ظاهر می‌شود و مسیر آپلود خود مجوز را دوباره می‌سنجد؛ وضعیت revoked در خانه دیده می‌شود اما لینک آپلود نمی‌گیرد. کاربر غیرمجاز به دادهٔ سایر ارائه‌دهندگان نمی‌رسد. لینک از `/account` اضافه شده؛ آزمون HTTP و Playwright مسیر ناشناس، نقش دیگر، تفکیک scope، requested/approved/revoked و ناوبری را پوشش می‌دهد. این بخش هنوز پنل کامل ارائه‌دهنده یا تأیید scanner/انتشار عملیاتی نیست.
 
+## خانهٔ محدود واقعی مؤسسه
+
+`/institute` با Better Auth + نقش institute فعال و scope سروری، ۲۰ رابطهٔ نظارت اخیر از مؤسسه‌های متعلق به کاربر را نشان می‌دهد. وضعیت‌های requested/approved/revoked در PostgreSQL خوانده می‌شوند؛ pending به `/institute/providers` ارجاع می‌شود، نه تأیید خودکار. تست مرورگر/HTTP شامل ناشناس، نقش بیگانه، مؤسسهٔ بیگانه، تعلیق و تغییر واقعی تصمیم است. صفحات پیش‌نمایش همچنان عمومی/بدون داده و پنل کامل مؤسسه (تمرین، یادگیری، پروفایل) عملیاتی نشده است.
+
 ## راهنمای ادامه برای چت جدید
 
 از **head جدید PR #1** و آخرین CI آن شروع کنید، نه snapshotهای قدیمی. ابتدا `README.md`، `docs/implementation/quarantined-media-ingest.md`، `docs/implementation/scalable-media-foundation.md`، `docs/implementation/free-student-enrollment-private-video.md`، `src/server/media/{ingest,multipart,cleanup}.ts`، `src/db/schema.ts` و `drizzle/meta/_journal.json` را بررسی کنید. تغییر واقعی روی `chore/bootstrap-dena-stack` انجام دهید، migration را با Drizzle تولید و commit و هر دو job CI را تا green بررسی کنید. هیچ قابلیت fake scanner، upload حجیم یا ظرفیت ۵M را production ننامید.
