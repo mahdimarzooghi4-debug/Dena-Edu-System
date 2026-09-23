@@ -4,6 +4,7 @@ import { APIError } from "better-auth/api";
 import { getDb } from "../../db";
 import { otpDispatchLimits } from "../../db/schema";
 import { isCanonicalIranMobile } from "../../lib/phone-number";
+import { unsafeServiceHostname } from "../ops/unsafe-service-host";
 export { normalizeIranMobile, isCanonicalIranMobile } from "../../lib/phone-number";
 
 function hmacPhone(phone: string): string {
@@ -15,20 +16,6 @@ function hmacPhone(phone: string): string {
 /** Pseudonymous, non-deliverable email for the phone-only Better Auth core user. */
 export function temporaryPhoneEmail(phone: string): string {
   return `phone-${hmacPhone(phone)}@phone.dena.example`;
-}
-
-/**
- * Reject obviously unsafe literal destinations even when they use HTTPS.
- * This is not a DNS-rebinding defence: production egress and vendor allowlists
- * must also constrain where the server can actually connect.
- */
-function unsafeGatewayHost(hostname: string): boolean {
-  const host = hostname.toLowerCase().replace(/^\[|\]$/g, "").replace(/\.$/, "");
-  return host === "localhost" || host.endsWith(".localhost") ||
-    host === "::1" || host === "::" || host.startsWith("::ffff:") ||
-    host === "0.0.0.0" ||
-    /^127\.(?:\d{1,3}\.){2}\d{1,3}$/.test(host) ||
-    /^169\.254\.\d{1,3}\.\d{1,3}$/.test(host);
 }
 
 export function smsGatewayUrl(): string {
@@ -50,7 +37,7 @@ export function smsGatewayUrl(): string {
   const localTest = process.env.DENA_DB_INTEGRATION === "1" &&
     url.protocol === "http:" && url.hostname === "127.0.0.1";
   if ((url.protocol !== "https:" && !localTest) || !url.hostname ||
-      (!localTest && unsafeGatewayHost(url.hostname)) ||
+      (!localTest && unsafeServiceHostname(url.hostname)) ||
       url.username || url.password || url.hash || url.search) {
     throw new APIError("SERVICE_UNAVAILABLE", { message: "SMS gateway URL is not allowed" });
   }
