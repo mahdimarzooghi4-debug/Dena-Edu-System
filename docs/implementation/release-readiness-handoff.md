@@ -27,6 +27,10 @@
 - تقویت محدودیت‌ها و rate limiting توزیع‌شده برای role/enrollment/upload، retry worker, cron GC، edge/CDN token + revoke، load test و ظرفیت واقعی.
 - پنل‌های کامل، آزمون/تمرین، ویدئوی حجیم، پرداخت/صندوق، تیکت، بررسی حقوقی/حریم خصوصی دانش‌آموزان و QA فریم‌های اختصاصی Figma.
 
+## تقویت پاسخ پخش ویدئو (بدون CDN)
+
+مسیر محافظت‌شدهٔ MP4 علاوه بر session/enrollment/grant، پیش از ارسال بایت header خصوصی، نوع MP4، طول عددی امن و هم‌خوانی `Content-Range`، محدودهٔ درخواست‌شده و طول پاسخ 206 را می‌سنجد. در 200، `Content-Range` اضافی رد می‌شود. mock فقط CI با endpoint محرمانهٔ one-shot، پاسخ 206 با بازه غلط را تولید می‌کند؛ آزمون HTTP تأیید می‌کند proxy 503 می‌دهد و Range بعدی سالم است. این اعتبارسنجی **بررسی SHA-256 هر stream دانش‌آموز یا تضمین نسخه immutable نیست**، CDN/edge و ۵M همچنان گیت بازند.
+
 ## راهنمای ادامه برای چت جدید
 
 از **head جدید PR #1** و آخرین CI آن شروع کنید، نه snapshotهای قدیمی. ابتدا `README.md`، `docs/implementation/quarantined-media-ingest.md`، `docs/implementation/scalable-media-foundation.md`، `docs/implementation/free-student-enrollment-private-video.md`، `src/server/media/{ingest,multipart,cleanup}.ts`، `src/db/schema.ts` و `drizzle/meta/_journal.json` را بررسی کنید. تغییر واقعی روی `chore/bootstrap-dena-stack` انجام دهید، migration را با Drizzle تولید و commit و هر دو job CI را تا green بررسی کنید. هیچ قابلیت fake scanner، upload حجیم یا ظرفیت ۵M را production ننامید.
