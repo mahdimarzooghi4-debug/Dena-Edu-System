@@ -481,6 +481,76 @@ test.describe("free enrollment and private video access must stay course-scoped"
     expect(privateOverviewHtml).not.toContain("objectKey");
     expect(privateOverviewHtml).not.toContain(videoIds.withdrawn);
     expect(JSON.stringify(ownProgress)).not.toContain("studentUserId");
+    const ownNotePath = notePath(ids.live, videoIds.ready);
+    const headers = { Origin: "http://localhost:3000" };
+    for (const invalid of [
+      {}, { note: "" }, { note: "   " },
+      { note: "x".repeat(2001) }, { note: "private", role: "admin" },
+      { note: "line\\u0000break" },
+    ]) {
+      expect((await student.put(ownNotePath, {
+        data: invalid, headers,
+      })).status()).toBe(400);
+    }
+    expect((await student.put(ownNotePath, {
+      data: { note: "unsafe origin" },
+      headers: { Origin: "https://attacker.invalid" },
+    })).status()).toBe(403);
+    for (const [courseId, assetId] of [
+      [ids.live, videoIds.withdrawn],
+      [ids.pending, videoIds.pending],
+      [ids.live, videoIds.pending],
+      [ids.live, randomUUID()],
+    ]) {
+      expect((await student.put(notePath(courseId, assetId), {
+        data: { note: "wrong course or asset" }, headers,
+      })).status()).toBe(404);
+    }
+    const firstNote = await student.put(ownNotePath, {
+      data: { note: "  نکته خصوصی ویدئو  " }, headers,
+    });
+    expect(firstNote.status()).toBe(200);
+    expect(firstNote.headers()["cache-control"]).toContain("private");
+    expect(await firstNote.json()).toEqual({
+      courseId: ids.live, assetId: videoIds.ready,
+      note: "نکته خصوصی ویدئو",
+    });
+    expect((await (await student.get(listAssets(ids.live))).json())
+      .assets[0].note).toBe("نکته خصوصی ویدئو");
+    expect(await (await student.get("/student/courses/" + ids.live + "/watch"))
+      .text()).toContain("نکته خصوصی ویدئو");
+    expect(await (await student.get("/student/progress")).text())
+      .not.toContain("نکته خصوصی ویدئو");
+    const editedNote = await student.put(ownNotePath, {
+      data: { note: "ویرایش دوم یادداشت خصوصی" }, headers,
+    });
+    expect(editedNote.status()).toBe(200);
+    const notes = await db.select().from(studentVideoNotes).where(and(
+      eq(studentVideoNotes.studentUserId, users.student),
+      eq(studentVideoNotes.assetId, videoIds.ready),
+    ));
+    expect(notes).toHaveLength(1);
+    expect(notes[0].body).toBe("ویرایش دوم یادداشت خصوصی");
+    const privateOtherStudent = await client("otherStudent");
+    expect((await privateOtherStudent.get(listAssets(ids.live))).status())
+      .toBe(404);
+    expect((await privateOtherStudent.put(ownNotePath, {
+      data: { note: "attempted overwrite" }, headers,
+    })).status()).toBe(404);
+    await privateOtherStudent.dispose();
+    const privateOtherProvider = await client("provider");
+    expect((await privateOtherProvider.get("/student/courses/" + ids.live + "/watch"))
+      .status()).toBe(404);
+    await privateOtherProvider.dispose();
+    expect((await student.delete(ownNotePath, {
+      headers: { Origin: "https://attacker.invalid" },
+    })).status()).toBe(403);
+    expect((await student.delete(ownNotePath, { headers })).status()).toBe(200);
+    expect((await student.delete(ownNotePath, { headers })).status()).toBe(200);
+    expect((await (await student.get(listAssets(ids.live))).json())
+      .assets[0].note).toBeNull();
+    expect((await (await student.get(listAssets(ids.live))).json())
+      .assets[0].completed).toBe(true);
     const completionRows = await db.select().from(studentVideoCompletions)
       .where(eq(studentVideoCompletions.assetId, videoIds.ready));
     expect(completionRows).toHaveLength(1);
