@@ -73,12 +73,32 @@ export function FreeCourses() {
 
   useEffect(() => {
     const controller = new AbortController();
-    void loadPage(initialFilter, null, controller.signal);
+    const requestId = ++serial.current;
+    // Mount fetch updates state only from its async callbacks; searching and
+    // pagination use loadPage from explicit user events.
+    void fetch("/api/student/courses", {
+      credentials: "same-origin", cache: "no-store", signal: controller.signal,
+    }).then(async (response) => {
+      if (!response.ok) throw new Error("catalog_unavailable");
+      return response.json() as Promise<CatalogPage>;
+    }).then((data) => {
+      if (controller.signal.aborted || requestId !== serial.current) return;
+      setItems(data.courses);
+      setNextCursor(data.nextCursor);
+    }).catch(() => {
+      if (!controller.signal.aborted && requestId === serial.current) {
+        setProblem("دریافت فهرست دوره‌ها ممکن نشد؛ دوباره تلاش کنید.");
+      }
+    }).finally(() => {
+      if (!controller.signal.aborted && requestId === serial.current) {
+        setLoading(false);
+      }
+    });
     return () => {
       serial.current += 1;
       controller.abort();
     };
-  }, [loadPage]);
+  }, []);
 
   async function enroll(courseId: string) {
     if (busy || loading || loadingMore) return;
