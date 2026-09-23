@@ -31,6 +31,10 @@
 
 مسیر محافظت‌شدهٔ MP4 علاوه بر session/enrollment/grant، پیش از ارسال بایت header خصوصی، نوع MP4، طول عددی امن و هم‌خوانی `Content-Range`، محدودهٔ درخواست‌شده و طول پاسخ 206 را می‌سنجد. در 200، `Content-Range` اضافی رد می‌شود. mock فقط CI با endpoint محرمانهٔ one-shot، پاسخ 206 با بازه غلط را تولید می‌کند؛ آزمون HTTP تأیید می‌کند proxy 503 می‌دهد و Range بعدی سالم است. این اعتبارسنجی **بررسی SHA-256 هر stream دانش‌آموز یا تضمین نسخه immutable نیست**، CDN/edge و ۵M همچنان گیت بازند.
 
+## هم‌راستایی کنترل مقصد سرویس‌های بیرونی
+
+`src/server/ops/unsafe-service-host.ts` بررسی hostname آشکارا ناامن (localhost، loopback، unspecified، IPv4-mapped و link-local 169.254/16 و fe80::/10) را میان آداپتور SMS و origin ویدئو مشترک می‌کند. `scripts/release-preflight.mjs` کنترل ایستای متناظر را نیز دارد؛ تست‌های مثبت امکان استفاده از IP خصوصی RFC1918 برای origin داخلی را حفظ می‌کنند. **این کنترل بررسی DNS، IP واقعی اتصال، فایروال/egress، شبکه خصوصی واقعی یا vendor نیست** و به معنی آماده‌شدن SMS یا object store نیست.
+
 ## راهنمای ادامه برای چت جدید
 
 از **head جدید PR #1** و آخرین CI آن شروع کنید، نه snapshotهای قدیمی. ابتدا `README.md`، `docs/implementation/quarantined-media-ingest.md`، `docs/implementation/scalable-media-foundation.md`، `docs/implementation/free-student-enrollment-private-video.md`، `src/server/media/{ingest,multipart,cleanup}.ts`، `src/db/schema.ts` و `drizzle/meta/_journal.json` را بررسی کنید. تغییر واقعی روی `chore/bootstrap-dena-stack` انجام دهید، migration را با Drizzle تولید و commit و هر دو job CI را تا green بررسی کنید. هیچ قابلیت fake scanner، upload حجیم یا ظرفیت ۵M را production ننامید.
