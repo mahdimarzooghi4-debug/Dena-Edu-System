@@ -40,6 +40,11 @@ test("all six role previews are public static shells, not live panels", async ({
   const protectedAdminHome = await request.get("/admin", { maxRedirects: 0 });
   expect(protectedAdminHome.status()).toBe(307);
   expect(protectedAdminHome.headers().location).toBe("/login");
+  const protectedOrganizationHome = await request.get("/organization", {
+    maxRedirects: 0,
+  });
+  expect(protectedOrganizationHome.status()).toBe(307);
+  expect(protectedOrganizationHome.headers().location).toBe("/login");
 });
 
 test("shared support preview has no fake ticket form", async ({ page }) => {
