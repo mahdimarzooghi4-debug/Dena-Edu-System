@@ -87,6 +87,7 @@ test.describe("reviewed role requests, scoped grants and audit on PostgreSQL", (
     expect((await anonymous.get("/api/admin/role-applications")).status()).toBe(401);
     expect((await anonymous.get("/api/access/role-applications")).status()).toBe(401);
     expect((await anonymous.get("/api/organization/overview")).status()).toBe(401);
+    expect((await anonymous.get("/api/benefactor/overview")).status()).toBe(401);
     const noSessionAdmin = await anonymous.get("/admin", { maxRedirects: 0 });
     expect(noSessionAdmin.status()).toBe(307);
     expect(noSessionAdmin.headers().location).toBe("/login");
@@ -97,6 +98,8 @@ test.describe("reviewed role requests, scoped grants and audit on PostgreSQL", (
     expect((await applicant.get("/admin")).status()).toBe(404);
     expect((await applicant.get("/api/organization/overview")).status()).toBe(403);
     expect((await applicant.get("/organization")).status()).toBe(404);
+    expect((await applicant.get("/api/benefactor/overview")).status()).toBe(403);
+    expect((await applicant.get("/benefactor")).status()).toBe(404);
     expect((await submit(applicant, { ...proposed, role: "admin" })).status()).toBe(400);
     expect((await submit(applicant, { ...proposed, instituteId: randomUUID() })).status()).toBe(400);
     expect((await submit(applicant, { ...proposed, role: "student" })).status()).toBe(400);
@@ -302,6 +305,122 @@ test.describe("reviewed role requests, scoped grants and audit on PostgreSQL", (
     await db.update(memberships).set({ status: "active" })
       .where(eq(memberships.id, member.id));
     expect((await applicant.get("/organization")).status()).toBe(200);
+    await reviewer.dispose();
+    await outsider.dispose();
+    await applicant.dispose();
+  });
+
+  test("benefactor home reflects independently approved own identity only", async ({ page }) => {
+    const applicant = await client("applicant");
+    const reviewer = await client("reviewer");
+    const outsider = await client("outsider");
+    const submission = await submit(applicant, {
+      role: "benefactor", proposedName: "حامی پیشنهادی آزمایشی",
+      statement: "درخواست نمایندگی خیر برای مشاهده محدوده حمایتی خود پس از بررسی.",
+    });
+    expect(submission.status()).toBe(201);
+    const applicationId = (await submission.json()).id as string;
+    requestIds.push(applicationId);
+    expect((await applicant.get("/api/benefactor/overview")).status()).toBe(403);
+    expect((await applicant.get("/benefactor")).status()).toBe(404);
+
+    const approval = await decide(reviewer, applicationId, {
+      action: "approve", verifiedName: "حامی مستقل تأییدشده",
+      evidenceReference: "private-review/CI-benefactor-0001",
+      reason: "مدارک نمایندگی حامی مستقل و محرمانه بررسی و ثبت شد.",
+    });
+    expect(approval.status()).toBe(200);
+    const [member] = await db.select().from(memberships).where(and(
+      eq(memberships.userId, ids.applicant),
+      eq(memberships.role, "benefactor"),
+    )).limit(1);
+    expect(member.benefactorId).toMatch(/^[a-f0-9-]{36}$/);
+    const [scope] = await db.select().from(verifiedEntities)
+      .where(eq(verifiedEntities.id, member.benefactorId!));
+    expect(scope.role).toBe("benefactor");
+    expect(scope.name).toBe("حامی مستقل تأییدشده");
+
+    const outsiderScopeId = randomUUID();
+    await db.insert(verifiedEntities).values({
+      id: outsiderScopeId, role: "benefactor", name: "حامی دیگر خصوصی",
+      evidenceReference: "private-review/CI-other-benefactor-0002",
+      verifiedByUserId: ids.reviewer,
+    });
+    await db.insert(memberships).values({
+      userId: ids.outsider, role: "benefactor",
+      benefactorId: outsiderScopeId,
+    });
+    const listing = await applicant.get("/api/benefactor/overview");
+    expect(listing.status()).toBe(200);
+    expect(listing.headers()["cache-control"]).toContain("no-store");
+    const data = await listing.json();
+    expect(data.benefactors).toHaveLength(1);
+    expect(data.benefactors[0]).toMatchObject({
+      id: scope.id, name: "حامی مستقل تأییدشده",
+    });
+    const apiText = JSON.stringify(data);
+    expect(apiText).not.toContain("private-review/");
+    expect(apiText).not.toContain("حامی دیگر خصوصی");
+    expect(apiText).not.toContain(ids.reviewer);
+    const outsiderData = await (await outsider.get("/api/benefactor/overview")).json();
+    expect(outsiderData.benefactors).toHaveLength(1);
+    expect(outsiderData.benefactors[0].name).toBe("حامی دیگر خصوصی");
+    expect(JSON.stringify(outsiderData)).not.toContain("حامی مستقل تأییدشده");
+    expect((await reviewer.get("/api/benefactor/overview")).status()).toBe(403);
+    expect((await reviewer.get("/benefactor")).status()).toBe(404);
+
+    const home = await applicant.get("/benefactor");
+    expect(home.status()).toBe(200);
+    const html = await home.text();
+    expect(html).toContain("حامی مستقل تأییدشده");
+    expect(html).not.toContain("حامی دیگر خصوصی");
+    expect(html).not.toContain("private-review/");
+    expect(html).not.toContain("CI-benefactor-0001");
+    expect(html).not.toContain("CI-other-benefactor-0002");
+    expect(html).toContain("صندوق حمایت، کمک‌ها و رسیدها");
+    expect(await (await applicant.get("/account")).text())
+      .toContain('href="/benefactor"');
+
+    const [organizationMembership] = await db.select().from(memberships).where(and(
+      eq(memberships.userId, ids.applicant),
+      eq(memberships.role, "organization"),
+    )).limit(1);
+    await db.update(memberships).set({
+      benefactorId: organizationMembership.organizationId!,
+    }).where(eq(memberships.id, member.id));
+    expect((await applicant.get("/api/benefactor/overview")).status()).toBe(404);
+    expect((await applicant.get("/benefactor")).status()).toBe(404);
+    await db.update(memberships).set({
+      benefactorId: scope.id,
+    }).where(eq(memberships.id, member.id));
+
+    const signed = await serializeSignedCookie(
+      "better-auth.session_token", token.applicant, process.env.BETTER_AUTH_SECRET!,
+    );
+    await page.context().addCookies([{
+      name: "better-auth.session_token",
+      value: signed.split(";")[0].split("=").slice(1).join("="),
+      domain: "localhost", path: "/", httpOnly: true, secure: false, sameSite: "Lax",
+    }]);
+    await page.goto("http://localhost:3000/benefactor");
+    await expect(page.getByRole("heading", {
+      name: "هویت‌های حمایتی دارای دسترسی من",
+    })).toBeVisible();
+    await expect(page.getByRole("heading", {
+      name: "حامی مستقل تأییدشده",
+    })).toBeVisible();
+    await page.getByRole("link", {
+      name: "وضعیت درخواست‌های نقش من",
+    }).click();
+    await expect(page).toHaveURL(/\/account\/role-applications$/);
+
+    await db.update(memberships).set({ status: "suspended" })
+      .where(eq(memberships.id, member.id));
+    expect((await applicant.get("/api/benefactor/overview")).status()).toBe(403);
+    expect((await applicant.get("/benefactor")).status()).toBe(404);
+    await db.update(memberships).set({ status: "active" })
+      .where(eq(memberships.id, member.id));
+    expect((await applicant.get("/benefactor")).status()).toBe(200);
     await reviewer.dispose();
     await outsider.dispose();
     await applicant.dispose();
