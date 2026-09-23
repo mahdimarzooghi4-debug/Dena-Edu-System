@@ -541,6 +541,13 @@ test.describe("free enrollment and private video access must stay course-scoped"
       expect(mine.courses.map((row: { courseId: string }) => row.courseId))
         .toEqual([extra[0].courseId]);
       expect(mine.courses[0].enrolled).toBe(true);
+      const noQuestionSummary = await (await student.get(
+        "/api/student/progress",
+      )).json();
+      expect(noQuestionSummary.courses.find((course: {
+        courseId: string;
+      }) => course.courseId === extra[0].courseId).practice)
+        .toEqual({ state: "not_available" });
       const theirs = await (await other.get(catalog({
         q: "آزمایش صفحه‌بندی", mine: "1",
       }))).json();
@@ -648,6 +655,18 @@ test.describe("free enrollment and private video access must stay course-scoped"
     expect(JSON.stringify(initialQuestion)).not.toContain("correctOption");
     expect(JSON.stringify(initialQuestion)).not.toContain("authoredByProviderUserId");
     expect(JSON.stringify(initialQuestion)).not.toContain(users.otherStudent);
+    const beforeAnswerSummary = await (await student.get(
+      "/api/student/progress",
+    )).json();
+    expect(beforeAnswerSummary).toMatchObject({
+      displayedApprovedPractices: 1, displayedAnsweredPractices: 0,
+      courses: [expect.objectContaining({
+        courseId: ids.live, practice: { state: "not_attempted" },
+      })],
+    });
+    expect(JSON.stringify(beforeAnswerSummary)).not.toContain(
+      "correctOption",
+    );
     expect((await post(student, practicePath(ids.live), {
       selectedOption: 4,
     })).status()).toBe(400);
