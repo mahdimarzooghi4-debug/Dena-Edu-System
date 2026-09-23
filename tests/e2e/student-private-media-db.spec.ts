@@ -219,6 +219,23 @@ test.describe("free enrollment and private video access must stay course-scoped"
     expect(partial.status()).toBe(206);
     expect(partial.headers()["content-range"]).toMatch(/^bytes 0-3\/\d+$/);
     expect((await partial.body()).length).toBe(4);
+
+    // This test-only private origin deliberately returns a 206 for the wrong
+    // bytes. The student proxy must not relay that inconsistent metadata.
+    const testOrigin = await fetch(
+      `http://127.0.0.1:4318/__test__/wrong-private-range/${ids.live}/${videoIds.ready}.mp4`,
+      { method: "POST", headers: {
+        Authorization: `Bearer ${process.env.DENA_PRIVATE_MEDIA_ORIGIN_TOKEN}`,
+      } },
+    );
+    expect(testOrigin.status).toBe(200);
+    expect((await student.get(mediaPath(ids.live, videoIds.ready), {
+      headers: { Range: "bytes=0-3" },
+    })).status()).toBe(503);
+    expect((await student.get(mediaPath(ids.live, videoIds.ready), {
+      headers: { Range: "bytes=0-3" },
+    })).status()).toBe(206); // mock's one-shot corruption has cleared
+
     expect((await student.get(mediaPath(ids.live, videoIds.ready), {
       headers: { Range: "bytes=0-3,6-8" },
     })).status()).toBe(416);
