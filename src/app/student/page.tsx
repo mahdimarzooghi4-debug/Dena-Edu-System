@@ -33,6 +33,9 @@ export default async function StudentHomePage() {
           className="text-sm font-bold text-dena-brand hover:underline">
           بازگشت به حساب من
         </Link>
+        <Link href="/student/privacy" className={buttonClassName("secondary")}>
+          مدیریت یادداشت‌های شخصی
+        </Link>
         <Link href="/student/progress" className={buttonClassName()}>
           پیگیری ویدئوهای انجام‌شده
         </Link>
