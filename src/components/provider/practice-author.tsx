@@ -65,7 +65,7 @@ export function PracticeAuthor({
         {options.map((value, index) => (
           <div key={index} className="flex items-center gap-3">
             <input type="radio" name="correct-option" required
-              aria-label={`گزینهٔ ${index + 1} پاسخ درست است`}
+              aria-label={`گزینهٔ ${(index + 1).toLocaleString("fa-IR")} پاسخ درست است`}
               checked={correctOption === index}
               onChange={() => setCorrectOption(index)}
               className="h-5 w-5 accent-dena-brand" />
