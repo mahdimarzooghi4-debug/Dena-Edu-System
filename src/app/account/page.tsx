@@ -61,6 +61,11 @@ export default async function AccountPage() {
             </Link>
           )}
           {actor.memberships.some((entry) => entry.role === "student") && (
+            <Link href="/student/privacy" className={buttonClassName("secondary")}>
+              مدیریت یادداشت‌های شخصی
+            </Link>
+          )}
+          {actor.memberships.some((entry) => entry.role === "student") && (
             <Link href="/student/progress" className={buttonClassName("secondary")}>
               پیگیری شخصی ویدئوها
             </Link>
