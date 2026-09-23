@@ -41,8 +41,9 @@ export default async function ProviderPracticePage({
           تمرین کوتاه: {state.title}
         </h1>
         <p className="text-sm leading-8 text-dena-muted">
-          نظارت مؤسسه مربوط به خود دوره است و متن این سؤال، بازبینی
-          مستقل آموزشی ندارد. این سؤال آزمون رسمی، نمرهٔ مدرسه یا مدرک نیست.
+          نظارت مؤسسه بر خود دوره از بازبینی این سؤال جداست؛ سؤال تازه تا
+          تصمیم مستقل مؤسسه به دانش‌آموز نمایش داده نمی‌شود. این سؤال آزمون رسمی،
+          نمرهٔ مدرسه یا مدرک نیست.
         </p>
         {state.question ? (
           <section className="space-y-4 rounded-xl bg-dena-bg p-5">
