@@ -1,11 +1,19 @@
 import { getDb } from "../../db";
 import { auditLogs } from "../../db/schema";
 
-type AuditInput = {
+export type AuditEntityType =
+  | "SYSTEM"
+  | "USER"
+  | "COURSE"
+  | "PRACTICE"
+  | "MEDIA"
+  | "ROLE_APPLICATION";
+
+export type AuditInput = {
   actorId: string;
   actorRole: string;
   action: string;
-  entityType: string;
+  entityType: AuditEntityType;
   entityId?: string | null;
 };
 
