@@ -85,6 +85,11 @@ export default async function AccountPage() {
               بررسی درخواست نظارت دوره‌ها
             </Link>
           )}
+          {actor.memberships.some((entry) => entry.role === "benefactor") && (
+            <Link href="/benefactor" className={buttonClassName()}>
+              خانه خیر و حامی
+            </Link>
+          )}
           {actor.memberships.some((entry) => entry.role === "organization") && (
             <Link href="/organization" className={buttonClassName()}>
               خانه سازمان
