@@ -76,6 +76,19 @@ describe("release preflight only validates static configuration", () => {
     expect(result.stderr).toContain("NODE_TLS_REJECT_UNAUTHORIZED:certificate_validation_disabled");
   });
 
+  it.each([
+    ["SMS link-local IPv4", "DENA_SMS_GATEWAY_URL", "https://169.254.169.254/send"],
+    ["media link-local IPv6", "DENA_PRIVATE_MEDIA_ORIGIN_URL", "https://[fe80::1]/"],
+    ["auth trailing-dot localhost", "BETTER_AUTH_URL", "https://localhost./"],
+    ["media loopback HTTPS", "DENA_PRIVATE_MEDIA_ORIGIN_URL", "https://127.0.0.3/"],
+  ])("rejects %s in static release config without echoing destinations",
+    (_case, key, value) => {
+      const result = run({ [key]: value });
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain(key + ":mock_or_loopback");
+      expect(result.stderr).not.toContain(value);
+    });
+
   it("rejects alternate loopback for HTTPS service URLs", () => {
     const result = run({ DENA_SMS_GATEWAY_URL: "https://[::1]/send" });
     expect(result.status).toBe(1);
