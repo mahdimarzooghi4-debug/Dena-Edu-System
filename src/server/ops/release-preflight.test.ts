@@ -25,7 +25,7 @@ const good = {
   DENA_MEDIA_CLEANUP_ENABLED: "1",
 };
 function run(overrides: Record<string, string | undefined> = {}) {
-  const env: NodeJS.ProcessEnv = { ...good, ...overrides };
+  const env = { ...good, ...overrides } as NodeJS.ProcessEnv;
   for (const [key, value] of Object.entries(env)) {
     if (value === undefined) delete env[key];
   }
