@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { Button } from "../ui/button";
+import { VideoNote } from "./video-note";
 
-type Video = { assetId: string; title: string; completed: boolean };
+type Video = { assetId: string; title: string; completed: boolean; note: string | null };
 
 /** Self-reported markers: the server never infers completion from streamed bytes. */
 export function VideoProgress({
@@ -80,6 +81,8 @@ export function VideoProgress({
               video.completed ? "برداشتن علامت انجام‌شده" :
                 "علامت‌گذاری به‌عنوان انجام‌شده"}
           </Button>
+          <VideoNote courseId={courseId} assetId={video.assetId}
+            title={video.title} initialNote={video.note} />
         </section>
       ))}
     </div>
