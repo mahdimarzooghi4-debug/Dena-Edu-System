@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
-  configuredPrivateMediaOrigin, safeMediaRange,
+  configuredPrivateMediaOrigin, safeMediaRange, validatedPrivateMediaResponse,
 } from "./private-media";
 
 const before = { ...process.env };
@@ -41,6 +41,61 @@ describe("private media is disabled by default and never accepts client URLs", (
     expect(configuredPrivateMediaOrigin()).toBeNull();
     process.env.DENA_DB_INTEGRATION = "1";
     expect(configuredPrivateMediaOrigin()?.origin.port).toBe("4318");
+  });
+
+  const originHeaders = (partial = false) => new Headers({
+    "Content-Type": "video/mp4",
+    "X-Dena-Private": "1",
+    "Content-Length": partial ? "4" : "24",
+    ...(partial ? { "Content-Range": "bytes 0-3/24" } : {}),
+  });
+
+  it("accepts only internally consistent private 200/206 responses", () => {
+    expect(validatedPrivateMediaResponse(200, null, originHeaders()))
+      .toEqual({ length: "24", range: null });
+    expect(validatedPrivateMediaResponse(206, "bytes=0-3", originHeaders(true)))
+      .toEqual({ length: "4", range: "bytes 0-3/24" });
+    const open = originHeaders(true);
+    open.set("Content-Range", "bytes 5-23/24");
+    open.set("Content-Length", "19");
+    expect(validatedPrivateMediaResponse(206, "bytes=5-", open))
+      .toEqual({ length: "19", range: "bytes 5-23/24" });
+    const suffix = originHeaders(true);
+    suffix.set("Content-Range", "bytes 20-23/24");
+    expect(validatedPrivateMediaResponse(206, "bytes=-4", suffix))
+      .toEqual({ length: "4", range: "bytes 20-23/24" });
+    const clipped = originHeaders(true);
+    clipped.set("Content-Range", "bytes 20-23/24");
+    expect(validatedPrivateMediaResponse(206, "bytes=20-999", clipped))
+      .toEqual({ length: "4", range: "bytes 20-23/24" });
+  });
+
+  it.each([
+    ["missing privacy marker", "X-Dena-Private", null, 206, "bytes=0-3"],
+    ["untrusted media type", "Content-Type", "text/html", 206, "bytes=0-3"],
+    ["missing length", "Content-Length", null, 206, "bytes=0-3"],
+    ["malformed length", "Content-Length", "NaN", 206, "bytes=0-3"],
+    ["mismatched response size", "Content-Length", "3", 206, "bytes=0-3"],
+    ["malformed range", "Content-Range", "bytes */24", 206, "bytes=0-3"],
+    ["wrong start", "Content-Range", "bytes 1-4/24", 206, "bytes=0-3"],
+    ["impossible total", "Content-Range", "bytes 0-24/24", 206, "bytes=0-3"],
+    ["unsafe integer", "Content-Range", "bytes 0-3/9007199254740993", 206, "bytes=0-3"],
+    ["unsolicited full range", "Content-Range", "bytes 0-3/24", 200, null],
+  ] as const)("rejects %s before proxying bytes", (_label, field, value, status, requested) => {
+    const headers = originHeaders(status === 206);
+    if (value === null) headers.delete(field);
+    else headers.set(field, value);
+    expect(validatedPrivateMediaResponse(status, requested, headers)).toBeNull();
+  });
+
+  it("rejects unsatisfied, altered or unsolicited upstream ranges", () => {
+    expect(validatedPrivateMediaResponse(200, "bytes=0-3", originHeaders())).toBeNull();
+    expect(validatedPrivateMediaResponse(206, null, originHeaders(true))).toBeNull();
+    expect(validatedPrivateMediaResponse(206, "bytes=1-4", originHeaders(true))).toBeNull();
+    expect(validatedPrivateMediaResponse(206, "bytes=-4", originHeaders(true))).toBeNull();
+    expect(validatedPrivateMediaResponse(206, "bytes=0-999999999999999999999", originHeaders(true)))
+      .toBeNull();
+    expect(validatedPrivateMediaResponse(206, "bytes=0-0", originHeaders(true))).toBeNull();
   });
 
   it("allows a single byte-range only, not range splitting or injection", () => {
