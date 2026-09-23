@@ -227,6 +227,65 @@ test.describe("free enrollment and private video access must stay course-scoped"
     await student.dispose();
   });
 
+  test("pre-enrollment course detail exposes only currently supervised metadata", async () => {
+    const api = (id: string) => `/api/student/courses/${id}`;
+    const anonymous = await client();
+    const provider = await client("provider");
+    const student = await client("student");
+    const other = await client("otherStudent");
+    expect((await anonymous.get(api(ids.live))).status()).toBe(401);
+    const anonPage = await anonymous.get(
+      `/student/courses/${ids.live}`, { maxRedirects: 0 },
+    );
+    expect(anonPage.status()).toBe(307);
+    expect(anonPage.headers().location).toBe("/login");
+    expect((await provider.get(api(ids.live))).status()).toBe(403);
+    expect((await provider.get(`/student/courses/${ids.live}`)).status())
+      .toBe(404);
+    for (const invalid of [ids.pending, ids.draft, randomUUID(), "invalid"]) {
+      expect((await student.get(api(invalid))).status()).toBe(404);
+      expect((await student.get(`/student/courses/${invalid}`)).status())
+        .toBe(404);
+    }
+    const response = await student.get(api(ids.live));
+    expect(response.status()).toBe(200);
+    expect(response.headers()["cache-control"]).toContain("private");
+    expect(response.headers()["cache-control"]).toContain("no-store");
+    const detail = await response.json();
+    expect(detail).toMatchObject({
+      courseId: ids.live,
+      title: "دوره رایگان با محتوای خصوصی",
+      providerName: "verified provider",
+      responsibleInstituteName: "verified institute",
+      readyVideoCount: 1,
+      enrollmentStatus: null,
+      free: true,
+    });
+    expect(detail.publishedAt).toBeTruthy();
+    for (const forbidden of [
+      videoIds.ready, videoIds.withdrawn, videoIds.pending,
+      "بخش اول دوره", "ویدئوی حذف‌شده", "بخش محرمانه",
+      "test/provider", "test/institute", users.admin,
+      "objectKey", "studentUserId", "evidenceReference",
+    ]) expect(JSON.stringify(detail)).not.toContain(forbidden);
+    expect((await (await other.get(api(ids.live))).json())
+      .enrollmentStatus).toBeNull();
+    const page = await student.get(`/student/courses/${ids.live}`);
+    expect(page.status()).toBe(200);
+    const html = await page.text();
+    expect(html).toContain("verified provider");
+    expect(html).toContain("verified institute");
+    expect(html).toContain("ثبت‌نام رایگان در همین دوره");
+    expect(html).not.toContain("بخش اول دوره");
+    expect(html).not.toContain(videoIds.ready);
+    expect(html).not.toContain("test/provider");
+    expect(html).not.toContain("test/institute");
+    await anonymous.dispose();
+    await provider.dispose();
+    await student.dispose();
+    await other.dispose();
+  });
+
   test("catalog searches literal titles, filters own enrollment and pages beyond 50", async ({ page }) => {
     test.setTimeout(90_000); // 54 disposable PostgreSQL course/media fixtures + real browser.
     const extra = Array.from({ length: 52 }, (_, index) => ({
@@ -637,13 +696,32 @@ test.describe("free enrollment and private video access must stay course-scoped"
       name: "دوره‌های رایگان منتشرشده",
     })).toBeVisible();
     await expect(page.getByText("دوره رایگان با محتوای خصوصی")).toBeVisible();
+    const ownCard = page.locator("li").filter({
+      hasText: "دوره رایگان با محتوای خصوصی",
+    });
+    await ownCard.getByRole("link", {
+      name: "جزئیات دوره و مؤسسهٔ مسئول",
+    }).click();
+    await expect(page).toHaveURL(
+      new RegExp(`/student/courses/${ids.live}$`),
+    );
+    await expect(page.getByRole("heading", {
+      name: "دوره رایگان با محتوای خصوصی",
+    })).toBeVisible();
+    await expect(page.getByText("verified provider")).toBeVisible();
+    await expect(page.getByText("verified institute")).toBeVisible();
+    await expect(page.getByText("بخش اول دوره")).toHaveCount(0);
     const enrolling = page.waitForResponse((response) =>
       response.url().endsWith(enrollPath(ids.live)) &&
       response.request().method() === "POST",
     );
-    const ownCard = page.locator("li").filter({ hasText: "دوره رایگان با محتوای خصوصی" });
-    await ownCard.getByRole("button", { name: "ثبت‌نام رایگان" }).click();
+    await page.getByRole("button", {
+      name: "ثبت‌نام رایگان در همین دوره",
+    }).click();
     expect((await enrolling).status()).toBe(201);
+    await expect(page).toHaveURL(
+      new RegExp(`/student/courses/${ids.live}/watch$`),
+    );
     await page.goto("http://localhost:3000/student");
     await expect(page.getByRole("heading", { name: "نمای کلی یادگیری" })).toBeVisible();
     await expect(page.getByRole("heading", {
@@ -759,6 +837,13 @@ test.describe("free enrollment and private video access must stay course-scoped"
       .toBe(404);
     expect((await other.get(mediaPath(ids.live, videoIds.ready))).status()).toBe(404);
     expect((await other.get(listAssets(ids.live))).status()).toBe(404);
+    const cancelledCourse = await (await other.get(
+      `/api/student/courses/${ids.live}`,
+    )).json();
+    expect(cancelledCourse.enrollmentStatus).toBe("cancelled");
+    expect(await (await other.get(
+      `/student/courses/${ids.live}`,
+    )).text()).toContain("ثبت‌نام این دوره قبلاً لغو شده است");
     expect((await (await other.get("/api/student/progress")).json())
       .courses).toHaveLength(0);
     expect(await (await other.get("/student/progress")).text()).not.toContain(
@@ -858,6 +943,10 @@ test.describe("free enrollment and private video access must stay course-scoped"
     });
     expect(revoked.status()).toBe(200);
     expect((await student.get(mediaPath(ids.live, videoIds.ready))).status()).toBe(404);
+    expect((await student.get(`/api/student/courses/${ids.live}`)).status())
+      .toBe(404);
+    expect((await student.get(`/student/courses/${ids.live}`)).status())
+      .toBe(404);
     expect((await student.get(listAssets(ids.live))).status()).toBe(404);
     expect((await student.put(notePath(ids.live, videoIds.ready), {
       data: { note: "پس از لغو نظارت" },
