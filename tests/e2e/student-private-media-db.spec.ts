@@ -142,7 +142,7 @@ test.describe("free enrollment and private video access must stay course-scoped"
     await db.delete(user).where(inArray(user.id, Object.values(users)));
   });
 
-  test("draft or merely requested courses never enter the free catalog", async () => {
+  test("draft or merely requested courses never enter the free catalog", async ({ page }) => {
     const anonymous = await client();
     expect((await anonymous.get("/api/student/courses")).status()).toBe(401);
     expect((await anonymous.get("/api/student/progress")).status()).toBe(401);
@@ -215,6 +215,45 @@ test.describe("free enrollment and private video access must stay course-scoped"
     expect((await provider.post(authorPath(ids.live), {
       data: author, headers: { Origin: "https://attacker.invalid" },
     })).status()).toBe(403);
+    const providerCookie = await signed("provider");
+    await page.context().addCookies([{
+      name: "better-auth.session_token",
+      value: providerCookie.split("=").slice(1).join("="),
+      domain: "localhost", path: "/", httpOnly: true, secure: false,
+      sameSite: "Lax",
+    }]);
+    await page.goto(`http://localhost:3000/provider/courses/${ids.draft}/practice`);
+    await expect(page.getByRole("heading", {
+      name: "تمرین کوتاه: دوره تاییدشده اما منتشرنشده",
+    })).toBeVisible();
+    await page.getByRole("textbox", {
+      name: "متن پرسش کوتاه",
+    }).fill("تمرین سادهٔ دورهٔ پیش‌نویس کدام است؟");
+    for (const [index, value] of [
+      "گزینه اول", "گزینه دوم", "گزینه سوم", "گزینه چهارم",
+    ].entries()) {
+      await page.getByRole("textbox", {
+        name: `گزینهٔ ${(index + 1).toLocaleString("fa-IR")}`,
+      }).fill(value);
+    }
+    await page.getByRole("radio", {
+      name: "گزینهٔ ۱ پاسخ درست است",
+    }).check();
+    const providerAnswer = page.waitForResponse((response) =>
+      response.url().endsWith(authorPath(ids.draft)) &&
+      response.request().method() === "POST",
+    );
+    await page.getByRole("button", {
+      name: "ثبت نهایی سؤال تمرینی",
+    }).click();
+    expect((await providerAnswer).status()).toBe(201);
+    await expect(page.getByText(
+      "سؤال تمرینی در پایگاه داده ثبت شد و دیگر قابل ویرایش نیست.",
+    )).toBeVisible();
+    await page.reload();
+    await expect(page.getByText(
+      "تمرین سادهٔ دورهٔ پیش‌نویس کدام است؟",
+    )).toBeVisible();
     const createdQuestion = await post(provider, authorPath(ids.live), author);
     expect(createdQuestion.status()).toBe(201);
     expect(await createdQuestion.json()).toEqual({
