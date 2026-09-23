@@ -104,6 +104,9 @@ test.describe("course-scoped provider requests and independent institute decisio
     const anonymous = await client();
     expect((await anonymous.get("/api/provider/courses")).status()).toBe(401);
     expect((await anonymous.get("/api/institute/supervision")).status()).toBe(401);
+    const noSessionHome = await anonymous.get("/provider", { maxRedirects: 0 });
+    expect(noSessionHome.status()).toBe(307);
+    expect(noSessionHome.headers().location).toBe("/login");
     await anonymous.dispose();
 
     const provider = await client("provider");
@@ -124,6 +127,7 @@ test.describe("course-scoped provider requests and independent institute decisio
     const admin = await client("admin");
     expect((await create(admin, requestBody)).status()).toBe(403);
     expect((await admin.get("/api/institute/supervision")).status()).toBe(403);
+    expect((await admin.get("/provider")).status()).toBe(404);
     await admin.dispose();
     await provider.dispose();
   });
@@ -159,10 +163,25 @@ test.describe("course-scoped provider requests and independent institute decisio
       .toEqual(expect.arrayContaining(courseIds));
     expect((await authorized(provider, courseIds[0])).status()).toBe(404);
     expect((await authorized(provider, courseIds[1])).status()).toBe(404);
+    const ownHome = await provider.get("/provider");
+    expect(ownHome.status()).toBe(200);
+    const ownHtml = await ownHome.text();
+    expect(ownHtml).toContain("دوره آزمایشی نظارت مستقل دنا");
+    expect(ownHtml).toContain("دوره دوم برای اطمینان از تفکیک مجوز");
+    expect(ownHtml).toContain("در انتظار بررسی مؤسسه");
+    expect(ownHtml).not.toContain(`/provider/courses/${courseIds[0]}/media`);
 
     const otherProvider = await client("otherProvider");
     expect((await (await otherProvider.get("/api/provider/courses")).json()).courses)
       .toHaveLength(0);
+    const otherHome = await otherProvider.get("/provider");
+    expect(otherHome.status()).toBe(200);
+    expect(await otherHome.text()).not.toContain(
+      `/provider/courses/${courseIds[0]}/media`,
+    );
+    expect(await (await otherProvider.get("/provider")).text()).not.toContain(
+      "دوره آزمایشی نظارت مستقل دنا",
+    );
     expect((await authorized(otherProvider, courseIds[0])).status()).toBe(404);
     await otherProvider.dispose();
 
@@ -222,6 +241,12 @@ test.describe("course-scoped provider requests and independent institute decisio
     expect((await authorized(provider, b)).status()).toBe(404);
     expect((await authorized(stranger, a)).status()).toBe(404);
     expect((await authorized(dual, a)).status()).toBe(200); // dual has provider membership; NO decision rights
+    const approvedHome = await provider.get("/provider");
+    expect(approvedHome.status()).toBe(200);
+    const approvedHtml = await approvedHome.text();
+    expect(approvedHtml).toContain("تأیید نظارت همین دوره");
+    expect(approvedHtml).toContain(`/provider/courses/${a}/media`);
+    expect(approvedHtml).not.toContain(`/provider/courses/${b}/media`);
 
     const events = await db.select().from(supervisionEvents)
       .where(eq(supervisionEvents.courseId, a));
@@ -249,7 +274,14 @@ test.describe("course-scoped provider requests and independent institute decisio
       value: providerCookie.split(";")[0].split("=").slice(1).join("="),
       domain: "localhost", path: "/", httpOnly: true, secure: false, sameSite: "Lax",
     }]);
-    await page.goto("http://localhost:3000/provider/supervision");
+    await page.goto("http://localhost:3000/provider");
+    await expect(page.getByRole("heading", {
+      name: "دوره‌های من و وضعیت نظارت",
+    })).toBeVisible();
+    await page.getByRole("link", {
+      name: "مدیریت درخواست‌های نظارت دوره",
+    }).click();
+    await expect(page).toHaveURL(/\/provider\/supervision$/);
     await expect(page.getByRole("heading", {
       name: "درخواست نظارت برای هر دوره",
     })).toBeVisible();
@@ -322,6 +354,11 @@ test.describe("course-scoped provider requests and independent institute decisio
     });
     expect((await authorized(provider, a)).status()).toBe(404);
     expect((await authorized(institute, a)).status()).toBe(404);
+    const revokedHome = await provider.get("/provider");
+    expect(revokedHome.status()).toBe(200);
+    const revokedHtml = await revokedHome.text();
+    expect(revokedHtml).toContain("رد یا لغو نظارت");
+    expect(revokedHtml).not.toContain(`/provider/courses/${a}/media`);
     expect((await decide(institute, a, {
       action: "approve", reason: "تأیید مجدد بدون درخواست تازه ممنوع است.",
     })).status()).toBe(409);
