@@ -1736,7 +1736,7 @@ test.describe("free enrollment and private video access must stay course-scoped"
       `/student/courses/${ids.live}/watch#next-unmarked-video`,
     );
     const firstHome = await (await student.get("/student")).text();
-    expect(firstHome).toContain("۰ از");
+    expect(firstHome).toContain("علامت‌خورده به انتخاب خودت");
     expect(firstHome).toContain("رفتن به نخستین ویدئوی بی‌علامت");
     expect(firstHome).not.toContain("correctOption");
     expect(firstHome).not.toContain("objectKey");
@@ -2120,9 +2120,6 @@ test.describe("free enrollment and private video access must stay course-scoped"
       name: "بازگشت به خانه دانش‌آموز",
     }).click();
     await expect(page).toHaveURL(/\/student$/);
-    await page.getByRole("link", {
-      name: "رفتن به نخستین ویدئوی بی‌علامت",
-    }).click();
 ,
     ));
     const player = page.locator("video");
