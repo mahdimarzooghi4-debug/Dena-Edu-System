@@ -103,6 +103,10 @@
 
 Migration `0013` به سؤال تمرینی تک‌سؤالی status `pending/approved/rejected` و reviewer/time/reason اضافه می‌کند. provider سؤال را فقط در draft و پس از supervision دوره می‌سازد؛ مؤسسهٔ مسئول از `/institute/courses/:courseId/practice` متن/گزینه‌ها/کلید اعلام‌شده را بدون هیچ student attempt می‌بیند و یک تصمیم نهایی با دلیل ثبت می‌کند. reviewer نمی‌تواند همان user دارای provider membership برای provider همان course باشد. student GET/POST فقط question approved را می‌بیند و correctOption همچنان serialize نمی‌شود؛ publication وجود سؤال pending را با 409 متوقف می‌کند. rejected پنهان می‌ماند و approved بعد از publication + entitlement واقعی قابل تلاش است. این یک formative pilot تک‌تلاش است، نه آزمون رسمی، بانک سؤال، نمرهٔ مدرسه یا گواهی.
 
+## نتیجهٔ تمرین تک‌سؤالی در صفحهٔ پیگیری شخصی
+
+`src/server/student/progress-overview.ts` اکنون بعد از بررسی فعال‌بودن enrollment/publication/supervision/ready video، نتیجهٔ سؤال فقط `approved` را از جدول attempt همان student برای حداکثر ۲۰ دورهٔ مجاز انتخاب می‌کند (query جداگانه برای جلوگیری از ضرب‌شدن count رسانه). `/student/progress` و `/api/student/progress` سه حالت نبود سؤال تأییدشده، هنوز پاسخ‌نداده و گزینه/درست‌بودن/زمان پاسخ **همان دانش‌آموز** را نمایش می‌دهند؛ بالای صفحه تعداد تمرین‌های پاسخ‌داده‌شده از تمرین‌های approved همین دوره‌های نمایش‌داده‌شده را نشان می‌دهد. answer key، سؤال pending/rejected و سایر دانش‌آموزان را سریالایز نمی‌کند. copy قدیمی StudentCoursePractice مبنی بر بازبینی‌نشدن سؤال اصلاح شد. بدون migration تازه؛ صرفاً نتیجهٔ همان یک تمرین آزمایشی، نه نمره رسمی/گواهی/گزارش فراگیر.
+
 ## راهنمای ادامه برای چت جدید
 
 از **head جدید PR #1** و آخرین CI آن شروع کنید، نه snapshotهای قدیمی. ابتدا `README.md`، `docs/implementation/quarantined-media-ingest.md`، `docs/implementation/scalable-media-foundation.md`، `docs/implementation/free-student-enrollment-private-video.md`، `src/server/media/{ingest,multipart,cleanup}.ts`، `src/db/schema.ts` و `drizzle/meta/_journal.json` را بررسی کنید. تغییر واقعی روی `chore/bootstrap-dena-stack` انجام دهید، migration را با Drizzle تولید و commit و هر دو job CI را تا green بررسی کنید. هیچ قابلیت fake scanner، upload حجیم یا ظرفیت ۵M را production ننامید.
