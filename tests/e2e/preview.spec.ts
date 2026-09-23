@@ -28,7 +28,9 @@ test("all six role previews are public static shells, not live panels", async ({
     const html = await page.text();
     expect(html).toContain("بدون دادهٔ واقعی");
   }
-  expect((await request.get("/student")).status()).toBe(404);
+  const protectedStudentHome = await request.get("/student", { maxRedirects: 0 });
+  expect(protectedStudentHome.status()).toBe(307);
+  expect(protectedStudentHome.headers().location).toBe("/login");
   expect((await request.get("/admin")).status()).toBe(404);
 });
 
