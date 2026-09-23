@@ -937,7 +937,7 @@ test.describe("free enrollment and private video access must stay course-scoped"
     }]);
     await page.goto("http://localhost:3000/student");
     await page.getByRole("link", { name: "مدیریت یادداشت‌های شخصی" }).click();
-    await expect(page).toHaveURL(/\\/student\\/privacy$/);
+    await expect(page).toHaveURL(/\/student\/privacy$/);
     await expect(page.getByRole("heading", {
       name: "پاک‌کردن همهٔ یادداشت‌های شخصی",
     })).toBeVisible();
