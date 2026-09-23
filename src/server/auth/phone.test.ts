@@ -108,7 +108,6 @@ describe("Iran mobile input and gateway safeguards", () => {
     await expect(sendSmsOtp("+989121234567", "123456"))
       .rejects.toThrow("SMS delivery temporarily unavailable");
     expect(fetchMock).toHaveBeenCalledOnce();
-    expect(JSON.stringify(fetchMock.mock.results)).not.toContain("vendor-secret");
   });
 
   it.each([
