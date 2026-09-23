@@ -179,6 +179,7 @@ test.describe("free enrollment and private video access must stay course-scoped"
   });
 
   test("catalog searches literal titles, filters own enrollment and pages beyond 50", async ({ page }) => {
+    test.setTimeout(90_000); // 54 disposable PostgreSQL course/media fixtures + real browser.
     const extra = Array.from({ length: 52 }, (_, index) => ({
       courseId: randomUUID(),
       assetId: randomUUID(),
