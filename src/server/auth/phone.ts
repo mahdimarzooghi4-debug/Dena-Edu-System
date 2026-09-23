@@ -28,7 +28,7 @@ function unsafeGatewayHost(hostname: string): boolean {
     host === "::1" || host === "::" || host.startsWith("::ffff:") ||
     host === "0.0.0.0" ||
     /^127\.(?:\d{1,3}\.){2}\d{1,3}$/.test(host) ||
-    /^169\.254\.(?:\d{1,3}\.){2}\d{1,3}$/.test(host);
+    /^169\.254\.\d{1,3}\.\d{1,3}$/.test(host);
 }
 
 export function smsGatewayUrl(): string {
