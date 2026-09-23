@@ -235,6 +235,7 @@ export async function getInstitutePractice(
     providerId: courses.providerId,
     instituteId: courses.responsibleInstituteId,
     supervisionStatus: supervisionGrants.status,
+    approvedBy: supervisionGrants.approvedByInstituteUserId,
   }).from(courses).innerJoin(supervisionGrants,
     eq(supervisionGrants.courseId, courses.id),
   ).where(eq(courses.id, courseId)).limit(1);
@@ -257,7 +258,13 @@ export async function getInstitutePractice(
   const reviewerAlsoProvider = active.some((m) =>
     m.role === "provider" && m.userId === instituteUserId &&
     m.providerId === course.providerId);
-  if (!reviewerOwnsInstitute || reviewerAlsoProvider) return null;
+  const providerActive = active.some((m) =>
+    m.role === "provider" && m.providerId === course.providerId);
+  const courseApproverActive = active.some((m) =>
+    m.role === "institute" && m.userId === course.approvedBy &&
+    m.instituteId === course.instituteId);
+  if (!reviewerOwnsInstitute || reviewerAlsoProvider ||
+      !providerActive || !courseApproverActive) return null;
   const [question] = await db.select().from(coursePracticeQuestions)
     .where(eq(coursePracticeQuestions.courseId, courseId)).limit(1);
   return {
@@ -289,7 +296,7 @@ export async function decideInstitutePractice(
       eq(supervisionGrants.instituteId, course.responsibleInstituteId),
       eq(supervisionGrants.status, "approved"),
     )).limit(1).for("share");
-    if (!grant) return null;
+    if (!grant?.approvedByInstituteUserId || !grant.approvedAt) return null;
     const actors = await tx.select({
       role: memberships.role, providerId: memberships.providerId,
       instituteId: memberships.instituteId, userId: memberships.userId,
@@ -306,7 +313,12 @@ export async function decideInstitutePractice(
           m.userId === instituteUserId &&
           m.instituteId === course.responsibleInstituteId) ||
         actors.some((m) => m.role === "provider" &&
-          m.userId === instituteUserId && m.providerId === course.providerId)) {
+          m.userId === instituteUserId && m.providerId === course.providerId) ||
+        !actors.some((m) => m.role === "provider" &&
+          m.providerId === course.providerId) ||
+        !actors.some((m) => m.role === "institute" &&
+          m.userId === grant.approvedByInstituteUserId &&
+          m.instituteId === course.responsibleInstituteId)) {
       return null;
     }
     const [question] = await tx.select({
