@@ -52,6 +52,8 @@ describe("release preflight only validates static configuration", () => {
     ["ambiguous SSL override", "postgresql://app:db-secret@db.example.com:5432/dena?sslmode=verify-full&ssl=false", "ambiguous_connection_options"],
     ["host override", "postgresql://app:db-secret@db.example.com:5432/dena?sslmode=verify-full&host=localhost", "ambiguous_connection_options"],
     ["local database", "postgresql://app:db-secret@127.0.0.1:5432/dena?sslmode=verify-full", "mock_or_loopback"],
+    ["alternate loopback", "postgresql://app:db-secret@127.0.0.2:5432/dena?sslmode=verify-full", "mock_or_loopback"],
+    ["IPv6 loopback", "postgresql://app:db-secret@[::1]:5432/dena?sslmode=verify-full", "mock_or_loopback"],
     ["missing database", "postgresql://app:db-secret@db.example.com:5432/?sslmode=verify-full", "missing_database"],
   ])("rejects %s for full release without logging database credentials", (_case, databaseUrl, code) => {
     const result = run({ DATABASE_URL: databaseUrl });
