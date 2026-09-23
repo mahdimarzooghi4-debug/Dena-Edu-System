@@ -32,7 +32,7 @@ describe("student course catalog query and cursor boundary", () => {
     for (const text of [
       "mine=0", "mine=true", "q=" + "x".repeat(81),
       "q=" + encodeURIComponent("a\n"),
-      "q=abc&q=xyz", "cursor=not_base64!", "cursor=" + "a".repeat(641),
+      "q=abc&q=xyz", "cursor=not_base64!", "cursor=" + "a".repeat(2049),
     ]) {
       expect(() => readCatalogQuery(new URLSearchParams(text)))
         .toThrow(InvalidCourseCatalogQuery);
