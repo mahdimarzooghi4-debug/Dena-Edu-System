@@ -65,6 +65,19 @@ export default async function StudentProgressPage() {
             درصد تماشای واقعی محسوب نمی‌شود.
           </p>
         </Card>
+        <Card className="max-w-md">
+          <p className="text-sm text-dena-muted">
+            تمرین‌های چهارگزینه‌ای تأییدشده که خودت پاسخ داده‌ای
+          </p>
+          <p className="mt-2 text-[29px] font-extrabold text-dena-brand">
+            {overview.displayedAnsweredPractices.toLocaleString("fa-IR")} از{" "}
+            {overview.displayedApprovedPractices.toLocaleString("fa-IR")}
+          </p>
+          <p className="mt-1 text-xs leading-7 text-dena-muted">
+            فقط تمرین‌های تأییدشدهٔ دوره‌های قابل‌دسترسی همین صفحه؛
+            این شمار نمرهٔ رسمی یا گواهی آموزشی نیست.
+          </p>
+        </Card>
       </section>
 
       <section aria-labelledby="my-progress-courses" className="space-y-4">
@@ -101,6 +114,27 @@ export default async function StudentProgressPage() {
                   فقط ویدئوهای آمادهٔ فعلی همین دوره؛ ویدئوی برداشته‌شده
                   یا دورهٔ لغوشده در این شمارش نیست.
                 </p>
+                <div className="space-y-2 rounded-xl bg-dena-bg p-4 text-sm leading-8"
+                  aria-label="وضعیت تمرین کوتاه این دوره">
+                  <p className="font-bold">تمرین کوتاه همین دوره</p>
+                  {course.practice.state === "not_available" ? (
+                    <p className="text-dena-muted">
+                      تمرین تأییدشده‌ای برای نمایش وجود ندارد.
+                    </p>
+                  ) : course.practice.state === "not_attempted" ? (
+                    <p className="text-dena-muted">
+                      تمرین تأییدشده موجود است؛ هنوز پاسخ نداده‌ای.
+                    </p>
+                  ) : (
+                    <p className="text-dena-deep">
+                      پاسخ خودت ثبت شده است؛ گزینهٔ{" "}
+                      {(course.practice.selectedOption + 1).toLocaleString("fa-IR")}.
+                      {" "}{course.practice.correct
+                        ? "پاسخ همین تمرین درست بود."
+                        : "پاسخ همین تمرین درست نبود."}
+                    </p>
+                  )}
+                </div>
                 <Link href={`/student/courses/${course.courseId}/watch`}
                   className={buttonClassName()}>
                   مشاهده و تغییر علامت ویدئوها
