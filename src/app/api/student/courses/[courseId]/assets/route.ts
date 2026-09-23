@@ -6,7 +6,7 @@ import { getStudentVideoProgress } from "../../../../../../server/student/video-
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-const noStore = { "Cache-Control": "no-store" };
+const noStore = { "Cache-Control": "private, no-store, max-age=0" };
 
 export async function GET(
   _request: Request,
