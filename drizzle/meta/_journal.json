@@ -92,6 +92,13 @@
       "when": 1790170000000,
       "tag": "0012_dena_course_practice",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1790173600000,
+      "tag": "0013_dena_practice_institute_review",
+      "breakpoints": true
     }
   ]
 }
