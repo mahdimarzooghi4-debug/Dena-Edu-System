@@ -107,6 +107,12 @@ export default async function InstituteHomePage() {
                 <p className="text-sm text-dena-muted">
                   انتشار: {publicationLabels[course.publicationStatus]}
                 </p>
+                {course.supervisionStatus === "approved" && (
+                  <Link href={`/institute/courses/${course.courseId}/practice`}
+                    className={buttonClassName("secondary")}>
+                    بررسی تمرین دوره
+                  </Link>
+                )}
                 {course.supervisionStatus === "requested" && (
                   <Link href="/institute/providers"
                     className={buttonClassName("secondary")}>
