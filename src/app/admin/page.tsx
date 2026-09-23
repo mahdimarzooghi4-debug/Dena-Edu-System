@@ -29,14 +29,19 @@ export default async function AdminHomePage() {
 
   return (
     <main id="main-content"
-      className="mx-auto min-h-screen max-w-5xl space-y-8 px-5 py-8 md:px-10 md:py-12">
+      className="mx-auto min-h-screen max-w-5xl space-y-8 px-5 py-8 md:px-10 md:px-10 md:py-12">
       <header className="flex flex-wrap items-center justify-between gap-4">
         <Link href="/account" className="text-sm font-bold text-dena-brand hover:underline">
           بازگشت به حساب من
         </Link>
-        <Link href="/admin/role-applications" className={buttonClassName("secondary")}>
-          صف بررسی درخواست‌های نقش
-        </Link>
+        <div className="flex flex-wrap gap-3">
+          <Link href="/admin/audit" className={buttonClassName("secondary")}>
+            رویدادهای سیستم
+          </Link>
+          <Link href="/admin/role-applications" className={buttonClassName("secondary")}>
+            صف بررسی درخواست‌های نقش
+          </Link>
+        </div>
       </header>
 
       <section className="rounded-[20px] bg-dena-lavender px-6 py-7 md:px-8">
