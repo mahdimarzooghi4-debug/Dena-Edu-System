@@ -59,8 +59,8 @@ export function StudentCoursePractice({
       </h2>
       <p className="text-sm leading-8 text-dena-muted">
         یک سؤال چهارگزینه‌ایِ ارائه‌دهنده، تنها با یک فرصت پاسخ.
-        این تمرین به‌صورت مستقل توسط مؤسسه بازبینی نشده و
-        آزمون رسمی، مدرک یا اثبات تماشای ویدئو نیست.
+        این سؤال پس از بازبینی مستقل مؤسسهٔ مسئول برای نمایش فعال شده
+        است؛ آزمون رسمی، مدرک یا اثبات تماشای ویدئو نیست.
       </p>
       <fieldset className="space-y-3" disabled={Boolean(attempt) || busy}>
         <legend className="mb-3 font-bold leading-8">{question.prompt}</legend>
