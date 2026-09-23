@@ -51,6 +51,10 @@
 
 `/student` اکنون به‌جای 404 یک خانهٔ RTL محافظت‌شده و متصل به PostgreSQL است: session معتبر + نقش فعال لازم است؛ فقط دوره‌های ثبت‌نام‌شدهٔ خود شخص با دسترسی معتبر جاری نشان داده می‌شوند، و لینک `/student/courses/:id/watch` مجوز مستقل دارد. فهرست ۲۰ مورد اخیر است، نه ادعای همهٔ داده‌ها؛ تمرین/آزمون/رشد، سایر پنل‌ها و SMS عملیاتی همچنان کار باز هستند. دسترسی ناشناس، فاقد نقش، لغو ثبت‌نام و قطع نظارت در HTTP/Playwright پوشش داده می‌شوند؛ لینک ورود از `/account` اضافه شده و پیش‌نمایش عمومی بدون داده مانده است.
 
+## خانهٔ محدود واقعی ارائه‌دهنده
+
+`/provider` با نشست و نقش فعال scoped، تا ۲۰ دورهٔ متعلق به providerهای همان کاربر را با وضعیت واقعی نظارت و انتشار از PostgreSQL نشان می‌دهد. لینک قرنطینه فقط برای دورهٔ پیش‌نویس با نظارت approved ظاهر می‌شود و مسیر آپلود خود مجوز را دوباره می‌سنجد؛ وضعیت revoked در خانه دیده می‌شود اما لینک آپلود نمی‌گیرد. کاربر غیرمجاز به دادهٔ سایر ارائه‌دهندگان نمی‌رسد. لینک از `/account` اضافه شده؛ آزمون HTTP و Playwright مسیر ناشناس، نقش دیگر، تفکیک scope، requested/approved/revoked و ناوبری را پوشش می‌دهد. این بخش هنوز پنل کامل ارائه‌دهنده یا تأیید scanner/انتشار عملیاتی نیست.
+
 ## راهنمای ادامه برای چت جدید
 
 از **head جدید PR #1** و آخرین CI آن شروع کنید، نه snapshotهای قدیمی. ابتدا `README.md`، `docs/implementation/quarantined-media-ingest.md`، `docs/implementation/scalable-media-foundation.md`، `docs/implementation/free-student-enrollment-private-video.md`، `src/server/media/{ingest,multipart,cleanup}.ts`، `src/db/schema.ts` و `drizzle/meta/_journal.json` را بررسی کنید. تغییر واقعی روی `chore/bootstrap-dena-stack` انجام دهید، migration را با Drizzle تولید و commit و هر دو job CI را تا green بررسی کنید. هیچ قابلیت fake scanner، upload حجیم یا ظرفیت ۵M را production ننامید.
