@@ -104,6 +104,12 @@ export default async function ProviderHomePage() {
                 <p className="text-sm text-dena-muted">
                   انتشار: {publicationLabels[course.publicationStatus]}
                 </p>
+                {course.supervisionStatus === "approved" && (
+                  <Link href={`/provider/courses/${course.courseId}/practice`}
+                    className={buttonClassName("secondary")}>
+                    سؤال تمرینی دوره
+                  </Link>
+                )}
                 {course.supervisionStatus === "approved" &&
                   course.publicationStatus === "draft" && (
                     <Link href={`/provider/courses/${course.courseId}/media`}
@@ -126,7 +132,8 @@ export default async function ProviderHomePage() {
       <Card>
         <h2 className="text-lg font-extrabold">دامنهٔ این فاز</h2>
         <p className="mt-3 text-sm leading-8 text-dena-muted">
-          آمار دانش‌آموزان، درآمد، تکلیف و آزمون هنوز به این صفحه متصل نیست.
+          یک تمرین چهارگزینه‌ایِ اختیاری برای هر دوره اکنون قابل ثبت است؛
+          تکلیف جامع، آزمون رسمی، آمار دانش‌آموزان و درآمد هنوز به این صفحه متصل نیستند.
           تأیید نقش ارائه‌دهنده به معنی تأیید خودکار نظارت یا انتشار دوره نیست.
         </p>
       </Card>
