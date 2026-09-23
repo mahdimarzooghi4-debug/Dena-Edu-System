@@ -10,6 +10,8 @@ import { hasStudentEntitlement } from "../../../../../server/student/entitlement
 import { configuredPrivateMediaOrigin } from "../../../../../server/student/private-media";
 import { getStudentVideoProgress } from "../../../../../server/student/video-progress";
 import { VideoProgress } from "../../../../../components/student/video-progress";
+import { StudentCoursePractice } from "../../../../../components/student/course-practice";
+import { getStudentPractice } from "../../../../../server/student/course-practice";
 import { z } from "zod";
 
 export const runtime = "nodejs";
@@ -33,6 +35,7 @@ export default async function CourseWatchPage({
     .where(eq(courses.id, courseId)).limit(1);
   if (!course) notFound();
   const videos = await getStudentVideoProgress(actor.userId, courseId);
+  const practice = await getStudentPractice(actor.userId, courseId);
   const enabled = Boolean(configuredPrivateMediaOrigin());
   return (
     <main id="main-content" className="mx-auto min-h-screen max-w-4xl px-5 py-8 md:py-14">
@@ -59,6 +62,15 @@ export default async function CourseWatchPage({
         )}
         {enabled && videos.length > 0 && (
           <VideoProgress courseId={courseId} videos={videos} />
+        )}
+        {practice && (
+          <StudentCoursePractice courseId={courseId} question={{
+            ...practice,
+            attempt: practice.attempt ? {
+              ...practice.attempt,
+              submittedAt: practice.attempt.submittedAt.toISOString(),
+            } : null,
+          }} />
         )}
         <p className="text-xs leading-7 text-dena-muted">
           امکان ذخیره‌سازی یا ضبط محتوای قابل پخش در دستگاه کاربر را نمی‌توان
