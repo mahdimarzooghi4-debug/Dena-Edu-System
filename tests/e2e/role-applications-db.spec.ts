@@ -86,6 +86,7 @@ test.describe("reviewed role requests, scoped grants and audit on PostgreSQL", (
     const anonymous = await client();
     expect((await anonymous.get("/api/admin/role-applications")).status()).toBe(401);
     expect((await anonymous.get("/api/access/role-applications")).status()).toBe(401);
+    expect((await anonymous.get("/api/organization/overview")).status()).toBe(401);
     const noSessionAdmin = await anonymous.get("/admin", { maxRedirects: 0 });
     expect(noSessionAdmin.status()).toBe(307);
     expect(noSessionAdmin.headers().location).toBe("/login");
@@ -94,6 +95,8 @@ test.describe("reviewed role requests, scoped grants and audit on PostgreSQL", (
     const applicant = await client("applicant");
     expect((await applicant.get("/api/admin/role-applications")).status()).toBe(403);
     expect((await applicant.get("/admin")).status()).toBe(404);
+    expect((await applicant.get("/api/organization/overview")).status()).toBe(403);
+    expect((await applicant.get("/organization")).status()).toBe(404);
     expect((await submit(applicant, { ...proposed, role: "admin" })).status()).toBe(400);
     expect((await submit(applicant, { ...proposed, instituteId: randomUUID() })).status()).toBe(400);
     expect((await submit(applicant, { ...proposed, role: "student" })).status()).toBe(400);
@@ -187,6 +190,121 @@ test.describe("reviewed role requests, scoped grants and audit on PostgreSQL", (
       .json())).not.toContain("private-review/");
     await applicant.dispose();
     await admin.dispose();
+  });
+
+  test("organization home uses approved organization role, never other entity or evidence", async ({ page }) => {
+    const applicant = await client("applicant");
+    const reviewer = await client("reviewer");
+    const outsider = await client("outsider");
+    const submission = await submit(applicant, {
+      role: "organization", proposedName: "سازمان آزمایشی پیشنهادی",
+      statement: "درخواست بررسی قانونی نمایندگی سازمان برای مشاهده محدوده خود.",
+    });
+    expect(submission.status()).toBe(201);
+    const applicationId = (await submission.json()).id as string;
+    requestIds.push(applicationId);
+    expect((await applicant.get("/api/organization/overview")).status()).toBe(403);
+    expect((await applicant.get("/organization")).status()).toBe(404);
+
+    const approval = await decide(reviewer, applicationId, {
+      action: "approve", verifiedName: "سازمان آزمایشی تأییدشده",
+      evidenceReference: "private-review/CI-organization-0001",
+      reason: "مدارک نمایندگی سازمان به طور مستقل و محدود بررسی و ثبت شد.",
+    });
+    expect(approval.status()).toBe(200);
+    const [member] = await db.select().from(memberships).where(and(
+      eq(memberships.userId, ids.applicant),
+      eq(memberships.role, "organization"),
+    ));
+    expect(member.organizationId).toMatch(/^[a-f\d-]{36}$/);
+    const [scope] = await db.select().from(verifiedEntities)
+      .where(eq(verifiedEntities.id, member.organizationId!));
+    expect(scope.role).toBe("organization");
+    expect(scope.name).toBe("سازمان آزمایشی تأییدشده");
+
+    const outsiderScopeId = randomUUID();
+    await db.insert(verifiedEntities).values({
+      id: outsiderScopeId, role: "organization", name: "سازمان دیگر خصوصی",
+      evidenceReference: "private-review/CI-other-organization-0002",
+      verifiedByUserId: ids.reviewer,
+    });
+    await db.insert(memberships).values({
+      userId: ids.outsider, role: "organization",
+      organizationId: outsiderScopeId,
+    });
+    const listing = await applicant.get("/api/organization/overview");
+    expect(listing.status()).toBe(200);
+    expect(listing.headers()["cache-control"]).toContain("no-store");
+    const data = await listing.json();
+    expect(data.organizations).toHaveLength(1);
+    expect(data.organizations[0]).toMatchObject({
+      id: scope.id, name: "سازمان آزمایشی تأییدشده",
+    });
+    const apiText = JSON.stringify(data);
+    expect(apiText).not.toContain("private-review/");
+    expect(apiText).not.toContain("سازمان دیگر خصوصی");
+    expect(apiText).not.toContain(ids.reviewer);
+    const outsiderData = await (await outsider.get("/api/organization/overview")).json();
+    expect(outsiderData.organizations).toHaveLength(1);
+    expect(outsiderData.organizations[0].name).toBe("سازمان دیگر خصوصی");
+    expect(JSON.stringify(outsiderData)).not.toContain("سازمان آزمایشی تأییدشده");
+    expect((await reviewer.get("/api/organization/overview")).status()).toBe(403);
+    expect((await reviewer.get("/organization")).status()).toBe(404);
+
+    const organizationHome = await applicant.get("/organization");
+    expect(organizationHome.status()).toBe(200);
+    const html = await organizationHome.text();
+    expect(html).toContain("سازمان آزمایشی تأییدشده");
+    expect(html).not.toContain("سازمان دیگر خصوصی");
+    expect(html).not.toContain("private-review/");
+    expect(html).not.toContain("CI-organization-0001");
+    expect(html).not.toContain("CI-other-organization-0002");
+    const account = await applicant.get("/account");
+    expect(await account.text()).toContain('href="/organization"');
+
+    const instituteMembership = await db.select().from(memberships).where(and(
+      eq(memberships.userId, ids.applicant),
+      eq(memberships.role, "institute"),
+    )).limit(1);
+    await db.update(memberships).set({
+      organizationId: instituteMembership[0].instituteId!,
+    }).where(eq(memberships.id, member.id));
+    expect((await applicant.get("/api/organization/overview")).status()).toBe(404);
+    expect((await applicant.get("/organization")).status()).toBe(404);
+    await db.update(memberships).set({
+      organizationId: scope.id,
+    }).where(eq(memberships.id, member.id));
+
+    const signed = await serializeSignedCookie(
+      "better-auth.session_token", token.applicant, process.env.BETTER_AUTH_SECRET!,
+    );
+    await page.context().addCookies([{
+      name: "better-auth.session_token",
+      value: signed.split(";")[0].split("=").slice(1).join("="),
+      domain: "localhost", path: "/", httpOnly: true, secure: false, sameSite: "Lax",
+    }]);
+    await page.goto("http://localhost:3000/organization");
+    await expect(page.getByRole("heading", {
+      name: "سازمان‌های دارای دسترسی من",
+    })).toBeVisible();
+    await expect(page.getByRole("heading", {
+      name: "سازمان آزمایشی تأییدشده",
+    })).toBeVisible();
+    await page.getByRole("link", {
+      name: "وضعیت درخواست‌های نقش من",
+    }).click();
+    await expect(page).toHaveURL(/\/account\/role-applications$/);
+
+    await db.update(memberships).set({ status: "suspended" })
+      .where(eq(memberships.id, member.id));
+    expect((await applicant.get("/api/organization/overview")).status()).toBe(403);
+    expect((await applicant.get("/organization")).status()).toBe(404);
+    await db.update(memberships).set({ status: "active" })
+      .where(eq(memberships.id, member.id));
+    expect((await applicant.get("/organization")).status()).toBe(200);
+    await reviewer.dispose();
+    await outsider.dispose();
+    await applicant.dispose();
   });
 
   test("rejected role does not grant scope; no self-review even for admins", async ({ page }) => {
