@@ -33,6 +33,32 @@ describe("private media is disabled by default and never accepts client URLs", (
     expect(configuredPrivateMediaOrigin()?.origin.hostname).toBe("media.example.test");
   });
 
+  it.each([
+    "https://localhost/",
+    "https://localhost./",
+    "https://media.localhost/",
+    "https://127.0.0.2/",
+    "https://[::1]/",
+    "https://[::ffff:127.0.0.1]/",
+    "https://[fe80::1]/",
+    "https://169.254.169.254/",
+    "https://0.0.0.0/",
+  ])("rejects a local private-origin destination even under HTTPS: %s", url => {
+    process.env.DENA_MEDIA_ENABLED = "1";
+    process.env.DENA_PRIVATE_MEDIA_ORIGIN_TOKEN = "x".repeat(32);
+    process.env.DENA_PRIVATE_MEDIA_ORIGIN_URL = url;
+    process.env.DENA_DB_INTEGRATION = "0";
+    expect(configuredPrivateMediaOrigin()).toBeNull();
+  });
+
+  it("allows RFC1918 private media origins (not proof of egress isolation)", () => {
+    process.env.DENA_MEDIA_ENABLED = "1";
+    process.env.DENA_PRIVATE_MEDIA_ORIGIN_TOKEN = "x".repeat(32);
+    process.env.DENA_DB_INTEGRATION = "0";
+    process.env.DENA_PRIVATE_MEDIA_ORIGIN_URL = "https://10.8.0.12/";
+    expect(configuredPrivateMediaOrigin()?.origin.hostname).toBe("10.8.0.12");
+  });
+
   it("permits HTTP strictly on isolated localhost integration origin", () => {
     process.env.DENA_MEDIA_ENABLED = "1";
     process.env.DENA_PRIVATE_MEDIA_ORIGIN_TOKEN = "x".repeat(32);
