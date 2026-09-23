@@ -1,0 +1,32 @@
+# تحویل وضعیت دنا و گیت پیکربندی انتشار — ۱۴۰۵/۰۷/۰۱
+
+## وضعیت تأییدشده در GitHub
+
+- مخزن: `mahdimarzooghi4-debug/Dena-Edu-System`، شاخه `chore/bootstrap-dena-stack`، Draft PR شماره ۱.
+- سامانه فارسی RTL با نقش‌های student/institute/provider/admin/organization/benefactor و پشتیبانی فنی مشترک؛ Next.js 16, React 19, TS, Tailwind 4, PostgreSQL/Drizzle, Better Auth؛ پیش‌نمایش Figma و پوسته موبایل/دسکتاپ.
+- ورود OTP فقط با mock CI یا adapter عمومی خاموش؛ اعطای دانش‌آموز با مالکیت شماره؛ نقش‌های ممتاز با درخواست، تأیید ادمین مستقل، scope سرورساخت و ممیزی؛ ادمین production از خوداظهاری ایجاد نمی‌شود.
+- نظارت مؤسسه **برای هر دوره**، درخواست provider/تأیید مستقل مؤسسه/رد/لغو؛ ثبت‌نام **فقط دوره رایگان** پس از انتشار، grant approved و آماده بودن media، بررسی session و enrollment هنگام هر Range؛ stream از مسیر محافظت‌شده Next.js، نه CDN.
+- Pilot ingest ۸ MiB: رزرو idempotent، SHA-256 و header MP4، قرنطینه، صف پایدار processing با claim/lease/retry/dead-letter، HMAC گواهی source/output و بررسی streaming واقعی، callback با lease؛ پاکسازی quarantine با lease/retry/fence ضد late writes؛ mock فقط localhost در CI.
+- Dry-run multipart برای فایل >۱۶ MiB تا سقف قراردادی ۵ GiB: برنامه ۱۶ MiB، ذخیره metadata/idempotency، expiry و cancel؛ **هیچ storage grant، presigned URL یا آپلود حجیم واقعی صادر نمی‌شود**. مسیر گواهی AV/transcode/CDN/object storage production متصل نیست.
+- Migrationهای Drizzle از ۰۰۰۰ تا **۰۰۰۹** ثبت شده‌اند و اجرای موفق قبلی GitHub Actions `35643793599` برای foundation و PostgreSQL integration هر دو سبز است.
+- هدف ۵M concurrent، **صرفاً هدف ظرفیت**؛ نه benchmark یا تعهد خدمت اثبات‌شده.
+
+## گیت جدید بررسی پیکربندی
+
+`npm run check:release-config` یک بررسی **ایستا** و بدون اتصال شبکه/دیتابیس است. هیچ توکن، URL دارای password یا fingerprint راز را چاپ نمی‌کند؛ فقط نام متغیر و کد خطا را می‌نویسد. حالت CI (`DENA_DB_INTEGRATION=1`)، محیط development، localhost یا HTTP در auth/SMS/media، خاموش‌بودن یکی از سرویس‌های OTP/media/ingest/processor/attestation/cleanup، تنظیم ناقص یا رازهای مشترک میان سرویس‌ها باعث nonzero exit می‌شود.
+
+این profile برای **انتشار تمام قابلیت‌های بررسی‌شده** تعریف شده است؛ برای عرضه محدود صرفاً مطالعه/پیش‌نمایش که SMS یا ingest لازم ندارد، به جای دورزدن شرط‌ها یک پروفایل محدود جدا با تصمیم مصوب تعریف شود.
+
+**عبور از اسکریپت به معنی تأیید production نیست.** اسکریپت نمی‌تواند واقعی‌بودن vendor، AV، نگهداری داده، رضایت‌نامه والد، رمزنگاری DB در شبکه، bucket ACL، immutability نسخه فایل، HLS/CDN revocation، حذف داده، بار ۵M، پایداری SMS، بودجه یا مجوز مؤسسه را ثابت کند؛ هیچ real credential در repo commit نشود. سناریوهای unit test از secretهای ساختگی استفاده می‌کنند.
+
+## تصمیم‌ها و کارهای باز
+
+- انتخاب ارائه‌دهنده SMS واقعی، اجرای تست منطقه ایران، خرید/تنظیم credentials.
+- PostgreSQL production با TLS، backup + restore drill، least-privilege roles، immutability/audit policy و bootstrap اولین ادمین با approval مستقل.
+- private object store HTTPS واقعی با key/version immutable، signed multipart storage adapter، scanner/transcoder ایزوله با اصل least privilege، attestation provenance و خط‌مشی content moderation.
+- تقویت محدودیت‌ها و rate limiting توزیع‌شده برای role/enrollment/upload، retry worker, cron GC، edge/CDN token + revoke، load test و ظرفیت واقعی.
+- پنل‌های کامل، آزمون/تمرین، ویدئوی حجیم، پرداخت/صندوق، تیکت، بررسی حقوقی/حریم خصوصی دانش‌آموزان و QA فریم‌های اختصاصی Figma.
+
+## راهنمای ادامه برای چت جدید
+
+از **head جدید PR #1** و آخرین CI آن شروع کنید، نه snapshotهای قدیمی. ابتدا `README.md`، `docs/implementation/quarantined-media-ingest.md`، `docs/implementation/scalable-media-foundation.md`، `docs/implementation/free-student-enrollment-private-video.md`، `src/server/media/{ingest,multipart,cleanup}.ts`، `src/db/schema.ts` و `drizzle/meta/_journal.json` را بررسی کنید. تغییر واقعی روی `chore/bootstrap-dena-stack` انجام دهید، migration را با Drizzle تولید و commit و هر دو job CI را تا green بررسی کنید. هیچ قابلیت fake scanner، upload حجیم یا ظرفیت ۵M را production ننامید.
