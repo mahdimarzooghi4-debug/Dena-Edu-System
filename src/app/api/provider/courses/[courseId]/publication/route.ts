@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { getDb } from "../../../../../../db";
-import { courses, memberships, privateMediaAssets, supervisionGrants } from "../../../../../../db/schema";
+import { coursePracticeQuestions, courses, memberships, privateMediaAssets, supervisionGrants } from "../../../../../../db/schema";
 import { getServerAccessContext } from "../../../../../../server/access/actor";
 import { validSameOrigin } from "../../../../../../server/access/role-application-contracts";
 import { configuredPrivateMediaOrigin } from "../../../../../../server/student/private-media";
@@ -73,6 +73,14 @@ export async function POST(
         eq(privateMediaAssets.status, "ready"),
       )).limit(1).for("share");
     if (!video) return null;
+    const [practice] = await tx.select({
+      reviewStatus: coursePracticeQuestions.reviewStatus,
+    }).from(coursePracticeQuestions).where(
+      eq(coursePracticeQuestions.courseId, course.id),
+    ).limit(1).for("share");
+    if (practice?.reviewStatus === "pending") {
+      return { blocked: "practice_review_pending" as const };
+    }
     if (course.publicationStatus === "published") {
       return { courseId, publicationStatus: "published" as const, replayed: true };
     }
@@ -81,6 +89,11 @@ export async function POST(
     }).where(eq(courses.id, courseId));
     return { courseId, publicationStatus: "published" as const, replayed: false };
   });
+  if (result && "blocked" in result) {
+    return NextResponse.json({ error: result.blocked }, {
+      status: 409, headers: noStore,
+    });
+  }
   return result ? NextResponse.json(result, { headers: noStore })
     : NextResponse.json({ error: "Not found" }, {
       status: 404, headers: noStore,
