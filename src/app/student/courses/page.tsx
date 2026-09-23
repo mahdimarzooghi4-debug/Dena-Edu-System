@@ -19,9 +19,14 @@ export default async function StudentFreeCoursesPage() {
   if (!actor.memberships.some((member) => member.role === "student")) notFound();
   return (
     <main id="main-content" className="mx-auto min-h-screen max-w-4xl px-5 py-8 md:py-14">
-      <Link href="/account" className="text-sm font-bold text-dena-brand hover:underline">
-        بازگشت به حساب من
-      </Link>
+      <header className="flex flex-wrap items-center justify-between gap-4">
+        <Link href="/account" className="text-sm font-bold text-dena-brand hover:underline">
+          بازگشت به حساب من
+        </Link>
+        <Link href="/student" className="text-sm font-bold text-dena-brand hover:underline">
+          خانه دانش‌آموز
+        </Link>
+      </header>
       <Card className="mt-6 rounded-[24px] p-6 md:p-10">
         <p className="text-sm font-bold text-dena-brand">دانش‌آموز دنا</p>
         <h1 className="mt-3 text-2xl font-extrabold">دوره‌های رایگان منتشرشده</h1>
@@ -29,6 +34,8 @@ export default async function StudentFreeCoursesPage() {
           تنها دوره‌هایی نمایش داده می‌شوند که مؤسسه مسئول نظارت بر همان دوره
           را تأیید کرده، ارائه‌دهنده آن را منتشر کرده و محتوای خصوصی آماده است.
           ثبت‌نام در این فاز رایگان است؛ پرداخت و دوره‌های پولی فعال نیستند.
+          جست‌وجوی عنوان، فیلتر ثبت‌نام‌های خودتان و مشاهده صفحه‌های بعدی
+          فهرست، همگی روی دادهٔ مجاز سمت سرور انجام می‌شوند.
         </p>
         <FreeCourses />
       </Card>
