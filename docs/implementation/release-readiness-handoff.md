@@ -75,6 +75,10 @@
 
 کاتالوگ `/api/student/courses` اکنون `q` عنوان و `mine=1` ثبت‌نام خود فرد با `nextCursor` مقید به فیلتر دارد؛ از سقف ۵۰ دورهٔ اولیه فراتر می‌رود و در هر درخواست ۲۰ دورهٔ با حق دسترسی فعلی برمی‌گرداند. UI `/student/courses` جست‌وجو، حالت بی‌نتیجه و «نمایش دوره‌های بیشتر» دارد. `src/server/student/course-catalog.ts` از `listedFreeCourse` مشترک با watch استفاده می‌کند؛ همهٔ صفحه‌ها دوباره permission را می‌سنجند. تست PostgreSQL/Playwright ۵۲ دوره، wildcard به‌صورت literal، سرچ شخصی با ثبت‌نام دو دانش‌آموز و سه صفحه را بررسی می‌کند. این **پیشرفت فهرست دوره** است نه ثبت پیشرفت تماشای ویدئو، آزمون یا آموزش کامل؛ Full-text فارسی، snapshot سراسری، ایندکس‌ها و load testing باز هستند.
 
+## ثبت علامت واقعی ویدئوی انجام‌شده به انتخاب دانش‌آموز
+
+`0010_dena_student_video_completions` و snapshot جدید به دیتابیس افزوده شده‌اند: رکورد یکتای student/asset با زمان ثبت. فقط دانش‌آموز دارای enrollment فعال و دسترسی جاری به ویدئوی ready و نظارت معتبر می‌تواند روی endpoint خصوصی completion علامت ایجاد/حذف کند؛ تکرار POST idempotent است و GET manifest فقط boolean وضعیت متعلق به خود او را نشان می‌دهد. در صفحهٔ watch امکان تغییر و شمارش صرفاً ویدئوهای نمایش‌داده‌شده فراهم است. این **self-report** است نه proof of watch یا آزمون/امتیاز/مدرک؛ گزارش رسمی، ارزیابی و tracking خودکار همچنان کار بازند. تست مرورگر/HTTP مالکیت، ذخیره در DB، تکرار، لغو علامت، لغو ثبت‌نام و نظارت/عضویت را بررسی می‌کند.
+
 ## راهنمای ادامه برای چت جدید
 
 از **head جدید PR #1** و آخرین CI آن شروع کنید، نه snapshotهای قدیمی. ابتدا `README.md`، `docs/implementation/quarantined-media-ingest.md`، `docs/implementation/scalable-media-foundation.md`، `docs/implementation/free-student-enrollment-private-video.md`، `src/server/media/{ingest,multipart,cleanup}.ts`، `src/db/schema.ts` و `drizzle/meta/_journal.json` را بررسی کنید. تغییر واقعی روی `chore/bootstrap-dena-stack` انجام دهید، migration را با Drizzle تولید و commit و هر دو job CI را تا green بررسی کنید. هیچ قابلیت fake scanner، upload حجیم یا ظرفیت ۵M را production ننامید.
