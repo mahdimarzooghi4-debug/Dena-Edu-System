@@ -59,6 +59,10 @@
 
 `/institute` با Better Auth + نقش institute فعال و scope سروری، ۲۰ رابطهٔ نظارت اخیر از مؤسسه‌های متعلق به کاربر را نشان می‌دهد. وضعیت‌های requested/approved/revoked در PostgreSQL خوانده می‌شوند؛ pending به `/institute/providers` ارجاع می‌شود، نه تأیید خودکار. تست مرورگر/HTTP شامل ناشناس، نقش بیگانه، مؤسسهٔ بیگانه، تعلیق و تغییر واقعی تصمیم است. صفحات پیش‌نمایش همچنان عمومی/بدون داده و پنل کامل مؤسسه (تمرین، یادگیری، پروفایل) عملیاتی نشده است.
 
+## خانهٔ محدود واقعی مدیر
+
+`/admin` اکنون با session + نقش admin فعال، شمار pending واقعی و ۱۰ درخواست قدیمی‌تر با دادهٔ حداقلی را از PostgreSQL نمایش می‌دهد؛ صف بررسی مستقل `/admin/role-applications` و ممنوعیت بررسی پروندهٔ خود مدیر پابرجاست. پروندهٔ تأیید/رد شده در درخواست بعدی خانه از فهرست pending حذف می‌شود. در HTTP/Playwright ناشناس، دانش‌آموز، عضویت معلق، گردش‌کار واقعی و عدم افشای مرجع مدارک آزموده می‌شوند. این خانه پنل کامل ادمین نیست؛ اولین ادمین عملیاتی و بررسی حقوقی و audit استقرار بازند.
+
 ## راهنمای ادامه برای چت جدید
 
 از **head جدید PR #1** و آخرین CI آن شروع کنید، نه snapshotهای قدیمی. ابتدا `README.md`، `docs/implementation/quarantined-media-ingest.md`، `docs/implementation/scalable-media-foundation.md`، `docs/implementation/free-student-enrollment-private-video.md`، `src/server/media/{ingest,multipart,cleanup}.ts`، `src/db/schema.ts` و `drizzle/meta/_journal.json` را بررسی کنید. تغییر واقعی روی `chore/bootstrap-dena-stack` انجام دهید، migration را با Drizzle تولید و commit و هر دو job CI را تا green بررسی کنید. هیچ قابلیت fake scanner، upload حجیم یا ظرفیت ۵M را production ننامید.
