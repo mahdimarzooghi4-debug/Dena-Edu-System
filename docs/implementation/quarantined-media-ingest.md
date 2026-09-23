@@ -23,6 +23,10 @@
 
 این pilot **تمام بایت‌های ۸MiB را در یک instance Next.js در RAM دریافت و سپس به origin ارسال می‌کند**؛ مناسب HLS، upload بزرگ، ۵ میلیون concurrent یا storage/antivirus واقعی نیست. قبل از عرضه باید direct-to-quarantine signed multipart upload با حد اندازه/نوع/TTL و storage policy، اسکن واقعی و صف پردازش durable، dead-letter/timeout recovery، GC پرونده و فایل orphaned، rate limit توزیع‌شده، quota و abuse detection، attestation امضاشده، مانیتورینگ، content moderation و تکمیل CDN/edge auth به همراه load tests طراحی و اجرا شوند. از mock `scripts/test-media-origin.mjs` فقط در `DENA_DB_INTEGRATION=1` روی localhost استفاده کنید و **هرگز** آن را در production مستقر نکنید.
 
+## سقف پاسخ گواهی از origin خصوصی
+
+مسیر callback پس از دریافت گزارش `/inspection/:uploadId`، **پیش از تبدیل پاسخ به JSON** نوع `application/json`، طول واقعی/اعلام‌شده و سقف ۴KiB را کنترل می‌کند؛ پاسخ غیر JSON، خالی، غیرشیء، خراب یا بیش از سقف به رد callback بدون ساخت asset آماده منتهی می‌شود. `src/server/media/inspection-report.test.ts` پاسخ معتبر و موارد منفی را می‌سنجد و CI با mock یک پاسخ حجیم one-shot را آزمایش می‌کند. این فقط محدودیت پردازش گزارش است؛ اصالت محتوا همچنان وابسته به HMAC signer مستقل، بررسی واقعی بایت‌ها و ذخیره‌سازی immutable آینده است.
+
 ## CI
 
 `tests/e2e/media-ingest-db.spec.ts`: عدم دسترسی بی‌نشست/student؛ Origin/role/status/object URL تزریقی؛ درخواست idempotent و body conflict؛ رد فایل با hash نادرست؛ role suspension/revoked grant در زمان آپلود؛ دریافت quarantined ولی نبود asset آماده؛ عدم پذیرش notification بدون Bearer یا بدون گزارش بازرسی؛ پردازش mock صریح localhost + تأیید مستقل از origin، ایجاد یک asset و publish/free-enrollment/video byte-range. `src/server/media/ingest.test.ts` default-off، sniff header و تفکیک token worker را بررسی می‌کند. **موفقیت این تست به معنی گذر آزمون scanner واقعی نیست**.
