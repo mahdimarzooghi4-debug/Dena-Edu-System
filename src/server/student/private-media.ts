@@ -45,3 +45,50 @@ export function safeMediaRange(value: string | null): string | null | false {
   if (!/^bytes=(?:\d+-\d*|-\d+)$/.test(value) || value.length > 80) return false;
   return value;
 }
+
+
+/**
+ * Validate private-origin response framing BEFORE streaming to a student.
+ * Headers do not attest the bytes' integrity; the ingest verifier and a real
+ * immutable private store remain separate release gates. This catches broken
+ * or mismatched Range replies without buffering the MP4 in the app server.
+ */
+export function validatedPrivateMediaResponse(
+  status: number, requestedRange: string | null, responseHeaders: Headers,
+): { length: string; range: string | null } | null {
+  if (responseHeaders.get("x-dena-private") !== "1" ||
+      responseHeaders.get("content-type")?.split(";")[0].trim() !== "video/mp4") {
+    return null;
+  }
+  const rawLength = responseHeaders.get("content-length");
+  if (!rawLength || !/^(?:0|[1-9]\d*)$/.test(rawLength)) return null;
+  const length = Number(rawLength);
+  if (!Number.isSafeInteger(length) || length < 1) return null;
+
+  const range = responseHeaders.get("content-range");
+  if (status === 200 && requestedRange === null && range === null) {
+    return { length: rawLength, range: null };
+  }
+  if (status !== 206 || requestedRange === null || range === null) return null;
+  const parsed = /^bytes (0|[1-9]\d*)-(0|[1-9]\d*)\/([1-9]\d*)$/.exec(range);
+  if (!parsed) return null;
+  const [from, to, total] = parsed.slice(1).map(Number);
+  if (![from, to, total].every(Number.isSafeInteger) ||
+      total < 1 || from > to || to >= total || to - from + 1 !== length) return null;
+
+  const explicit = /^bytes=(\d+)-(\d*)$/.exec(requestedRange);
+  if (explicit) {
+    const start = Number(explicit[1]);
+    const end = explicit[2] ? Number(explicit[2]) : total - 1;
+    if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) ||
+        start >= total || end < start ||
+        from !== start || to !== Math.min(end, total - 1)) return null;
+  } else {
+    const suffix = /^bytes=-(\d+)$/.exec(requestedRange);
+    if (!suffix) return null;
+    const count = Number(suffix[1]);
+    if (!Number.isSafeInteger(count) || count < 1 ||
+        from !== Math.max(0, total - count) || to !== total - 1) return null;
+  }
+  return { length: rawLength, range };
+}
