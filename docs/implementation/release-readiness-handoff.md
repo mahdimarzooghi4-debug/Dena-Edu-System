@@ -29,7 +29,7 @@
 - PostgreSQL production با TLS، backup + restore drill، least-privilege roles، immutability/audit policy و bootstrap اولین ادمین با approval مستقل.
 - private object store HTTPS واقعی با key/version immutable، signed multipart storage adapter، scanner/transcoder ایزوله با اصل least privilege، attestation provenance و خط‌مشی content moderation.
 - تقویت محدودیت‌ها و rate limiting توزیع‌شده برای role/enrollment/upload، retry worker, cron GC، edge/CDN token + revoke، load test و ظرفیت واقعی.
-- پنل‌های کامل، آزمون/تمرین، ویدئوی حجیم، پرداخت/صندوق، تیکت، بررسی حقوقی/حریم خصوصی دانش‌آموزان و QA فریم‌های اختصاصی Figma.
+- پنل‌های کامل، آزمون رسمی/بانک سؤال و گزارش ارزیابی (یک تمرین تکوینی تک‌سؤالی با review مستقل مؤسسه اکنون پایلوت است)، ویدئوی حجیم، پرداخت/صندوق، تیکت، بررسی حقوقی/حریم خصوصی دانش‌آموزان و QA فریم‌های اختصاصی Figma.
 
 ## تقویت پاسخ پخش ویدئو (بدون CDN)
 
