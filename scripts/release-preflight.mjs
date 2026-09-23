@@ -32,9 +32,9 @@ const lengths = {
 };
 function isLocal(hostname) {
   // WHATWG URL retains brackets on IPv6 hosts and canonicalizes short IPv4.
-  const h = hostname.toLowerCase().replace(/^\\[|\\]$/g, "");
+  const h = hostname.toLowerCase().replace(/^\[|\]$/g, "");
   return h === "localhost" || h === "::1" || h === "::" || h === "0.0.0.0" ||
-    /^127\\.(?:\\d{1,3}\\.){2}\\d{1,3}$/.test(h) || h.startsWith("::ffff:") ||
+    /^127\.(?:\d{1,3}\.){2}\d{1,3}$/.test(h) || h.startsWith("::ffff:") ||
     h.endsWith(".localhost") || h.endsWith(".test") || h.endsWith(".invalid");
 }
 function checkUrl(value, label, { root = false, protocols = ["https:"] } = {}) {
