@@ -39,6 +39,10 @@
 
 آداپتور سروری OTP اکنون صرف HTTP 2xx را موفق تلقی نمی‌کند: بدنهٔ JSON با `accepted: true` بولی، `Content-Type: application/json` و سقف ۱۰۲۴ بایت لازم است؛ خطای vendor، JSON خراب، بدنه خالی یا بزرگ به خطای عمومی fail-closed منجر می‌شود. این قرارداد قابل تعویض برای gateway آینده است؛ mock CI تنها پذیرش مصنوعی را اثبات می‌کند، نه تحویل موبایلی اپراتور. تست‌های Vitest مثبت/منفی، محدودیت پاسخ و خطای sanitize را بررسی می‌کنند.
 
+## محدودسازی پاسخ attestation origin
+
+مسیر completion ویدئو گزارش JSON origin خصوصی را اکنون با سقف ۴KiB و کنترل Content-Type و طول اعلام‌شده/دریافت‌شده پیش از `JSON.parse` می‌خواند؛ گزارش بزرگ/نامعتبر asset آماده ایجاد نمی‌کند. Vitest و سناریوی localhost/PostgreSQL رفتار fail-closed و آزمون ادامهٔ پردازش سالم را می‌پوشانند. این کنترل به‌معنی واقعی‌بودن AV/transcode، امنیت signer یا immutability نیست.
+
 ## راهنمای ادامه برای چت جدید
 
 از **head جدید PR #1** و آخرین CI آن شروع کنید، نه snapshotهای قدیمی. ابتدا `README.md`، `docs/implementation/quarantined-media-ingest.md`، `docs/implementation/scalable-media-foundation.md`، `docs/implementation/free-student-enrollment-private-video.md`، `src/server/media/{ingest,multipart,cleanup}.ts`، `src/db/schema.ts` و `drizzle/meta/_journal.json` را بررسی کنید. تغییر واقعی روی `chore/bootstrap-dena-stack` انجام دهید، migration را با Drizzle تولید و commit و هر دو job CI را تا green بررسی کنید. هیچ قابلیت fake scanner، upload حجیم یا ظرفیت ۵M را production ننامید.
