@@ -6,7 +6,7 @@ const script = resolve(process.cwd(), "scripts/release-preflight.mjs");
 const good = {
   NODE_ENV: "production",
   DENA_DB_INTEGRATION: "0",
-  DATABASE_URL: "postgresql://app:placeholder@db.example.com:5432/dena",
+  DATABASE_URL: "postgresql://app:placeholder@db.example.com:5432/dena?sslmode=verify-full",
   BETTER_AUTH_URL: "https://dena.example.com",
   DENA_SMS_GATEWAY_URL: "https://sms.example.com/send",
   DENA_PRIVATE_MEDIA_ORIGIN_URL: "https://private-media.example.com/",
@@ -41,6 +41,31 @@ describe("release preflight only validates static configuration", () => {
     expect(result.stdout).toContain("NOT PRODUCTION APPROVAL");
     expect(result.stdout).toContain("human gates");
     expect(result.stderr).toBe("");
+  });
+
+  it.each([
+    ["absent TLS mode", "postgresql://app:db-secret@db.example.com:5432/dena", "tls_verification_required"],
+    ["unencrypted", "postgresql://app:db-secret@db.example.com:5432/dena?sslmode=disable", "tls_verification_required"],
+    ["encryption without hostname validation", "postgresql://app:db-secret@db.example.com:5432/dena?sslmode=require", "tls_verification_required"],
+    ["CA check without hostname validation", "postgresql://app:db-secret@db.example.com:5432/dena?sslmode=verify-ca", "tls_verification_required"],
+    ["duplicated mode", "postgresql://app:db-secret@db.example.com:5432/dena?sslmode=verify-full&sslmode=disable", "tls_verification_required"],
+    ["ambiguous SSL override", "postgresql://app:db-secret@db.example.com:5432/dena?sslmode=verify-full&ssl=false", "ambiguous_connection_options"],
+    ["host override", "postgresql://app:db-secret@db.example.com:5432/dena?sslmode=verify-full&host=localhost", "ambiguous_connection_options"],
+    ["local database", "postgresql://app:db-secret@127.0.0.1:5432/dena?sslmode=verify-full", "mock_or_loopback"],
+    ["missing database", "postgresql://app:db-secret@db.example.com:5432/?sslmode=verify-full", "missing_database"],
+  ])("rejects %s for full release without logging database credentials", (_case, databaseUrl, code) => {
+    const result = run({ DATABASE_URL: databaseUrl });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("DATABASE_URL:" + code);
+    expect(result.stderr).not.toContain("db-secret");
+    expect(result.stderr).not.toContain(databaseUrl);
+  });
+
+  it("requires explicit production mode and rejects nonnumeric mock toggles", () => {
+    const result = run({ NODE_ENV: undefined, DENA_DB_INTEGRATION: "true" });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("NODE_ENV:not_production");
+    expect(result.stderr).toContain("DENA_DB_INTEGRATION:ci_mock_forbidden");
   });
 
   it("fails closed on CI mode, localhost SMS or HTTP private origin, without printing values", () => {
