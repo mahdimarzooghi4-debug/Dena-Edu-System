@@ -32,7 +32,7 @@ export function readCatalogQuery(searchParams: URLSearchParams) {
   const raw = searchParams.get("cursor");
   if (raw === null) return { q, mine, cursor: null };
   if (raw.length === 0) throw new InvalidCourseCatalogQuery();
-  if (raw.length > 640 || !/^[A-Za-z0-9_-]+$/u.test(raw)) {
+  if (raw.length > 2048 || !/^[A-Za-z0-9_-]+$/u.test(raw)) {
     throw new InvalidCourseCatalogQuery();
   }
   try {
