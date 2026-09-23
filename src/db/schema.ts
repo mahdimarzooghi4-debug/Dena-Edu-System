@@ -246,6 +246,22 @@ export const privateMediaAssets = pgTable("dena_private_media_assets", {
   `),
 ]);
 
+/** Self-reported learning marker; it is NOT proof of watching or assessment. */
+export const studentVideoCompletions = pgTable("dena_student_video_completions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  studentUserId: uuid("student_user_id").notNull()
+    .references(() => user.id, { onDelete: "restrict" }),
+  assetId: uuid("asset_id").notNull()
+    .references(() => privateMediaAssets.id, { onDelete: "restrict" }),
+  completedAt: timestamp("completed_at", { withTimezone: true })
+    .notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("dena_student_asset_completion_uidx").on(
+    table.studentUserId, table.assetId,
+  ),
+  index("dena_video_completion_asset_idx").on(table.assetId),
+]);
+
 /** Uploads are quarantined first; ONLY a separately authenticated processing
  * callback, followed by server-side origin verification, can create a ready asset.
  */
