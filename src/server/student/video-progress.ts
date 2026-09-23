@@ -1,6 +1,6 @@
 import { and, eq, sql } from "drizzle-orm";
 import { getDb } from "../../db";
-import { privateMediaAssets, studentVideoCompletions } from "../../db/schema";
+import { privateMediaAssets, studentVideoCompletions, studentVideoNotes } from "../../db/schema";
 
 /** Call only after hasStudentEntitlement. Media is rechecked for course and
  * ready status; completion is a voluntary marker, never watching evidence.
@@ -10,9 +10,13 @@ export async function getStudentVideoProgress(studentUserId: string, courseId: s
     assetId: privateMediaAssets.id,
     title: privateMediaAssets.title,
     completed: sql<boolean>`${studentVideoCompletions.id} IS NOT NULL`,
+    note: studentVideoNotes.body,
   }).from(privateMediaAssets).leftJoin(studentVideoCompletions, and(
     eq(studentVideoCompletions.studentUserId, studentUserId),
     eq(studentVideoCompletions.assetId, privateMediaAssets.id),
+  )).leftJoin(studentVideoNotes, and(
+    eq(studentVideoNotes.studentUserId, studentUserId),
+    eq(studentVideoNotes.assetId, privateMediaAssets.id),
   )).where(and(
     eq(privateMediaAssets.courseId, courseId),
     eq(privateMediaAssets.status, "ready"),
