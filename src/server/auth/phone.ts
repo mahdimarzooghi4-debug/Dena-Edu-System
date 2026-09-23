@@ -5,6 +5,7 @@ import { getDb } from "../../db";
 import { otpDispatchLimits } from "../../db/schema";
 import { isCanonicalIranMobile } from "../../lib/phone-number";
 import { unsafeServiceHostname } from "../ops/unsafe-service-host";
+import { smsGatewayAccepted } from "./sms-ack";
 export { normalizeIranMobile, isCanonicalIranMobile } from "../../lib/phone-number";
 
 function hmacPhone(phone: string): string {
@@ -92,7 +93,7 @@ export async function sendSmsOtp(phoneNumber: string, code: string): Promise<voi
       signal: AbortSignal.timeout(5_000),
       cache: "no-store",
     });
-    if (result.ok) return;
+    if (await smsGatewayAccepted(result)) return;
   } catch {
     // Do not propagate fetch/URL/redirect errors: they can embed an OTP,
     // phone number, gateway URL or credential in an upstream error message.
