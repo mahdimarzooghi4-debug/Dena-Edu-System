@@ -31,8 +31,10 @@ const lengths = {
   DENA_MEDIA_CLEANUP_TOKEN: 32,
 };
 function isLocal(hostname) {
-  const h = hostname.toLowerCase();
-  return h === "localhost" || h === "127.0.0.1" || h === "::1" ||
+  // WHATWG URL retains brackets on IPv6 hosts and canonicalizes short IPv4.
+  const h = hostname.toLowerCase().replace(/^\\[|\\]$/g, "");
+  return h === "localhost" || h === "::1" || h === "::" || h === "0.0.0.0" ||
+    /^127\\.(?:\\d{1,3}\\.){2}\\d{1,3}$/.test(h) || h.startsWith("::ffff:") ||
     h.endsWith(".localhost") || h.endsWith(".test") || h.endsWith(".invalid");
 }
 function checkUrl(value, label, { root = false, protocols = ["https:"] } = {}) {
@@ -56,6 +58,9 @@ export function assessReleaseEnvironment(env) {
     blockers.push("DENA_DB_INTEGRATION:ci_mock_forbidden");
   }
   if (env.NODE_ENV !== "production") blockers.push("NODE_ENV:not_production");
+  if (env.NODE_TLS_REJECT_UNAUTHORIZED === "0") {
+    blockers.push("NODE_TLS_REJECT_UNAUTHORIZED:certificate_validation_disabled");
+  }
   if (!env.DATABASE_URL) blockers.push("DATABASE_URL:missing");
   else {
     try {
