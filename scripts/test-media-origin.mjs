@@ -27,6 +27,7 @@ const deleteFailures = new Set();
 const unfencedDeletes = new Set();
 const tombstones = new Set();
 const inspections = new Map();
+const oversizedInspectionReports = new Set();
 const privateAssets = new Map();
 const fakePrivateHead = new Map();
 const delayedPrivateGets = new Set();
@@ -156,9 +157,21 @@ const server = createServer(async (req, res) => {
     inspections.set(corruptMatch[1], { ...report, outputSha256: "0".repeat(64) });
     return reply(res, 200, { corrupted: true });
   }
+  // CI-only one-shot malformed report: test the server's response-size gate.
+  const oversizedMatch = new RegExp(
+    "^/__test__/oversized-inspection/(" + uuid + ")$",
+  ).exec(req.url ?? "");
+  if (req.method === "POST" && oversizedMatch) {
+    if (!inspections.has(oversizedMatch[1])) return reply(res, 404, {});
+    oversizedInspectionReports.add(oversizedMatch[1]);
+    return reply(res, 200, { oversizedNextInspection: true });
+  }
   const inspectionMatch = new RegExp(`^/inspection/(${uuid})$`).exec(req.url ?? "");
   if (req.method === "GET" && inspectionMatch) {
     const report = inspections.get(inspectionMatch[1]);
+    if (report && oversizedInspectionReports.delete(inspectionMatch[1])) {
+      return reply(res, 200, { ...report, padding: "x".repeat(8 * 1024) });
+    }
     return report ? reply(res, 200, report) : reply(res, 404, {});
   }
 
