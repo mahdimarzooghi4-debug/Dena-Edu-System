@@ -13,7 +13,7 @@
 
 ## گیت جدید بررسی پیکربندی
 
-`npm run check:release-config` یک بررسی **ایستا** و بدون اتصال شبکه/دیتابیس است. هیچ توکن، URL دارای password یا fingerprint راز را چاپ نمی‌کند؛ فقط نام متغیر و کد خطا را می‌نویسد. حالت CI (`DENA_DB_INTEGRATION=1`)، محیط development، localhost یا HTTP در auth/SMS/media، خاموش‌بودن یکی از سرویس‌های OTP/media/ingest/processor/attestation/cleanup، تنظیم ناقص یا رازهای مشترک میان سرویس‌ها باعث nonzero exit می‌شود.
+`npm run check:release-config` یک بررسی **ایستا** و بدون اتصال شبکه/دیتابیس است. هیچ توکن، URL دارای password یا fingerprint راز را چاپ نمی‌کند؛ فقط نام متغیر و کد خطا را می‌نویسد. حالت CI (`DENA_DB_INTEGRATION` غیر از `0`)، نبودِ `NODE_ENV=production`، localhost یا HTTP در auth/SMS/media، خاموش‌بودن یکی از سرویس‌های OTP/media/ingest/processor/attestation/cleanup، تنظیم ناقص یا رازهای مشترک میان سرویس‌ها باعث nonzero exit می‌شود. `DATABASE_URL` نیز باید دیتابیس و میزبان غیر loopback، تنها یک `sslmode=verify-full` و بدون پارامتر مبهم `ssl` یا `host` داشته باشد؛ `require`/`verify-ca` یا حالت پیش‌فرض کافی نیستند. این فقط کنترل **رشتهٔ اتصال** است، نه handshake یا اعتبارسنجی عملیاتی CA، نام گواهی و سیاست pooler؛ تست اتصال TLS به محیط واقعی همچنان گیت مستقل است.
 
 این profile برای **انتشار تمام قابلیت‌های بررسی‌شده** تعریف شده است؛ برای عرضه محدود صرفاً مطالعه/پیش‌نمایش که SMS یا ingest لازم ندارد، به جای دورزدن شرط‌ها یک پروفایل محدود جدا با تصمیم مصوب تعریف شود.
 
