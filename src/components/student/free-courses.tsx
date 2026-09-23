@@ -196,6 +196,10 @@ export function FreeCourses() {
               <p className="text-sm font-bold text-dena-deep">
                 رایگان · نظارت مؤسسه تأیید شده
               </p>
+              <Link href={`/student/courses/${course.courseId}`}
+                className="inline-block text-sm font-bold text-dena-brand hover:underline">
+                جزئیات دوره و مؤسسهٔ مسئول
+              </Link>
               <p className="text-xs leading-6 text-dena-muted">
                 تأیید نظارت فقط برای این دوره است؛ وضعیت دسترسی پیش از هر درخواست محتوا دوباره بررسی می‌شود.
               </p>
