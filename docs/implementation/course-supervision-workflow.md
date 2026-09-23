@@ -35,6 +35,10 @@
 - رکوردهای دستی قدیمی آزمایشی بدون `requestedByProviderUserId` در workflow تصمیم جدید fail-closed هستند؛ صرفاً برای سازگاری fixtureهای پیشین، ستون اضافه‌شده nullable است. قبل از ورود اطلاعات واقعی legacy backfill و تأیید provenance لازم است.
 - APIهای لیست حداکثر ۵۰ رکورد دارند؛ cursor pagination و تعامل هم‌زمان میلیون‌ها کاربر باید قبل از scale ملی تکمیل شود. status و scope باید در هر resource/API دیگر نیز دوباره کنترل شوند.
 
+## خانهٔ محدود ارائه‌دهنده
+
+مسیر محافظت‌شدهٔ `/provider` اکنون فقط دوره‌های محدوده‌های فعال خود فرد را از `courses` و `supervisionGrants` با تطبیق سه‌گانهٔ دوره/ارائه‌دهنده/مؤسسه نمایش می‌دهد؛ سقف ۲۰ دورهٔ اخیر است. ثبت درخواست و انتشار همچنان از گردش‌کار مستقل `/provider/supervision` انجام می‌شود؛ لینک دریافت ویدئو فقط برای approved+draft ظاهر می‌شود و مسیر upload خود مجوز را مجدداً کنترل می‌کند. خانه آمار مالی، اطلاعات دانش‌آموزان یا مجوز نظارت/انتشار جدید ایجاد نمی‌کند.
+
 ## تست
 
 `tests/e2e/course-supervision-db.spec.ts`: session جعلی/بدون role، provider scope جعلی، مؤسسه ناموجود، origin و field تزریقی؛ دوره مستقل دوم، idempotency تکرار/تغییر؛ رد پیش از approval و رد مؤسسه بیگانه؛ رد reviewer dual-role، الزام دلیل؛ تأیید همان دوره، بلافاصله اثر در authorization و عدم اثر بر دوره دوم؛ revoke و reject و عدم reapprove؛ audit events؛ foreign key مرکب و suspension. مرورگر واقعی درخواست ارائه‌دهنده و تأیید مؤسسه نیز پوشش داده می‌شود.
