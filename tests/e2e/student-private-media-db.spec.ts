@@ -178,6 +178,161 @@ test.describe("free enrollment and private video access must stay course-scoped"
     await student.dispose();
   });
 
+  test("catalog searches literal titles, filters own enrollment and pages beyond 50", async ({ page }) => {
+    const extra = Array.from({ length: 52 }, (_, index) => ({
+      courseId: randomUUID(),
+      assetId: randomUUID(),
+      title: `آزمایش صفحه‌بندی ${String(index).padStart(2, "0")}`,
+    }));
+    const special = [
+      { courseId: randomUUID(), assetId: randomUUID(),
+        title: "عنوان با نماد % ویژه" },
+      { courseId: randomUUID(), assetId: randomUUID(),
+        title: "عنوان با نماد _ ویژه" },
+    ];
+    const all = [...extra, ...special];
+    await db.insert(courses).values(all.map((row) => ({
+      id: row.courseId, title: row.title, providerId,
+      responsibleInstituteId: instituteId, publicationStatus: "published" as const,
+      createdByProviderUserId: users.provider,
+      clientRequestId: randomUUID(), publishedAt: new Date(),
+    })));
+    await db.insert(supervisionGrants).values(all.map((row) => ({
+      courseId: row.courseId, providerId, instituteId,
+      status: "approved" as const,
+      requestedByProviderUserId: users.provider,
+      approvedByInstituteUserId: users.institute, approvedAt: new Date(),
+    })));
+    await db.insert(privateMediaAssets).values(all.map((row) => ({
+      id: row.assetId, courseId: row.courseId,
+      title: "ویدئوی آماده آزمایشی",
+      objectKey: `${row.courseId}/${row.assetId}.mp4`,
+    })));
+    const student = await client("student");
+    const other = await client("otherStudent");
+    const catalog = (query: Record<string, string>) =>
+      "/api/student/courses?" + new URLSearchParams(query);
+    try {
+      const seen = new Set<string>();
+      let cursor: string | null = null;
+      const pageSizes: number[] = [];
+      for (let index = 0; index < 3; index += 1) {
+        const response = await student.get(catalog({
+          q: "آزمایش صفحه‌بندی",
+          ...(cursor ? { cursor } : {}),
+        }));
+        expect(response.status()).toBe(200);
+        expect(response.headers()["cache-control"]).toContain("no-store");
+        const data = await response.json() as {
+          courses: Array<{ courseId: string; title: string; enrolled: boolean }>;
+          nextCursor: string | null;
+        };
+        pageSizes.push(data.courses.length);
+        for (const row of data.courses) {
+          expect(row.title).toContain("آزمایش صفحه‌بندی");
+          expect(seen.has(row.courseId)).toBe(false);
+          seen.add(row.courseId);
+        }
+        cursor = data.nextCursor;
+        if (index < 2) expect(cursor).toBeTruthy();
+        else expect(cursor).toBeNull();
+      }
+      expect(pageSizes).toEqual([20, 20, 12]);
+      expect(seen.size).toBe(52);
+
+      for (const [term, expected] of [
+        ["%", special[0]], ["_", special[1]],
+      ] as const) {
+        const result = await student.get(catalog({ q: term }));
+        expect(result.status()).toBe(200);
+        const payload = await result.json();
+        expect(payload.courses.map((row: { courseId: string }) =>
+          row.courseId)).toEqual([expected.courseId]);
+      }
+      expect((await student.get(catalog({ q: "آزمایش صفحه‌بندی", mine: "1" }))
+        .then((response) => response.json())).courses).toEqual([]);
+      expect((await post(student, enrollPath(extra[0].courseId), {}))
+        .status()).toBe(201);
+      expect((await post(other, enrollPath(extra[1].courseId), {}))
+        .status()).toBe(201);
+      const mine = await (await student.get(catalog({
+        q: "آزمایش صفحه‌بندی", mine: "1",
+      }))).json();
+      expect(mine.courses.map((row: { courseId: string }) => row.courseId))
+        .toEqual([extra[0].courseId]);
+      expect(mine.courses[0].enrolled).toBe(true);
+      const theirs = await (await other.get(catalog({
+        q: "آزمایش صفحه‌بندی", mine: "1",
+      }))).json();
+      expect(theirs.courses.map((row: { courseId: string }) => row.courseId))
+        .toEqual([extra[1].courseId]);
+      for (const invalid of [
+        catalog({ q: "x".repeat(81) }),
+        catalog({ mine: "true" }),
+        catalog({ cursor: "not-valid!" }),
+        catalog({ q: "متفاوت", cursor: Buffer.from(JSON.stringify({
+          title: extra[0].title, id: extra[0].courseId,
+          q: "آزمایش صفحه‌بندی", mine: false,
+        })).toString("base64url") }),
+      ]) {
+        expect((await student.get(invalid)).status()).toBe(400);
+      }
+
+      const cookie = await signed("student");
+      await page.context().addCookies([{
+        name: "better-auth.session_token",
+        value: cookie.split("=").slice(1).join("="),
+        domain: "localhost", path: "/", httpOnly: true,
+        secure: false, sameSite: "Lax",
+      }]);
+      await page.goto("http://localhost:3000/student/courses");
+      await page.getByRole("searchbox", {
+        name: "جست‌وجوی عنوان دوره",
+      }).fill("آزمایش صفحه‌بندی");
+      await page.getByRole("button", { name: "جست‌وجو" }).click();
+      await expect(page.locator("ul > li").filter({
+        hasText: "آزمایش صفحه‌بندی",
+      })).toHaveCount(20);
+      await page.getByRole("button", {
+        name: "نمایش دوره‌های بیشتر",
+      }).click();
+      await expect(page.locator("ul > li").filter({
+        hasText: "آزمایش صفحه‌بندی",
+      })).toHaveCount(40);
+      await page.getByRole("checkbox", {
+        name: "فقط ثبت‌نام‌های من",
+      }).check();
+      await page.getByRole("button", { name: "جست‌وجو" }).click();
+      await expect(page.locator("ul > li").filter({
+        hasText: "آزمایش صفحه‌بندی",
+      })).toHaveCount(1);
+      await expect(page.getByRole("link", {
+        name: "مشاهده محتوای دوره",
+      })).toHaveCount(1);
+      await page.getByRole("button", {
+        name: "پاک‌کردن فیلترها",
+      }).click();
+      await expect(page.getByRole("searchbox", {
+        name: "جست‌وجوی عنوان دوره",
+      })).toHaveValue("");
+    } finally {
+      await student.dispose();
+      await other.dispose();
+      await db.delete(studentEnrollments).where(
+        inArray(studentEnrollments.courseId, all.map((row) => row.courseId)),
+      );
+      await db.delete(privateMediaAssets).where(
+        inArray(privateMediaAssets.courseId, all.map((row) => row.courseId)),
+      );
+      await db.delete(supervisionGrants).where(
+        inArray(supervisionGrants.courseId, all.map((row) => row.courseId)),
+      );
+      await db.delete(courses).where(
+        inArray(courses.id, all.map((row) => row.courseId)),
+      );
+    }
+  });
+
   test("one free enrollment unlocks metadata and proxy bytes but never shares origin keys", async () => {
     const student = await client("student");
     expect((await post(student, enrollPath(ids.live), {
