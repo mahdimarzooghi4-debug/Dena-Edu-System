@@ -79,6 +79,10 @@
 
 `0010_dena_student_video_completions` و snapshot جدید به دیتابیس افزوده شده‌اند: رکورد یکتای student/asset با زمان ثبت. فقط دانش‌آموز دارای enrollment فعال و دسترسی جاری به ویدئوی ready و نظارت معتبر می‌تواند روی endpoint خصوصی completion علامت ایجاد/حذف کند؛ تکرار POST idempotent است و GET manifest فقط boolean وضعیت متعلق به خود او را نشان می‌دهد. در صفحهٔ watch امکان تغییر و شمارش صرفاً ویدئوهای نمایش‌داده‌شده فراهم است. این **self-report** است نه proof of watch یا آزمون/امتیاز/مدرک؛ گزارش رسمی، ارزیابی و tracking خودکار همچنان کار بازند. تست مرورگر/HTTP مالکیت، ذخیره در DB، تکرار، لغو علامت، لغو ثبت‌نام و نظارت/عضویت را بررسی می‌کند.
 
+## نمای واقعی پیگیری شخصی دانش‌آموز
+
+`src/server/student/progress-overview.ts` اکنون آمار DB-backed ویدئوهای `ready` و علامت‌های self-report همان دانش‌آموز را در هر دورهٔ دارای ثبت‌نام فعال و مجوز واقعی محاسبه می‌کند (حداکثر ۲۰ دورهٔ اخیر، عدد تجمعی فقط برای همان ۲۰ دوره). `/student/progress` و `/api/student/progress` برای student فعال و session محافظت شده‌اند؛ نقش دیگر و مهمان دسترسی ندارند. لینک از `/account` و خانهٔ `/student` برقرار است. رکورد لغوشده یا withdrawn یا نظارت revoked از خروجی فعلی حذف می‌شود، ولی این شمارش **اثبات ویدئوی دیده‌شده یا درصد پیشرفت/نمرهٔ خودکار نیست**؛ آزمون و گزارش یادگیری رسمی هنوز بازند. پوشش DB/Playwright برای دو کاربر، حالت خالی و بازخوانی پس از mark/unmark و لغو مجوز افزوده شد.
+
 ## راهنمای ادامه برای چت جدید
 
 از **head جدید PR #1** و آخرین CI آن شروع کنید، نه snapshotهای قدیمی. ابتدا `README.md`، `docs/implementation/quarantined-media-ingest.md`، `docs/implementation/scalable-media-foundation.md`، `docs/implementation/free-student-enrollment-private-video.md`، `src/server/media/{ingest,multipart,cleanup}.ts`، `src/db/schema.ts` و `drizzle/meta/_journal.json` را بررسی کنید. تغییر واقعی روی `chore/bootstrap-dena-stack` انجام دهید، migration را با Drizzle تولید و commit و هر دو job CI را تا green بررسی کنید. هیچ قابلیت fake scanner، upload حجیم یا ظرفیت ۵M را production ننامید.
