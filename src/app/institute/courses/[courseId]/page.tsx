@@ -6,6 +6,8 @@ import { Card } from "../../../../components/ui/card";
 import { buttonClassName } from "../../../../components/ui/button";
 import { getServerAccessContext } from "../../../../server/access/actor";
 import { getInstituteCourseDetail } from "../../../../server/institute/course-detail";
+import { getInstituteCourseTeam } from "../../../../server/institute/course-team";
+import { CourseTeamSessionPolicyControl } from "../../../../components/institute/course-team-controls";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -41,6 +43,14 @@ export default async function InstituteCoursePage({
     membership.role === "institute" ? [membership.instituteId] : []))];
   const course = await getInstituteCourseDetail(scopes, courseId);
   if (!course) notFound();
+  const team = await getInstituteCourseTeam(actor.userId, courseId);
+  if (!team) notFound();
+
+  const teamRoleLabel = {
+    teacher: "مدرس",
+    academic_supporter: "پشتیبان تحصیلی",
+    counselor: "مشاور",
+  } as const;
 
   return (
     <main id="main-content"
@@ -131,6 +141,62 @@ export default async function InstituteCoursePage({
           تأیید داخلی دنا جایگزین مجوز رسمی آموزشی نیست.
         </p>
       </Card>
+
+      <section aria-labelledby="institute-course-team" className="space-y-4">
+        <div>
+          <h2 id="institute-course-team" className="text-xl font-extrabold">
+            تیم آموزشی دوره
+          </h2>
+          <p className="mt-1 text-sm leading-7 text-dena-muted">
+            نقش‌ها به همین دوره متصل‌اند و نقش سراسری در دنا ایجاد نمی‌کنند.
+          </p>
+        </div>
+
+        {team.length === 0 ? (
+          <Card className="rounded-[22px] p-6">
+            <p className="font-bold">هنوز عضوی برای تیم آموزشی این دوره ثبت نشده است.</p>
+          </Card>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2">
+            {team.map((member) => (
+              <Card key={member.teamMemberId} className="rounded-[22px] p-5">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-bold text-dena-brand">
+                      {teamRoleLabel[member.role]}
+                    </p>
+                    <h3 className="mt-2 text-lg font-extrabold">{member.name}</h3>
+                  </div>
+                  <span className={
+                    "rounded-full px-3 py-1 text-xs font-bold " +
+                    (member.status === "active"
+                      ? "bg-emerald-50 text-emerald-700"
+                      : "bg-dena-bg text-dena-muted")
+                  }>
+                    {member.status === "active" ? "فعال" : "پایان‌یافته"}
+                  </span>
+                </div>
+
+                {member.role === "academic_supporter" &&
+                  member.status === "active" && (
+                    <CourseTeamSessionPolicyControl
+                      courseId={courseId}
+                      teamMemberId={member.teamMemberId}
+                      enabled={member.studentSessionRequestsEnabled}
+                    />
+                  )}
+              </Card>
+            ))}
+          </div>
+        )}
+
+        <Card className="rounded-[22px] border-dashed p-5">
+          <p className="text-xs leading-7 text-dena-muted">
+            جست‌وجو و دعوت عضو جدید تا تعریف جریان معتبر شناسایی حساب،
+            در UI فعال نمی‌شود. API تخصیص فقط شناسه کاربر معتبر و scope همین مؤسسه را می‌پذیرد.
+          </p>
+        </Card>
+      </section>
     </main>
   );
 }
