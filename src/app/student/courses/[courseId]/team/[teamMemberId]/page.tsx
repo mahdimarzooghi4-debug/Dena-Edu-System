@@ -90,14 +90,20 @@ export default async function CourseTeamMemberPage({
             تماس شخصی او در این بخش نمایش داده نمی‌شود.
           </p>
 
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link
-              href={`/student/courses/${courseId}/team/${teamMemberId}/conversation`}
-              className={buttonClassName()}
-            >
-              مشاهده گفت‌وگو
-            </Link>
-          </div>
+          {member.role !== "teacher" ? (
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link
+                href={`/student/courses/${courseId}/team/${teamMemberId}/conversation`}
+                className={buttonClassName()}
+              >
+                مشاهده گفت‌وگو
+              </Link>
+            </div>
+          ) : (
+            <p className="mt-5 rounded-xl bg-dena-bg p-4 text-sm leading-7 text-dena-muted">
+              مسیر ارتباط مستقیم با مدرس در این نسخه تعریف نشده است.
+            </p>
+          )}
         </Card>
 
         {member.role === "academic_supporter" && problemSolving && (
