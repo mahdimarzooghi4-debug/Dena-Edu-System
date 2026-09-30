@@ -68,6 +68,14 @@ export default async function CourseTeamWorkspacePage() {
               <p className="mt-2 text-xs leading-6 text-dena-muted">
                 این دسترسی فقط به همین دوره و همین نقش محدود است.
               </p>
+              {assignment.role === "academic_supporter" && (
+                <Link
+                  href={`/course-team/${assignment.teamMemberId}/problem-solving`}
+                  className="mt-4 inline-flex min-h-10 items-center rounded-xl bg-white px-4 text-xs font-bold text-dena-brand"
+                >
+                  جلسات رفع اشکال
+                </Link>
+              )}
             </div>
           ))}
         </div>
