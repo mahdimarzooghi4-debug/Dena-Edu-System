@@ -32,6 +32,7 @@ async function activeAssignment(memberUserId: string, teamMemberId: string) {
       eq(courseTeamMembers.id, teamMemberId),
       eq(courseTeamMembers.memberUserId, memberUserId),
       eq(courseTeamMembers.status, "active"),
+      inArray(courseTeamMembers.role, ["academic_supporter", "counselor"]),
     ))
     .limit(1);
   return assignment ?? null;
