@@ -1,7 +1,11 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "../../db";
-import { hasStudentEntitlement } from "../student/entitlement";
+import {
+  getStudentCourseEntitlementKeys,
+  hasStudentEntitlement,
+  studentCourseEntitlementKey,
+} from "../student/entitlement";
 import {
   courseConversationMessages,
   courseConversations,
@@ -76,6 +80,13 @@ export async function getCourseTeamInbox(memberUserId: string) {
     .orderBy(desc(courseConversations.lastMessageAt))
     .limit(100);
 
+  const entitlementKeys = await getStudentCourseEntitlementKeys(
+    rows.map((row) => ({
+      studentUserId: row.studentUserId,
+      courseId: row.courseId,
+    })),
+  );
+
   const assignmentMap = new Map(assignments.map((item) => [
     item.teamMemberId,
     item,
@@ -83,7 +94,10 @@ export async function getCourseTeamInbox(memberUserId: string) {
 
   return rows.flatMap((row) => {
     const assignment = assignmentMap.get(row.teamMemberId);
-    if (!assignment || assignment.courseId !== row.courseId) return [];
+    if (!assignment || assignment.courseId !== row.courseId ||
+        !entitlementKeys.has(studentCourseEntitlementKey(
+          row.studentUserId, row.courseId,
+        ))) return [];
     return [{
       conversationId: row.conversationId,
       teamMemberId: row.teamMemberId,
