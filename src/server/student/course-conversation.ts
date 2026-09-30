@@ -1,4 +1,4 @@
-import { and, desc, eq, or } from "drizzle-orm";
+import { and, desc, eq, inArray, or } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "../../db";
 import {
@@ -28,6 +28,7 @@ async function activeMember(courseId: string, teamMemberId: string) {
       eq(courseTeamMembers.id, teamMemberId),
       eq(courseTeamMembers.courseId, courseId),
       eq(courseTeamMembers.status, "active"),
+      inArray(courseTeamMembers.role, ["academic_supporter", "counselor"]),
     ))
     .limit(1);
   return member ?? null;
