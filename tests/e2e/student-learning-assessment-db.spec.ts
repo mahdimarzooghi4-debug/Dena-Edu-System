@@ -116,7 +116,7 @@ test.describe("student learning assessment lifecycle", () => {
     const other = await client("other");
     const anonymous = await request.newContext({ baseURL: "http://localhost:3000" });
     expect((await anonymous.get(listPath)).status()).toBe(401);
-    expect((await post(student, `${basePath}/attempts`, {})).status()).toBe(403);
+    expect((await student.post(`${basePath}/attempts`, { data: {} })).status()).toBe(403);
     const listed = await student.get(listPath);
     expect(listed.status()).toBe(200);
     expect((await listed.json()).assessments).toHaveLength(1);
