@@ -58,11 +58,6 @@ export async function getCourseTeamInbox(memberUserId: string) {
 
   const assignmentIds = assignments.map((item) => item.teamMemberId);
   const rows = await getDb().select({
-    teamMemberId: courseTeamMembers.id,
-    courseId: courseTeamMembers.courseId,
-    courseTitle: courses.title,
-    role: courseTeamMembers.role,
-
     conversationId: courseConversations.id,
     teamMemberId: courseConversations.teamMemberId,
     courseId: courseConversations.courseId,
