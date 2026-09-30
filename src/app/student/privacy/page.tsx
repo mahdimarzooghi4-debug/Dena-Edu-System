@@ -1,8 +1,7 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { buttonClassName } from "../../../components/ui/button";
 import { PrivateNotesCleanup } from "../../../components/student/private-notes-cleanup";
+import { StudentShell } from "../../../components/student/student-shell";
 import { getServerAccessContext } from "../../../server/access/actor";
 import { countStudentVideoNotes } from "../../../server/student/note-privacy";
 
@@ -22,32 +21,21 @@ export default async function StudentPrivateNotesPage() {
   const count = await countStudentVideoNotes(actor.userId);
 
   return (
-    <main id="main-content"
-      className="mx-auto min-h-screen max-w-3xl space-y-8 px-5 py-8 md:px-10 md:py-12">
-      <header className="flex flex-wrap gap-4">
-        <Link href="/student"
-          className="text-sm font-bold text-dena-brand hover:underline">
-          بازگشت به خانه دانش‌آموز
-        </Link>
-        <Link href="/student/progress"
-          className={buttonClassName("secondary")}>
-          پیگیری ویدئوهای انجام‌شده
-        </Link>
-      </header>
-      <section className="rounded-[20px] bg-dena-lavender px-6 py-7 md:px-8">
-        <p className="text-sm font-bold text-dena-brand">داده‌های شخصی من</p>
-        <h1 className="mt-2 text-[27px] font-extrabold leading-relaxed text-dena-deep md:text-[31px]">
-          مدیریت و پاک‌کردن یادداشت‌های ویدئویی
-        </h1>
-        <p className="mt-2 text-sm leading-8">
-          یادداشت‌هایی که قبلاً خودت ذخیره کرده‌ای، حتی اگر
-          ثبت‌نام لغو شده باشد یا ویدئو دیگر در دسترس نباشد،
-          همچنان متعلق به حساب تو هستند. از اینجا می‌توانی همهٔ آن‌ها
-          را با تأیید صریح پاک کنی. متن یادداشت‌های دوره‌های غیرقابل‌دسترس
-          در این صفحه نشان داده نمی‌شود.
-        </p>
-      </section>
-      <PrivateNotesCleanup initialCount={count} />
-    </main>
+    <StudentShell active="account" title="حریم خصوصی و داده">
+      <div className="mx-auto max-w-3xl space-y-6">
+        <section className="rounded-[22px] bg-dena-lavender px-6 py-7 md:px-8">
+          <p className="text-sm font-bold text-dena-brand">داده‌های شخصی من</p>
+          <h2 className="mt-2 text-[26px] font-extrabold leading-relaxed text-dena-deep md:text-[30px]">
+            مدیریت یادداشت‌های شخصی
+          </h2>
+          <p className="mt-2 text-sm leading-8 text-dena-muted">
+            یادداشت‌هایی که خودت ذخیره کرده‌ای متعلق به حساب تو هستند.
+            متن یادداشت‌های دوره‌های غیرقابل‌دسترس در این صفحه نمایش داده نمی‌شود
+            و این داده‌ها وارد گزارش مؤسسه، سازمان یا خیر نمی‌شوند.
+          </p>
+        </section>
+        <PrivateNotesCleanup initialCount={count} />
+      </div>
+    </StudentShell>
   );
 }
