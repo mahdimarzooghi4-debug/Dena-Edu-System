@@ -7,6 +7,7 @@ import { buttonClassName } from "../../components/ui/button";
 import { roleLabels } from "../../lib/preview";
 import { getServerAccessContext } from "../../server/access/actor";
 import { SignOutButton } from "../../components/auth/sign-out-button";
+import { getActiveCourseTeamAssignments } from "../../server/course-team/conversations";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,6 +19,7 @@ export default async function AccountPage() {
       !process.env.BETTER_AUTH_URL) redirect("/login");
   const actor = await getServerAccessContext();
   if (!actor) redirect("/login");
+  const courseTeamAssignments = await getActiveCourseTeamAssignments(actor.userId);
 
   return (
     <main id="main-content" className="mx-auto min-h-screen max-w-4xl px-5 py-8 md:px-10 md:py-12">
@@ -74,6 +76,11 @@ export default async function AccountPage() {
           {actor.memberships.some((entry) => entry.role === "student") && (
             <Link href="/student/courses" className={buttonClassName("secondary")}>
               دوره‌های رایگان و ثبت‌نام من
+            </Link>
+          )}
+          {courseTeamAssignments.length > 0 && (
+            <Link href="/course-team" className={buttonClassName("secondary")}>
+              فضای تیم آموزشی
             </Link>
           )}
           {actor.memberships.some((entry) => entry.role === "provider") && (
