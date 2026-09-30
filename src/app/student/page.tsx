@@ -112,7 +112,7 @@ export default async function StudentHomePage() {
           {courses.length === 0 ? (
             <Card className="space-y-4">
               <h3 className="text-lg font-extrabold">
-                فعلاً دوره قابل ادامه‌ای نداری
+                فعلاً دورهٔ قابل ادامه‌ای نداری
               </h3>
               <p className="text-sm leading-8 text-dena-muted">
                 دوره‌ای ثبت‌نام نکرده‌ای یا دسترسی قبلی به‌دلیل تغییر وضعیت انتشار،
