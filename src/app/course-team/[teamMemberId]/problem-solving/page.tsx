@@ -7,7 +7,7 @@ import {
   ProblemRequestActions,
   ProblemSessionActions,
 } from "@/components/course-team/problem-solving-actions";
-import { getServerIdentity } from "@/server/access/identity";
+import { getServerIdentity } from "@/server/access/actor";
 import { getSupporterProblemSolving } from "@/server/course-team/problem-solving";
 
 export const runtime = "nodejs";
