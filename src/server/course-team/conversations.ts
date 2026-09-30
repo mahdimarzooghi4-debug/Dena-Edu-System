@@ -1,6 +1,7 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "../../db";
+import { hasStudentEntitlement } from "../student/entitlement";
 import {
   courseConversationMessages,
   courseConversations,
@@ -121,7 +122,10 @@ export async function getCourseTeamConversation(
     ))
     .limit(1);
 
-  if (!conversation) return null;
+  if (!conversation ||
+      !await hasStudentEntitlement(
+        conversation.studentUserId, assignment.courseId,
+      )) return null;
 
   const messages = await getDb().select({
     id: courseConversationMessages.id,
@@ -191,7 +195,10 @@ export async function sendCourseTeamReply(
       .limit(1)
       .for("update");
 
-    if (!conversation) return null;
+    if (!conversation ||
+        !await hasStudentEntitlement(
+          conversation.studentUserId, assignment.courseId,
+        )) return null;
 
     const [message] = await tx.insert(courseConversationMessages).values({
       conversationId,
