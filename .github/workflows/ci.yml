@@ -30,7 +30,14 @@ jobs:
       - run: npm run test:e2e
 
   db-integration:
-    name: PostgreSQL + Auth integration
+    name: PostgreSQL + Auth integration (${{ matrix.shard }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: auth
+          - shard: course
+          - shard: operations
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -95,7 +102,7 @@ jobs:
       - name: Preserve generated migration for review
         uses: actions/upload-artifact@v4
         with:
-          name: drizzle-migration-candidate
+          name: drizzle-migration-candidate-${{ matrix.shard }}
           path: drizzle/
           if-no-files-found: error
       - name: Verify generated migration files have been committed
@@ -128,4 +135,4 @@ jobs:
           done
           exit 1
       - name: Verify OTP, persisted session and scoped access over HTTP
-        run: npm run test:e2e:db
+        run: npm run test:e2e:db:${{ matrix.shard }}
