@@ -1090,7 +1090,7 @@ test.describe("free enrollment and private video access must stay course-scoped"
     })).toHaveAttribute("href",
       `/student/courses/${ids.live}/watch#next-unmarked-video`);
     await page.getByRole("link", {
-      name: "بازگشت به خانه دانش‌آموز",
+      name: "دنا، خانه دانش‌آموز",
     }).click();
     await expect(page).toHaveURL(/\/student$/);
     await page.getByRole("link", {
