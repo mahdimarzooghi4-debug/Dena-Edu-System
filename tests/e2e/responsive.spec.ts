@@ -37,5 +37,5 @@ test("desktop sidebar retains role links and shared support entry", async ({ pag
   const nav = page.getByRole("navigation", { name: "منوی پیش‌نمایش", exact: true });
   await expect(nav).toBeVisible();
   await expect(nav.getByRole("link", { name: "پشتیبانی فنی مشترک" })).toHaveAttribute("href", "/preview/support");
-  await expect(nav.getByRole("link", { name: "خانه خیر" })).toHaveAttribute("aria-current", "page");
+  await expect(nav.getByRole("link", { name: "داشبورد" })).toHaveAttribute("aria-current", "page");
 });
