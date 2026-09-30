@@ -145,7 +145,7 @@ export default async function StudentHomePage() {
                       </h3>
                     </div>
                     <p className="text-sm leading-7 text-dena-deep">
-                      علامت‌خورده توسط خودت:{" "}
+                      علامت‌خورده به انتخاب خودت:{" "}
                       <strong>{course.markedVideos.toLocaleString("fa-IR")}</strong>
                       {" "}از{" "}
                       <strong>{course.readyVideos.toLocaleString("fa-IR")}</strong>
