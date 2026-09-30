@@ -331,6 +331,23 @@ test.describe("course team communication and problem-solving stay course-scoped"
     expect(sent.status()).toBe(201);
     conversationId = (await sent.json()).conversationId;
 
+    const list = await student.get(
+      `/api/student/courses/${courseId}/conversations`,
+    );
+    expect(list.status()).toBe(200);
+    const listPayload = await list.json() as {
+      conversations: Array<{ teamMemberId: string; role: string }>;
+    };
+    expect(listPayload.conversations).toEqual([
+      expect.objectContaining({
+        teamMemberId: supporterTeamMemberId,
+        role: "academic_supporter",
+      }),
+    ]);
+    expect(listPayload.conversations.some(
+      (item) => item.teamMemberId === teacherTeamMemberId,
+    )).toBe(false);
+
     // Course-team assignment is enough; no global membership is required.
     const workspace = await supporter.get("/course-team", {
       maxRedirects: 0,
