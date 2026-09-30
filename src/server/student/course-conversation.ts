@@ -38,6 +38,34 @@ async function activeMember(courseId: string, teamMemberId: string) {
  * Returns only the current student's conversation with one active member of
  * the same course team. Internal user IDs never leave this module.
  */
+export async function getStudentCourseConversationList(
+  studentUserId: string,
+  courseId: string,
+) {
+  if (!await hasStudentEntitlement(studentUserId, courseId)) return null;
+
+  return getDb().select({
+    conversationId: courseConversations.id,
+    teamMemberId: courseTeamMembers.id,
+    memberName: user.name,
+    role: courseTeamMembers.role,
+    lastMessageAt: courseConversations.lastMessageAt,
+  }).from(courseConversations)
+    .innerJoin(courseTeamMembers, and(
+      eq(courseTeamMembers.id, courseConversations.teamMemberId),
+      eq(courseTeamMembers.courseId, courseConversations.courseId),
+      eq(courseTeamMembers.status, "active"),
+      inArray(courseTeamMembers.role, ["academic_supporter", "counselor"]),
+    ))
+    .innerJoin(user, eq(user.id, courseTeamMembers.memberUserId))
+    .where(and(
+      eq(courseConversations.courseId, courseId),
+      eq(courseConversations.studentUserId, studentUserId),
+    ))
+    .orderBy(desc(courseConversations.lastMessageAt))
+    .limit(100);
+}
+
 export async function getStudentCourseConversation(
   studentUserId: string,
   courseId: string,
