@@ -8,7 +8,11 @@ import {
   problemSolvingSessions,
   user,
 } from "../../db/schema";
-import { hasStudentEntitlement } from "../student/entitlement";
+import {
+  getStudentCourseEntitlementKeys,
+  hasStudentEntitlement,
+  studentCourseEntitlementKey,
+} from "../student/entitlement";
 
 const isoDateTime = z.string().trim().refine((value) => {
   const time = Date.parse(value);
@@ -52,7 +56,7 @@ export async function getSupporterProblemSolving(
   const assignment = await activeSupporter(memberUserId, teamMemberId);
   if (!assignment) return null;
 
-  const [requests, sessions] = await Promise.all([
+  const [requestRows, sessionRows] = await Promise.all([
     getDb().select({
       id: problemSolvingRequests.id,
       studentUserId: problemSolvingRequests.studentUserId,
@@ -88,6 +92,28 @@ export async function getSupporterProblemSolving(
       .orderBy(desc(problemSolvingSessions.scheduledAt))
       .limit(100),
   ]);
+
+  const entitlementKeys = await getStudentCourseEntitlementKeys([
+    ...requestRows.map((row) => ({
+      studentUserId: row.studentUserId,
+      courseId: assignment.courseId,
+    })),
+    ...sessionRows.map((row) => ({
+      studentUserId: row.studentUserId,
+      courseId: assignment.courseId,
+    })),
+  ]);
+
+  const requests = requestRows.filter((row) =>
+    entitlementKeys.has(studentCourseEntitlementKey(
+      row.studentUserId, assignment.courseId,
+    )),
+  );
+  const sessions = sessionRows.filter((row) =>
+    entitlementKeys.has(studentCourseEntitlementKey(
+      row.studentUserId, assignment.courseId,
+    )),
+  );
 
   return { assignment, requests, sessions };
 }
