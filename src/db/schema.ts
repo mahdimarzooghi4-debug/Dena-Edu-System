@@ -1,5 +1,6 @@
 import {
-  bigint, boolean, check, foreignKey, index, integer, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid,
+  bigint, boolean, check, foreignKey, index, integer, pgEnum, pgTable,
+  primaryKey, text, timestamp, uniqueIndex, uuid,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { roles } from "../domain/access/contracts";
@@ -435,6 +436,7 @@ export const privateMediaAssets = pgTable("dena_private_media_assets", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
   index("dena_private_media_course_idx").on(table.courseId, table.status),
+  uniqueIndex("dena_private_media_id_course_uidx").on(table.id, table.courseId),
   check("dena_private_media_key_ck", sql`
     object_key = course_id::text || '/' || id::text || '.mp4'
   `),
@@ -545,6 +547,249 @@ export const studentPracticeAttempts = pgTable("dena_student_practice_attempts",
     selected_option BETWEEN 0 AND 3
   `),
 ]);
+
+/** A multi-question, course-scoped learning assessment. Its threshold is
+ * explicit per assessment; there is no platform-wide pass score. */
+export const learningAssessmentReviewStatus = pgEnum(
+  "dena_learning_assessment_review_status",
+  ["pending", "approved", "rejected"],
+);
+export const learningAssessmentOutcome = pgEnum(
+  "dena_learning_assessment_outcome",
+  ["needs_review", "completed"],
+);
+export const learningAssessmentAttemptStatus = pgEnum(
+  "dena_learning_assessment_attempt_status",
+  ["in_progress", "submitted"],
+);
+
+export const courseLearningAssessments = pgTable(
+  "dena_course_learning_assessments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    courseId: uuid("course_id").notNull()
+      .references(() => courses.id, { onDelete: "restrict" }),
+    title: text("title").notNull(),
+    instructions: text("instructions").notNull(),
+    questionCount: integer("question_count").notNull(),
+    requiredCorrectCount: integer("required_correct_count").notNull(),
+    authoredByProviderUserId: uuid("authored_by_provider_user_id").notNull()
+      .references(() => user.id, { onDelete: "restrict" }),
+    reviewStatus: learningAssessmentReviewStatus("review_status")
+      .notNull().default("pending"),
+    reviewedByInstituteUserId: uuid("reviewed_by_institute_user_id")
+      .references(() => user.id, { onDelete: "restrict" }),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    reviewReason: text("review_reason"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("dena_learning_assessment_id_course_uidx").on(
+      table.id, table.courseId,
+    ),
+    index("dena_learning_assessment_course_review_idx").on(
+      table.courseId, table.reviewStatus,
+    ),
+    check("dena_learning_assessment_title_ck", sql`
+      char_length(title) BETWEEN 3 AND 160 AND btrim(title) <> ''
+    `),
+    check("dena_learning_assessment_instructions_ck", sql`
+      char_length(instructions) BETWEEN 1 AND 1000
+      AND btrim(instructions) <> ''
+    `),
+    check("dena_learning_assessment_question_count_ck", sql`
+      question_count BETWEEN 1 AND 100
+      AND required_correct_count BETWEEN 1 AND question_count
+    `),
+    check("dena_learning_assessment_review_state_ck", sql`
+      (review_status = 'pending'
+        AND reviewed_by_institute_user_id IS NULL
+        AND reviewed_at IS NULL AND review_reason IS NULL)
+      OR
+      (review_status IN ('approved', 'rejected')
+        AND reviewed_by_institute_user_id IS NOT NULL
+        AND reviewed_at IS NOT NULL AND review_reason IS NOT NULL
+        AND char_length(review_reason) BETWEEN 15 AND 500
+        AND btrim(review_reason) <> '')
+    `),
+  ],
+);
+
+export const courseLearningAssessmentQuestions = pgTable(
+  "dena_course_learning_assessment_questions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    assessmentId: uuid("assessment_id").notNull(),
+    courseId: uuid("course_id").notNull(),
+    lessonAssetId: uuid("lesson_asset_id").notNull(),
+    prompt: text("prompt").notNull(),
+    option0: text("option_0").notNull(),
+    option1: text("option_1").notNull(),
+    option2: text("option_2").notNull(),
+    option3: text("option_3").notNull(),
+    correctOption: integer("correct_option").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("dena_learning_assessment_question_id_scope_uidx").on(
+      table.id, table.assessmentId,
+    ),
+    index("dena_learning_assessment_question_bank_idx").on(
+      table.assessmentId, table.createdAt,
+    ),
+    foreignKey({
+      columns: [table.assessmentId, table.courseId],
+      foreignColumns: [courseLearningAssessments.id,
+        courseLearningAssessments.courseId],
+      name: "dena_learning_assessment_question_assessment_scope_fk",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.lessonAssetId, table.courseId],
+      foreignColumns: [privateMediaAssets.id, privateMediaAssets.courseId],
+      name: "dena_learning_assessment_question_lesson_scope_fk",
+    }).onDelete("restrict"),
+    check("dena_learning_assessment_question_bounds_ck", sql`
+      char_length(prompt) BETWEEN 10 AND 500 AND btrim(prompt) <> ''
+      AND char_length(option_0) BETWEEN 1 AND 160 AND btrim(option_0) <> ''
+      AND char_length(option_1) BETWEEN 1 AND 160 AND btrim(option_1) <> ''
+      AND char_length(option_2) BETWEEN 1 AND 160 AND btrim(option_2) <> ''
+      AND char_length(option_3) BETWEEN 1 AND 160 AND btrim(option_3) <> ''
+      AND correct_option BETWEEN 0 AND 3
+    `),
+  ],
+);
+
+export const studentLearningAssessmentAttempts = pgTable(
+  "dena_student_learning_assessment_attempts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    assessmentId: uuid("assessment_id").notNull(),
+    courseId: uuid("course_id").notNull(),
+    studentUserId: uuid("student_user_id").notNull()
+      .references(() => user.id, { onDelete: "restrict" }),
+    attemptNumber: integer("attempt_number").notNull(),
+    status: learningAssessmentAttemptStatus("status")
+      .notNull().default("in_progress"),
+    outcome: learningAssessmentOutcome("outcome"),
+    correctCount: integer("correct_count"),
+    startedAt: timestamp("started_at", { withTimezone: true })
+      .notNull().defaultNow(),
+    submittedAt: timestamp("submitted_at", { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex("dena_learning_assessment_attempt_id_scope_uidx").on(
+      table.id, table.assessmentId, table.courseId,
+    ),
+    uniqueIndex("dena_learning_assessment_attempt_id_student_uidx").on(
+      table.id, table.studentUserId,
+    ),
+    uniqueIndex("dena_learning_assessment_attempt_number_uidx").on(
+      table.assessmentId, table.studentUserId, table.attemptNumber,
+    ),
+    index("dena_learning_assessment_attempt_student_idx").on(
+      table.studentUserId, table.assessmentId, table.attemptNumber,
+    ),
+    foreignKey({
+      columns: [table.assessmentId, table.courseId],
+      foreignColumns: [courseLearningAssessments.id,
+        courseLearningAssessments.courseId],
+      name: "dena_learning_assessment_attempt_assessment_scope_fk",
+    }).onDelete("restrict"),
+    check("dena_learning_assessment_attempt_number_ck", sql`
+      attempt_number >= 1
+    `),
+    check("dena_learning_assessment_attempt_state_ck", sql`
+      (status = 'in_progress' AND outcome IS NULL
+        AND correct_count IS NULL AND submitted_at IS NULL)
+      OR
+      (status = 'submitted' AND outcome IS NOT NULL
+        AND correct_count IS NOT NULL AND submitted_at IS NOT NULL)
+    `),
+  ],
+);
+
+/** Randomly selected questions are snapshotted per attempt; selected answers
+ * and grading state are never shared with course staff. */
+export const studentLearningAssessmentAttemptQuestions = pgTable(
+  "dena_student_learning_assessment_attempt_questions",
+  {
+    attemptId: uuid("attempt_id").notNull(),
+    assessmentId: uuid("assessment_id").notNull(),
+    courseId: uuid("course_id").notNull(),
+    questionId: uuid("question_id").notNull(),
+    position: integer("position").notNull(),
+    selectedOption: integer("selected_option"),
+    correct: boolean("correct"),
+  },
+  (table) => [
+    primaryKey({ columns: [table.attemptId, table.questionId] }),
+    uniqueIndex("dena_learning_assessment_attempt_position_uidx").on(
+      table.attemptId, table.position,
+    ),
+    foreignKey({
+      columns: [table.attemptId, table.assessmentId, table.courseId],
+      foreignColumns: [studentLearningAssessmentAttempts.id,
+        studentLearningAssessmentAttempts.assessmentId,
+        studentLearningAssessmentAttempts.courseId],
+      name: "dena_learning_assessment_attempt_question_attempt_scope_fk",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.questionId, table.assessmentId],
+      foreignColumns: [courseLearningAssessmentQuestions.id,
+        courseLearningAssessmentQuestions.assessmentId],
+      name: "dena_learning_assessment_attempt_question_bank_scope_fk",
+    }).onDelete("restrict"),
+    check("dena_learning_assessment_attempt_question_position_ck", sql`
+      position >= 0
+    `),
+    check("dena_learning_assessment_attempt_question_answer_ck", sql`
+      (selected_option IS NULL AND correct IS NULL)
+      OR (selected_option BETWEEN 0 AND 3 AND correct IS NOT NULL)
+    `),
+  ],
+);
+
+/** The student acknowledges review of a lesson linked to a missed question.
+ * This is an acknowledgement, not proof of playback. */
+export const studentLearningAssessmentLessonReviews = pgTable(
+  "dena_student_learning_assessment_lesson_reviews",
+  {
+    attemptId: uuid("attempt_id").notNull(),
+    assessmentId: uuid("assessment_id").notNull(),
+    courseId: uuid("course_id").notNull(),
+    lessonAssetId: uuid("lesson_asset_id").notNull(),
+    studentUserId: uuid("student_user_id").notNull()
+      .references(() => user.id, { onDelete: "restrict" }),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true })
+      .notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.attemptId, table.lessonAssetId] }),
+    index("dena_learning_assessment_lesson_review_student_idx").on(
+      table.studentUserId, table.assessmentId, table.reviewedAt,
+    ),
+    foreignKey({
+      columns: [table.attemptId, table.assessmentId, table.courseId],
+      foreignColumns: [studentLearningAssessmentAttempts.id,
+        studentLearningAssessmentAttempts.assessmentId,
+        studentLearningAssessmentAttempts.courseId],
+      name: "dena_learning_assessment_lesson_review_attempt_scope_fk",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.attemptId, table.studentUserId],
+      foreignColumns: [studentLearningAssessmentAttempts.id,
+        studentLearningAssessmentAttempts.studentUserId],
+      name: "dena_learning_assessment_lesson_review_student_scope_fk",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.lessonAssetId, table.courseId],
+      foreignColumns: [privateMediaAssets.id, privateMediaAssets.courseId],
+      name: "dena_learning_assessment_lesson_review_asset_scope_fk",
+    }).onDelete("restrict"),
+  ],
+);
 
 /** Uploads are quarantined first; ONLY a separately authenticated processing
  * callback, followed by server-side origin verification, can create a ready asset.
