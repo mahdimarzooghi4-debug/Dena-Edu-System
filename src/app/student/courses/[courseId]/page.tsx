@@ -141,13 +141,21 @@ export default async function StudentCourseDetailPage({
 
         {enrolled && (
           <section aria-labelledby="course-team-title" className="space-y-3">
-            <div>
-              <h2 id="course-team-title" className="text-xl font-extrabold">
-                تیم آموزشی دوره
-              </h2>
-              <p className="mt-1 text-sm leading-7 text-dena-muted">
-                مدرس، پشتیبان تحصیلی و مشاور فقط در صورت تخصیص واقعی به همین دوره نمایش داده می‌شوند.
-              </p>
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2 id="course-team-title" className="text-xl font-extrabold">
+                  تیم آموزشی دوره
+                </h2>
+                <p className="mt-1 text-sm leading-7 text-dena-muted">
+                  مدرس، پشتیبان تحصیلی و مشاور فقط در صورت تخصیص واقعی به همین دوره نمایش داده می‌شوند.
+                </p>
+              </div>
+              <Link
+                href={`/student/courses/${courseId}/conversations`}
+                className={buttonClassName("outline")}
+              >
+                گفت‌وگوهای دوره
+              </Link>
             </div>
             {team.length === 0 ? (
               <Card className="rounded-[22px] p-6">
