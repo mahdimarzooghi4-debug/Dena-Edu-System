@@ -34,9 +34,10 @@ CREATE TABLE "dena_course_team_members" (
     (status = 'active' AND ended_at IS NULL)
     OR (status = 'inactive' AND ended_at IS NOT NULL)
   )
-);--> statement-breakpoint
-
+);
 --> statement-breakpoint
+CREATE UNIQUE INDEX "dena_course_team_member_course_uidx" ON "dena_course_team_members" USING btree ("id","course_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "dena_courses_institute_scope_uidx" ON "dena_courses" USING btree ("id","responsible_institute_id");--> statement-breakpoint
 ALTER TABLE "dena_course_conversation_messages" ADD CONSTRAINT "dena_course_conversation_messages_conversation_id_dena_course_conversations_id_fk" FOREIGN KEY ("conversation_id") REFERENCES "public"."dena_course_conversations"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "dena_course_conversation_messages" ADD CONSTRAINT "dena_course_conversation_messages_sender_user_id_user_id_fk" FOREIGN KEY ("sender_user_id") REFERENCES "public"."user"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "dena_course_conversations" ADD CONSTRAINT "dena_course_conversations_student_user_id_user_id_fk" FOREIGN KEY ("student_user_id") REFERENCES "public"."user"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
@@ -49,6 +50,4 @@ CREATE UNIQUE INDEX "dena_course_conversation_student_member_uidx" ON "dena_cour
 CREATE INDEX "dena_course_conversation_course_student_idx" ON "dena_course_conversations" USING btree ("course_id","student_user_id");--> statement-breakpoint
 CREATE INDEX "dena_course_conversation_member_recent_idx" ON "dena_course_conversations" USING btree ("team_member_id","last_message_at");--> statement-breakpoint
 CREATE UNIQUE INDEX "dena_course_team_member_role_uidx" ON "dena_course_team_members" USING btree ("course_id","member_user_id","role");--> statement-breakpoint
-CREATE UNIQUE INDEX "dena_course_team_member_course_uidx" ON "dena_course_team_members" USING btree ("id","course_id");--> statement-breakpoint
-CREATE INDEX "dena_course_team_course_status_idx" ON "dena_course_team_members" USING btree ("course_id","status","role");--> statement-breakpoint
-CREATE UNIQUE INDEX "dena_courses_institute_scope_uidx" ON "dena_courses" USING btree ("id","responsible_institute_id");
+CREATE INDEX "dena_course_team_course_status_idx" ON "dena_course_team_members" USING btree ("course_id","status","role");
