@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { buttonClassName } from "@/components/ui/button";
-import { getServerIdentity } from "@/server/access/identity";
+import { getServerIdentity } from "@/server/access/actor";
 import {
   getActiveCourseTeamAssignments,
   getCourseTeamInbox,
