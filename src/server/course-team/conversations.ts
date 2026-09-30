@@ -137,6 +137,31 @@ export async function getCourseTeamConversation(
     .orderBy(courseConversationMessages.createdAt)
     .limit(100);
 
+  const visibleMessages: Array<{
+    id: string;
+    sender: "team_member" | "student";
+    body: string;
+    createdAt: Date;
+  }> = [];
+
+  for (const message of messages) {
+    if (message.senderUserId === memberUserId) {
+      visibleMessages.push({
+        id: message.id,
+        sender: "team_member",
+        body: message.body,
+        createdAt: message.createdAt,
+      });
+    } else if (message.senderUserId === conversation.studentUserId) {
+      visibleMessages.push({
+        id: message.id,
+        sender: "student",
+        body: message.body,
+        createdAt: message.createdAt,
+      });
+    }
+  }
+
   return {
     conversationId,
     assignment: {
@@ -146,25 +171,7 @@ export async function getCourseTeamConversation(
       role: assignment.role,
     },
     student: { name: conversation.studentName },
-    messages: messages.flatMap((message) => {
-      if (message.senderUserId === memberUserId) {
-        return [{
-          id: message.id,
-          sender: "team_member" as const,
-          body: message.body,
-          createdAt: message.createdAt,
-        }];
-      }
-      if (message.senderUserId === conversation.studentUserId) {
-        return [{
-          id: message.id,
-          sender: "student" as const,
-          body: message.body,
-          createdAt: message.createdAt,
-        }];
-      }
-      return [];
-    }),
+    messages: visibleMessages,
   };
 }
 
