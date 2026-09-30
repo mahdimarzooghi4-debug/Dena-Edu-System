@@ -65,13 +65,48 @@ export default async function AdminHomePage() {
       </section>
 
       <section aria-labelledby="admin-pending" className="space-y-4">
-        <SectionHeading id="admin-pending">صف بررسی درخواست‌ها</SectionHeading>
+        <SectionHeading id="admin-pending">نمای کلی درخواست‌های نقش</SectionHeading>
         <Card>
           <p className="text-sm text-dena-muted">در انتظار بررسی</p>
-          <p className="mt-2 text-2xl font-extrabold">{pendingCount.toLocaleString("fa-IR")}</p>
+          <p className="mt-2 text-2xl font-extrabold">
+            {pendingCount.toLocaleString("fa-IR")}
+          </p>
         </Card>
+
         {pending.length > 0 && (
-          <p className="text-sm text-dena-muted">نمایش {pending.length} پروندهٔ نخست از صف. {hasMore ? "موارد بیشتری وجود دارد." : ""}</p>
+          <ul className="grid gap-3 md:grid-cols-2">
+            {pending.map((application) => {
+              const roleLabel = application.role === "institute"
+                ? "مؤسسه"
+                : application.role === "provider"
+                  ? "ارائه‌دهنده"
+                  : application.role === "organization"
+                    ? "سازمان"
+                    : "خیر";
+              return (
+                <li key={application.id}>
+                  <Card className="h-full p-5">
+                    <p className="text-xs font-bold text-dena-brand">
+                      {roleLabel}
+                    </p>
+                    <h3 className="mt-2 text-base font-extrabold leading-7">
+                      {roleLabel} · {application.proposedName}
+                    </h3>
+                    <p className="mt-2 text-xs leading-6 text-dena-muted">
+                      در انتظار بررسی مستقل
+                    </p>
+                  </Card>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
+        {pending.length > 0 && (
+          <p className="text-sm text-dena-muted">
+            نمایش {pending.length} پروندهٔ نخست از صف.
+            {hasMore ? " موارد بیشتری وجود دارد." : ""}
+          </p>
         )}
       </section>
     </main>

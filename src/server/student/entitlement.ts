@@ -1,4 +1,4 @@
-import { and, eq, exists } from "drizzle-orm";
+import { and, eq, exists, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { getDb } from "../../db";
 import {
@@ -63,4 +63,48 @@ export async function hasStudentEntitlement(
       listedFreeCourse(db),
     )).limit(1);
   return Boolean(access);
+}
+
+
+export function studentCourseEntitlementKey(
+  studentUserId: string,
+  courseId: string,
+): string {
+  return `${studentUserId}:${courseId}`;
+}
+
+/**
+ * Batch entitlement recheck for inbox/report surfaces.
+ * One bounded query replaces N per-row authorization queries.
+ */
+export async function getStudentCourseEntitlementKeys(
+  pairs: readonly { studentUserId: string; courseId: string }[],
+): Promise<Set<string>> {
+  if (pairs.length === 0) return new Set();
+
+  const studentIds = [...new Set(pairs.map((pair) => pair.studentUserId))];
+  const courseIds = [...new Set(pairs.map((pair) => pair.courseId))];
+  const db = getDb();
+
+  const rows = await db.select({
+    studentUserId: studentEnrollments.studentUserId,
+    courseId: studentEnrollments.courseId,
+  }).from(studentEnrollments)
+    .innerJoin(courses, eq(courses.id, studentEnrollments.courseId))
+    .innerJoin(supervisionGrants, eq(supervisionGrants.courseId, courses.id))
+    .where(and(
+      inArray(studentEnrollments.studentUserId, studentIds),
+      inArray(studentEnrollments.courseId, courseIds),
+      eq(studentEnrollments.status, "active"),
+      exists(db.select({ id: student.id }).from(student).where(and(
+        eq(student.userId, studentEnrollments.studentUserId),
+        eq(student.role, "student"),
+        eq(student.status, "active"),
+      ))),
+      listedFreeCourse(db),
+    ));
+
+  return new Set(rows.map((row) =>
+    studentCourseEntitlementKey(row.studentUserId, row.courseId),
+  ));
 }

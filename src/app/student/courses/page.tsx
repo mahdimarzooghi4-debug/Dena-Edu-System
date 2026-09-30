@@ -1,44 +1,46 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { Card } from "../../../components/ui/card";
 import { FreeCourses } from "../../../components/student/free-courses";
+import { StudentShell } from "../../../components/student/student-shell";
 import { getServerAccessContext } from "../../../server/access/actor";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
-  title: "دوره‌های رایگان | دنا", robots: { index: false, follow: false },
+  title: "دوره‌های من | دنا",
+  robots: { index: false, follow: false },
 };
 
-export default async function StudentFreeCoursesPage() {
-  if (!process.env.DATABASE_URL || !process.env.BETTER_AUTH_SECRET ||
-      !process.env.BETTER_AUTH_URL) redirect("/login");
+export default async function StudentCoursesPage() {
+  if (
+    !process.env.DATABASE_URL ||
+    !process.env.BETTER_AUTH_SECRET ||
+    !process.env.BETTER_AUTH_URL
+  ) {
+    redirect("/login");
+  }
+
   const actor = await getServerAccessContext();
   if (!actor) redirect("/login");
   if (!actor.memberships.some((member) => member.role === "student")) notFound();
+
   return (
-    <main id="main-content" className="mx-auto min-h-screen max-w-4xl px-5 py-8 md:py-14">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <Link href="/account" className="text-sm font-bold text-dena-brand hover:underline">
-          بازگشت به حساب من
-        </Link>
-        <Link href="/student" className="text-sm font-bold text-dena-brand hover:underline">
-          خانه دانش‌آموز
-        </Link>
-      </header>
-      <Card className="mt-6 rounded-[24px] p-6 md:p-10">
-        <p className="text-sm font-bold text-dena-brand">دانش‌آموز دنا</p>
-        <h1 className="mt-3 text-2xl font-extrabold">دوره‌های رایگان منتشرشده</h1>
-        <p className="mb-7 mt-3 text-sm leading-8 text-dena-muted">
-          تنها دوره‌هایی نمایش داده می‌شوند که مؤسسه مسئول نظارت بر همان دوره
-          را تأیید کرده، ارائه‌دهنده آن را منتشر کرده و محتوای خصوصی آماده است.
-          ثبت‌نام در این فاز رایگان است؛ پرداخت و دوره‌های پولی فعال نیستند.
-          جست‌وجوی عنوان، فیلتر ثبت‌نام‌های خودتان و مشاهده صفحه‌های بعدی
-          فهرست، همگی روی دادهٔ مجاز سمت سرور انجام می‌شوند.
-        </p>
-        <FreeCourses />
-      </Card>
-    </main>
+    <StudentShell active="courses" title="دوره‌های من">
+      <div className="space-y-6">
+        <Card className="rounded-[22px] p-6 md:p-8">
+          <p className="text-sm font-bold text-dena-brand">دوره‌های در دسترس</p>
+          <h2 className="mt-2 text-2xl font-extrabold">دوره‌های رایگان منتشرشده</h2>\n          <p className="mt-1 text-sm font-semibold text-dena-deep">یادگیری خودت را ادامه بده</p>
+          <p className="mt-3 max-w-3xl text-sm leading-8 text-dena-muted">
+            فقط دوره‌هایی در فهرست می‌آیند که انتشار معتبر، نظارت تأییدشده و
+            محتوای آماده دارند. فیلتر «ثبت‌نام‌های من» فقط دوره‌های فعال خودت را نشان می‌دهد.
+          </p>
+        </Card>
+
+        <Card className="rounded-[22px] p-5 md:p-7">
+          <FreeCourses />
+        </Card>
+      </div>
+    </StudentShell>
   );
 }

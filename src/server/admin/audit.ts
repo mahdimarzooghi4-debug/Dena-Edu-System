@@ -1,6 +1,3 @@
-import { getDb } from "../../db";
-import { auditLogs } from "../../db/schema";
-
 export type AuditEntityType =
   | "SYSTEM"
   | "USER"
@@ -18,16 +15,10 @@ export type AuditInput = {
 };
 
 /**
- * Central audit writer. Never accept secrets, tokens, OTP values,
- * media object keys or private student data as audit payloads.
+ * Audit persistence is intentionally disabled until the reviewed Drizzle
+ * migration and retention policy are registered together. Failing closed is
+ * safer than silently writing to an untracked table.
  */
-export async function writeAuditLog(input: AuditInput) {
-  const db = getDb();
-  return db.insert(auditLogs).values({
-    actorId: input.actorId,
-    actorRole: input.actorRole,
-    action: input.action,
-    entityType: input.entityType,
-    entityId: input.entityId ?? null,
-  });
+export async function writeAuditLog(_input: AuditInput): Promise<never> {
+  throw new Error("audit_log_not_enabled");
 }

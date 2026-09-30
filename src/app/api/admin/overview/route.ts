@@ -6,6 +6,11 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  if (!process.env.DATABASE_URL || !process.env.BETTER_AUTH_SECRET ||
+      !process.env.BETTER_AUTH_URL) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
   const actor = await getServerAccessContext();
 
   if (!actor) {

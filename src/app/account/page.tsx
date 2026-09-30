@@ -5,8 +5,12 @@ import { redirect } from "next/navigation";
 import { Card } from "../../components/ui/card";
 import { buttonClassName } from "../../components/ui/button";
 import { roleLabels } from "../../lib/preview";
-import { getServerAccessContext } from "../../server/access/actor";
+import {
+  getServerAccessContext,
+  getServerIdentity,
+} from "../../server/access/actor";
 import { SignOutButton } from "../../components/auth/sign-out-button";
+import { getActiveCourseTeamAssignments } from "../../server/course-team/conversations";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,8 +20,13 @@ export default async function AccountPage() {
   // A public build and preview require no live DB/secrets.
   if (!process.env.DATABASE_URL || !process.env.BETTER_AUTH_SECRET ||
       !process.env.BETTER_AUTH_URL) redirect("/login");
-  const actor = await getServerAccessContext();
-  if (!actor) redirect("/login");
+  const identity = await getServerIdentity();
+  if (!identity) redirect("/login");
+  const [actor, courseTeamAssignments] = await Promise.all([
+    getServerAccessContext(),
+    getActiveCourseTeamAssignments(identity.userId),
+  ]);
+  const activeMemberships = actor?.memberships ?? [];
 
   return (
     <main id="main-content" className="mx-auto min-h-screen max-w-4xl px-5 py-8 md:px-10 md:py-12">
@@ -39,11 +48,21 @@ export default async function AccountPage() {
         <section aria-labelledby="roles-heading">
           <h2 id="roles-heading" className="text-base font-bold">دسترسی‌های فعال شما</h2>
           <ul className="mt-4 flex flex-wrap gap-2">
-            {actor.memberships.map((entry, index) => (
+            {activeMemberships.map((entry, index) => (
               <li key={index} className="rounded-full bg-dena-lavender px-4 py-2 text-sm font-semibold text-dena-deep">
                 {roleLabels[entry.role]}
               </li>
             ))}
+            {courseTeamAssignments.length > 0 && (
+              <li className="rounded-full bg-dena-lavender px-4 py-2 text-sm font-semibold text-dena-deep">
+                عضو تیم آموزشی دوره
+              </li>
+            )}
+            {activeMemberships.length === 0 && courseTeamAssignments.length === 0 && (
+              <li className="rounded-full bg-dena-bg px-4 py-2 text-sm font-semibold text-dena-muted">
+                هنوز دسترسی عملیاتی فعالی ثبت نشده است
+              </li>
+            )}
           </ul>
         </section>
         <p className="rounded-xl bg-dena-bg p-4 text-sm leading-7 text-dena-muted">
@@ -56,62 +75,67 @@ export default async function AccountPage() {
           <Link href="/account/role-applications" className={buttonClassName("secondary")}>
             درخواست و پیگیری نقش سازمانی
           </Link>
-          {actor.memberships.some((entry) => entry.role === "student") && (
+          {activeMemberships.some((entry) => entry.role === "student") && (
             <Link href="/student" className={buttonClassName()}>
               خانه دانش‌آموز
             </Link>
           )}
-          {actor.memberships.some((entry) => entry.role === "student") && (
+          {activeMemberships.some((entry) => entry.role === "student") && (
             <Link href="/student/privacy" className={buttonClassName("secondary")}>
               مدیریت یادداشت‌های شخصی
             </Link>
           )}
-          {actor.memberships.some((entry) => entry.role === "student") && (
+          {activeMemberships.some((entry) => entry.role === "student") && (
             <Link href="/student/progress" className={buttonClassName("secondary")}>
               پیگیری شخصی ویدئوها
             </Link>
           )}
-          {actor.memberships.some((entry) => entry.role === "student") && (
+          {activeMemberships.some((entry) => entry.role === "student") && (
             <Link href="/student/courses" className={buttonClassName("secondary")}>
               دوره‌های رایگان و ثبت‌نام من
             </Link>
           )}
-          {actor.memberships.some((entry) => entry.role === "provider") && (
+          {courseTeamAssignments.length > 0 && (
+            <Link href="/course-team" className={buttonClassName("secondary")}>
+              فضای تیم آموزشی
+            </Link>
+          )}
+          {activeMemberships.some((entry) => entry.role === "provider") && (
             <Link href="/provider" className={buttonClassName()}>
               خانه ارائه‌دهنده
             </Link>
           )}
-          {actor.memberships.some((entry) => entry.role === "provider") && (
+          {activeMemberships.some((entry) => entry.role === "provider") && (
             <Link href="/provider/supervision" className={buttonClassName("secondary")}>
               درخواست نظارت دوره‌های من
             </Link>
           )}
-          {actor.memberships.some((entry) => entry.role === "institute") && (
+          {activeMemberships.some((entry) => entry.role === "institute") && (
             <Link href="/institute" className={buttonClassName()}>
               خانه مؤسسه
             </Link>
           )}
-          {actor.memberships.some((entry) => entry.role === "institute") && (
+          {activeMemberships.some((entry) => entry.role === "institute") && (
             <Link href="/institute/providers" className={buttonClassName("secondary")}>
               بررسی درخواست نظارت دوره‌ها
             </Link>
           )}
-          {actor.memberships.some((entry) => entry.role === "benefactor") && (
+          {activeMemberships.some((entry) => entry.role === "benefactor") && (
             <Link href="/benefactor" className={buttonClassName()}>
               خانه خیر و حامی
             </Link>
           )}
-          {actor.memberships.some((entry) => entry.role === "organization") && (
+          {activeMemberships.some((entry) => entry.role === "organization") && (
             <Link href="/organization" className={buttonClassName()}>
               خانه سازمان
             </Link>
           )}
-          {actor.memberships.some((entry) => entry.role === "admin") && (
+          {activeMemberships.some((entry) => entry.role === "admin") && (
             <Link href="/admin" className={buttonClassName()}>
               خانه مدیر
             </Link>
           )}
-          {actor.memberships.some((entry) => entry.role === "admin") && (
+          {activeMemberships.some((entry) => entry.role === "admin") && (
             <Link href="/admin/role-applications" className={buttonClassName()}>
               صف بررسی درخواست‌های نقش
             </Link>

@@ -144,6 +144,9 @@ export const courses = pgTable("dena_courses", {
   uniqueIndex("dena_courses_scope_fk_uidx").on(
     table.id, table.providerId, table.responsibleInstituteId,
   ),
+  uniqueIndex("dena_courses_institute_scope_uidx").on(
+    table.id, table.responsibleInstituteId,
+  ),
   index("dena_courses_provider_idx").on(table.providerId),
   index("dena_courses_institute_idx").on(table.responsibleInstituteId),
 ]);
@@ -223,6 +226,197 @@ export const studentEnrollments = pgTable("dena_student_enrollments", {
     OR (status = 'cancelled' AND cancelled_at IS NOT NULL)
   `),
 ]);
+
+/**
+ * Course educational roles are assignments, not global Dena roles.
+ * This lets the same authenticated user be a student in one context and,
+ * when explicitly assigned by an institute, a supporter in another course.
+ */
+export const courseTeamRole = pgEnum("dena_course_team_role", [
+  "teacher", "academic_supporter", "counselor",
+]);
+export const courseTeamMemberStatus = pgEnum("dena_course_team_member_status", [
+  "active", "inactive",
+]);
+export const courseTeamMembers = pgTable("dena_course_team_members", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  courseId: uuid("course_id").notNull(),
+  instituteId: uuid("institute_id").notNull(),
+  memberUserId: uuid("member_user_id").notNull()
+    .references(() => user.id, { onDelete: "restrict" }),
+  role: courseTeamRole("role").notNull(),
+  status: courseTeamMemberStatus("status").notNull().default("active"),
+  studentSessionRequestsEnabled: boolean("student_session_requests_enabled")
+    .notNull().default(false),
+  assignedByInstituteUserId: uuid("assigned_by_institute_user_id").notNull()
+    .references(() => user.id, { onDelete: "restrict" }),
+  assignedAt: timestamp("assigned_at", { withTimezone: true })
+    .notNull().defaultNow(),
+  endedAt: timestamp("ended_at", { withTimezone: true }),
+}, (table) => [
+  uniqueIndex("dena_course_team_member_role_uidx").on(
+    table.courseId, table.memberUserId, table.role,
+  ),
+  uniqueIndex("dena_course_team_member_course_uidx").on(
+    table.id, table.courseId,
+  ),
+  index("dena_course_team_course_status_idx").on(
+    table.courseId, table.status, table.role,
+  ),
+  foreignKey({
+    columns: [table.courseId, table.instituteId],
+    foreignColumns: [courses.id, courses.responsibleInstituteId],
+    name: "dena_course_team_institute_scope_fk",
+  }).onDelete("restrict"),
+  check("dena_course_team_status_ck", sql`
+    (status = 'active' AND ended_at IS NULL)
+    OR (status = 'inactive' AND ended_at IS NOT NULL)
+  `),
+  check("dena_course_team_session_request_role_ck", sql`
+    role = 'academic_supporter' OR student_session_requests_enabled = false
+  `),
+]);
+
+/**
+ * One private conversation per enrolled student and assigned course-team member.
+ * The application re-checks active enrollment, supervision and assignment before
+ * every new message. Historical messages may remain readable after deactivation
+ * according to the later retention policy, but cannot grant course access.
+ */
+export const courseConversations = pgTable("dena_course_conversations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  courseId: uuid("course_id").notNull(),
+  studentUserId: uuid("student_user_id").notNull()
+    .references(() => user.id, { onDelete: "restrict" }),
+  teamMemberId: uuid("team_member_id").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull().defaultNow(),
+  lastMessageAt: timestamp("last_message_at", { withTimezone: true }),
+}, (table) => [
+  uniqueIndex("dena_course_conversation_student_member_uidx").on(
+    table.studentUserId, table.teamMemberId,
+  ),
+  index("dena_course_conversation_course_student_idx").on(
+    table.courseId, table.studentUserId,
+  ),
+  index("dena_course_conversation_member_recent_idx").on(
+    table.teamMemberId, table.lastMessageAt,
+  ),
+  foreignKey({
+    columns: [table.teamMemberId, table.courseId],
+    foreignColumns: [courseTeamMembers.id, courseTeamMembers.courseId],
+    name: "dena_course_conversation_team_scope_fk",
+  }).onDelete("restrict"),
+]);
+
+export const courseConversationMessages = pgTable(
+  "dena_course_conversation_messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    conversationId: uuid("conversation_id").notNull()
+      .references(() => courseConversations.id, { onDelete: "restrict" }),
+    senderUserId: uuid("sender_user_id").notNull()
+      .references(() => user.id, { onDelete: "restrict" }),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull().defaultNow(),
+  },
+  (table) => [
+    index("dena_course_conversation_message_idx").on(
+      table.conversationId, table.createdAt,
+    ),
+    check("dena_course_conversation_message_body_ck", sql`
+      char_length(body) BETWEEN 1 AND 4000 AND btrim(body) <> ''
+    `),
+  ],
+);
+
+export const problemSolvingRequestStatus = pgEnum(
+  "dena_problem_solving_request_status",
+  ["submitted", "under_review", "scheduled", "declined"],
+);
+export const problemSolvingSessionStatus = pgEnum(
+  "dena_problem_solving_session_status",
+  ["scheduled", "held", "cancelled"],
+);
+
+export const problemSolvingRequests = pgTable(
+  "dena_problem_solving_requests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    courseId: uuid("course_id").notNull(),
+    studentUserId: uuid("student_user_id").notNull()
+      .references(() => user.id, { onDelete: "restrict" }),
+    supporterTeamMemberId: uuid("supporter_team_member_id").notNull(),
+    subject: text("subject").notNull(),
+    description: text("description"),
+    status: problemSolvingRequestStatus("status")
+      .notNull().default("submitted"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull().defaultNow(),
+  },
+  (table) => [
+    index("dena_problem_request_student_idx").on(
+      table.studentUserId, table.createdAt,
+    ),
+    index("dena_problem_request_supporter_status_idx").on(
+      table.supporterTeamMemberId, table.status, table.createdAt,
+    ),
+    foreignKey({
+      columns: [table.supporterTeamMemberId, table.courseId],
+      foreignColumns: [courseTeamMembers.id, courseTeamMembers.courseId],
+      name: "dena_problem_request_supporter_scope_fk",
+    }).onDelete("restrict"),
+    check("dena_problem_request_subject_ck", sql`
+      char_length(subject) BETWEEN 3 AND 160 AND btrim(subject) <> ''
+    `),
+    check("dena_problem_request_description_ck", sql`
+      description IS NULL OR
+      (char_length(description) BETWEEN 1 AND 1000 AND btrim(description) <> '')
+    `),
+  ],
+);
+
+export const problemSolvingSessions = pgTable(
+  "dena_problem_solving_sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    requestId: uuid("request_id").unique()
+      .references(() => problemSolvingRequests.id, { onDelete: "restrict" }),
+    courseId: uuid("course_id").notNull(),
+    studentUserId: uuid("student_user_id").notNull()
+      .references(() => user.id, { onDelete: "restrict" }),
+    supporterTeamMemberId: uuid("supporter_team_member_id").notNull(),
+    subject: text("subject").notNull(),
+    scheduledAt: timestamp("scheduled_at", { withTimezone: true }).notNull(),
+    status: problemSolvingSessionStatus("status")
+      .notNull().default("scheduled"),
+    createdByUserId: uuid("created_by_user_id").notNull()
+      .references(() => user.id, { onDelete: "restrict" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull().defaultNow(),
+  },
+  (table) => [
+    index("dena_problem_session_student_time_idx").on(
+      table.studentUserId, table.scheduledAt,
+    ),
+    index("dena_problem_session_supporter_time_idx").on(
+      table.supporterTeamMemberId, table.scheduledAt,
+    ),
+    foreignKey({
+      columns: [table.supporterTeamMemberId, table.courseId],
+      foreignColumns: [courseTeamMembers.id, courseTeamMembers.courseId],
+      name: "dena_problem_session_supporter_scope_fk",
+    }).onDelete("restrict"),
+    check("dena_problem_session_subject_ck", sql`
+      char_length(subject) BETWEEN 3 AND 160 AND btrim(subject) <> ''
+    `),
+  ],
+);
 
 /** Private media records are created only by a future trusted ingest workflow,
  * never by user-provided file URLs or an exposed provider create-asset endpoint.
