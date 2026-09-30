@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { buttonClassName } from "@/components/ui/button";
-import { getServerAccessContext } from "@/server/access/actor";
+import { getServerIdentity } from "@/server/access/identity";
 import {
   getActiveCourseTeamAssignments,
   getCourseTeamInbox,
@@ -28,12 +28,12 @@ export default async function CourseTeamWorkspacePage() {
     redirect("/login");
   }
 
-  const actor = await getServerAccessContext();
-  if (!actor) redirect("/login");
+  const identity = await getServerIdentity();
+  if (!identity) redirect("/login");
 
   const [assignments, inbox] = await Promise.all([
-    getActiveCourseTeamAssignments(actor.userId),
-    getCourseTeamInbox(actor.userId),
+    getActiveCourseTeamAssignments(identity.userId),
+    getCourseTeamInbox(identity.userId),
   ]);
 
   if (assignments.length === 0) redirect("/account");
