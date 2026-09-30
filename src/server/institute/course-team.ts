@@ -13,6 +13,10 @@ export const courseTeamAssignmentInput = z.object({
   role: z.enum(["teacher", "academic_supporter", "counselor"]),
 }).strict();
 
+export const courseTeamSessionRequestPolicyInput = z.object({
+  enabled: z.boolean(),
+}).strict();
+
 export type CourseTeamAssignmentInput =
   z.infer<typeof courseTeamAssignmentInput>;
 
@@ -52,6 +56,8 @@ export async function getInstituteCourseTeam(
     status: courseTeamMembers.status,
     assignedAt: courseTeamMembers.assignedAt,
     endedAt: courseTeamMembers.endedAt,
+    studentSessionRequestsEnabled:
+      courseTeamMembers.studentSessionRequestsEnabled,
   }).from(courseTeamMembers)
     .innerJoin(user, eq(user.id, courseTeamMembers.memberUserId))
     .where(eq(courseTeamMembers.courseId, courseId));
@@ -97,6 +103,7 @@ export async function assignInstituteCourseTeamMember(
       const [reactivated] = await tx.update(courseTeamMembers).set({
         status: "active",
         endedAt: null,
+        studentSessionRequestsEnabled: false,
         assignedByInstituteUserId: instituteUserId,
         assignedAt: new Date(),
       }).where(eq(courseTeamMembers.id, existing.id))
@@ -129,6 +136,7 @@ export async function deactivateInstituteCourseTeamMember(
   const [updated] = await getDb().update(courseTeamMembers).set({
     status: "inactive",
     endedAt: new Date(),
+    studentSessionRequestsEnabled: false,
   }).where(and(
     eq(courseTeamMembers.id, teamMemberId),
     eq(courseTeamMembers.courseId, courseId),
@@ -137,4 +145,31 @@ export async function deactivateInstituteCourseTeamMember(
   )).returning({ id: courseTeamMembers.id });
 
   return updated ? { teamMemberId: updated.id } : null;
+}
+
+
+export async function setInstituteCourseTeamSessionRequestPolicy(
+  instituteUserId: string,
+  courseId: string,
+  teamMemberId: string,
+  enabled: boolean,
+) {
+  const scope = await instituteScope(instituteUserId, courseId);
+  if (!scope) return null;
+
+  const [updated] = await getDb().update(courseTeamMembers).set({
+    studentSessionRequestsEnabled: enabled,
+  }).where(and(
+    eq(courseTeamMembers.id, teamMemberId),
+    eq(courseTeamMembers.courseId, courseId),
+    eq(courseTeamMembers.instituteId, scope.instituteId),
+    eq(courseTeamMembers.role, "academic_supporter"),
+    eq(courseTeamMembers.status, "active"),
+  )).returning({
+    teamMemberId: courseTeamMembers.id,
+    studentSessionRequestsEnabled:
+      courseTeamMembers.studentSessionRequestsEnabled,
+  });
+
+  return updated ?? null;
 }
