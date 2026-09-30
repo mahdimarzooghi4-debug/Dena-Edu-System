@@ -62,7 +62,14 @@ export async function getCourseTeamInbox(memberUserId: string) {
 
   if (assignments.length === 0) return [];
 
-  const assignmentIds = assignments.map((item) => item.teamMemberId);
+  const communicationAssignments = assignments.filter(
+    (item) => item.role === "academic_supporter" || item.role === "counselor",
+  );
+  if (communicationAssignments.length === 0) return [];
+
+  const assignmentIds = communicationAssignments.map(
+    (item) => item.teamMemberId,
+  );
   const rows = await getDb().select({
     conversationId: courseConversations.id,
     teamMemberId: courseConversations.teamMemberId,
@@ -88,7 +95,7 @@ export async function getCourseTeamInbox(memberUserId: string) {
     })),
   );
 
-  const assignmentMap = new Map(assignments.map((item) => [
+  const assignmentMap = new Map(communicationAssignments.map((item) => [
     item.teamMemberId,
     item,
   ] as const));
