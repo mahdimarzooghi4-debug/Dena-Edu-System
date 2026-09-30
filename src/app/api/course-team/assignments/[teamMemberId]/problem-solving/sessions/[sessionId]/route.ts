@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import { getServerAccessContext } from "@/server/access/actor";
+import { getServerIdentity } from "@/server/access/identity";
 import { validSameOrigin } from "@/server/access/role-application-contracts";
 import {
   decideSupporterSession,
@@ -22,8 +22,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     });
   }
 
-  const actor = await getServerAccessContext();
-  if (!actor) {
+  const identity = await getServerIdentity();
+  if (!identity) {
     return NextResponse.json({ error: "Unauthorized" }, {
       status: 401, headers: noStore,
     });
@@ -47,7 +47,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
 
   const result = await decideSupporterSession(
-    actor.userId, teamMemberId, sessionId, parsed.data.status,
+    identity.userId, teamMemberId, sessionId, parsed.data.status,
   );
   if (!result) {
     return NextResponse.json({ error: "Not found or invalid state" }, {
