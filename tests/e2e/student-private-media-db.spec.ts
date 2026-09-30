@@ -1424,7 +1424,7 @@ test.describe("free enrollment and private video access must stay course-scoped"
     expect(await (await other.get(apiPath)).json()).toEqual({ noteCount: 1 });
 
     const privacyHtml = await (await student.get("/student/privacy")).text();
-    expect(privacyHtml).toContain("مدیریت و پاک‌کردن یادداشت‌های ویدئویی");
+    expect(privacyHtml).toContain("مدیریت یادداشت‌های شخصی");
     expect(privacyHtml).not.toContain("یادداشت فقط در دوره مجاز");
     expect(privacyHtml).not.toContain(videoIds.ready);
     expect(privacyHtml).not.toContain("یادداشت در زمان دسترسی");
