@@ -7,6 +7,7 @@ import { SectionHeading } from "../../../components/ui/section-heading";
 import { getServerAccessContext } from "../../../server/access/actor";
 import { getStudentProgressOverview } from "../../../server/student/progress-overview";
 import { nextStudentCourseAction } from "../../../server/student/next-action";
+import { StudentShell } from "../../../components/student/student-shell";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,17 +25,8 @@ export default async function StudentProgressPage() {
 
   const overview = await getStudentProgressOverview(actor.userId);
   return (
-    <main id="main-content"
-      className="mx-auto min-h-screen max-w-5xl space-y-8 px-5 py-8 md:px-10 md:py-12">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <Link href="/student"
-          className="text-sm font-bold text-dena-brand hover:underline">
-          بازگشت به خانه دانش‌آموز
-        </Link>
-        <Link href="/student/courses" className={buttonClassName("secondary")}>
-          دوره‌های رایگان
-        </Link>
-      </header>
+    <StudentShell active="courses" title="پیگیری یادگیری">
+      <div className="space-y-8">
 
       <section className="rounded-[20px] bg-dena-lavender px-6 py-7 md:px-8">
         <p className="text-sm font-bold text-dena-brand">پیگیری شخصی یادگیری</p>
@@ -165,6 +157,7 @@ export default async function StudentProgressPage() {
           یادگیری هنوز عملیاتی نیستند.
         </p>
       </Card>
-    </main>
+      </div>
+    </StudentShell>
   );
 }
