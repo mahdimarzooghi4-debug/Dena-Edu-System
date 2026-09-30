@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 import { Card } from "@/components/ui/card";
 import { CourseTeamReplyComposer } from "@/components/course-team/conversation-reply-composer";
-import { getServerAccessContext } from "@/server/access/actor";
+import { getServerIdentity } from "@/server/access/identity";
 import { getCourseTeamConversation } from "@/server/course-team/conversations";
 
 export const runtime = "nodejs";
@@ -30,8 +30,8 @@ export default async function CourseTeamConversationPage({
     redirect("/login");
   }
 
-  const actor = await getServerAccessContext();
-  if (!actor) redirect("/login");
+  const identity = await getServerIdentity();
+  if (!identity) redirect("/login");
 
   const { teamMemberId, conversationId } = await params;
   if (!z.uuid().safeParse(teamMemberId).success ||
@@ -40,7 +40,7 @@ export default async function CourseTeamConversationPage({
   }
 
   const conversation = await getCourseTeamConversation(
-    actor.userId,
+    identity.userId,
     teamMemberId,
     conversationId,
   );
