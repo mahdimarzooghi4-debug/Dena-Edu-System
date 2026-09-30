@@ -32,6 +32,7 @@ test.describe("course team communication and problem-solving stay course-scoped"
     supporter: randomUUID(),
     otherSupporter: randomUUID(),
     counselor: randomUUID(),
+    teacher: randomUUID(),
   };
   const tokens = Object.fromEntries(
     Object.keys(users).map((name) => [name, randomUUID()]),
@@ -45,6 +46,7 @@ test.describe("course team communication and problem-solving stay course-scoped"
   let supporterTeamMemberId = "";
   let otherSupporterTeamMemberId = "";
   let counselorTeamMemberId = "";
+  let teacherTeamMemberId = "";
   let conversationId = "";
   let requestId = "";
   let problemSessionId = "";
@@ -77,7 +79,9 @@ test.describe("course team communication and problem-solving stay course-scoped"
           ? "پشتیبان آزمون"
           : name === "counselor"
             ? "مشاور آزمون"
-            : name,
+            : name === "teacher"
+              ? "مدرس آزمون"
+              : name,
       email: `${id}@example.test`,
     })));
 
@@ -242,6 +246,16 @@ test.describe("course team communication and problem-solving stay course-scoped"
     expect(counselor.status()).toBe(201);
     counselorTeamMemberId = (await counselor.json()).teamMemberId;
 
+    const teacher = await institute.post(
+      `/api/institute/courses/${courseId}/team`,
+      {
+        data: { memberUserId: users.teacher, role: "teacher" },
+        headers: origin,
+      },
+    );
+    expect(teacher.status()).toBe(201);
+    teacherTeamMemberId = (await teacher.json()).teamMemberId;
+
     const [supporterMemberships, counselorMemberships] = await Promise.all([
       db.select().from(memberships).where(eq(memberships.userId, users.supporter)),
       db.select().from(memberships).where(eq(memberships.userId, users.counselor)),
@@ -262,11 +276,12 @@ test.describe("course team communication and problem-solving stay course-scoped"
     const payload = await own.json() as {
       team: Array<Record<string, unknown>>;
     };
-    expect(payload.team).toHaveLength(3);
+    expect(payload.team).toHaveLength(4);
     expect(payload.team.map((entry) => entry.role).sort()).toEqual([
       "academic_supporter",
       "academic_supporter",
       "counselor",
+      "teacher",
     ]);
     for (const entry of payload.team) {
       expect(entry).not.toHaveProperty("memberUserId");
@@ -290,6 +305,14 @@ test.describe("course team communication and problem-solving stay course-scoped"
 
     const path =
       `/api/student/courses/${courseId}/team/${supporterTeamMemberId}/conversation`;
+    const teacherPath =
+      `/api/student/courses/${courseId}/team/${teacherTeamMemberId}/conversation`;
+
+    expect((await student.get(teacherPath)).status()).toBe(404);
+    expect((await student.post(teacherPath, {
+      data: { body: "گفت‌وگو با مدرس هنوز تعریف نشده است." },
+      headers: origin,
+    })).status()).toBe(404);
 
     expect((await student.post(path, {
       data: { body: "پیام با origin نامعتبر" },
