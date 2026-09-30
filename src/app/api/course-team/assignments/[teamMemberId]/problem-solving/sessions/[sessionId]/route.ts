@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import { getServerIdentity } from "@/server/access/identity";
+import { getServerIdentity } from "@/server/access/actor";
 import { validSameOrigin } from "@/server/access/role-application-contracts";
 import {
   decideSupporterSession,
