@@ -207,6 +207,18 @@ export async function sendCourseTeamReply(
   if (!assignment) return null;
 
   return getDb().transaction(async (tx) => {
+    const [liveAssignment] = await tx.select({
+      id: courseTeamMembers.id,
+    }).from(courseTeamMembers).where(and(
+      eq(courseTeamMembers.id, teamMemberId),
+      eq(courseTeamMembers.memberUserId, memberUserId),
+      eq(courseTeamMembers.courseId, assignment.courseId),
+      eq(courseTeamMembers.status, "active"),
+      inArray(courseTeamMembers.role, ["academic_supporter", "counselor"]),
+    )).limit(1).for("share");
+
+    if (!liveAssignment) return null;
+
     const [conversation] = await tx.select({
       id: courseConversations.id,
       studentUserId: courseConversations.studentUserId,
