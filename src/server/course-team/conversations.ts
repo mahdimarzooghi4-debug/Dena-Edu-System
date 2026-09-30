@@ -32,13 +32,8 @@ async function activeAssignment(memberUserId: string, teamMemberId: string) {
   return assignment ?? null;
 }
 
-/**
- * Inbox is limited to active assignments owned by the current user.
- * Student identity is shown only for students who started a conversation in
- * that assigned course. No contact/auth/private-note data is selected.
- */
-export async function getCourseTeamInbox(memberUserId: string) {
-  const assignments = await getDb().select({
+export async function getActiveCourseTeamAssignments(memberUserId: string) {
+  return getDb().select({
     teamMemberId: courseTeamMembers.id,
     courseId: courseTeamMembers.courseId,
     courseTitle: courses.title,
@@ -49,11 +44,25 @@ export async function getCourseTeamInbox(memberUserId: string) {
       eq(courseTeamMembers.memberUserId, memberUserId),
       eq(courseTeamMembers.status, "active"),
     ));
+}
+
+/**
+ * Inbox is limited to active assignments owned by the current user.
+ * Student identity is shown only for students who started a conversation in
+ * that assigned course. No contact/auth/private-note data is selected.
+ */
+export async function getCourseTeamInbox(memberUserId: string) {
+  const assignments = await getActiveCourseTeamAssignments(memberUserId);
 
   if (assignments.length === 0) return [];
 
   const assignmentIds = assignments.map((item) => item.teamMemberId);
   const rows = await getDb().select({
+    teamMemberId: courseTeamMembers.id,
+    courseId: courseTeamMembers.courseId,
+    courseTitle: courses.title,
+    role: courseTeamMembers.role,
+
     conversationId: courseConversations.id,
     teamMemberId: courseConversations.teamMemberId,
     courseId: courseConversations.courseId,
