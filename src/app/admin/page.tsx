@@ -90,7 +90,7 @@ export default async function AdminHomePage() {
                       {roleLabel}
                     </p>
                     <h3 className="mt-2 text-base font-extrabold leading-7">
-                      {application.proposedName}
+                      {roleLabel} · {application.proposedName}
                     </h3>
                     <p className="mt-2 text-xs leading-6 text-dena-muted">
                       در انتظار بررسی مستقل
