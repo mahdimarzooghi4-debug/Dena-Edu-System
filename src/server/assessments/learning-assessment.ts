@@ -366,6 +366,13 @@ export async function getProviderLearningAssessments(providerUserId: string, cou
       !actors.some((actor) => actor.role === "provider" && actor.userId === providerUserId &&
         actor.providerId === course.providerId)) return null;
   const db = getDb();
+  const readyLessons = await db.select({
+    id: privateMediaAssets.id,
+    title: privateMediaAssets.title,
+  }).from(privateMediaAssets).where(and(
+    eq(privateMediaAssets.courseId, courseId),
+    eq(privateMediaAssets.status, "ready"),
+  ));
   const assessments = await db.select({
     id: courseLearningAssessments.id,
     title: courseLearningAssessments.title,
@@ -392,6 +399,8 @@ export async function getProviderLearningAssessments(providerUserId: string, cou
       assessments.map((assessment) => assessment.id))) : [];
   return {
     courseId,
+    publicationStatus: course.publicationStatus,
+    readyLessons,
     assessments: assessments.map((assessment) => ({
       ...assessment,
       questions: items.filter((item) => item.assessmentId === assessment.id),
