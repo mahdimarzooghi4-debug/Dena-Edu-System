@@ -30,7 +30,7 @@ export default async function StudentCoursesPage() {
       <div className="space-y-6">
         <Card className="rounded-[22px] p-6 md:p-8">
           <p className="text-sm font-bold text-dena-brand">دوره‌های در دسترس</p>
-          <h2 className="mt-2 text-2xl font-extrabold">یادگیری خودت را ادامه بده</h2>
+          <h2 className="mt-2 text-2xl font-extrabold">دوره‌های رایگان منتشرشده</h2>\n          <p className="mt-1 text-sm font-semibold text-dena-deep">یادگیری خودت را ادامه بده</p>
           <p className="mt-3 max-w-3xl text-sm leading-8 text-dena-muted">
             فقط دوره‌هایی در فهرست می‌آیند که انتشار معتبر، نظارت تأییدشده و
             محتوای آماده دارند. فیلتر «ثبت‌نام‌های من» فقط دوره‌های فعال خودت را نشان می‌دهد.
