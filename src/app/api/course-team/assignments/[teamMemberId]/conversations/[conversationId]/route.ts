@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import { getServerAccessContext } from "@/server/access/actor";
+import { getServerIdentity } from "@/server/access/identity";
 import { validSameOrigin } from "@/server/access/role-application-contracts";
 import {
   courseTeamReplyInput,
@@ -17,8 +17,8 @@ type Params = {
 };
 
 async function scoped({ params }: Params) {
-  const actor = await getServerAccessContext();
-  if (!actor) {
+  const identity = await getServerIdentity();
+  if (!identity) {
     return {
       error: NextResponse.json({ error: "Unauthorized" }, {
         status: 401,
@@ -38,7 +38,7 @@ async function scoped({ params }: Params) {
     };
   }
 
-  return { userId: actor.userId, teamMemberId, conversationId };
+  return { userId: identity.userId, teamMemberId, conversationId };
 }
 
 export async function GET(_request: NextRequest, params: Params) {
