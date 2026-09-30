@@ -111,6 +111,11 @@ CREATE TABLE "dena_student_learning_assessment_lesson_reviews" (
 	CONSTRAINT "dena_student_learning_assessment_lesson_reviews_attempt_id_lesson_asset_id_pk" PRIMARY KEY("attempt_id","lesson_asset_id")
 );
 --> statement-breakpoint
+CREATE UNIQUE INDEX "dena_learning_assessment_question_id_scope_uidx" ON "dena_course_learning_assessment_questions" USING btree ("id","assessment_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "dena_learning_assessment_id_course_uidx" ON "dena_course_learning_assessments" USING btree ("id","course_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "dena_learning_assessment_attempt_id_scope_uidx" ON "dena_student_learning_assessment_attempts" USING btree ("id","assessment_id","course_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "dena_learning_assessment_attempt_id_student_uidx" ON "dena_student_learning_assessment_attempts" USING btree ("id","student_user_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "dena_private_media_id_course_uidx" ON "dena_private_media_assets" USING btree ("id","course_id");--> statement-breakpoint
 ALTER TABLE "dena_course_learning_assessment_questions" ADD CONSTRAINT "dena_learning_assessment_question_assessment_scope_fk" FOREIGN KEY ("assessment_id","course_id") REFERENCES "public"."dena_course_learning_assessments"("id","course_id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "dena_course_learning_assessment_questions" ADD CONSTRAINT "dena_learning_assessment_question_lesson_scope_fk" FOREIGN KEY ("lesson_asset_id","course_id") REFERENCES "public"."dena_private_media_assets"("id","course_id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "dena_course_learning_assessments" ADD CONSTRAINT "dena_course_learning_assessments_course_id_dena_courses_id_fk" FOREIGN KEY ("course_id") REFERENCES "public"."dena_courses"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
@@ -124,14 +129,9 @@ ALTER TABLE "dena_student_learning_assessment_lesson_reviews" ADD CONSTRAINT "de
 ALTER TABLE "dena_student_learning_assessment_lesson_reviews" ADD CONSTRAINT "dena_learning_assessment_lesson_review_attempt_scope_fk" FOREIGN KEY ("attempt_id","assessment_id","course_id") REFERENCES "public"."dena_student_learning_assessment_attempts"("id","assessment_id","course_id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "dena_student_learning_assessment_lesson_reviews" ADD CONSTRAINT "dena_learning_assessment_lesson_review_student_scope_fk" FOREIGN KEY ("attempt_id","student_user_id") REFERENCES "public"."dena_student_learning_assessment_attempts"("id","student_user_id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "dena_student_learning_assessment_lesson_reviews" ADD CONSTRAINT "dena_learning_assessment_lesson_review_asset_scope_fk" FOREIGN KEY ("lesson_asset_id","course_id") REFERENCES "public"."dena_private_media_assets"("id","course_id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
-CREATE UNIQUE INDEX "dena_learning_assessment_question_id_scope_uidx" ON "dena_course_learning_assessment_questions" USING btree ("id","assessment_id");--> statement-breakpoint
 CREATE INDEX "dena_learning_assessment_question_bank_idx" ON "dena_course_learning_assessment_questions" USING btree ("assessment_id","created_at");--> statement-breakpoint
-CREATE UNIQUE INDEX "dena_learning_assessment_id_course_uidx" ON "dena_course_learning_assessments" USING btree ("id","course_id");--> statement-breakpoint
 CREATE INDEX "dena_learning_assessment_course_review_idx" ON "dena_course_learning_assessments" USING btree ("course_id","review_status");--> statement-breakpoint
 CREATE UNIQUE INDEX "dena_learning_assessment_attempt_position_uidx" ON "dena_student_learning_assessment_attempt_questions" USING btree ("attempt_id","position");--> statement-breakpoint
-CREATE UNIQUE INDEX "dena_learning_assessment_attempt_id_scope_uidx" ON "dena_student_learning_assessment_attempts" USING btree ("id","assessment_id","course_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "dena_learning_assessment_attempt_id_student_uidx" ON "dena_student_learning_assessment_attempts" USING btree ("id","student_user_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "dena_learning_assessment_attempt_number_uidx" ON "dena_student_learning_assessment_attempts" USING btree ("assessment_id","student_user_id","attempt_number");--> statement-breakpoint
 CREATE INDEX "dena_learning_assessment_attempt_student_idx" ON "dena_student_learning_assessment_attempts" USING btree ("student_user_id","assessment_id","attempt_number");--> statement-breakpoint
 CREATE INDEX "dena_learning_assessment_lesson_review_student_idx" ON "dena_student_learning_assessment_lesson_reviews" USING btree ("student_user_id","assessment_id","reviewed_at");--> statement-breakpoint
-CREATE UNIQUE INDEX "dena_private_media_id_course_uidx" ON "dena_private_media_assets" USING btree ("id","course_id");
