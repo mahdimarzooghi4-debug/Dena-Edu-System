@@ -8,6 +8,7 @@ import { CourseDetailAction } from "../../../../components/student/course-detail
 import { StudentShell } from "../../../../components/student/student-shell";
 import { getServerAccessContext } from "../../../../server/access/actor";
 import { getStudentCourseDetail } from "../../../../server/student/course-detail";
+import { getStudentCourseTeam } from "../../../../server/student/course-team";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -66,6 +67,9 @@ export default async function StudentCourseDetailPage({
   if (!detail) notFound();
 
   const enrolled = detail.enrollmentStatus === "active";
+  const team = enrolled
+    ? await getStudentCourseTeam(actor.userId, courseId) ?? []
+    : [];
 
   return (
     <StudentShell active="courses" title="جزئیات دوره">
@@ -145,14 +149,44 @@ export default async function StudentCourseDetailPage({
                 مدرس، پشتیبان تحصیلی و مشاور فقط در صورت تخصیص واقعی به همین دوره نمایش داده می‌شوند.
               </p>
             </div>
-            <Card className="rounded-[22px] p-6">
-              <p className="text-sm font-bold text-dena-ink">
-                هنوز عضو دیگری برای تیم آموزشی این دوره ثبت نشده است.
-              </p>
-              <p className="mt-2 text-sm leading-7 text-dena-muted">
-                پس از اتصال مدل Course Team، ارتباط با پشتیبان تحصیلی و مشاور از همین بخش و فقط در محدوده همین دوره انجام می‌شود.
-              </p>
-            </Card>
+            {team.length === 0 ? (
+              <Card className="rounded-[22px] p-6">
+                <p className="text-sm font-bold text-dena-ink">
+                  هنوز عضو دیگری برای تیم آموزشی این دوره ثبت نشده است.
+                </p>
+                <p className="mt-2 text-sm leading-7 text-dena-muted">
+                  هر عضو فقط پس از تخصیص مؤسسه مسئول و در محدوده همین دوره نمایش داده می‌شود.
+                </p>
+              </Card>
+            ) : (
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {team.map((member) => {
+                  const roleLabel =
+                    member.role === "teacher"
+                      ? "مدرس"
+                      : member.role === "academic_supporter"
+                        ? "پشتیبان تحصیلی"
+                        : "مشاور";
+                  return (
+                    <Link
+                      key={member.teamMemberId}
+                      href={`/student/courses/${courseId}/team/${member.teamMemberId}`}
+                      className="rounded-[22px] border border-dena-border bg-white p-5 transition hover:border-dena-brand hover:shadow-sm"
+                    >
+                      <p className="text-xs font-bold text-dena-brand">
+                        {roleLabel}
+                      </p>
+                      <h3 className="mt-2 text-lg font-extrabold text-dena-ink">
+                        {member.name}
+                      </h3>
+                      <p className="mt-2 text-xs leading-6 text-dena-muted">
+                        ارتباط فقط در چارچوب همین دوره انجام می‌شود.
+                      </p>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
           </section>
         )}
 
