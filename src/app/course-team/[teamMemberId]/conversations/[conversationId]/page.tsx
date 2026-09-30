@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 import { Card } from "@/components/ui/card";
 import { CourseTeamReplyComposer } from "@/components/course-team/conversation-reply-composer";
-import { getServerIdentity } from "@/server/access/identity";
+import { getServerIdentity } from "@/server/access/actor";
 import { getCourseTeamConversation } from "@/server/course-team/conversations";
 
 export const runtime = "nodejs";
