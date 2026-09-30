@@ -140,6 +140,17 @@ export async function sendStudentCourseMessage(
   if (!member) return null;
 
   return getDb().transaction(async (tx) => {
+    const [liveMember] = await tx.select({
+      id: courseTeamMembers.id,
+    }).from(courseTeamMembers).where(and(
+      eq(courseTeamMembers.id, teamMemberId),
+      eq(courseTeamMembers.courseId, courseId),
+      eq(courseTeamMembers.status, "active"),
+      inArray(courseTeamMembers.role, ["academic_supporter", "counselor"]),
+    )).limit(1).for("share");
+
+    if (!liveMember) return null;
+
     const [createdConversation] = await tx.insert(courseConversations).values({
       courseId,
       studentUserId,
