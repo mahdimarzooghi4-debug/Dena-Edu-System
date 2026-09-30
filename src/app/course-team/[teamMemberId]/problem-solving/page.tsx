@@ -7,7 +7,7 @@ import {
   ProblemRequestActions,
   ProblemSessionActions,
 } from "@/components/course-team/problem-solving-actions";
-import { getServerAccessContext } from "@/server/access/actor";
+import { getServerIdentity } from "@/server/access/identity";
 import { getSupporterProblemSolving } from "@/server/course-team/problem-solving";
 
 export const runtime = "nodejs";
@@ -40,13 +40,13 @@ export default async function SupporterProblemSolvingPage({
     redirect("/login");
   }
 
-  const actor = await getServerAccessContext();
-  if (!actor) redirect("/login");
+  const identity = await getServerIdentity();
+  if (!identity) redirect("/login");
 
   const { teamMemberId } = await params;
   if (!z.uuid().safeParse(teamMemberId).success) notFound();
 
-  const data = await getSupporterProblemSolving(actor.userId, teamMemberId);
+  const data = await getSupporterProblemSolving(identity.userId, teamMemberId);
   if (!data) notFound();
 
   return (
