@@ -34,7 +34,8 @@ CREATE TABLE "dena_course_team_members" (
     (status = 'active' AND ended_at IS NULL)
     OR (status = 'inactive' AND ended_at IS NOT NULL)
   )
-);
+);--> statement-breakpoint
+
 --> statement-breakpoint
 ALTER TABLE "dena_course_conversation_messages" ADD CONSTRAINT "dena_course_conversation_messages_conversation_id_dena_course_conversations_id_fk" FOREIGN KEY ("conversation_id") REFERENCES "public"."dena_course_conversations"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "dena_course_conversation_messages" ADD CONSTRAINT "dena_course_conversation_messages_sender_user_id_user_id_fk" FOREIGN KEY ("sender_user_id") REFERENCES "public"."user"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
