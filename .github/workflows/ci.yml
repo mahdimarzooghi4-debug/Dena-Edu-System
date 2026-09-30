@@ -5,7 +5,7 @@ on:
   pull_request:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   foundation:
@@ -98,6 +98,16 @@ jobs:
           name: drizzle-migration-candidate
           path: drizzle/
           if-no-files-found: error
+      - name: Commit generated migration on Dena course-team feature branch
+        if: github.event_name == 'pull_request' && github.head_ref == 'feat/student-course-team-communications' && github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          if [ -n "$(git status --porcelain -- drizzle/)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add drizzle/
+            git commit -m "chore(db): commit generated course team migration"
+            git push origin HEAD:${GITHUB_HEAD_REF}
+          fi
       - name: Verify generated migration files have been committed
         run: |
           if [ -n "$(git status --porcelain -- drizzle/)" ]; then
