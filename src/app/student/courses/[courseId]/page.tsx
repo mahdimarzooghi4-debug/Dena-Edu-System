@@ -5,93 +5,163 @@ import { z } from "zod";
 import { Card } from "../../../../components/ui/card";
 import { buttonClassName } from "../../../../components/ui/button";
 import { CourseDetailAction } from "../../../../components/student/course-detail-action";
+import { StudentShell } from "../../../../components/student/student-shell";
 import { getServerAccessContext } from "../../../../server/access/actor";
 import { getStudentCourseDetail } from "../../../../server/student/course-detail";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
-  title: "جزئیات دورهٔ رایگان | دنا",
+  title: "جزئیات دوره | دنا",
   robots: { index: false, follow: false },
 };
 
+function EnrollmentBadge({
+  status,
+}: {
+  status: "active" | "cancelled" | null;
+}) {
+  if (status === "active") {
+    return (
+      <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+        ثبت‌نام فعال
+      </span>
+    );
+  }
+  if (status === "cancelled") {
+    return (
+      <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
+        ثبت‌نام لغوشده
+      </span>
+    );
+  }
+  return (
+    <span className="rounded-full bg-dena-bg px-3 py-1 text-xs font-bold text-dena-muted">
+      هنوز ثبت‌نام نشده
+    </span>
+  );
+}
+
 export default async function StudentCourseDetailPage({
   params,
-}: { params: Promise<{ courseId: string }> }) {
-  if (!process.env.DATABASE_URL || !process.env.BETTER_AUTH_SECRET ||
-      !process.env.BETTER_AUTH_URL) redirect("/login");
+}: {
+  params: Promise<{ courseId: string }>;
+}) {
+  if (
+    !process.env.DATABASE_URL ||
+    !process.env.BETTER_AUTH_SECRET ||
+    !process.env.BETTER_AUTH_URL
+  ) {
+    redirect("/login");
+  }
+
   const actor = await getServerAccessContext();
   if (!actor) redirect("/login");
   if (!actor.memberships.some((entry) => entry.role === "student")) notFound();
+
   const { courseId } = await params;
   if (!z.uuid().safeParse(courseId).success) notFound();
+
   const detail = await getStudentCourseDetail(actor.userId, courseId);
   if (!detail) notFound();
 
+  const enrolled = detail.enrollmentStatus === "active";
+
   return (
-    <main id="main-content"
-      className="mx-auto min-h-screen max-w-4xl space-y-6 px-5 py-8 md:py-14">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <Link href="/student/courses"
-          className="text-sm font-bold text-dena-brand hover:underline">
-          بازگشت به دوره‌های رایگان
-        </Link>
-        <Link href="/student" className={buttonClassName("secondary")}>
-          خانه دانش‌آموز
-        </Link>
-      </header>
-      <Card className="space-y-6 rounded-[24px] p-6 md:p-10">
-        <div className="space-y-3">
-          <p className="text-sm font-bold text-dena-brand">
-            معرفی دورهٔ رایگانِ در دسترس
-          </p>
-          <h1 className="text-2xl font-extrabold leading-10">
-            {detail.title}
-          </h1>
-          <p className="text-sm leading-8 text-dena-muted">
-            این اطلاعات از وضعیت جاری انتشار و نظارت همان دوره در دنا
-            خوانده شده است؛ تأیید داخلی دنا به معنی تأییدیهٔ قانونی،
-            مجوز رسمی آموزشی یا گواهی پایان دوره نیست.
-          </p>
+    <StudentShell active="courses" title="جزئیات دوره">
+      <div className="space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Link
+            href="/student/courses"
+            className="text-sm font-bold text-dena-brand hover:underline"
+          >
+            بازگشت به دوره‌های من
+          </Link>
+          <EnrollmentBadge status={detail.enrollmentStatus} />
         </div>
-        <dl className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-xl bg-dena-bg p-5">
-            <dt className="text-sm text-dena-muted">ارائه‌دهندهٔ ثبت‌شده</dt>
-            <dd className="mt-2 font-extrabold leading-8">
-              {detail.providerName}
-            </dd>
+
+        <Card className="rounded-[22px] p-6 md:p-8">
+          <div className="flex flex-col gap-7">
+            <div className="flex flex-col gap-3">
+              <p className="text-sm font-bold text-dena-brand">دوره آموزشی</p>
+              <h2 className="text-2xl font-extrabold leading-10 text-dena-ink md:text-3xl">
+                {detail.title}
+              </h2>
+              <div className="flex flex-wrap gap-2 text-xs text-dena-muted">
+                <span className="rounded-full border border-dena-border px-3 py-1.5">
+                  ارائه‌دهنده: {detail.providerName}
+                </span>
+                <span className="rounded-full border border-dena-border px-3 py-1.5">
+                  مؤسسه مسئول: {detail.responsibleInstituteName}
+                </span>
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-2xl bg-dena-bg p-5">
+                <p className="text-xs font-medium text-dena-muted">محتوای آماده فعلی</p>
+                <p className="mt-2 text-2xl font-extrabold text-dena-deep">
+                  {detail.readyVideoCount.toLocaleString("fa-IR")} ویدئو
+                </p>
+                <p className="mt-2 text-xs leading-6 text-dena-muted">
+                  فقط محتوایی که همچنان آماده و مجاز است در شمارش قرار می‌گیرد.
+                </p>
+              </div>
+              <div className="rounded-2xl bg-dena-bg p-5">
+                <p className="text-xs font-medium text-dena-muted">وضعیت دسترسی</p>
+                <p className="mt-2 text-lg font-extrabold text-dena-deep">
+                  {enrolled ? "قابل ادامه" : "نیازمند ثبت‌نام"}
+                </p>
+                <p className="mt-2 text-xs leading-6 text-dena-muted">
+                  دسترسی دانش‌آموز در هر درخواست دوباره با وضعیت انتشار و نظارت دوره بررسی می‌شود.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <CourseDetailAction
+                courseId={detail.courseId}
+                enrollmentStatus={detail.enrollmentStatus}
+              />
+              {enrolled && (
+                <Link
+                  href="/student/progress"
+                  className={buttonClassName("outline")}
+                >
+                  مشاهده پیگیری یادگیری
+                </Link>
+              )}
+            </div>
           </div>
-          <div className="rounded-xl bg-dena-bg p-5">
-            <dt className="text-sm text-dena-muted">
-              مؤسسهٔ مسئول نظارت این دوره
-            </dt>
-            <dd className="mt-2 font-extrabold leading-8">
-              {detail.responsibleInstituteName}
-            </dd>
-          </div>
-          <div className="rounded-xl bg-dena-bg p-5">
-            <dt className="text-sm text-dena-muted">
-              شمار ویدئوهای آمادهٔ فعلی
-            </dt>
-            <dd className="mt-2 text-2xl font-extrabold text-dena-brand">
-              {detail.readyVideoCount.toLocaleString("fa-IR")}
-            </dd>
-          </div>
-          <div className="rounded-xl bg-dena-bg p-5">
-            <dt className="text-sm text-dena-muted">هزینهٔ ثبت‌نام</dt>
-            <dd className="mt-2 font-extrabold">رایگان</dd>
-          </div>
-        </dl>
-        <section aria-label="ثبت‌نام در دوره" className="space-y-4">
-          <p className="text-sm leading-8 text-dena-muted">
-            عنوان‌ها، شناسه‌ها، نشانی‌ها و متن‌های خصوصی ویدئوها پیش از
-            ثبت‌نام در این صفحه منتشر نمی‌شوند. ثبت‌نام فقط برای
-            همین دوره و پس از بررسی مجدد مجوزهای سمت سرور انجام می‌شود.
+        </Card>
+
+        {enrolled && (
+          <section aria-labelledby="course-team-title" className="space-y-3">
+            <div>
+              <h2 id="course-team-title" className="text-xl font-extrabold">
+                تیم آموزشی دوره
+              </h2>
+              <p className="mt-1 text-sm leading-7 text-dena-muted">
+                مدرس، پشتیبان تحصیلی و مشاور فقط در صورت تخصیص واقعی به همین دوره نمایش داده می‌شوند.
+              </p>
+            </div>
+            <Card className="rounded-[22px] p-6">
+              <p className="text-sm font-bold text-dena-ink">
+                هنوز عضو دیگری برای تیم آموزشی این دوره ثبت نشده است.
+              </p>
+              <p className="mt-2 text-sm leading-7 text-dena-muted">
+                پس از اتصال مدل Course Team، ارتباط با پشتیبان تحصیلی و مشاور از همین بخش و فقط در محدوده همین دوره انجام می‌شود.
+              </p>
+            </Card>
+          </section>
+        )}
+
+        <Card className="rounded-[22px] border-dashed p-5">
+          <p className="text-xs leading-7 text-dena-muted">
+            دنا زیرساخت فنی این دسترسی است. مسئولیت محتوای آموزشی و خدمات مرتبط با دوره بر عهده مؤسسه یا ارائه‌دهنده مسئول همان دوره است.
           </p>
-          <CourseDetailAction courseId={detail.courseId}
-            enrollmentStatus={detail.enrollmentStatus} />
-        </section>
-      </Card>
-    </main>
+        </Card>
+      </div>
+    </StudentShell>
   );
 }
