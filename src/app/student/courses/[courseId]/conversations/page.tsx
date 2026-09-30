@@ -14,8 +14,12 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-function roleLabel(role: "academic_supporter" | "counselor") {
-  return role === "academic_supporter" ? "پشتیبان تحصیلی" : "مشاور";
+function roleLabel(
+  role: "teacher" | "academic_supporter" | "counselor",
+) {
+  if (role === "academic_supporter") return "پشتیبان تحصیلی";
+  if (role === "counselor") return "مشاور";
+  return "مدرس";
 }
 
 export default async function CourseConversationsPage({
