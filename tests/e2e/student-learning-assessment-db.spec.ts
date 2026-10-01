@@ -168,7 +168,7 @@ test.describe("student learning assessment lifecycle", () => {
     const instituteAssessmentQueue = await institute.get("/institute/assessments");
     expect(instituteAssessmentQueue.status()).toBe(200);
     const queueHtml = await instituteAssessmentQueue.text();
-    expect(queueHtml).toContain("ارزیابی منتظر بازبینی");
+    expect(queueHtml).toContain("ارزیابی‌های یادگیری");
     expect(queueHtml).toContain("بازبینی ارزیابی");
     expect(queueHtml).toContain("بازبینی سؤال این دوره");
     expect(queueHtml).not.toContain("پرسش خصوصی ارزیابی در انتظار بازبینی چیست؟");
