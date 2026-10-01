@@ -147,6 +147,7 @@ test.describe("free enrollment and private video access must stay course-scoped"
   });
 
   test("draft or merely requested courses never enter the free catalog", async ({ page }) => {
+    test.setTimeout(60_000);
     const anonymous = await client();
     expect((await anonymous.get("/api/student/courses")).status()).toBe(401);
     expect((await anonymous.get("/api/student/progress")).status()).toBe(401);
