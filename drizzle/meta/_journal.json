@@ -232,6 +232,13 @@
       "when": 1790854911399,
       "tag": "0032_dena_cancelled_service_order_consent",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1790858760653,
+      "tag": "0033_dena_provider_institute_collaboration",
+      "breakpoints": true
     }
   ]
 }

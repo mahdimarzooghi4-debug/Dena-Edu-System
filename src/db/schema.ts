@@ -957,6 +957,102 @@ export const verifiedEntities = pgTable("dena_verified_entities", {
   verifiedAt: timestamp("verified_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/** A verified provider may work under a verified institute's supervision
+ * while retaining their own provider identity. This institution-wide
+ * affiliation is separate from per-course supervision and Dena reviews it
+ * after the institute accepts the request. */
+export const providerInstituteCollaborationStatus = pgEnum(
+  "dena_provider_institute_collaboration_status",
+  ["requested", "awaiting_dena", "approved", "institute_rejected", "dena_rejected"],
+);
+export const providerInstituteCollaborationEventKind = pgEnum(
+  "dena_provider_institute_collaboration_event_kind",
+  ["requested", "institute_approved", "institute_rejected", "dena_approved", "dena_rejected"],
+);
+
+export const providerInstituteCollaborations = pgTable(
+  "dena_provider_institute_collaborations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    providerId: uuid("provider_id").notNull()
+      .references(() => verifiedEntities.id, { onDelete: "restrict" }),
+    instituteId: uuid("institute_id").notNull()
+      .references(() => verifiedEntities.id, { onDelete: "restrict" }),
+    requestedByUserId: uuid("requested_by_user_id").notNull()
+      .references(() => user.id, { onDelete: "restrict" }),
+    clientRequestId: uuid("client_request_id").notNull(),
+    status: providerInstituteCollaborationStatus("status").notNull().default("requested"),
+    instituteReviewedByUserId: uuid("institute_reviewed_by_user_id")
+      .references(() => user.id, { onDelete: "restrict" }),
+    instituteReviewedAt: timestamp("institute_reviewed_at", { withTimezone: true }),
+    instituteDecisionReason: text("institute_decision_reason"),
+    denaReviewedByUserId: uuid("dena_reviewed_by_user_id")
+      .references(() => user.id, { onDelete: "restrict" }),
+    denaReviewedAt: timestamp("dena_reviewed_at", { withTimezone: true }),
+    denaDecisionReason: text("dena_decision_reason"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("dena_provider_institute_collab_request_uidx")
+      .on(table.providerId, table.clientRequestId),
+    uniqueIndex("dena_provider_institute_collab_active_uidx")
+      .on(table.providerId, table.instituteId)
+      .where(sql`status IN ('requested', 'awaiting_dena', 'approved')`),
+    index("dena_provider_institute_collab_provider_idx").on(table.providerId, table.status),
+    index("dena_provider_institute_collab_institute_idx").on(table.instituteId, table.status),
+    check("dena_provider_institute_collab_distinct_scopes_ck", sql`provider_id <> institute_id`),
+    check("dena_provider_institute_collab_stage_ck", sql`
+      (status = 'requested'
+        AND institute_reviewed_by_user_id IS NULL AND institute_reviewed_at IS NULL
+        AND institute_decision_reason IS NULL
+        AND dena_reviewed_by_user_id IS NULL AND dena_reviewed_at IS NULL
+        AND dena_decision_reason IS NULL)
+      OR (status = 'awaiting_dena'
+        AND institute_reviewed_by_user_id IS NOT NULL AND institute_reviewed_at IS NOT NULL
+        AND institute_decision_reason IS NOT NULL
+        AND dena_reviewed_by_user_id IS NULL AND dena_reviewed_at IS NULL
+        AND dena_decision_reason IS NULL)
+      OR (status = 'approved'
+        AND institute_reviewed_by_user_id IS NOT NULL AND institute_reviewed_at IS NOT NULL
+        AND institute_decision_reason IS NOT NULL
+        AND dena_reviewed_by_user_id IS NOT NULL AND dena_reviewed_at IS NOT NULL)
+      OR (status = 'institute_rejected'
+        AND institute_reviewed_by_user_id IS NOT NULL AND institute_reviewed_at IS NOT NULL
+        AND institute_decision_reason IS NOT NULL
+        AND dena_reviewed_by_user_id IS NULL AND dena_reviewed_at IS NULL
+        AND dena_decision_reason IS NULL)
+      OR (status = 'dena_rejected'
+        AND institute_reviewed_by_user_id IS NOT NULL AND institute_reviewed_at IS NOT NULL
+        AND institute_decision_reason IS NOT NULL
+        AND dena_reviewed_by_user_id IS NOT NULL AND dena_reviewed_at IS NOT NULL
+        AND dena_decision_reason IS NOT NULL)
+    `),
+  ],
+);
+
+/** Append-only transition history for provider/institute affiliation review. */
+export const providerInstituteCollaborationEvents = pgTable(
+  "dena_provider_institute_collaboration_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    collaborationId: uuid("collaboration_id").notNull()
+      .references(() => providerInstituteCollaborations.id, { onDelete: "restrict" }),
+    actorUserId: uuid("actor_user_id").notNull()
+      .references(() => user.id, { onDelete: "restrict" }),
+    kind: providerInstituteCollaborationEventKind("kind").notNull(),
+    reason: text("reason"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("dena_provider_institute_collab_events_idx").on(table.collaborationId, table.createdAt),
+    check("dena_provider_institute_collab_event_reason_ck", sql`
+      (kind = 'requested' AND reason IS NULL)
+      OR (kind <> 'requested' AND reason IS NOT NULL)
+    `),
+  ],
+);
+
 /**
  * Exam question ownership is attached to a bank. The Dena bank uses the fixed
  * system owner UUID below; every institute bank is owned by its verified
@@ -1312,6 +1408,7 @@ export const auditEntityType = pgEnum("dena_audit_entity_type", [
   "SYSTEM", "USER", "COURSE", "PRACTICE", "MEDIA", "ROLE_APPLICATION",
   "ORGANIZATION_STUDENT", "ORGANIZATION_API_KEY", "ASSESSMENT_QUESTION",
   "ASSESSMENT_EXAM", "INSTITUTE_SERVICE", "SERVICE_ORDER",
+  "PROVIDER_COLLABORATION",
 ]);
 export const auditLogs = pgTable("dena_audit_logs", {
   id: uuid("id").primaryKey().defaultRandom(),
