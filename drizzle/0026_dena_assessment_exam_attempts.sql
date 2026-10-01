@@ -28,13 +28,14 @@ CREATE TABLE "dena_assessment_exam_attempts" (
 	CONSTRAINT "dena_assessment_exam_attempt_state_ck" CHECK ((status = 'in_progress' AND submitted_at IS NULL AND correct_count IS NULL AND total_points IS NULL AND earned_points IS NULL) OR (status IN ('submitted', 'expired') AND submitted_at IS NOT NULL AND correct_count IS NOT NULL AND total_points IS NOT NULL AND earned_points IS NOT NULL))
 );
 --> statement-breakpoint
+-- These referenced composite keys must be unique before the answer FKs are added.
+CREATE UNIQUE INDEX "dena_assessment_exam_attempt_id_scope_uidx" ON "dena_assessment_exam_attempts" USING btree ("id","exam_id","student_user_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "dena_assessment_exam_question_id_exam_uidx" ON "dena_assessment_exam_questions" USING btree ("id","exam_id");--> statement-breakpoint
 ALTER TABLE "dena_assessment_exam_attempt_answers" ADD CONSTRAINT "dena_assessment_exam_attempt_answer_attempt_scope_fk" FOREIGN KEY ("attempt_id","exam_id","student_user_id") REFERENCES "public"."dena_assessment_exam_attempts"("id","exam_id","student_user_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "dena_assessment_exam_attempt_answers" ADD CONSTRAINT "dena_assessment_exam_attempt_answer_question_scope_fk" FOREIGN KEY ("exam_question_id","exam_id") REFERENCES "public"."dena_assessment_exam_questions"("id","exam_id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "dena_assessment_exam_attempts" ADD CONSTRAINT "dena_assessment_exam_attempts_student_user_id_user_id_fk" FOREIGN KEY ("student_user_id") REFERENCES "public"."user"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "dena_assessment_exam_attempts" ADD CONSTRAINT "dena_assessment_exam_attempt_exam_fk" FOREIGN KEY ("exam_id") REFERENCES "public"."dena_assessment_exams"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "dena_assessment_exam_attempt_answer_uidx" ON "dena_assessment_exam_attempt_answers" USING btree ("attempt_id","exam_question_id");--> statement-breakpoint
 CREATE INDEX "dena_assessment_exam_attempt_answer_exam_idx" ON "dena_assessment_exam_attempt_answers" USING btree ("exam_id","exam_question_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "dena_assessment_exam_attempt_id_scope_uidx" ON "dena_assessment_exam_attempts" USING btree ("id","exam_id","student_user_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "dena_assessment_exam_attempt_number_uidx" ON "dena_assessment_exam_attempts" USING btree ("exam_id","student_user_id","attempt_number");--> statement-breakpoint
 CREATE INDEX "dena_assessment_exam_attempt_student_idx" ON "dena_assessment_exam_attempts" USING btree ("student_user_id","status","started_at");--> statement-breakpoint
-CREATE UNIQUE INDEX "dena_assessment_exam_question_id_exam_uidx" ON "dena_assessment_exam_questions" USING btree ("id","exam_id");
