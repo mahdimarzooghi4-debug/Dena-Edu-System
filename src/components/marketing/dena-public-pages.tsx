@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { DenaPublicLayout, DenaRoleIcon } from "./dena-site-shell";
 
 const catalogCourses = [
@@ -94,4 +95,23 @@ export function DenaInstituteRequestPage() {
 
 export function DenaInstituteConfirmationPage() {
   return <DenaPublicLayout><section className="confirmation-state"><span className="confirmation-check" aria-hidden="true">✓</span><Eyebrow>وضعیت درخواست</Eyebrow><h1>درخواست شما آمادهٔ بررسی است</h1><p>این صفحه فقط وضعیت نمایشی فرم را نشان می‌دهد. در نسخهٔ نمایشی هیچ اطلاعاتی ذخیره یا برای دنا ارسال نشده است.</p><div className="content-disclaimer-block"><b>مراحل بعدی</b><p>در فرایند عملیاتی، اطلاعات مؤسسه و مدارک مجوز بررسی می‌شود؛ سپس برای ادامهٔ همکاری با نماینده تماس می‌گیریم.</p></div><Link className="dena-button dena-button--primary" href="/">بازگشت به صفحهٔ اصلی</Link></section></DenaPublicLayout>;
+}
+
+export function DenaAccountInfoPage({ mode }: { mode: "signup" | "recovery" }) {
+  const isSignup = mode === "signup";
+  return <main id="main-content" className="dena-auth-page">
+    <header className="dena-auth-header"><Link href="/" aria-label="صفحهٔ اصلی دنا"><Image src="/dena-app-logo.png" alt="دنا" width={83} height={48} /></Link><Link href="/" className="auth-back-link">بازگشت به صفحهٔ اصلی</Link></header>
+    <div className="dena-auth-stage">
+      <section className="dena-auth-illustration" aria-label="اکوسیستم آموزشی دنا"><div className="auth-network-art" aria-hidden="true"><svg viewBox="0 0 520 420"><path className="auth-network-line" d="M260 96 122 186m138-90 138 90M122 186l44 136m88-226v226m138-136-44 136M122 186h276M166 322h188"/><circle className="auth-network-orbit" cx="260" cy="209" r="148"/><g className="auth-network-node auth-network-node--main"><circle cx="260" cy="96" r="43"/><path d="M242 99h36m-18-18v36"/><text x="260" y="158">یادگیری</text></g><g className="auth-network-node"><circle cx="122" cy="186" r="31"/><path d="M112 189h20m-10-10v20"/><text x="122" y="238">دانش‌آموز</text></g><g className="auth-network-node"><circle cx="398" cy="186" r="31"/><path d="M386 194h24m-20-14h16"/><text x="398" y="238">مؤسسه</text></g><g className="auth-network-node"><circle cx="166" cy="322" r="31"/><path d="M154 327h24m-12-15v20"/><text x="166" y="374">آزمون</text></g><g className="auth-network-node"><circle cx="354" cy="322" r="31"/><path d="m342 324 8 8 17-20"/><text x="354" y="374">رشد</text></g></svg></div><p>یادگیری تنها نیست؛ رشد همراه است.</p></section>
+      <section className="dena-auth-card dena-auth-info-card" aria-labelledby="account-page-title">
+        <span className="eyebrow">حساب کاربری دنا</span>
+        <h1 id="account-page-title">{isSignup ? "ساخت حساب دانش‌آموزی" : "بازیابی دسترسی به حساب"}</h1>
+        <p>{isSignup ? "با تأیید شمارهٔ همراه، حساب دنا ساخته می‌شود. شمارهٔ همراه شما راه ورود امن به فضای کاربری است." : "برای بازیابی دسترسی، همان شمارهٔ همراه متصل به حساب را وارد کنید و کد یک‌بارمصرف تازه بگیرید."}</p>
+        <div className="auth-info-note"><b>{isSignup ? "ثبت‌نام و ورود در یک فرایند" : "ورود امن با کد یک‌بارمصرف"}</b><span>{isSignup ? "اگر شمارهٔ همراه قبلاً حساب داشته باشد، با همان حساب وارد می‌شوید." : "کد بازیابی فقط به شمارهٔ همراه ثبت‌شده ارسال می‌شود."}</span></div>
+        <Link className="dena-button dena-button--primary auth-main-action" href={`/login?flow=${mode}`}>{isSignup ? "ادامه با شمارهٔ همراه" : "بازیابی با شمارهٔ همراه"}</Link>
+        <Link className="auth-secondary-link" href={isSignup ? "/login" : "/signup"}>{isSignup ? "قبلاً حساب ساخته‌ام؛ ورود" : "حساب ندارم؛ ثبت‌نام"}</Link>
+      </section>
+    </div>
+    <footer className="dena-auth-footer">دسترسی به نقش‌های سازمانی و آموزشی پس از احراز صلاحیت و تأیید درخواست فعال می‌شود.</footer>
+  </main>;
 }

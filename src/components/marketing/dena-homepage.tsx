@@ -65,7 +65,7 @@ export function DenaHomepage() {
       <header className="dena-header">
         <div className="dena-header__actions">
           <Link className="dena-button dena-button--outline" href="/login">ورود</Link>
-          <Link className="dena-button dena-button--primary" href="/login">ثبت‌نام</Link>
+          <Link className="dena-button dena-button--primary" href="/signup">ثبت‌نام</Link>
         </div>
         <div className="dena-header__right">
           <nav className="dena-nav" aria-label="ناوبری اصلی">
