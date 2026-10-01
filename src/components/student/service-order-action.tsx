@@ -4,7 +4,11 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 type OrderStatus = "awaiting_guardian_consent" | "awaiting_payment" | "paid" | "cancelled";
-type Order = { id: string; status: OrderStatus };
+type Order = {
+  id: string;
+  status: OrderStatus;
+  guardianConsentConfirmedAt?: Date | null;
+};
 
 export function ServiceOrderAction({ serviceId, guardianConsentRequired, order, allowRetry = true }: {
   serviceId: string; guardianConsentRequired: boolean; order?: Order; allowRetry?: boolean;
@@ -64,11 +68,13 @@ export function ServiceOrderAction({ serviceId, guardianConsentRequired, order, 
 
   if (current?.status === "paid") return <p className="rounded-lg bg-emerald-50 p-3 text-sm font-bold text-emerald-800">پرداخت این خدمت ثبت شده است.</p>;
   if (current?.status === "awaiting_guardian_consent") return <div className="space-y-3 rounded-lg bg-amber-50 p-3 text-sm leading-6 text-amber-950">
-    <p>درخواست ثبت شده و منتظر رضایت سرپرست است. تا ثبت رضایت معتبر، پرداخت یا ارائهٔ خدمت انجام نمی‌شود.</p>
+    <p>درخواست ثبت شده و مؤسسه باید تأیید کند که رضایت سرپرست برای همین درخواست را گرفته است. تا ثبت این تأیید، پرداخت یا ارائهٔ خدمت انجام نمی‌شود.</p>
     <button type="button" disabled={busy} onClick={() => void cancelRequest()} className="font-bold underline disabled:opacity-50">{busy ? "در حال انجام…" : "لغو درخواست"}</button>
   </div>;
   if (current?.status === "awaiting_payment") return <div className="space-y-3 rounded-lg bg-amber-50 p-3 text-sm leading-6 text-amber-950">
-    <p>درخواست ثبت شده؛ اتصال درگاه پرداخت هنوز آماده نیست و هیچ مبلغی دریافت نشده است.</p>
+    <p>{current.guardianConsentConfirmedAt
+      ? "تأیید مؤسسه دربارهٔ رضایت سرپرست ثبت شده است. درخواست در انتظار پرداخت است؛ هیچ مبلغی دریافت نشده است."
+      : "درخواست ثبت شده؛ اتصال درگاه پرداخت هنوز آماده نیست و هیچ مبلغی دریافت نشده است."}</p>
     <button type="button" disabled={busy} onClick={() => void cancelRequest()} className="font-bold underline disabled:opacity-50">{busy ? "در حال انجام…" : "لغو درخواست"}</button>
   </div>;
   if (current?.status === "cancelled" && !allowRetry) return <p className="rounded-lg bg-slate-100 p-3 text-sm font-bold text-slate-700">این درخواست لغو شده است.</p>;

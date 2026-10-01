@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { Card } from "../../../components/ui/card";
+import { ServiceOrderConsent } from "../../../components/institute/service-order-consent";
 import { getServerAccessContext } from "../../../server/access/actor";
 import { getInstituteServiceOrders } from "../../../server/institute/service-orders";
 
@@ -9,7 +10,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "درخواست‌های خدمات | دنا", robots: { index: false, follow: false } };
 
 const statusLabel = {
-  awaiting_guardian_consent: "در انتظار رضایت سرپرست",
+  awaiting_guardian_consent: "در انتظار تأیید مؤسسه دربارهٔ رضایت",
   awaiting_payment: "در انتظار پرداخت",
   paid: "پرداخت‌شده",
   cancelled: "لغوشده",
@@ -33,10 +34,10 @@ export default async function InstituteServiceOrdersPage() {
     <header>
       <p className="text-sm font-bold text-dena-brand">خدمات جانبی و تخصصی</p>
       <h1 className="mt-1 text-2xl font-extrabold text-dena-deep">درخواست‌های خدمات</h1>
-      <p className="mt-2 text-sm leading-7 text-dena-muted">درخواست‌های ثبت‌شده برای خدمات این مؤسسه را همراه با وضعیت رضایت و پرداخت ببینید.</p>
+      <p className="mt-2 text-sm leading-7 text-dena-muted">درخواست‌های ثبت‌شده برای خدمات این مؤسسه را همراه با وضعیت رضایت و پرداخت پیگیری کنید.</p>
     </header>
     <Card className="border-amber-300 bg-amber-50 text-sm leading-7 text-amber-950">
-      تا زمان تکمیل تأیید سرپرست و اتصال پرداخت، این فهرست فقط برای پیگیری است؛ درخواست‌های در انتظار را خدمت قطعی یا وجه دریافتی در نظر نگیرید.
+      ثبت تأیید فقط گواهی مؤسسه دربارهٔ اخذ رضایت برای همان درخواست است. پرداخت آنلاین هنوز فعال نیست؛ وضعیت «در انتظار پرداخت» به معنی دریافت وجه یا شروع خدمت نیست.
     </Card>
     {result.orders.length === 0 ? <Card className="space-y-2">
       <h2 className="font-extrabold text-dena-deep">هنوز درخواستی ثبت نشده است</h2>
@@ -52,10 +53,12 @@ export default async function InstituteServiceOrdersPage() {
           </div>
           <dl className="grid gap-3 rounded-xl bg-dena-bg p-4 text-sm">
             <div className="flex justify-between gap-3"><dt className="text-dena-muted">قیمت زمان ثبت درخواست</dt><dd className="font-bold text-dena-deep">{order.priceToman.toLocaleString("fa-IR")} تومان</dd></div>
-            <div className="flex justify-between gap-3"><dt className="text-dena-muted">رضایت سرپرست</dt><dd className="font-bold text-dena-deep">{order.guardianConsentRequired ? "لازم است" : "در تعریف خدمت الزامی نیست"}</dd></div>
+            <div className="flex justify-between gap-3"><dt className="text-dena-muted">رضایت سرپرست</dt><dd className="font-bold text-dena-deep">{!order.guardianConsentRequired ? "در تعریف خدمت الزامی نیست" : order.guardianConsentConfirmedAt ? "تأیید مؤسسه ثبت شده" : "در انتظار تأیید مؤسسه"}</dd></div>
+            {order.guardianConsentRequired && order.guardianConsentConfirmedAt && <div className="flex justify-between gap-3"><dt className="text-dena-muted">زمان ثبت تأیید</dt><dd className="font-bold text-dena-deep">{new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Tehran" }).format(order.guardianConsentConfirmedAt)}</dd></div>}
             <div className="flex justify-between gap-3"><dt className="text-dena-muted">زمان استفاده</dt><dd className="text-left font-bold text-dena-deep">{order.includedMinutes === null ? "بدون سهمیهٔ زمانی" : `${order.includedMinutes.toLocaleString("fa-IR")} دقیقه · ${order.validityDays?.toLocaleString("fa-IR")} روز اعتبار`}</dd></div>
             <div className="flex justify-between gap-3"><dt className="text-dena-muted">تاریخ ثبت</dt><dd className="font-bold text-dena-deep">{new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium", timeZone: "Asia/Tehran" }).format(order.createdAt)}</dd></div>
           </dl>
+          {order.status === "awaiting_guardian_consent" && <ServiceOrderConsent orderId={order.id} />}
         </Card></li>)}
       </ul>
     </>}

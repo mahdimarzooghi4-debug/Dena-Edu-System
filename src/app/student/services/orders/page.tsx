@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "درخواست‌های خدمات من | دنا", robots: { index: false, follow: false } };
 
 const statusLabel: Record<string, string> = {
-  awaiting_guardian_consent: "در انتظار رضایت سرپرست",
+  awaiting_guardian_consent: "در انتظار تأیید مؤسسه دربارهٔ رضایت",
   awaiting_payment: "در انتظار پرداخت",
   paid: "پرداخت‌شده",
   cancelled: "لغوشده",

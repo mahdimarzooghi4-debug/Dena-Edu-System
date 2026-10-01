@@ -34,6 +34,7 @@ export async function getStudentServiceOrders(studentUserId: string) {
     validityDays: instituteServiceOrders.validityDays,
     status: instituteServiceOrders.status,
     guardianConsentRequired: instituteServiceOrders.guardianConsentRequired,
+    guardianConsentConfirmedAt: instituteServiceOrders.guardianConsentConfirmedAt,
     createdAt: instituteServiceOrders.createdAt,
   }).from(instituteServiceOrders).innerJoin(verifiedEntities, and(
     eq(verifiedEntities.id, instituteServiceOrders.instituteId),
