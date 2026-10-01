@@ -226,7 +226,7 @@ export function DenaHomepage() {
       <section className="dena-cta" id="assessments">
         <h2>مسیر رشدت را از همین‌جا شروع کن</h2>
         <p>یادگیری، تمرین و ارزیابی را در یک مسیر منسجم دنبال کن.</p>
-        <div><Link className="dena-button dena-button--mint" href="/login">ثبت‌نام دانش‌آموز</Link><Link className="dena-button dena-button--dark-outline" href="/courses">مشاهده دوره‌ها</Link></div>
+        <div><Link className="dena-button dena-button--mint" href="/signup">ثبت‌نام دانش‌آموز</Link><Link className="dena-button dena-button--dark-outline" href="/courses">مشاهده دوره‌ها</Link></div>
       </section>
 
       <section className="dena-section dena-institute-cta">
