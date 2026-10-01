@@ -44,7 +44,6 @@ test.describe("course team communication and problem-solving stay course-scoped"
   const assetId = randomUUID();
 
   let supporterTeamMemberId = "";
-  let otherSupporterTeamMemberId = "";
   let counselorTeamMemberId = "";
   let teacherTeamMemberId = "";
   let conversationId = "";
@@ -234,7 +233,6 @@ test.describe("course team communication and problem-solving stay course-scoped"
       },
     );
     expect(otherSupporter.status()).toBe(201);
-    otherSupporterTeamMemberId = (await otherSupporter.json()).teamMemberId;
 
     const counselor = await institute.post(
       `/api/institute/courses/${courseId}/team`,

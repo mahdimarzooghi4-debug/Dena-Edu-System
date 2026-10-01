@@ -3,12 +3,16 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { Button } from "../ui/button";
+import { VerificationBadge } from "../ui/verification-badge";
 
 type Course = {
   courseId: string;
   title: string;
   providerId: string;
+  providerName: string;
   responsibleInstituteId: string;
+  instituteName: string;
+  providerCollaborationApproved: boolean;
   free: true;
   enrolled: boolean;
 };
@@ -193,9 +197,15 @@ export function FreeCourses() {
             <li key={course.courseId}
               className="space-y-3 rounded-2xl border border-dena-border bg-white p-5">
               <h2 className="text-lg font-extrabold leading-8">{course.title}</h2>
-              <p className="text-sm font-bold text-dena-deep">
-                رایگان · نظارت مؤسسه تأیید شده
-              </p>
+              <p className="text-sm font-bold text-dena-deep">دورهٔ رایگان</p>
+              <div className="flex flex-wrap gap-2">
+                <span className="text-sm text-dena-muted">{course.instituteName}</span>
+                <VerificationBadge kind="institute" />
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm text-dena-muted">{course.providerName}</span>
+                {course.providerCollaborationApproved && <VerificationBadge kind="provider" />}
+              </div>
               <Link href={`/student/courses/${course.courseId}`}
                 className="inline-block text-sm font-bold text-dena-brand hover:underline">
                 جزئیات دوره و مؤسسهٔ مسئول

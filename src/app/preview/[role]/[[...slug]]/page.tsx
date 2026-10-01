@@ -63,9 +63,11 @@ export default async function RolePreviewPage({
               {role === "provider" && " نسبت نظارتی فقط پس از تأیید مؤسسه و برای همان دوره معتبر خواهد بود."}
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
-              <Link href={figmaUrl(item.figmaNode)} target="_blank" rel="noopener noreferrer" className={buttonClassName("secondary")}>
-                دیدن فریم مرجع در Figma
-              </Link>
+              {item.figmaNode && (
+                <Link href={figmaUrl(item.figmaNode)} target="_blank" rel="noopener noreferrer" className={buttonClassName("secondary")}>
+                  دیدن فریم مرجع در Figma
+                </Link>
+              )}
               <Link href={previewHref(role, navigation[role][0].href)} className={buttonClassName("outline")}>
                 خانهٔ پیش‌نمایش
               </Link>

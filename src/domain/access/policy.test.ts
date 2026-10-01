@@ -131,7 +131,17 @@ describe("trusted-server access contracts, not route middleware", () => {
     const ticket = technicalTicketOwnershipSchema.parse({
       ticketId: ids.ticket, requesterUserId: ids.user,
     });
-    expect(canReadTechnicalTicket(actor([{ role: "student" }]), ticket)).toBe(true);
+    const ownerMemberships = [
+      [{ role: "student" }],
+      [{ role: "institute", instituteId: ids.institute }],
+      [{ role: "provider", providerId: ids.provider }],
+      [{ role: "admin", canHandleTechnicalSupport: false }],
+      [{ role: "organization", organizationId: ids.org }],
+      [{ role: "benefactor", benefactorId: ids.benefactor }],
+    ];
+    for (const memberships of ownerMemberships) {
+      expect(canReadTechnicalTicket(actor(memberships), ticket)).toBe(true);
+    }
     expect(canReadTechnicalTicket(actor([]), ticket)).toBe(false);
     expect(canReadTechnicalTicket(actor([{ role: "student" }], ids.other), ticket)).toBe(false);
     expect(canReadTechnicalTicket(actor([{ role: "admin", canHandleTechnicalSupport: false }], ids.other), ticket)).toBe(false);

@@ -1,8 +1,15 @@
 import { and, asc, eq, exists, gt, ilike, or } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { getDb } from "../../db";
-import { courses, studentEnrollments, supervisionGrants } from "../../db/schema";
+import {
+  courses, providerInstituteCollaborations, studentEnrollments,
+  supervisionGrants, verifiedEntities,
+} from "../../db/schema";
 import { listedFreeCourse } from "./entitlement";
+
+const catalogProvider = alias(verifiedEntities, "student_catalog_course_provider");
+const catalogInstitute = alias(verifiedEntities, "student_catalog_course_institute");
 
 const PAGE_SIZE = 20;
 const cursorShape = z.object({
@@ -69,11 +76,24 @@ export async function listStudentCatalog(
     courseId: courses.id,
     title: courses.title,
     providerId: courses.providerId,
+    providerName: catalogProvider.name,
     responsibleInstituteId: courses.responsibleInstituteId,
+    instituteName: catalogInstitute.name,
+    providerCollaborationApproved: exists(db.select({ id: providerInstituteCollaborations.id })
+      .from(providerInstituteCollaborations).where(and(
+        eq(providerInstituteCollaborations.providerId, courses.providerId),
+        eq(providerInstituteCollaborations.instituteId, courses.responsibleInstituteId),
+        eq(providerInstituteCollaborations.status, "approved"),
+      ))),
     enrolled: ownActiveEnrollment,
   }).from(courses).innerJoin(
     supervisionGrants, eq(supervisionGrants.courseId, courses.id),
-  ).where(and(
+  ).innerJoin(catalogProvider, and(
+    eq(catalogProvider.id, courses.providerId), eq(catalogProvider.role, "provider"),
+  )).innerJoin(catalogInstitute, and(
+    eq(catalogInstitute.id, courses.responsibleInstituteId),
+    eq(catalogInstitute.role, "institute"),
+  )).where(and(
     listedFreeCourse(db),
     query.q ? ilike(courses.title, `%${escapeCatalogSearch(query.q)}%`) : undefined,
     query.mine ? ownActiveEnrollment : undefined,

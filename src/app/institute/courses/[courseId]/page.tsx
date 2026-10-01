@@ -126,6 +126,10 @@ export default async function InstituteCoursePage({
               className={buttonClassName("secondary")}>
               مشاهده و بررسی مستقل سؤال تمرینی
             </Link>
+            <Link href={`/institute/courses/${course.courseId}/assessments`}
+              className={buttonClassName("secondary")}>
+              بازبینی مستقل ارزیابی یادگیری
+            </Link>
             <Link href="/institute/providers" className={buttonClassName()}>
               مدیریت تصمیم نظارت
             </Link>

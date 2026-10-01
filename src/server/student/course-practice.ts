@@ -2,9 +2,10 @@ import { and, eq, or } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "../../db";
 import {
-  coursePracticeQuestions, courses, memberships, studentPracticeAttempts,
+  auditLogs, coursePracticeQuestions, courses, memberships, studentPracticeAttempts,
   supervisionGrants,
 } from "../../db/schema";
+import { auditLogRecord } from "../admin/audit";
 
 const option = z.string().trim().min(1).max(160).refine((value) =>
   !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/u.test(value),
@@ -337,6 +338,14 @@ export async function decideInstitutePractice(
       reviewedAt: new Date(),
       reviewReason: decision.reason,
     }).where(eq(coursePracticeQuestions.courseId, courseId));
+    await tx.insert(auditLogs).values(auditLogRecord({
+      actorId: instituteUserId,
+      actorRole: "institute",
+      action: decision.action === "approve"
+        ? "course.practice.approved" : "course.practice.rejected",
+      entityType: "PRACTICE",
+      entityId: courseId,
+    }));
     return { courseId, reviewStatus };
   });
 }

@@ -101,7 +101,7 @@ export function RoleReviewQueue() {
       {items.length === 0
         ? <p className="text-sm text-dena-muted">درخواستی در صف بررسی نیست.</p>
         : <ul className="space-y-5">
-            {items.map((item) => <li key={item.id}
+            {items.map((item) => <li key={item.id} id={`application-${item.id}`}
               className="rounded-xl border border-dena-border p-5">
               <h2 className="font-extrabold">{roleNames[item.role]} · {item.proposedName}</h2>
               <p className="mt-2 text-xs text-dena-muted">
