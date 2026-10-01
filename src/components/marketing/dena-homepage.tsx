@@ -1,18 +1,21 @@
 import Image from "next/image";
 import Link from "next/link";
 import "./dena-homepage.css";
+import { DenaRoleIcon } from "./dena-site-shell";
 
 const courses = [
   {
+    id: "math-tenth",
     subject: "ریاضی دهم تجربی و ریاضی",
     provider: "مؤسسه آموزشی نمونه",
     teacher: "استاد علیرضا احمدی",
     sessions: "۲۴ جلسه آموزشی",
     hours: "۱۸ ساعت محتوای آموزشی",
-    price: "۲,۸۰۰,۰۰۰ تومان",
+    price: "۳,۸۰۰,۰۰۰ تومان",
     photo: "math",
   },
   {
+    id: "physics-tenth",
     subject: "فیزیک دهم (مکانیک)",
     provider: "گروه ماز · تحت نظارت مؤسسه البرز",
     teacher: "دکتر رضا علوی",
@@ -22,6 +25,7 @@ const courses = [
     photo: "physics",
   },
   {
+    id: "chemistry-tenth",
     subject: "شیمی دهم (کیهان و ساختار)",
     provider: "مؤسسه کنکور برتر",
     teacher: "استاد مریم سهرابی",
@@ -65,12 +69,12 @@ export function DenaHomepage() {
         </div>
         <div className="dena-header__right">
           <nav className="dena-nav" aria-label="ناوبری اصلی">
-            <Link href="#about">درباره دنا</Link>
-            <Link href="#elite-club">باشگاه نخبگان</Link>
-            <Link href="#assessments">آزمون‌ها</Link>
-            <Link href="#growth">مسیر رشد</Link>
-            <Link href="#courses">دوره‌ها</Link>
-            <Link className="is-active" href="#main-content">خانه</Link>
+            <Link href="/about">درباره دنا</Link>
+            <Link href="/elite-club">باشگاه نخبگان</Link>
+            <Link href="/assessments">آزمون‌ها</Link>
+            <Link href="/growth">مسیر رشد</Link>
+            <Link href="/courses">دوره‌ها</Link>
+            <Link className="is-active" href="/">خانه</Link>
           </nav>
           <Brand />
         </div>
@@ -112,7 +116,7 @@ export function DenaHomepage() {
             <p>دوره‌های آموزشی آفلاین از مؤسسات، تمرین و آزمون، همراهی آموزشی مؤسسه و مشاهدهٔ مسیر رشد تحصیلی؛ همه در یک تجربهٔ یکپارچه.</p>
             <div className="dena-hero__actions">
             <Link className="dena-button dena-button--primary" href="/login">ورود به دنا</Link>
-              <Link className="dena-button dena-button--text" href="#courses">مشاهده دوره‌ها</Link>
+              <Link className="dena-button dena-button--text" href="/courses">مشاهده دوره‌ها</Link>
             </div>
           </div>
         </div>
@@ -153,12 +157,12 @@ export function DenaHomepage() {
                 <p>ارائه‌دهنده: {course.provider}<br />مدرس: {course.teacher}</p>
                 <small>{course.hours}</small>
                 <div className="course-card__price"><strong>{course.price}</strong><span>پرداخت در ۴ قسط، بدون افزایش قیمت</span></div>
-                <Link className="dena-button dena-button--primary" href="/login">مشاهده دوره</Link>
+                <Link className="dena-button dena-button--primary" href={`/courses/${course.id}`}>مشاهده دوره</Link>
               </div>
             </article>
           ))}
         </div>
-        <Link className="dena-button dena-button--outline dena-courses__all" href="/login">مشاهده همهٔ دوره‌ها</Link>
+        <Link className="dena-button dena-button--outline dena-courses__all" href="/courses">مشاهده همهٔ دوره‌ها</Link>
       </section>
 
       <section className="dena-section dena-growth" id="growth">
@@ -196,9 +200,9 @@ export function DenaHomepage() {
           <p>هر نقش، سهم روشنی در مسیر آموزش دارد.</p>
         </div>
         <div className="role-grid">
-          {roles.map(([title, description, icon], index) => (
+          {roles.map(([title, description, icon]) => (
             <article className={`role-card role-card--${icon}`} key={title}>
-              <span className="role-card__icon" aria-hidden="true">{["✦", "▣", "⌘", "⌂", "♡"][index]}</span>
+              <span className="role-card__icon" aria-hidden="true"><DenaRoleIcon kind={icon} /></span>
               <h3>{title}</h3><p>{description}</p>
             </article>
           ))}
@@ -222,19 +226,19 @@ export function DenaHomepage() {
       <section className="dena-cta" id="assessments">
         <h2>مسیر رشدت را از همین‌جا شروع کن</h2>
         <p>یادگیری، تمرین و ارزیابی را در یک مسیر منسجم دنبال کن.</p>
-        <div><Link className="dena-button dena-button--mint" href="/login">ثبت‌نام دانش‌آموز</Link><Link className="dena-button dena-button--dark-outline" href="#courses">مشاهده دوره‌ها</Link></div>
+        <div><Link className="dena-button dena-button--mint" href="/login">ثبت‌نام دانش‌آموز</Link><Link className="dena-button dena-button--dark-outline" href="/courses">مشاهده دوره‌ها</Link></div>
       </section>
 
       <section className="dena-section dena-institute-cta">
         <div><span className="eyebrow">همکاری با دنا</span><h2>مؤسسهٔ آموزشی هستید؟ به اکوسیستم ما بپیوندید</h2><p>دوره‌های خود را ساختارمند ارائه کنید و مسیر یادگیری دانش‌آموزان را همراهی کنید.</p></div>
-        <div className="dena-institute-cta__actions"><Link className="dena-button dena-button--primary" href="/account/role-applications">ثبت‌نام مؤسسه</Link><Link className="dena-button dena-button--outline" href="#about">دربارهٔ همکاری</Link></div>
+        <div className="dena-institute-cta__actions"><Link className="dena-button dena-button--primary" href="/institutes/request">ثبت‌نام مؤسسه</Link><Link className="dena-button dena-button--outline" href="/institutes/collaboration">دربارهٔ همکاری</Link></div>
       </section>
 
       <footer className="dena-footer">
         <div className="dena-footer__main">
           <div className="dena-footer__brand"><Brand footer /><p>آموزش تنها نیست؛ رشد همراه است.</p><small>اکوسیستم آموزشی دنا</small></div>
-          <div><h3>دنا</h3><Link href="#courses">دوره‌ها</Link><Link href="#growth">مسیر رشد</Link><Link href="#elite-club">باشگاه نخبگان</Link><Link href="#assessments">آزمون‌ها</Link><Link href="#about">درباره دنا</Link></div>
-          <div><h3>همکاری با دنا</h3><Link href="/account/role-applications">ثبت‌نام مؤسسات</Link><Link href="/account/role-applications">سازمان‌ها و حامیان</Link></div>
+          <div><h3>دنا</h3><Link href="/courses">دوره‌ها</Link><Link href="/growth">مسیر رشد</Link><Link href="/elite-club">باشگاه نخبگان</Link><Link href="/assessments">آزمون‌ها</Link><Link href="/about">درباره دنا</Link></div>
+          <div><h3>همکاری با دنا</h3><Link href="/institutes/request">ثبت‌نام مؤسسات</Link><Link href="/institutes/collaboration">سازمان‌ها و حامیان</Link></div>
           <div><h3>راهنما</h3><Link href="/support">پشتیبانی فنی</Link><Link href="/student/privacy">قوانین و حریم خصوصی</Link></div>
           <div><h3>تماس با دنا</h3><span>تلفن: ۰۲۱-۶۶۴۸۵۳۷۴</span><span>ایمیل: info@denaedu.ir</span><span>خیابان انقلاب، خیابان رازی، کوچه شهبازیان، پلاک ۲۲</span></div>
         </div>
