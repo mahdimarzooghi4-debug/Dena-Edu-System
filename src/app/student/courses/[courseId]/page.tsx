@@ -5,6 +5,7 @@ import { z } from "zod";
 import { Card } from "../../../../components/ui/card";
 import { buttonClassName } from "../../../../components/ui/button";
 import { CourseDetailAction } from "../../../../components/student/course-detail-action";
+import { VerificationBadge } from "../../../../components/ui/verification-badge";
 import { StudentShell } from "../../../../components/student/student-shell";
 import { getServerAccessContext } from "../../../../server/access/actor";
 import { getStudentCourseDetail } from "../../../../server/student/course-detail";
@@ -91,13 +92,16 @@ export default async function StudentCourseDetailPage({
               <h2 className="text-2xl font-extrabold leading-10 text-dena-ink md:text-3xl">
                 {detail.title}
               </h2>
-              <div className="flex flex-wrap gap-2 text-xs text-dena-muted">
-                <span className="rounded-full border border-dena-border px-3 py-1.5">
-                  ارائه‌دهنده: {detail.providerName}
-                </span>
-                <span className="rounded-full border border-dena-border px-3 py-1.5">
-                  مؤسسه مسئول: {detail.responsibleInstituteName}
-                </span>
+              <div className="flex flex-col gap-3 text-xs text-dena-muted">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span>ارائه‌دهنده: {detail.providerName}</span>
+                  {detail.providerCollaborationApproved && <VerificationBadge kind="provider" />}
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span>مؤسسهٔ مسئول: {detail.responsibleInstituteName}</span>
+                  <VerificationBadge kind="institute" />
+                </div>
+                <p className="text-[11px] leading-6">نشان مؤسسه به معنی مجوز رسمی فعالیت آموزشی نیست؛ تأیید نظارت هر دوره جداگانه نمایش داده می‌شود.</p>
               </div>
             </div>
 

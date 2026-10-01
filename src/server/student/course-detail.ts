@@ -1,9 +1,9 @@
-import { and, count, eq } from "drizzle-orm";
+import { and, count, eq, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { getDb } from "../../db";
 import {
-  courses, privateMediaAssets, studentEnrollments, supervisionGrants,
-  verifiedEntities,
+  courses, privateMediaAssets, providerInstituteCollaborations,
+  studentEnrollments, supervisionGrants, verifiedEntities,
 } from "../../db/schema";
 import { listedFreeCourse } from "./entitlement";
 
@@ -23,6 +23,7 @@ export async function getStudentCourseDetail(studentUserId: string, courseId: st
     title: courses.title,
     publishedAt: courses.publishedAt,
     providerName: provider.name,
+    providerCollaborationApproved: sql<boolean>`${providerInstituteCollaborations.id} IS NOT NULL`,
     responsibleInstituteName: institute.name,
     readyVideoCount: count(privateMediaAssets.id),
     enrollmentStatus: studentEnrollments.status,
@@ -35,6 +36,11 @@ export async function getStudentCourseDetail(studentUserId: string, courseId: st
     .innerJoin(institute, and(
       eq(institute.id, courses.responsibleInstituteId),
       eq(institute.role, "institute"),
+    ))
+    .leftJoin(providerInstituteCollaborations, and(
+      eq(providerInstituteCollaborations.providerId, courses.providerId),
+      eq(providerInstituteCollaborations.instituteId, courses.responsibleInstituteId),
+      eq(providerInstituteCollaborations.status, "approved"),
     ))
     .innerJoin(privateMediaAssets, and(
       eq(privateMediaAssets.courseId, courses.id),
@@ -51,6 +57,7 @@ export async function getStudentCourseDetail(studentUserId: string, courseId: st
     .groupBy(
       courses.id, courses.title, courses.publishedAt,
       provider.name, institute.name, studentEnrollments.status,
+      providerInstituteCollaborations.id,
     )
     .limit(1);
   return detail ?? null;
