@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Card } from "../../../components/ui/card";
 import { StudentShell } from "../../../components/student/student-shell";
@@ -33,11 +34,16 @@ export default async function StudentServicesPage() {
   return <StudentShell active="services" title="خدمات مؤسسه‌ها">
     <div className="space-y-6">
       <section className="rounded-[22px] bg-dena-lavender px-6 py-7 md:px-8">
-        <p className="text-sm font-bold text-dena-brand">خدمات تکمیلی آموزش</p>
-        <h2 className="mt-2 text-2xl font-extrabold text-dena-deep md:text-3xl">خدمات مؤسسه‌ها</h2>
-        <p className="mt-2 max-w-3xl text-sm leading-8 text-dena-muted">
-          خدمات مشاوره، انتخاب رشته، ارزیابی و پشتیبانی مؤسسه‌ها را همراه قیمت و شرایط استفاده ببین.
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div><p className="text-sm font-bold text-dena-brand">خدمات تکمیلی آموزش</p>
+            <h2 className="mt-2 text-2xl font-extrabold text-dena-deep md:text-3xl">خدمات مؤسسه‌ها</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-8 text-dena-muted">
+              خدمات مشاوره، انتخاب رشته، ارزیابی و پشتیبانی مؤسسه‌ها را همراه قیمت و شرایط استفاده ببین.
+            </p></div>
+          <Link href="/student/services/orders" className="min-h-11 rounded-xl border border-dena-brand bg-white px-4 py-2 text-sm font-bold text-dena-brand">
+            درخواست‌های من
+          </Link>
+        </div>
       </section>
       <Card className="border-amber-300 bg-amber-50 text-sm leading-7 text-amber-950">
         ثبت درخواست بدون دریافت وجه ممکن است. اگر رضایت سرپرست لازم باشد، درخواست تا ثبت رضایت معتبر متوقف می‌ماند؛ پرداخت آنلاین هنوز فعال نیست.

@@ -30,6 +30,8 @@ export async function getStudentServiceOrders(studentUserId: string) {
     instituteName: verifiedEntities.name,
     title: instituteServiceOrders.serviceTitleSnapshot,
     priceToman: instituteServiceOrders.priceToman,
+    includedMinutes: instituteServiceOrders.includedMinutes,
+    validityDays: instituteServiceOrders.validityDays,
     status: instituteServiceOrders.status,
     guardianConsentRequired: instituteServiceOrders.guardianConsentRequired,
     createdAt: instituteServiceOrders.createdAt,

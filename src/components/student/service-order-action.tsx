@@ -6,8 +6,8 @@ import { useState } from "react";
 type OrderStatus = "awaiting_guardian_consent" | "awaiting_payment" | "paid" | "cancelled";
 type Order = { id: string; status: OrderStatus };
 
-export function ServiceOrderAction({ serviceId, guardianConsentRequired, order }: {
-  serviceId: string; guardianConsentRequired: boolean; order?: Order;
+export function ServiceOrderAction({ serviceId, guardianConsentRequired, order, allowRetry = true }: {
+  serviceId: string; guardianConsentRequired: boolean; order?: Order; allowRetry?: boolean;
 }) {
   const router = useRouter();
   const [current, setCurrent] = useState(order);
@@ -71,6 +71,7 @@ export function ServiceOrderAction({ serviceId, guardianConsentRequired, order }
     <p>درخواست ثبت شده؛ اتصال درگاه پرداخت هنوز آماده نیست و هیچ مبلغی دریافت نشده است.</p>
     <button type="button" disabled={busy} onClick={() => void cancelRequest()} className="font-bold underline disabled:opacity-50">{busy ? "در حال انجام…" : "لغو درخواست"}</button>
   </div>;
+  if (current?.status === "cancelled" && !allowRetry) return <p className="rounded-lg bg-slate-100 p-3 text-sm font-bold text-slate-700">این درخواست لغو شده است.</p>;
   return <div className="space-y-2">
     <button type="button" disabled={busy} onClick={() => void createRequest()} className="min-h-11 rounded-xl bg-dena-brand px-4 py-2 text-sm font-bold text-white disabled:opacity-50">
       {busy ? "در حال ثبت…" : current?.status === "cancelled" ? "ثبت درخواست دوباره" : "درخواست این خدمت"}
