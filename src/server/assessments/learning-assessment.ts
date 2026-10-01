@@ -2,11 +2,12 @@ import { and, eq, inArray, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "../../db";
 import {
-  courseLearningAssessments, courseLearningAssessmentQuestions, courses,
+  auditLogs, courseLearningAssessments, courseLearningAssessmentQuestions, courses,
   memberships, privateMediaAssets, studentLearningAssessmentAttempts,
   studentLearningAssessmentAttemptQuestions,
   studentLearningAssessmentLessonReviews, supervisionGrants,
 } from "../../db/schema";
+import { auditLogRecord } from "../admin/audit";
 
 const controlChars = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/u;
 const option = z.string().trim().min(1).max(160).refine((v) => !controlChars.test(v));
@@ -588,6 +589,15 @@ export async function decideInstituteLearningAssessment(
       reviewedAt: new Date(),
       reviewReason: decision.reason,
     }).where(eq(courseLearningAssessments.id, assessmentId));
+    await tx.insert(auditLogs).values(auditLogRecord({
+      actorId: instituteUserId,
+      actorRole: "institute",
+      action: status === "approved"
+        ? "course.learning_assessment.approved"
+        : "course.learning_assessment.rejected",
+      entityType: "PRACTICE",
+      entityId: assessmentId,
+    }));
     return { assessmentId, reviewStatus: status };
   });
 }

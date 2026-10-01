@@ -4,7 +4,7 @@ import { serializeSignedCookie } from "better-call";
 import { expect, request, test, type APIRequestContext } from "@playwright/test";
 import { getDb } from "../../src/db";
 import {
-  courses, memberships, roleApplicationEvents, roleApplications, session,
+  auditLogs, courses, memberships, roleApplicationEvents, roleApplications, session,
   user, verifiedEntities,
 } from "../../src/db/schema";
 
@@ -68,6 +68,7 @@ test.describe("reviewed role requests, scoped grants and audit on PostgreSQL", (
 
   test.afterAll(async () => {
     await db.delete(courses).where(eq(courses.id, tenantCourseId));
+    await db.delete(auditLogs).where(inArray(auditLogs.actorId, Object.values(ids)));
     if (requestIds.length) {
       await db.delete(roleApplicationEvents)
         .where(inArray(roleApplicationEvents.applicationId, requestIds));
@@ -85,6 +86,8 @@ test.describe("reviewed role requests, scoped grants and audit on PostgreSQL", (
   test("anonymous and student cannot review; applicant cannot select admin or scope", async () => {
     const anonymous = await client();
     expect((await anonymous.get("/api/admin/role-applications")).status()).toBe(401);
+    expect((await anonymous.get("/api/admin/audit")).status()).toBe(401);
+    expect((await anonymous.get("/api/admin/overview")).status()).toBe(401);
     expect((await anonymous.get("/api/access/role-applications")).status()).toBe(401);
     expect((await anonymous.get("/api/organization/overview")).status()).toBe(401);
     expect((await anonymous.get("/api/benefactor/overview")).status()).toBe(401);
@@ -95,11 +98,21 @@ test.describe("reviewed role requests, scoped grants and audit on PostgreSQL", (
 
     const applicant = await client("applicant");
     expect((await applicant.get("/api/admin/role-applications")).status()).toBe(403);
+    expect((await applicant.get("/api/admin/audit")).status()).toBe(403);
+    expect((await applicant.get("/api/admin/overview")).status()).toBe(403);
     expect((await applicant.get("/admin")).status()).toBe(404);
     expect((await applicant.get("/api/organization/overview")).status()).toBe(403);
     expect((await applicant.get("/organization")).status()).toBe(404);
+    expect((await applicant.get("/organization/notifications")).status()).toBe(404);
+    expect((await applicant.get("/organization/reports")).status()).toBe(404);
+    expect((await applicant.get("/organization/growth")).status()).toBe(404);
+    expect((await applicant.get("/organization/students")).status()).toBe(404);
     expect((await applicant.get("/api/benefactor/overview")).status()).toBe(403);
     expect((await applicant.get("/benefactor")).status()).toBe(404);
+    expect((await applicant.get("/benefactor/reports")).status()).toBe(404);
+    expect((await applicant.get("/benefactor/students")).status()).toBe(404);
+    expect((await applicant.get("/benefactor/growth")).status()).toBe(404);
+    expect((await applicant.get("/benefactor/notifications")).status()).toBe(404);
     expect((await submit(applicant, { ...proposed, role: "admin" })).status()).toBe(400);
     expect((await submit(applicant, { ...proposed, instituteId: randomUUID() })).status()).toBe(400);
     expect((await submit(applicant, { ...proposed, role: "student" })).status()).toBe(400);
@@ -150,6 +163,7 @@ test.describe("reviewed role requests, scoped grants and audit on PostgreSQL", (
     expect(pendingHtml).toContain("نمای کلی درخواست‌های نقش");
     expect(pendingHtml).toContain("پژوهشگاه نمونه");
     expect(pendingHtml).toContain("مؤسسه");
+    expect(pendingHtml).toContain(`/admin/role-applications#application-${id}`);
     expect(pendingHtml).not.toContain("private-review/");
     expect(pendingHtml).not.toContain(ids.applicant);
     expect((await admin.get("/account")).status()).toBe(200);
@@ -215,6 +229,74 @@ test.describe("reviewed role requests, scoped grants and audit on PostgreSQL", (
       reason: "مدارک نمایندگی سازمان به طور مستقل و محدود بررسی و ثبت شد.",
     });
     expect(approval.status()).toBe(200);
+    const overviewResponse = await reviewer.get("/api/admin/overview");
+    expect(overviewResponse.status()).toBe(200);
+    expect(overviewResponse.headers()["cache-control"]).toContain("no-store");
+    const overview = await overviewResponse.json();
+    expect(overview.supervision).toMatchObject({
+      requested: expect.any(Number), approved: expect.any(Number), revoked: expect.any(Number),
+    });
+    expect(overview.exercises).toMatchObject({
+      pending: expect.any(Number), approved: expect.any(Number), rejected: expect.any(Number),
+    });
+    expect(overview.learningAssessments).toMatchObject({
+      pending: expect.any(Number), approved: expect.any(Number), rejected: expect.any(Number),
+    });
+    expect(JSON.stringify(overview)).not.toContain("correctOption");
+    expect(JSON.stringify(overview)).not.toContain("studentPracticeAttempts");
+    const auditResponse = await reviewer.get("/api/admin/audit");
+    expect(auditResponse.status()).toBe(200);
+    expect(auditResponse.headers()["cache-control"]).toContain("no-store");
+    const audit = await auditResponse.json();
+    const roleAudit = audit.events.find((event: { entityId: string }) =>
+      event.entityId === applicationId);
+    expect(roleAudit).toMatchObject({
+      actorId: ids.reviewer,
+      actorRole: "admin",
+      action: "role_application.approved",
+      entityType: "ROLE_APPLICATION",
+    });
+    expect(JSON.stringify(roleAudit)).not.toContain("مدارک نمایندگی");
+    expect(JSON.stringify(roleAudit)).not.toContain("private-review/");
+    const reviewerCookie = await serializeSignedCookie(
+      "better-auth.session_token", token.reviewer, process.env.BETTER_AUTH_SECRET!,
+    );
+    await page.context().addCookies([{
+      name: "better-auth.session_token",
+      value: reviewerCookie.split(";")[0].split("=").slice(1).join("="),
+      domain: "localhost", path: "/", httpOnly: true, secure: false, sameSite: "Lax",
+    }]);
+    await page.goto("http://localhost:3000/admin/audit");
+    await expect(page.getByRole("heading", { name: "رویدادهای سیستم" })).toBeVisible();
+    await expect(page.getByText("تأیید درخواست نقش").first()).toBeVisible();
+
+    const paginationEventIds = Array.from({ length: 51 }, () => randomUUID());
+    const auditUpdatedAt = new Date(Date.now() + 3_600_000);
+    await db.insert(auditLogs).values(paginationEventIds.map((id) => ({
+      id,
+      actorId: ids.reviewer,
+      actorRole: "admin" as const,
+      action: "role_application.approved",
+      entityType: "ROLE_APPLICATION" as const,
+      createdAt: auditUpdatedAt,
+    })));
+    const firstAuditPageResponse = await reviewer.get("/api/admin/audit");
+    expect(firstAuditPageResponse.status()).toBe(200);
+    const firstAuditPage = await firstAuditPageResponse.json();
+    expect(firstAuditPage.events).toHaveLength(50);
+    expect(firstAuditPage.nextCursor).toEqual(expect.any(String));
+    const secondAuditPageResponse = await reviewer.get(
+      `/api/admin/audit?cursor=${encodeURIComponent(firstAuditPage.nextCursor)}`,
+    );
+    expect(secondAuditPageResponse.status()).toBe(200);
+    const secondAuditPage = await secondAuditPageResponse.json();
+    const pagedAuditIds = [
+      ...firstAuditPage.events.map((event: { id: string }) => event.id),
+      ...secondAuditPage.events.map((event: { id: string }) => event.id),
+    ].filter((id) => paginationEventIds.includes(id));
+    expect(new Set(pagedAuditIds).size).toBe(51);
+    expect((await reviewer.get("/api/admin/audit?cursor=invalid")).status()).toBe(400);
+
     const [member] = await db.select().from(memberships).where(and(
       eq(memberships.userId, ids.applicant),
       eq(memberships.role, "organization"),
@@ -253,6 +335,10 @@ test.describe("reviewed role requests, scoped grants and audit on PostgreSQL", (
     expect(JSON.stringify(outsiderData)).not.toContain("سازمان آزمایشی تأییدشده");
     expect((await reviewer.get("/api/organization/overview")).status()).toBe(403);
     expect((await reviewer.get("/organization")).status()).toBe(404);
+    expect((await reviewer.get("/organization/notifications")).status()).toBe(404);
+    expect((await reviewer.get("/organization/reports")).status()).toBe(404);
+    expect((await reviewer.get("/organization/growth")).status()).toBe(404);
+    expect((await reviewer.get("/organization/students")).status()).toBe(404);
 
     const organizationHome = await applicant.get("/organization");
     expect(organizationHome.status()).toBe(200);
@@ -262,8 +348,42 @@ test.describe("reviewed role requests, scoped grants and audit on PostgreSQL", (
     expect(html).not.toContain("private-review/");
     expect(html).not.toContain("CI-organization-0001");
     expect(html).not.toContain("CI-other-organization-0002");
+    expect(html).toContain('href="/organization/notifications"');
+    const notifications = await applicant.get("/organization/notifications");
+    expect(notifications.status()).toBe(200);
+    const notificationsHtml = await notifications.text();
+    expect(notificationsHtml).toContain("سامانهٔ اعلان سازمان هنوز فعال نشده است");
+    expect(notificationsHtml).not.toContain("سازمان دیگر خصوصی");
+    expect(notificationsHtml).not.toContain("private-review/");
+    expect(html).toContain('href="/organization/reports"');
+    const reports = await applicant.get("/organization/reports");
+    expect(reports.status()).toBe(200);
+    const reportsHtml = await reports.text();
+    expect(reportsHtml).toContain("گزارش سازمان هنوز فعال نشده است");
+    expect(reportsHtml).not.toContain("سازمان دیگر خصوصی");
+    expect(reportsHtml).not.toContain("private-review/");
+    expect(html).toContain('href="/organization/growth"');
+    const growth = await applicant.get("/organization/growth");
+    expect(growth.status()).toBe(200);
+    const growthHtml = await growth.text();
+    expect(growthHtml).toContain("شاخص تجمیعیِ مصوبی برای این نقش تعریف نشده است");
+    expect(growthHtml).not.toContain("سازمان دیگر خصوصی");
+    expect(growthHtml).not.toContain("private-review/");
+    expect(html).toContain('href="/organization/students"');
+    const students = await applicant.get("/organization/students");
+    expect(students.status()).toBe(200);
+    const studentsHtml = await students.text();
+    expect(studentsHtml).toContain("فهرست دانش‌آموزان فعال نیست");
+    expect(studentsHtml).not.toContain("سازمان دیگر خصوصی");
+    expect(studentsHtml).not.toContain("private-review/");
     const account = await applicant.get("/account");
-    expect(await account.text()).toContain('href="/organization"');
+    const accountHtml = await account.text();
+    expect(accountHtml).toContain('href="/organization"');
+    expect(accountHtml).toContain('href="/organization/students"');
+    expect(accountHtml).toContain('href="/organization/growth"');
+    expect(accountHtml).toContain('href="/organization/reports"');
+    expect(accountHtml).toContain('href="/organization/notifications"');
+    expect(accountHtml).not.toContain('href="/benefactor"');
 
     const instituteMembership = await db.select().from(memberships).where(and(
       eq(memberships.userId, ids.applicant),
@@ -274,6 +394,10 @@ test.describe("reviewed role requests, scoped grants and audit on PostgreSQL", (
     }).where(eq(memberships.id, member.id));
     expect((await applicant.get("/api/organization/overview")).status()).toBe(404);
     expect((await applicant.get("/organization")).status()).toBe(404);
+    expect((await applicant.get("/organization/notifications")).status()).toBe(404);
+    expect((await applicant.get("/organization/reports")).status()).toBe(404);
+    expect((await applicant.get("/organization/growth")).status()).toBe(404);
+    expect((await applicant.get("/organization/students")).status()).toBe(404);
     await db.update(memberships).set({
       organizationId: scope.id,
     }).where(eq(memberships.id, member.id));
@@ -302,9 +426,17 @@ test.describe("reviewed role requests, scoped grants and audit on PostgreSQL", (
       .where(eq(memberships.id, member.id));
     expect((await applicant.get("/api/organization/overview")).status()).toBe(403);
     expect((await applicant.get("/organization")).status()).toBe(404);
+    expect((await applicant.get("/organization/notifications")).status()).toBe(404);
+    expect((await applicant.get("/organization/reports")).status()).toBe(404);
+    expect((await applicant.get("/organization/growth")).status()).toBe(404);
+    expect((await applicant.get("/organization/students")).status()).toBe(404);
     await db.update(memberships).set({ status: "active" })
       .where(eq(memberships.id, member.id));
     expect((await applicant.get("/organization")).status()).toBe(200);
+    expect((await applicant.get("/organization/notifications")).status()).toBe(200);
+    expect((await applicant.get("/organization/reports")).status()).toBe(200);
+    expect((await applicant.get("/organization/growth")).status()).toBe(200);
+    expect((await applicant.get("/organization/students")).status()).toBe(200);
     await reviewer.dispose();
     await outsider.dispose();
     await applicant.dispose();
@@ -368,6 +500,10 @@ test.describe("reviewed role requests, scoped grants and audit on PostgreSQL", (
     expect(JSON.stringify(outsiderData)).not.toContain("حامی مستقل تأییدشده");
     expect((await reviewer.get("/api/benefactor/overview")).status()).toBe(403);
     expect((await reviewer.get("/benefactor")).status()).toBe(404);
+    expect((await reviewer.get("/benefactor/reports")).status()).toBe(404);
+    expect((await reviewer.get("/benefactor/students")).status()).toBe(404);
+    expect((await reviewer.get("/benefactor/growth")).status()).toBe(404);
+    expect((await reviewer.get("/benefactor/notifications")).status()).toBe(404);
 
     const home = await applicant.get("/benefactor");
     expect(home.status()).toBe(200);
@@ -378,6 +514,37 @@ test.describe("reviewed role requests, scoped grants and audit on PostgreSQL", (
     expect(html).not.toContain("CI-benefactor-0001");
     expect(html).not.toContain("CI-other-benefactor-0002");
     expect(html).toContain("صندوق حمایت، کمک‌ها و رسیدها");
+    expect(html).toContain('href="/benefactor/reports"');
+    const reports = await applicant.get("/benefactor/reports");
+    expect(reports.status()).toBe(200);
+    const reportsHtml = await reports.text();
+    expect(reportsHtml).toContain("گزارش مالی هنوز فعال نشده است");
+    expect(reportsHtml).not.toContain("حامی دیگر خصوصی");
+    expect(reportsHtml).not.toContain("private-review/");
+    expect(reportsHtml).not.toContain("تومان");
+    expect(html).toContain('href="/benefactor/students"');
+    const students = await applicant.get("/benefactor/students");
+    expect(students.status()).toBe(200);
+    const studentsHtml = await students.text();
+    expect(studentsHtml).toContain("فهرست دانش‌آموزان یا پیوندی به پروندهٔ فردی ارائه نمی‌شود");
+    expect(studentsHtml).not.toContain("حامی دیگر خصوصی");
+    expect(studentsHtml).not.toContain("private-review/");
+    expect(studentsHtml).not.toContain("تومان");
+    expect(html).toContain('href="/benefactor/growth"');
+    const growth = await applicant.get("/benefactor/growth");
+    expect(growth.status()).toBe(200);
+    const growthHtml = await growth.text();
+    expect(growthHtml).toContain("شاخص تجمیعیِ مصوبی هم برای این نقش تعریف نشده است");
+    expect(growthHtml).not.toContain("حامی دیگر خصوصی");
+    expect(growthHtml).not.toContain("private-review/");
+    expect(growthHtml).not.toContain("تومان");
+    expect(html).toContain('href="/benefactor/notifications"');
+    const notifications = await applicant.get("/benefactor/notifications");
+    expect(notifications.status()).toBe(200);
+    const notificationsHtml = await notifications.text();
+    expect(notificationsHtml).toContain("سامانهٔ اعلان خیر هنوز فعال نشده است");
+    expect(notificationsHtml).not.toContain("حامی دیگر خصوصی");
+    expect(notificationsHtml).not.toContain("private-review/");
     expect(await (await applicant.get("/account")).text())
       .toContain('href="/benefactor"');
 
@@ -418,9 +585,17 @@ test.describe("reviewed role requests, scoped grants and audit on PostgreSQL", (
       .where(eq(memberships.id, member.id));
     expect((await applicant.get("/api/benefactor/overview")).status()).toBe(403);
     expect((await applicant.get("/benefactor")).status()).toBe(404);
+    expect((await applicant.get("/benefactor/reports")).status()).toBe(404);
+    expect((await applicant.get("/benefactor/students")).status()).toBe(404);
+    expect((await applicant.get("/benefactor/growth")).status()).toBe(404);
+    expect((await applicant.get("/benefactor/notifications")).status()).toBe(404);
     await db.update(memberships).set({ status: "active" })
       .where(eq(memberships.id, member.id));
     expect((await applicant.get("/benefactor")).status()).toBe(200);
+    expect((await applicant.get("/benefactor/reports")).status()).toBe(200);
+    expect((await applicant.get("/benefactor/students")).status()).toBe(200);
+    expect((await applicant.get("/benefactor/growth")).status()).toBe(200);
+    expect((await applicant.get("/benefactor/notifications")).status()).toBe(200);
     await reviewer.dispose();
     await outsider.dispose();
     await applicant.dispose();

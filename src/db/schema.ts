@@ -1,5 +1,5 @@
 import {
-  bigint, boolean, check, foreignKey, index, integer, pgEnum, pgTable,
+  bigint, boolean, check, date, foreignKey, index, integer, pgEnum, pgTable,
   primaryKey, text, timestamp, uniqueIndex, uuid,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
@@ -506,7 +506,7 @@ export const coursePracticeQuestions = pgTable("dena_course_practice_questions",
   reviewReason: text("review_reason"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull().defaultNow(),
-}, (table) => [
+}, () => [
   check("dena_practice_review_state_ck", sql`
     (review_status = 'pending' AND reviewed_by_institute_user_id IS NULL
       AND reviewed_at IS NULL AND review_reason IS NULL)
@@ -957,6 +957,313 @@ export const verifiedEntities = pgTable("dena_verified_entities", {
   verifiedAt: timestamp("verified_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/**
+ * Exam question ownership is attached to a bank. The Dena bank uses the fixed
+ * system owner UUID below; every institute bank is owned by its verified
+ * institute UUID. Exams will reference a bank, never copy questions across it.
+ */
+export const assessmentBankOwnerType = pgEnum(
+  "dena_assessment_bank_owner_type", ["dena", "institute"],
+);
+export const DENA_ASSESSMENT_OWNER_ID = "00000000-0000-0000-0000-000000000001";
+export const DENA_ASSESSMENT_BANK_ID = "00000000-0000-0000-0000-000000000002";
+
+export const assessmentQuestionBanks = pgTable("dena_assessment_question_banks", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  ownerType: assessmentBankOwnerType("owner_type").notNull(),
+  ownerId: uuid("owner_id").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("dena_assessment_bank_owner_uidx").on(table.ownerType, table.ownerId),
+  uniqueIndex("dena_assessment_bank_scope_uidx").on(
+    table.id, table.ownerType, table.ownerId,
+  ),
+  index("dena_assessment_bank_owner_idx").on(table.ownerType, table.ownerId),
+  check("dena_assessment_bank_owner_ck", sql`
+    (owner_type = 'dena' AND owner_id = '00000000-0000-0000-0000-000000000001'::uuid)
+    OR (owner_type = 'institute' AND owner_id <> '00000000-0000-0000-0000-000000000001'::uuid)
+  `),
+]);
+
+/** Institute questions and Dena questions live in distinct owner-scoped banks.
+ * The duplicated owner key and composite FK prevent attaching a question to a
+ * bank belonging to a different institute. Dena questions never reference an
+ * institute course or lesson. */
+export const assessmentQuestionBankQuestions = pgTable(
+  "dena_assessment_question_bank_questions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    bankId: uuid("bank_id").notNull(),
+    ownerType: assessmentBankOwnerType("owner_type").notNull(),
+    ownerId: uuid("owner_id").notNull(),
+    courseId: uuid("course_id"),
+    lessonAssetId: uuid("lesson_asset_id"),
+    prompt: text("prompt").notNull(),
+    option0: text("option_0").notNull(),
+    option1: text("option_1").notNull(),
+    option2: text("option_2").notNull(),
+    option3: text("option_3").notNull(),
+    correctOption: integer("correct_option").notNull(),
+    createdByUserId: uuid("created_by_user_id").notNull()
+      .references(() => user.id, { onDelete: "restrict" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("dena_assessment_bank_question_id_scope_uidx").on(
+      table.id, table.bankId, table.ownerType, table.ownerId,
+    ),
+    index("dena_assessment_bank_question_list_idx").on(
+      table.bankId, table.createdAt, table.id,
+    ),
+    foreignKey({
+      columns: [table.bankId, table.ownerType, table.ownerId],
+      foreignColumns: [assessmentQuestionBanks.id,
+        assessmentQuestionBanks.ownerType, assessmentQuestionBanks.ownerId],
+      name: "dena_assessment_bank_question_bank_scope_fk",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.courseId, table.ownerId],
+      foreignColumns: [courses.id, courses.responsibleInstituteId],
+      name: "dena_assessment_bank_question_course_scope_fk",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.lessonAssetId, table.courseId],
+      foreignColumns: [privateMediaAssets.id, privateMediaAssets.courseId],
+      name: "dena_assessment_bank_question_lesson_scope_fk",
+    }).onDelete("restrict"),
+    check("dena_assessment_bank_question_owner_ck", sql`
+      (owner_type = 'dena'
+        AND owner_id = '00000000-0000-0000-0000-000000000001'::uuid
+        AND course_id IS NULL AND lesson_asset_id IS NULL)
+      OR (owner_type = 'institute'
+        AND owner_id <> '00000000-0000-0000-0000-000000000001'::uuid
+        AND course_id IS NOT NULL AND lesson_asset_id IS NOT NULL)
+    `),
+    check("dena_assessment_bank_question_bounds_ck", sql`
+      char_length(prompt) BETWEEN 10 AND 500 AND btrim(prompt) <> ''
+      AND char_length(option_0) BETWEEN 1 AND 160 AND btrim(option_0) <> ''
+      AND char_length(option_1) BETWEEN 1 AND 160 AND btrim(option_1) <> ''
+      AND char_length(option_2) BETWEEN 1 AND 160 AND btrim(option_2) <> ''
+      AND char_length(option_3) BETWEEN 1 AND 160 AND btrim(option_3) <> ''
+      AND correct_option BETWEEN 0 AND 3
+    `),
+  ],
+);
+
+/** Two examination products share a schedule model but cannot change tenant:
+ * institute_planned uses that institute's bank; dena_coordinated uses Dena's. */
+export const assessmentExamType = pgEnum("dena_assessment_exam_type", [
+  "institute_planned", "dena_coordinated",
+]);
+export const assessmentExamStatus = pgEnum("dena_assessment_exam_status", [
+  "draft", "published", "cancelled",
+]);
+export const assessmentExams = pgTable("dena_assessment_exams", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  examType: assessmentExamType("exam_type").notNull(),
+  ownerType: assessmentBankOwnerType("owner_type").notNull(),
+  ownerId: uuid("owner_id").notNull(),
+  bankId: uuid("bank_id").notNull(),
+  courseId: uuid("course_id"),
+  title: text("title").notNull(),
+  instructions: text("instructions").notNull(),
+  startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+  endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
+  durationMinutes: integer("duration_minutes").notNull(),
+  attemptLimit: integer("attempt_limit").notNull().default(1),
+  status: assessmentExamStatus("status").notNull().default("draft"),
+  createdByUserId: uuid("created_by_user_id").notNull()
+    .references(() => user.id, { onDelete: "restrict" }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("dena_assessment_exam_scope_uidx").on(
+    table.id, table.bankId, table.ownerType, table.ownerId,
+  ),
+  index("dena_assessment_exam_owner_schedule_idx").on(
+    table.ownerType, table.ownerId, table.startsAt, table.id,
+  ),
+  index("dena_assessment_exam_status_idx").on(table.examType, table.status, table.startsAt),
+  foreignKey({
+    columns: [table.bankId, table.ownerType, table.ownerId],
+    foreignColumns: [assessmentQuestionBanks.id,
+      assessmentQuestionBanks.ownerType, assessmentQuestionBanks.ownerId],
+    name: "dena_assessment_exam_bank_scope_fk",
+  }).onDelete("restrict"),
+  foreignKey({
+    columns: [table.courseId, table.ownerId],
+    foreignColumns: [courses.id, courses.responsibleInstituteId],
+    name: "dena_assessment_exam_course_scope_fk",
+  }).onDelete("restrict"),
+  check("dena_assessment_exam_type_scope_ck", sql`
+    (exam_type = 'institute_planned' AND owner_type = 'institute'
+      AND owner_id <> '00000000-0000-0000-0000-000000000001'::uuid
+      AND course_id IS NOT NULL)
+    OR (exam_type = 'dena_coordinated' AND owner_type = 'dena'
+      AND owner_id = '00000000-0000-0000-0000-000000000001'::uuid
+      AND course_id IS NULL)
+  `),
+  check("dena_assessment_exam_title_ck", sql`
+    char_length(title) BETWEEN 3 AND 160 AND btrim(title) <> ''
+  `),
+  check("dena_assessment_exam_instructions_ck", sql`
+    char_length(instructions) BETWEEN 1 AND 2000 AND btrim(instructions) <> ''
+  `),
+  check("dena_assessment_exam_schedule_ck", sql`
+    ends_at > starts_at
+    AND duration_minutes BETWEEN 5 AND 300
+    AND attempt_limit BETWEEN 1 AND 20
+  `),
+]);
+
+/** Question versions are snapshotted into the exam so later bank edits cannot
+ * silently change a published exam or its result key. Composite scope FKs make
+ * cross-bank and cross-institute question selection impossible. */
+export const assessmentExamQuestions = pgTable("dena_assessment_exam_questions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  examId: uuid("exam_id").notNull(),
+  bankId: uuid("bank_id").notNull(),
+  ownerType: assessmentBankOwnerType("owner_type").notNull(),
+  ownerId: uuid("owner_id").notNull(),
+  bankQuestionId: uuid("bank_question_id").notNull(),
+  position: integer("position").notNull(),
+  prompt: text("prompt").notNull(),
+  option0: text("option_0").notNull(),
+  option1: text("option_1").notNull(),
+  option2: text("option_2").notNull(),
+  option3: text("option_3").notNull(),
+  correctOption: integer("correct_option").notNull(),
+  points: integer("points").notNull().default(1),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("dena_assessment_exam_question_position_uidx").on(
+    table.examId, table.position,
+  ),
+  uniqueIndex("dena_assessment_exam_question_id_exam_uidx").on(
+    table.id, table.examId,
+  ),
+  uniqueIndex("dena_assessment_exam_question_source_uidx").on(
+    table.examId, table.bankQuestionId,
+  ),
+  index("dena_assessment_exam_question_bank_idx").on(
+    table.bankId, table.bankQuestionId,
+  ),
+  foreignKey({
+    columns: [table.examId, table.bankId, table.ownerType, table.ownerId],
+    foreignColumns: [assessmentExams.id, assessmentExams.bankId,
+      assessmentExams.ownerType, assessmentExams.ownerId],
+    name: "dena_assessment_exam_question_exam_scope_fk",
+  }).onDelete("cascade"),
+  foreignKey({
+    columns: [table.bankQuestionId, table.bankId, table.ownerType, table.ownerId],
+    foreignColumns: [assessmentQuestionBankQuestions.id,
+      assessmentQuestionBankQuestions.bankId,
+      assessmentQuestionBankQuestions.ownerType,
+      assessmentQuestionBankQuestions.ownerId],
+    name: "dena_assessment_exam_question_bank_scope_fk",
+  }).onDelete("restrict"),
+  check("dena_assessment_exam_question_values_ck", sql`
+    position BETWEEN 0 AND 299
+    AND points BETWEEN 1 AND 100
+    AND char_length(prompt) BETWEEN 10 AND 500 AND btrim(prompt) <> ''
+    AND char_length(option_0) BETWEEN 1 AND 160 AND btrim(option_0) <> ''
+    AND char_length(option_1) BETWEEN 1 AND 160 AND btrim(option_1) <> ''
+    AND char_length(option_2) BETWEEN 1 AND 160 AND btrim(option_2) <> ''
+    AND char_length(option_3) BETWEEN 1 AND 160 AND btrim(option_3) <> ''
+    AND correct_option BETWEEN 0 AND 3
+  `),
+]);
+
+export const assessmentExamAttemptStatus = pgEnum(
+  "dena_assessment_exam_attempt_status",
+  ["in_progress", "submitted", "expired"],
+);
+export const assessmentExamAttempts = pgTable("dena_assessment_exam_attempts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  examId: uuid("exam_id").notNull(),
+  studentUserId: uuid("student_user_id").notNull()
+    .references(() => user.id, { onDelete: "restrict" }),
+  attemptNumber: integer("attempt_number").notNull(),
+  status: assessmentExamAttemptStatus("status").notNull().default("in_progress"),
+  questionCount: integer("question_count").notNull(),
+  correctCount: integer("correct_count"),
+  totalPoints: integer("total_points"),
+  earnedPoints: integer("earned_points"),
+  startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+  deadlineAt: timestamp("deadline_at", { withTimezone: true }).notNull(),
+  submittedAt: timestamp("submitted_at", { withTimezone: true }),
+}, (table) => [
+  uniqueIndex("dena_assessment_exam_attempt_id_scope_uidx").on(
+    table.id, table.examId, table.studentUserId,
+  ),
+  uniqueIndex("dena_assessment_exam_attempt_number_uidx").on(
+    table.examId, table.studentUserId, table.attemptNumber,
+  ),
+  index("dena_assessment_exam_attempt_student_idx").on(
+    table.studentUserId, table.status, table.startedAt,
+  ),
+  foreignKey({
+    columns: [table.examId],
+    foreignColumns: [assessmentExams.id],
+    name: "dena_assessment_exam_attempt_exam_fk",
+  }).onDelete("restrict"),
+  check("dena_assessment_exam_attempt_values_ck", sql.raw(
+    "(attempt_number BETWEEN 1 AND 20) AND (question_count BETWEEN 1 AND 300) " +
+    "AND (deadline_at > started_at) " +
+    "AND (correct_count IS NULL OR correct_count BETWEEN 0 AND question_count) " +
+    "AND (total_points IS NULL OR total_points BETWEEN 1 AND 30000) " +
+    "AND (earned_points IS NULL OR earned_points BETWEEN 0 AND total_points)",
+  )),
+  check("dena_assessment_exam_attempt_state_ck", sql.raw(
+    "(status = 'in_progress' AND submitted_at IS NULL AND correct_count IS NULL " +
+    "AND total_points IS NULL AND earned_points IS NULL) OR " +
+    "(status IN ('submitted', 'expired') AND submitted_at IS NOT NULL " +
+    "AND correct_count IS NOT NULL AND total_points IS NOT NULL " +
+    "AND earned_points IS NOT NULL)",
+  )),
+]);
+
+export const assessmentExamAttemptAnswers = pgTable(
+  "dena_assessment_exam_attempt_answers",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    attemptId: uuid("attempt_id").notNull(),
+    examId: uuid("exam_id").notNull(),
+    studentUserId: uuid("student_user_id").notNull(),
+    examQuestionId: uuid("exam_question_id").notNull(),
+    selectedOption: integer("selected_option"),
+    answeredAt: timestamp("answered_at", { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex("dena_assessment_exam_attempt_answer_uidx").on(
+      table.attemptId, table.examQuestionId,
+    ),
+    index("dena_assessment_exam_attempt_answer_exam_idx").on(
+      table.examId, table.examQuestionId,
+    ),
+    foreignKey({
+      columns: [table.attemptId, table.examId, table.studentUserId],
+      foreignColumns: [assessmentExamAttempts.id, assessmentExamAttempts.examId,
+        assessmentExamAttempts.studentUserId],
+      name: "dena_assessment_exam_attempt_answer_attempt_scope_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.examQuestionId, table.examId],
+      foreignColumns: [assessmentExamQuestions.id, assessmentExamQuestions.examId],
+      name: "dena_assessment_exam_attempt_answer_question_scope_fk",
+    }).onDelete("restrict"),
+    check("dena_assessment_exam_attempt_answer_option_ck", sql.raw(
+      "(selected_option IS NULL AND answered_at IS NULL) OR " +
+      "(selected_option BETWEEN 0 AND 3 AND answered_at IS NOT NULL)",
+    )),
+  ],
+);
+
 export const roleApplications = pgTable("dena_role_applications", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull().references(() => user.id, { onDelete: "restrict" }),
@@ -996,4 +1303,353 @@ export const roleApplicationEvents = pgTable("dena_role_application_events", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
   index("dena_role_events_application_idx").on(table.applicationId, table.createdAt),
+]);
+
+/** Minimal security/administrative event metadata. Application flows insert
+ * rows only; operational DB permissions must deny UPDATE/DELETE in production.
+ */
+export const auditEntityType = pgEnum("dena_audit_entity_type", [
+  "SYSTEM", "USER", "COURSE", "PRACTICE", "MEDIA", "ROLE_APPLICATION",
+  "ORGANIZATION_STUDENT", "ORGANIZATION_API_KEY", "ASSESSMENT_QUESTION",
+  "ASSESSMENT_EXAM", "INSTITUTE_SERVICE", "SERVICE_ORDER",
+]);
+export const auditLogs = pgTable("dena_audit_logs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  actorId: uuid("actor_id").notNull().references(() => user.id, {
+    onDelete: "restrict",
+  }),
+  actorRole: denaRole("actor_role").notNull(),
+  action: text("action").notNull(),
+  entityType: auditEntityType("entity_type").notNull(),
+  entityId: uuid("entity_id"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("dena_audit_logs_created_at_idx").on(table.createdAt),
+  index("dena_audit_logs_actor_idx").on(table.actorId, table.createdAt),
+  check("dena_audit_action_ck", sql`
+    char_length(action) BETWEEN 1 AND 120
+    AND action ~ '^[a-z0-9_.:-]+$'
+  `),
+]);
+
+/** A roster record is scoped to exactly one organization. Private identity
+ * fields stay here, while authentication remains with the shared phone OTP
+ * user account. National code is encrypted and indexed only by a tenant HMAC.
+ */
+export const organizationStudents = pgTable("dena_organization_students", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull()
+    .references(() => verifiedEntities.id, { onDelete: "restrict" }),
+  userId: uuid("user_id").notNull().references(() => user.id, { onDelete: "restrict" }),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  nationalCodeCiphertext: text("national_code_ciphertext").notNull(),
+  nationalCodeHash: text("national_code_hash").notNull(),
+  birthDate: date("birth_date", { mode: "string" }).notNull(),
+  nationalCodeLast4: text("national_code_last4").notNull(),
+  gender: text("gender").notNull(),
+  email: text("email"),
+  createdByUserId: uuid("created_by_user_id").notNull()
+    .references(() => user.id, { onDelete: "restrict" }),
+  guardianConsentConfirmedAt: timestamp("guardian_consent_confirmed_at", { withTimezone: true }),
+  guardianConsentConfirmedByUserId: uuid("guardian_consent_confirmed_by_user_id")
+    .references(() => user.id, { onDelete: "restrict" }),
+  source: text("source").notNull().default("manual"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("dena_org_student_scope_user_uidx").on(table.organizationId, table.userId),
+  uniqueIndex("dena_org_student_scope_national_code_uidx").on(
+    table.organizationId, table.nationalCodeHash,
+  ),
+  index("dena_org_students_scope_created_idx").on(table.organizationId, table.createdAt),
+  check("dena_org_student_name_ck", sql`
+    char_length(first_name) BETWEEN 1 AND 80 AND char_length(last_name) BETWEEN 1 AND 100
+  `),
+  check("dena_org_student_national_code_last4_ck", sql`national_code_last4 ~ '^\\d{4}$'`),
+  check("dena_org_student_gender_ck", sql`gender IN ('female', 'male', 'prefer_not_to_say')`),
+  check("dena_org_student_source_ck", sql`source IN ('manual', 'bulk', 'api')`),
+]);
+
+export const organizationApiKeys = pgTable("dena_organization_api_keys", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull()
+    .references(() => verifiedEntities.id, { onDelete: "restrict" }),
+  secretHash: text("secret_hash").notNull().unique(),
+  prefix: text("prefix").notNull(),
+  label: text("label").notNull(),
+  createdByUserId: uuid("created_by_user_id").notNull()
+    .references(() => user.id, { onDelete: "restrict" }),
+  lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  rotatedFromKeyId: uuid("rotated_from_key_id"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("dena_org_api_keys_scope_active_idx").on(table.organizationId, table.revokedAt),
+  check("dena_org_api_key_label_ck", sql`char_length(label) BETWEEN 1 AND 80`),
+  check("dena_org_api_key_prefix_ck", sql`prefix ~ '^dena_org_[A-Za-z0-9_-]{8}$'`),
+]);
+
+/** Shared platform-support threads. Access is controlled by the requester or
+ * an active admin membership explicitly enabled for technical support. */
+export const technicalSupportTickets = pgTable("dena_technical_support_tickets", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  requesterUserId: uuid("requester_user_id").notNull()
+    .references(() => user.id, { onDelete: "restrict" }),
+  assignedToUserId: uuid("assigned_to_user_id")
+    .references(() => user.id, { onDelete: "restrict" }),
+  subject: text("subject").notNull(),
+  status: text("status").notNull().default("new"),
+  priority: text("priority").notNull().default("normal"),
+  firstResponseDueAt: timestamp("first_response_due_at", { withTimezone: true }).notNull(),
+  resolutionDueAt: timestamp("resolution_due_at", { withTimezone: true }).notNull(),
+  resolutionPausedAt: timestamp("resolution_paused_at", { withTimezone: true }),
+  firstRespondedAt: timestamp("first_responded_at", { withTimezone: true }),
+  resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+  closedAt: timestamp("closed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("dena_support_ticket_requester_updated_idx").on(
+    table.requesterUserId, table.updatedAt,
+  ),
+  index("dena_support_ticket_updated_idx").on(table.updatedAt),
+  index("dena_support_ticket_assignment_status_idx").on(
+    table.assignedToUserId, table.status,
+  ),
+  index("dena_support_ticket_priority_status_idx").on(table.priority, table.status),
+  check("dena_support_ticket_subject_ck", sql`
+    char_length(subject) BETWEEN 3 AND 120
+  `),
+  check("dena_support_ticket_status_ck", sql`
+    status IN ('new', 'in_progress', 'waiting_requester', 'resolved', 'closed')
+  `),
+  check("dena_support_ticket_priority_ck", sql`
+    priority IN ('low', 'normal', 'high', 'urgent')
+  `),
+  check("dena_support_ticket_dates_ck", sql`
+    (status = 'closed' AND closed_at IS NOT NULL)
+    OR (status <> 'closed' AND closed_at IS NULL)
+  `),
+]);
+
+export const technicalSupportNotifications = pgTable("dena_technical_support_notifications", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  recipientUserId: uuid("recipient_user_id").notNull()
+    .references(() => user.id, { onDelete: "restrict" }),
+  ticketId: uuid("ticket_id").notNull()
+    .references(() => technicalSupportTickets.id, { onDelete: "restrict" }),
+  kind: text("kind").notNull(),
+  readAt: timestamp("read_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("dena_support_notification_recipient_created_idx").on(
+    table.recipientUserId, table.createdAt,
+  ),
+  index("dena_support_notification_ticket_idx").on(table.ticketId, table.createdAt),
+  check("dena_support_notification_kind_ck", sql`
+    kind IN ('ticket_created', 'requester_replied', 'support_replied', 'ticket_updated', 'attachment_added', 'attachment_scanned')
+  `),
+]);
+
+export const technicalSupportAttachments = pgTable("dena_technical_support_attachments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  ticketId: uuid("ticket_id").notNull()
+    .references(() => technicalSupportTickets.id, { onDelete: "restrict" }),
+  uploadedByUserId: uuid("uploaded_by_user_id").notNull()
+    .references(() => user.id, { onDelete: "restrict" }),
+  fileName: text("file_name").notNull(),
+  contentType: text("content_type").notNull(),
+  byteSize: integer("byte_size").notNull(),
+  sha256: text("sha256").notNull(),
+  objectKey: text("object_key").notNull().unique(),
+  status: text("status").notNull().default("quarantined"),
+  scannedAt: timestamp("scanned_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("dena_support_attachment_ticket_idx").on(table.ticketId, table.createdAt),
+  check("dena_support_attachment_file_name_ck", sql`
+    char_length(file_name) BETWEEN 1 AND 180
+  `),
+  check("dena_support_attachment_type_ck", sql`
+    content_type IN ('application/pdf', 'image/jpeg', 'image/png')
+  `),
+  check("dena_support_attachment_size_ck", sql`
+    byte_size BETWEEN 1 AND 10485760
+  `),
+  check("dena_support_attachment_hash_ck", sql`
+    sha256 ~ '^[0-9a-f]{64}$'
+  `),
+  check("dena_support_attachment_status_ck", sql`
+    (status IN ('uploading', 'quarantined', 'failed') AND scanned_at IS NULL)
+    OR (status IN ('ready', 'rejected') AND scanned_at IS NOT NULL)
+  `),
+]);
+
+export const technicalSupportMessages = pgTable("dena_technical_support_messages", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  ticketId: uuid("ticket_id").notNull()
+    .references(() => technicalSupportTickets.id, { onDelete: "restrict" }),
+  authorUserId: uuid("author_user_id").notNull()
+    .references(() => user.id, { onDelete: "restrict" }),
+  body: text("body").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("dena_support_message_ticket_created_idx").on(table.ticketId, table.createdAt),
+  check("dena_support_message_body_ck", sql`
+    char_length(body) BETWEEN 1 AND 5000
+  `),
+]);
+
+export const instituteServiceCatalogStatus = pgEnum("dena_institute_service_status", [
+  "draft", "active", "paused",
+]);
+export const instituteServiceCatalog = pgTable("dena_institute_services", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  instituteId: uuid("institute_id").notNull()
+    .references(() => verifiedEntities.id, { onDelete: "restrict" }),
+  createdByUserId: uuid("created_by_user_id").notNull()
+    .references(() => user.id, { onDelete: "restrict" }),
+  title: text("title").notNull(),
+  category: text("category").notNull(),
+  description: text("description").notNull(),
+  priceToman: bigint("price_toman", { mode: "number" }).notNull(),
+  includedMinutes: integer("included_minutes"),
+  validityDays: integer("validity_days"),
+  guardianConsentRequired: boolean("guardian_consent_required").notNull().default(false),
+  cancellationPolicy: text("cancellation_policy").notNull(),
+  status: instituteServiceCatalogStatus("status").notNull().default("draft"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("dena_institute_services_scope_uidx").on(table.id, table.instituteId),
+  index("dena_institute_services_owner_status_created_idx").on(
+    table.instituteId, table.status, table.createdAt,
+  ),
+  check("dena_institute_services_title_ck", sql`char_length(title) BETWEEN 3 AND 120`),
+  check("dena_institute_services_category_ck", sql`
+    category IN ('consultation', 'career_guidance', 'assessment', 'support', 'other')
+  `),
+  check("dena_institute_services_description_ck", sql`char_length(description) BETWEEN 10 AND 2000`),
+  check("dena_institute_services_price_ck", sql`price_toman BETWEEN 1 AND 1000000000000`),
+  check("dena_institute_services_quota_ck", sql`
+    (included_minutes IS NULL AND validity_days IS NULL)
+    OR (included_minutes BETWEEN 5 AND 100000 AND validity_days BETWEEN 1 AND 3650)
+  `),
+  check("dena_institute_services_policy_ck", sql`char_length(cancellation_policy) BETWEEN 1 AND 1500`),
+]);
+
+export const financialRevenueStream = pgEnum("dena_financial_revenue_stream", [
+  "institute_service", "supervised_provider",
+]);
+export const financialEntryAccount = pgEnum("dena_financial_entry_account", [
+  "gateway_clearing", "dena_service_commission_payable", "institute_service_payable",
+  "dena_provider_commission_payable", "institute_provider_payable",
+  "provider_compensation_payable", "gateway_fee_expense", "student_refund_payable",
+  "settlement_bank",
+]);
+export const financialEventType = pgEnum("dena_financial_event_type", [
+  "payment_captured", "gateway_fee_recorded", "settlement_received", "refund_issued",
+]);
+export const financialJournals = pgTable("dena_financial_journals", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  eventKey: text("event_key").notNull().unique(),
+  revenueStream: financialRevenueStream("revenue_stream").notNull(),
+  eventType: financialEventType("event_type").notNull(),
+  sourceId: uuid("source_id").notNull(),
+  createdByUserId: uuid("created_by_user_id").references(() => user.id, { onDelete: "restrict" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("dena_financial_journal_stream_created_idx").on(table.revenueStream, table.createdAt),
+  index("dena_financial_journal_source_idx").on(table.sourceId, table.eventType),
+  check("dena_financial_journal_event_key_ck", sql`event_key ~ '^[a-zA-Z0-9_.:-]{8,180}$'`),
+]);
+export const financialEntries = pgTable("dena_financial_entries", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  journalId: uuid("journal_id").notNull()
+    .references(() => financialJournals.id, { onDelete: "restrict" }),
+  account: financialEntryAccount("account").notNull(),
+  debitRials: bigint("debit_rials", { mode: "number" }).notNull().default(0),
+  creditRials: bigint("credit_rials", { mode: "number" }).notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("dena_financial_entry_journal_idx").on(table.journalId, table.createdAt),
+  check("dena_financial_entry_one_side_ck", sql`
+    (debit_rials > 0 AND credit_rials = 0)
+    OR (credit_rials > 0 AND debit_rials = 0)
+  `),
+]);
+
+export const instituteServiceOrderStatus = pgEnum("dena_institute_service_order_status", [
+  "awaiting_guardian_consent", "awaiting_payment", "paid", "cancelled",
+]);
+export const instituteServiceOrders = pgTable("dena_institute_service_orders", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  idempotencyKey: uuid("idempotency_key").notNull(),
+  studentUserId: uuid("student_user_id").notNull()
+    .references(() => user.id, { onDelete: "restrict" }),
+  serviceId: uuid("service_id").notNull(),
+  instituteId: uuid("institute_id").notNull(),
+  serviceTitleSnapshot: text("service_title_snapshot").notNull(),
+  categorySnapshot: text("category_snapshot").notNull(),
+  priceToman: bigint("price_toman", { mode: "number" }).notNull(),
+  grossRials: bigint("gross_rials", { mode: "number" }).notNull(),
+  denaShareRials: bigint("dena_share_rials", { mode: "number" }).notNull(),
+  instituteShareRials: bigint("institute_share_rials", { mode: "number" }).notNull(),
+  commissionBasisPoints: integer("commission_basis_points").notNull().default(1000),
+  includedMinutes: integer("included_minutes"),
+  validityDays: integer("validity_days"),
+  guardianConsentRequired: boolean("guardian_consent_required").notNull(),
+  guardianConsentConfirmedAt: timestamp("guardian_consent_confirmed_at", { withTimezone: true }),
+  guardianConsentConfirmedByUserId: uuid("guardian_consent_confirmed_by_user_id")
+    .references(() => user.id, { onDelete: "restrict" }),
+  status: instituteServiceOrderStatus("status").notNull(),
+  paidAt: timestamp("paid_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("dena_institute_service_order_student_idempotency_uidx").on(
+    table.studentUserId, table.idempotencyKey,
+  ),
+  index("dena_institute_service_order_student_created_idx").on(
+    table.studentUserId, table.createdAt,
+  ),
+  index("dena_institute_service_order_institute_status_idx").on(
+    table.instituteId, table.status, table.createdAt,
+  ),
+  foreignKey({
+    columns: [table.serviceId, table.instituteId],
+    foreignColumns: [instituteServiceCatalog.id, instituteServiceCatalog.instituteId],
+    name: "dena_institute_service_order_service_scope_fk",
+  }).onDelete("restrict"),
+  check("dena_institute_service_order_snapshot_ck", sql`
+    char_length(service_title_snapshot) BETWEEN 3 AND 120
+    AND category_snapshot IN ('consultation', 'career_guidance', 'assessment', 'support', 'other')
+    AND price_toman BETWEEN 1 AND 1000000000000
+    AND gross_rials = price_toman * 10
+    AND commission_basis_points = 1000
+    AND dena_share_rials = gross_rials / 10
+    AND institute_share_rials = gross_rials - dena_share_rials
+  `),
+  check("dena_institute_service_order_quota_ck", sql`
+    (included_minutes IS NULL AND validity_days IS NULL)
+    OR (included_minutes BETWEEN 5 AND 100000 AND validity_days BETWEEN 1 AND 3650)
+  `),
+  check("dena_institute_service_order_consent_ck", sql`
+    (guardian_consent_required = false AND guardian_consent_confirmed_at IS NULL
+      AND guardian_consent_confirmed_by_user_id IS NULL)
+    OR (guardian_consent_required = true AND status IN ('awaiting_guardian_consent', 'cancelled')
+      AND guardian_consent_confirmed_at IS NULL AND guardian_consent_confirmed_by_user_id IS NULL)
+    OR (guardian_consent_required = true AND guardian_consent_confirmed_at IS NOT NULL
+      AND guardian_consent_confirmed_by_user_id IS NOT NULL)
+  `),
+  check("dena_institute_service_order_state_ck", sql`
+    (status = 'awaiting_guardian_consent' AND guardian_consent_required = true
+      AND guardian_consent_confirmed_at IS NULL AND paid_at IS NULL)
+    OR (status = 'awaiting_payment' AND paid_at IS NULL
+      AND (guardian_consent_required = false OR guardian_consent_confirmed_at IS NOT NULL))
+    OR (status = 'paid' AND paid_at IS NOT NULL
+      AND (guardian_consent_required = false OR guardian_consent_confirmed_at IS NOT NULL))
+    OR (status = 'cancelled' AND paid_at IS NULL)
+  `),
 ]);

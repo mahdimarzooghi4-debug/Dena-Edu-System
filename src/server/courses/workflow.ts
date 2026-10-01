@@ -2,8 +2,10 @@ import { and, eq, ne, notExists } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { getDb } from "../../db";
 import {
-  courses, memberships, supervisionEvents, supervisionGrants, verifiedEntities,
+  auditLogs, courses, memberships, supervisionEvents, supervisionGrants,
+  verifiedEntities,
 } from "../../db/schema";
+import { auditLogRecord } from "../admin/audit";
 import type { NewSupervisedCourse, SupervisionDecision } from "./contracts";
 
 export type CourseWorkflowFailure =
@@ -102,6 +104,13 @@ export async function createSupervisedCourse(
       actorUserId: providerUserId,
       kind: "requested",
     });
+    await tx.insert(auditLogs).values(auditLogRecord({
+      actorId: providerUserId,
+      actorRole: "provider",
+      action: "course.supervision.requested",
+      entityType: "COURSE",
+      entityId: created.id,
+    }));
     return { courseId: created.id, status: "requested" as const, replayed: false };
   });
 }
@@ -173,6 +182,15 @@ export async function decideCourseSupervision(
       kind,
       reason: decision.reason,
     });
+    await tx.insert(auditLogs).values(auditLogRecord({
+      actorId: instituteUserId,
+      actorRole: "institute",
+      action: kind === "approved" ? "course.supervision.approved"
+        : kind === "rejected" ? "course.supervision.rejected"
+          : "course.supervision.revoked",
+      entityType: "COURSE",
+      entityId: course.id,
+    }));
     return { courseId: course.id, status: nextStatus, decision: kind };
   });
 }

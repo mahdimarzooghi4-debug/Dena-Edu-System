@@ -4,7 +4,7 @@ import { serializeSignedCookie } from "better-call";
 import { expect, request, test, type APIRequestContext } from "@playwright/test";
 import { getDb } from "../../src/db";
 import {
-  courses, memberships, session, supervisionEvents, supervisionGrants,
+  auditLogs, courses, memberships, session, supervisionEvents, supervisionGrants,
   user, verifiedEntities,
 } from "../../src/db/schema";
 
@@ -86,6 +86,7 @@ test.describe("course-scoped provider requests and independent institute decisio
   });
 
   test.afterAll(async () => {
+    await db.delete(auditLogs).where(inArray(auditLogs.actorId, Object.values(users)));
     if (courseIds.length) {
       await db.delete(supervisionEvents).where(
         inArray(supervisionEvents.courseId, courseIds));
@@ -395,6 +396,11 @@ test.describe("course-scoped provider requests and independent institute decisio
     expect(events.map((row) => row.kind).sort()).toEqual(["approved", "requested"]);
     expect(events.find((row) => row.kind === "approved")?.actorUserId)
       .toBe(users.institute);
+    const audit = await db.select().from(auditLogs)
+      .where(eq(auditLogs.entityId, a));
+    expect(audit.map((row) => row.action).sort()).toEqual([
+      "course.supervision.approved", "course.supervision.requested",
+    ]);
 
     // DB rejects forged grant scope even from a direct privileged DB writer.
     await expect(db.update(supervisionGrants)

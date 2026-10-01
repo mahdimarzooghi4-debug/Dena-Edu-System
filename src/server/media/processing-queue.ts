@@ -1,6 +1,6 @@
 import { and, eq, sql } from "drizzle-orm";
 import { getDb } from "../../db";
-import { mediaIngests, mediaProcessingJobs } from "../../db/schema";
+import { mediaProcessingJobs } from "../../db/schema";
 
 export const MAX_PROCESSING_ATTEMPTS = 5;
 export const PROCESSING_LEASE_SECONDS = 300;
@@ -81,4 +81,3 @@ export async function deadLetterExpiredLeases() {
     sql`${mediaProcessingJobs.attempts} >= ${MAX_PROCESSING_ATTEMPTS}`,
   )).returning({ uploadId: mediaProcessingJobs.uploadId });
 }
-

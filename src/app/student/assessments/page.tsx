@@ -7,6 +7,8 @@ import { getServerAccessContext } from "@/server/access/actor";
 import { getStudentProgressOverview } from "@/server/student/progress-overview";
 import { getStudentDashboardCourses } from "@/server/student/dashboard";
 import { getStudentLearningAssessments } from "@/server/assessments/learning-assessment";
+import { getStudentExamCatalog } from "@/server/assessments/exam-management";
+import { StudentExamCard } from "@/components/student/student-exam-card";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,9 +24,10 @@ export default async function StudentAssessmentsPage() {
   if (!actor) redirect("/login");
   if (!actor.memberships.some((entry) => entry.role === "student")) notFound();
 
-  const [overview, courseResult] = await Promise.all([
+  const [overview, courseResult, examResult] = await Promise.all([
     getStudentProgressOverview(actor.userId),
     getStudentDashboardCourses(actor.userId),
+    getStudentExamCatalog(actor.userId),
   ]);
   const learning = await Promise.all(courseResult.courses.map(async (course) => ({
     course,
@@ -44,6 +47,19 @@ export default async function StudentAssessmentsPage() {
   return (
     <StudentShell active="assessments" title="تمرین‌ها و آزمون‌ها">
       <div className="space-y-6">
+        {(examResult?.exams.length ?? 0) > 0 && (
+          <section className="space-y-4" aria-labelledby="scheduled-exams-title">
+            <div>
+              <p className="text-sm font-bold text-dena-brand">دو مدل آزمون مستقل از ارزیابی یادگیری</p>
+              <h2 id="scheduled-exams-title" className="mt-1 text-xl font-extrabold text-dena-deep">
+                آزمون‌های برنامه‌ریزی‌شده و هماهنگ دنا
+              </h2>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              {examResult!.exams.map((exam) => <StudentExamCard key={exam.id} exam={exam} />)}
+            </div>
+          </section>
+        )}
         <section className="rounded-[22px] bg-dena-lavender px-6 py-7 md:px-8">
           <p className="text-sm font-bold text-dena-brand">ارزیابی‌های من</p>
           <h2 className="mt-2 text-2xl font-extrabold text-dena-deep md:text-3xl">

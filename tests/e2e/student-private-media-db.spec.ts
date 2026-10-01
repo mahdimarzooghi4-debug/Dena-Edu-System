@@ -5,7 +5,7 @@ import { expect, request, test, type APIRequestContext } from "@playwright/test"
 import { getDb } from "../../src/db";
 import { getProviderDashboardCourses } from "../../src/server/provider/dashboard";
 import {
-  coursePracticeQuestions, courses, memberships, privateMediaAssets,
+  auditLogs, coursePracticeQuestions, courses, memberships, privateMediaAssets,
   session, studentEnrollments, studentPracticeAttempts,
   supervisionEvents, supervisionGrants, studentVideoCompletions,
   studentVideoNotes, user, verifiedEntities,
@@ -117,6 +117,7 @@ test.describe("free enrollment and private video access must stay course-scoped"
   });
 
   test.afterAll(async () => {
+    await db.delete(auditLogs).where(inArray(auditLogs.actorId, Object.values(users)));
     await db.delete(studentPracticeAttempts).where(inArray(
       studentPracticeAttempts.courseId, Object.values(ids),
     ));
@@ -340,6 +341,13 @@ test.describe("free enrollment and private video access must stay course-scoped"
     );
     await page.getByRole("button", { name: "تأیید سؤال تمرینی" }).click();
     expect((await approvedResponse).status()).toBe(200);
+    const practiceAudit = await db.select().from(auditLogs).where(and(
+      eq(auditLogs.actorId, users.institute),
+      eq(auditLogs.entityId, ids.live),
+    ));
+    expect(practiceAudit.map((event) => event.action)).toContain(
+      "course.practice.approved",
+    );
     await expect(page.getByText(
       "تأییدشده برای نمایش به دانش‌آموز",
     )).toBeVisible();

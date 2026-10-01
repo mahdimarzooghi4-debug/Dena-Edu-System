@@ -4,7 +4,8 @@ import { serializeSignedCookie } from "better-call";
 import { expect, request, test, type APIRequestContext } from "@playwright/test";
 import { getDb } from "../../src/db";
 import {
-  courseLearningAssessmentQuestions, courseLearningAssessments, courses,
+  courseLearningAssessmentQuestions, courseLearningAssessments,
+  coursePracticeQuestions, courses,
   memberships, privateMediaAssets, session, studentEnrollments,
   studentLearningAssessmentAttempts,
   studentLearningAssessmentAttemptQuestions,
@@ -18,11 +19,16 @@ test.describe("student learning assessment lifecycle", () => {
   const db = getDb();
   const users = { admin: randomUUID(), provider: randomUUID(), institute: randomUUID(),
     student: randomUUID(), other: randomUUID() };
-  const tokens = { student: randomUUID(), other: randomUUID() };
+  const tokens = {
+    student: randomUUID(), other: randomUUID(), institute: randomUUID(),
+    provider: randomUUID(),
+  };
   const providerId = randomUUID();
   const instituteId = randomUUID();
   const courseId = randomUUID();
   const assessmentId = randomUUID();
+  const pendingAssessmentId = randomUUID();
+  const pendingQuestionId = randomUUID();
   const assetIds = [randomUUID(), randomUUID(), randomUUID()];
   const questions = [randomUUID(), randomUUID(), randomUUID()];
 
@@ -59,6 +65,8 @@ test.describe("student learning assessment lifecycle", () => {
     await db.insert(session).values([
       { userId: users.student, token: tokens.student, expiresAt },
       { userId: users.other, token: tokens.other, expiresAt },
+      { userId: users.institute, token: tokens.institute, expiresAt },
+      { userId: users.provider, token: tokens.provider, expiresAt },
     ]);
     await db.insert(courses).values({
       id: courseId, providerId, responsibleInstituteId: instituteId,
@@ -89,6 +97,23 @@ test.describe("student learning assessment lifecycle", () => {
       option0: "پاسخ درست", option1: "گزینه دوم", option2: "گزینه سوم",
       option3: "گزینه چهارم", correctOption: 0,
     })));
+    await db.insert(courseLearningAssessments).values({
+      id: pendingAssessmentId, courseId, title: "ارزیابی منتظر بازبینی",
+      instructions: "این ارزیابی هنوز در انتظار بازبینی است.", questionCount: 1,
+      requiredCorrectCount: 1, authoredByProviderUserId: users.provider,
+    });
+    await db.insert(courseLearningAssessmentQuestions).values({
+      id: pendingQuestionId, assessmentId: pendingAssessmentId, courseId,
+      lessonAssetId: assetIds[0], prompt: "پرسش خصوصی ارزیابی در انتظار بازبینی چیست؟",
+      option0: "پاسخ یک", option1: "پاسخ دو", option2: "پاسخ سه",
+      option3: "پاسخ چهار", correctOption: 0,
+    });
+    await db.insert(coursePracticeQuestions).values({
+      courseId, prompt: "پرسش تمرینی در انتظار بازبینی برای آزمون؟",
+      option0: "گزینه یک", option1: "گزینه دو", option2: "گزینه سه",
+      option3: "گزینه چهار", correctOption: 0,
+      authoredByProviderUserId: users.provider,
+    });
   });
 
   test.afterAll(async () => {
@@ -99,8 +124,12 @@ test.describe("student learning assessment lifecycle", () => {
     await db.delete(studentLearningAssessmentAttempts)
       .where(eq(studentLearningAssessmentAttempts.assessmentId, assessmentId));
     await db.delete(courseLearningAssessmentQuestions)
-      .where(eq(courseLearningAssessmentQuestions.assessmentId, assessmentId));
-    await db.delete(courseLearningAssessments).where(eq(courseLearningAssessments.id, assessmentId));
+      .where(inArray(courseLearningAssessmentQuestions.assessmentId,
+        [assessmentId, pendingAssessmentId]));
+    await db.delete(courseLearningAssessments)
+      .where(inArray(courseLearningAssessments.id, [assessmentId, pendingAssessmentId]));
+    await db.delete(coursePracticeQuestions)
+      .where(eq(coursePracticeQuestions.courseId, courseId));
     await db.delete(studentEnrollments).where(eq(studentEnrollments.courseId, courseId));
     await db.delete(privateMediaAssets).where(eq(privateMediaAssets.courseId, courseId));
     await db.delete(supervisionGrants).where(eq(supervisionGrants.courseId, courseId));
@@ -114,12 +143,86 @@ test.describe("student learning assessment lifecycle", () => {
   test("hides answer keys, serializes starts, and requires lesson review before retry", async () => {
     const student = await client("student");
     const other = await client("other");
+    const institute = await client("institute");
+    const provider = await client("provider");
     const anonymous = await request.newContext({ baseURL: "http://localhost:3000" });
     expect((await anonymous.get(listPath)).status()).toBe(401);
     expect((await student.post(`${basePath}/attempts`, { data: {} })).status()).toBe(403);
     const listed = await student.get(listPath);
     expect(listed.status()).toBe(200);
     expect((await listed.json()).assessments).toHaveLength(1);
+
+    const instituteHome = await institute.get("/institute");
+    expect(instituteHome.status()).toBe(200);
+    const instituteHomeHtml = await instituteHome.text();
+    expect(instituteHomeHtml).toContain("تأییدشده: ۱");
+    expect(instituteHomeHtml).toContain("مشاهدهٔ ارزیابی‌های یادگیری");
+    const instituteCourses = await institute.get("/institute/courses");
+    expect(instituteCourses.status()).toBe(200);
+    const instituteCoursesHtml = await instituteCourses.text();
+    expect(instituteCoursesHtml).toContain("دوره ارزیابی یادگیری");
+    expect(instituteCoursesHtml).toContain(
+      `/institute/courses/${courseId}/assessments`,
+    );
+    expect((await student.get("/institute/courses")).status()).toBe(404);
+    const instituteAssessmentQueue = await institute.get("/institute/assessments");
+    expect(instituteAssessmentQueue.status()).toBe(200);
+    const queueHtml = await instituteAssessmentQueue.text();
+    expect(queueHtml).toContain("ارزیابی منتظر بازبینی");
+    expect(queueHtml).toContain("بازبینی ارزیابی");
+    expect(queueHtml).toContain("بازبینی سؤال این دوره");
+    expect(queueHtml).not.toContain("پرسش خصوصی ارزیابی در انتظار بازبینی چیست؟");
+    expect(queueHtml).not.toContain("پرسش تمرینی در انتظار بازبینی برای آزمون؟");
+    expect((await student.get("/institute/assessments")).status()).toBe(404);
+    const instituteProfile = await institute.get("/institute/profile");
+    expect(instituteProfile.status()).toBe(200);
+    const instituteProfileHtml = await instituteProfile.text();
+    expect(instituteProfileHtml).toContain("assessment institute");
+    expect(instituteProfileHtml).not.toContain("test/assessment-institute");
+    expect((await student.get("/institute/profile")).status()).toBe(404);
+    const instituteLearning = await institute.get("/institute/learning");
+    expect(instituteLearning.status()).toBe(200);
+    const instituteLearningHtml = await instituteLearning.text();
+    expect(instituteLearningHtml).toContain("گزارش تجمیعی هم تعریف نشده است");
+    expect(instituteLearningHtml).not.toContain("پرسش خصوصی ارزیابی در انتظار بازبینی چیست؟");
+    expect((await student.get("/institute/learning")).status()).toBe(404);
+
+    const providerHome = await provider.get("/provider");
+    expect(providerHome.status()).toBe(200);
+    const providerHomeHtml = await providerHome.text();
+    expect(providerHomeHtml).toContain("ارزیابی‌های یادگیری");
+    expect(providerHomeHtml).toContain("تأییدشده");
+    expect(providerHomeHtml).toContain(`/provider/courses/${courseId}/assessments`);
+    expect(providerHomeHtml).toContain('href="/provider/courses"');
+    expect(providerHomeHtml).not.toContain("کدام گزینه پاسخ درست پرسش 1 است؟");
+    const providerCourses = await provider.get("/provider/courses");
+    expect(providerCourses.status()).toBe(200);
+    expect(await providerCourses.text()).toContain("دوره ارزیابی یادگیری");
+    const providerAssessments = await provider.get("/provider/assessments");
+    expect(providerAssessments.status()).toBe(200);
+    const providerAssessmentsHtml = await providerAssessments.text();
+    expect(providerAssessmentsHtml).toContain("ارزیابی فصل");
+    expect(providerAssessmentsHtml).toContain("تأییدشده");
+    expect(providerAssessmentsHtml).not.toContain("کدام گزینه پاسخ درست پرسش 1 است؟");
+    const providerProfile = await provider.get("/provider/profile");
+    expect(providerProfile.status()).toBe(200);
+    const providerProfileHtml = await providerProfile.text();
+    expect(providerProfileHtml).toContain("assessment provider");
+    expect(providerProfileHtml).not.toContain("test/assessment-provider");
+    const providerLearning = await provider.get("/provider/learning");
+    expect(providerLearning.status()).toBe(200);
+    const providerLearningHtml = await providerLearning.text();
+    expect(providerLearningHtml).toContain("گزارش تجمیعی هم تعریف نشده است");
+    expect(providerLearningHtml).not.toContain("پرسش خصوصی ارزیابی در انتظار بازبینی چیست؟");
+    expect((await student.get("/provider/courses")).status()).toBe(404);
+    expect((await student.get("/provider/assessments")).status()).toBe(404);
+    expect((await student.get("/provider/profile")).status()).toBe(404);
+    expect((await student.get("/provider/learning")).status()).toBe(404);
+    const providerAccount = await provider.get("/account");
+    const providerAccountHtml = await providerAccount.text();
+    expect(providerAccountHtml).toContain('href="/provider/profile"');
+    expect(providerAccountHtml).toContain('href="/provider/learning"');
+    expect(providerAccountHtml).not.toContain('href="/institute"');
 
     const starts = await Promise.all([
       post(student, `${basePath}/attempts`, {}),
@@ -146,6 +249,15 @@ test.describe("student learning assessment lifecycle", () => {
     expect(result).toMatchObject({ outcome: "needs_review", correctCount: 0, questionCount: 2 });
     expect(JSON.stringify(result)).not.toContain("correctOption");
 
+    const growth = await student.get("/student/growth");
+    expect(growth.status()).toBe(200);
+    const growthHtml = await growth.text();
+    expect(growthHtml).toContain("ارزیابی فصل");
+    expect(growthHtml).toContain("۰٪");
+    const otherGrowth = await other.get("/student/growth");
+    expect(otherGrowth.status()).toBe(200);
+    expect(await otherGrowth.text()).not.toContain("ارزیابی فصل");
+
     const submittedAttempt = (await (await student.get(
       `${basePath}/attempts/${attemptId}`)).json()).attempt;
     expect(submittedAttempt.missedLessonAssetIds).toHaveLength(2);
@@ -163,6 +275,8 @@ test.describe("student learning assessment lifecycle", () => {
     expect((await retried.json()).attemptNumber).toBe(2);
     await anonymous.dispose();
     await other.dispose();
+    await institute.dispose();
+    await provider.dispose();
     await student.dispose();
   });
 });

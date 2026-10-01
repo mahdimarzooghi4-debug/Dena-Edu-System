@@ -63,7 +63,8 @@ function ReviewItem({ courseId, assessment, canReview }: {
     } finally { setBusy(false); }
   }
 
-  return <article className="space-y-5 rounded-xl border border-dena-line bg-white p-5">
+  return <article id={`assessment-${assessment.id}`}
+    className="space-y-5 rounded-xl border border-dena-line bg-white p-5">
     <div>
       <p className="text-xs font-bold text-dena-brand">{status[assessment.reviewStatus]}</p>
       <h2 className="mt-2 text-lg font-extrabold">{assessment.title}</h2>

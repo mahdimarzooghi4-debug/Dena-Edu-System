@@ -45,6 +45,11 @@ export default async function InstituteHomePage() {
   const pendingPractices = courses.filter((course) =>
     course.supervisionStatus === "approved" &&
     course.practiceReviewStatus === "pending").length;
+  const pendingLearningAssessments = courses
+    .filter((course) => course.supervisionStatus === "approved" &&
+      course.publicationStatus === "draft")
+    .reduce((total, course) => total +
+      course.learningAssessmentReviews.pending, 0);
   return (
     <main id="main-content"
       className="mx-auto min-h-screen max-w-5xl space-y-8 px-5 py-8 md:px-10 md:py-12">
@@ -55,6 +60,18 @@ export default async function InstituteHomePage() {
         </Link>
         <Link href="/institute/providers" className={buttonClassName("secondary")}>
           بررسی درخواست‌های نظارت
+        </Link>
+        <Link href="/institute/courses" className={buttonClassName("secondary")}>
+          فهرست همهٔ دوره‌ها
+        </Link>
+        <Link href="/institute/assessments" className={buttonClassName("secondary")}>
+          صف تمرین‌ها و آزمون‌ها
+        </Link>
+        <Link href="/institute/profile" className={buttonClassName("secondary")}>
+          پروفایل مؤسسه
+        </Link>
+        <Link href="/institute/learning" className={buttonClassName("secondary")}>
+          پیگیری یادگیری
         </Link>
       </header>
 
@@ -93,6 +110,17 @@ export default async function InstituteHomePage() {
           <p className="mt-1 text-xs leading-7 text-dena-muted">
             فقط دوره‌های نمایش‌داده‌شده با نظارت تأییدشده؛ این عدد
             تعداد تمام درخواست‌های مؤسسه نیست.
+          </p>
+        </Card>
+        <Card className="max-w-sm">
+          <p className="text-sm text-dena-muted">
+            ارزیابی‌های یادگیری در انتظار بازبینی
+          </p>
+          <p className="mt-2 text-[29px] font-extrabold text-dena-brand">
+            {pendingLearningAssessments.toLocaleString("fa-IR")}
+          </p>
+          <p className="mt-1 text-xs leading-7 text-dena-muted">
+            فقط ارزیابی‌های دوره‌های پیش‌نویسِ تحت نظارت و همین ۲۰ دورهٔ نمایش‌داده‌شده.
           </p>
         </Card>
       </section>
@@ -135,6 +163,14 @@ export default async function InstituteHomePage() {
                 <p className="text-sm text-dena-muted">
                   سؤال تمرینی: {practiceLabels[course.practiceReviewStatus]}
                 </p>
+                <div className="space-y-1 rounded-xl bg-dena-bg p-4 text-sm">
+                  <p className="font-bold">ارزیابی‌های یادگیری</p>
+                  <p className="text-dena-muted">
+                    در انتظار بازبینی: {course.learningAssessmentReviews.pending.toLocaleString("fa-IR")}
+                    {" · "}تأییدشده: {course.learningAssessmentReviews.approved.toLocaleString("fa-IR")}
+                    {" · "}ردشده: {course.learningAssessmentReviews.rejected.toLocaleString("fa-IR")}
+                  </p>
+                </div>
                 <Link href={`/institute/courses/${course.courseId}`}
                   className={buttonClassName()}>
                   پروندهٔ وضعیت همین دوره
@@ -145,6 +181,15 @@ export default async function InstituteHomePage() {
                     {course.practiceReviewStatus === "pending"
                       ? "بازبینی سؤال در انتظار تصمیم"
                       : "مشاهدهٔ وضعیت تمرین دوره"}
+                  </Link>
+                )}
+                {course.supervisionStatus === "approved" && (
+                  <Link href={`/institute/courses/${course.courseId}/assessments`}
+                    className={buttonClassName("secondary")}>
+                    {course.learningAssessmentReviews.pending > 0 &&
+                      course.publicationStatus === "draft"
+                      ? "بررسی ارزیابیِ در انتظار تصمیم"
+                      : "مشاهدهٔ ارزیابی‌های یادگیری"}
                   </Link>
                 )}
                 {course.supervisionStatus === "requested" && (

@@ -33,6 +33,12 @@ const practiceLabels = {
   rejected: "ردشده و از دانش‌آموز پنهان",
 } as const;
 
+const assessmentStatusLabels = {
+  pending: "در انتظار بررسی",
+  approved: "تأییدشده",
+  rejected: "ردشده",
+} as const;
+
 export default async function ProviderHomePage() {
   if (!process.env.DATABASE_URL || !process.env.BETTER_AUTH_SECRET ||
       !process.env.BETTER_AUTH_URL) redirect("/login");
@@ -51,8 +57,17 @@ export default async function ProviderHomePage() {
           className="text-sm font-bold text-dena-brand hover:underline">
           بازگشت به حساب من
         </Link>
+        <Link href="/provider/courses" className={buttonClassName("secondary")}>
+          فهرست همهٔ دوره‌ها
+        </Link>
         <Link href="/provider/supervision" className={buttonClassName("secondary")}>
           مدیریت درخواست‌های نظارت دوره
+        </Link>
+        <Link href="/provider/profile" className={buttonClassName("secondary")}>
+          پروفایل ارائه‌دهنده
+        </Link>
+        <Link href="/provider/learning" className={buttonClassName("secondary")}>
+          پیگیری یادگیری
         </Link>
       </header>
 
@@ -117,10 +132,29 @@ export default async function ProviderHomePage() {
                 <p className="text-sm text-dena-muted">
                   سؤال تمرینی: {practiceLabels[course.practiceReviewStatus]}
                 </p>
+                <div className="rounded-xl bg-dena-bg p-4">
+                  <p className="text-sm font-bold">ارزیابی‌های یادگیری</p>
+                  <dl className="mt-2 space-y-1 text-sm">
+                    {Object.entries(course.learningAssessmentReviews).map(([status, total]) => (
+                      <div key={status} className="flex justify-between gap-3">
+                        <dt className="text-dena-muted">
+                          {assessmentStatusLabels[status as keyof typeof assessmentStatusLabels]}
+                        </dt>
+                        <dd className="font-bold">{total.toLocaleString("fa-IR")}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
                 <Link href={`/provider/courses/${course.courseId}`}
                   className={buttonClassName()}>
                   جزئیات و وضعیت همین دوره
                 </Link>
+                {course.supervisionStatus === "approved" && (
+                  <Link href={`/provider/courses/${course.courseId}/assessments`}
+                    className={buttonClassName("secondary")}>
+                    مدیریت ارزیابی‌های یادگیری
+                  </Link>
+                )}
                 {course.supervisionStatus === "approved" && (
                   <Link href={`/provider/courses/${course.courseId}/practice`}
                     className={buttonClassName("secondary")}>

@@ -58,10 +58,13 @@ describe("Iran mobile input and gateway safeguards", () => {
     process.env.DENA_SMS_GATEWAY_URL = "https://sms.example.test/send";
     process.env.DENA_SMS_GATEWAY_TOKEN = "token-" + "z".repeat(32);
     process.env.DENA_DB_INTEGRATION = "0";
-    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) =>
-      new Response(JSON.stringify({ accepted: true }), {
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      expect(url).toBe("https://sms.example.test/send");
+      expect(init).toMatchObject({ method: "POST", redirect: "error", cache: "no-store" });
+      return new Response(JSON.stringify({ accepted: true }), {
         status: 202, headers: { "Content-Type": "application/json" },
-      }));
+      });
+    });
     vi.stubGlobal("fetch", fetchMock);
 
     await sendSmsOtp("+989121234567", "123456");

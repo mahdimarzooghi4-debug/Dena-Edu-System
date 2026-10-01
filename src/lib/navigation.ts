@@ -3,11 +3,11 @@ import { roles, type Role } from "../domain/access/contracts";
 export { roles };
 export type { Role };
 
-/** Approved Figma URL map ONLY: not implemented routes or an authorization policy. */
+/** Approved Figma route reference; page existence and authorization are checked separately. */
 type RouteReference = {
   readonly href: string;
   readonly title: string;
-  readonly figmaNode: string;
+  readonly figmaNode?: string;
 };
 
 export const navigation = {
@@ -23,6 +23,8 @@ export const navigation = {
     { href: "/institute", title: "خانه مؤسسه", figmaNode: "164:145" },
     { href: "/institute/courses", title: "دوره‌های مؤسسه", figmaNode: "166:16" },
     { href: "/institute/assessments", title: "تمرین‌ها و آزمون‌ها", figmaNode: "167:44" },
+    { href: "/institute/question-bank", title: "بانک سؤال مؤسسه", figmaNode: "415:2236" },
+    { href: "/institute/exams", title: "آزمون‌های مؤسسه", figmaNode: "415:2585" },
     { href: "/institute/learning", title: "پیگیری یادگیری", figmaNode: "169:72" },
     { href: "/institute/providers", title: "ارائه‌دهندگان تحت نظارت", figmaNode: "171:100" },
     { href: "/institute/profile", title: "پروفایل مؤسسه", figmaNode: "172:127" },
@@ -36,17 +38,19 @@ export const navigation = {
     { href: "/provider/profile", title: "پروفایل ارائه‌دهنده", figmaNode: "183:111" },
   ],
   admin: [
-    { href: "/admin", title: "خانه ادمین", figmaNode: "194:195" },
-    { href: "/admin/role-applications", title: "درخواست‌های نقش", figmaNode: "194:195" },
-    { href: "/admin/audit", title: "رویدادهای سیستم", figmaNode: "194:195" },
-    { href: "/admin/support", title: "پشتیبانی فنی", figmaNode: "194:195" },
+    { href: "/admin", title: "خانه ادمین", figmaNode: "544:3" },
+    { href: "/admin/role-applications", title: "درخواست‌های نقش", figmaNode: "544:3" },
+    { href: "/admin/audit", title: "رویدادهای سیستم", figmaNode: "544:3" },
+    { href: "/admin/support", title: "پشتیبانی فنی", figmaNode: "544:3" },
+    { href: "/admin/question-bank", title: "بانک سؤال دنا", figmaNode: "551:36901" },
+    { href: "/admin/exams", title: "آزمون‌های هماهنگ دنا", figmaNode: undefined },
   ],
   organization: [
-    { href: "/organization", title: "داشبورد", figmaNode: "478:2" },
-    { href: "/organization/students", title: "دانش‌آموزان", figmaNode: "478:2" },
-    { href: "/organization/growth", title: "رشد و پیشرفت", figmaNode: "478:2" },
-    { href: "/organization/reports", title: "گزارش‌ها", figmaNode: "478:2" },
-    { href: "/organization/notifications", title: "اعلان‌ها", figmaNode: "478:2" },
+    { href: "/organization", title: "داشبورد", figmaNode: "478:2130" },
+    { href: "/organization/students", title: "دانش‌آموزان", figmaNode: "478:2271" },
+    { href: "/organization/growth", title: "رشد و پیشرفت", figmaNode: "479:3045" },
+    { href: "/organization/reports", title: "گزارش‌ها", figmaNode: "479:3189" },
+    { href: "/organization/notifications", title: "اعلان‌ها", figmaNode: "482:2428" },
   ],
   benefactor: [
     { href: "/benefactor", title: "داشبورد", figmaNode: "500:2" },
