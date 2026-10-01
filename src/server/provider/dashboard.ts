@@ -1,10 +1,14 @@
-import { and, asc, count, desc, eq, gt, inArray, lt, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, inArray, lt, or, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { getDb } from "../../db";
 import {
   courseLearningAssessments, coursePracticeQuestions, courses,
-  privateMediaAssets, supervisionGrants,
+  privateMediaAssets, providerInstituteCollaborations, supervisionGrants,
+  verifiedEntities,
 } from "../../db/schema";
+
+const providerDashboardInstitute = alias(verifiedEntities, "provider_dashboard_institute");
 
 const providerCourseCursorSchema = z.object({
   requestedAt: z.string().datetime(),
@@ -50,6 +54,13 @@ export async function getProviderDashboardCourses(
   const rows = await db.select({
     courseId: courses.id,
     title: courses.title,
+    instituteName: providerDashboardInstitute.name,
+    providerCollaborationApproved: sql<boolean>`exists (
+      select 1 from ${providerInstituteCollaborations}
+      where ${providerInstituteCollaborations.providerId} = ${courses.providerId}
+        and ${providerInstituteCollaborations.instituteId} = ${courses.responsibleInstituteId}
+        and ${providerInstituteCollaborations.status} = 'approved'
+    )`,
     supervisionStatus: supervisionGrants.status,
     publicationStatus: courses.publicationStatus,
     requestedAt: supervisionGrants.requestedAt,
@@ -57,6 +68,9 @@ export async function getProviderDashboardCourses(
     eq(supervisionGrants.courseId, courses.id),
     eq(supervisionGrants.providerId, courses.providerId),
     eq(supervisionGrants.instituteId, courses.responsibleInstituteId),
+  )).innerJoin(providerDashboardInstitute, and(
+    eq(providerDashboardInstitute.id, courses.responsibleInstituteId),
+    eq(providerDashboardInstitute.role, "institute"),
   )).where(and(
     inArray(courses.providerId, [...providerIds]),
     ...(cursor ? [or(

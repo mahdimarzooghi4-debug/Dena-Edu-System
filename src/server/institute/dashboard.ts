@@ -1,10 +1,15 @@
-import { and, asc, count, desc, eq, gt, inArray, lt, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, inArray, lt, or, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { getDb } from "../../db";
 import {
   courseLearningAssessments, coursePracticeQuestions, courses,
-  privateMediaAssets, supervisionGrants,
+  privateMediaAssets, providerInstituteCollaborations, supervisionGrants,
+  verifiedEntities,
 } from "../../db/schema";
+
+const instituteDashboardProvider = alias(verifiedEntities, "institute_dashboard_provider");
+const instituteDashboardInstitute = alias(verifiedEntities, "institute_dashboard_institute");
 
 const courseCursorSchema = z.object({
   requestedAt: z.string().datetime(),
@@ -50,6 +55,14 @@ export async function getInstituteDashboardCourses(
   const rows = await db.select({
     courseId: courses.id,
     title: courses.title,
+    providerName: instituteDashboardProvider.name,
+    instituteName: instituteDashboardInstitute.name,
+    providerCollaborationApproved: sql<boolean>`exists (
+      select 1 from ${providerInstituteCollaborations}
+      where ${providerInstituteCollaborations.providerId} = ${courses.providerId}
+        and ${providerInstituteCollaborations.instituteId} = ${courses.responsibleInstituteId}
+        and ${providerInstituteCollaborations.status} = 'approved'
+    )`,
     supervisionStatus: supervisionGrants.status,
     publicationStatus: courses.publicationStatus,
     requestedAt: supervisionGrants.requestedAt,
@@ -57,6 +70,12 @@ export async function getInstituteDashboardCourses(
     eq(courses.id, supervisionGrants.courseId),
     eq(courses.providerId, supervisionGrants.providerId),
     eq(courses.responsibleInstituteId, supervisionGrants.instituteId),
+  )).innerJoin(instituteDashboardProvider, and(
+    eq(instituteDashboardProvider.id, courses.providerId),
+    eq(instituteDashboardProvider.role, "provider"),
+  )).innerJoin(instituteDashboardInstitute, and(
+    eq(instituteDashboardInstitute.id, courses.responsibleInstituteId),
+    eq(instituteDashboardInstitute.role, "institute"),
   )).where(and(
     inArray(supervisionGrants.instituteId, [...instituteIds]),
     ...(cursor ? [or(

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { buttonClassName } from "../../../components/ui/button";
 import { Card } from "../../../components/ui/card";
+import { VerificationBadge } from "../../../components/ui/verification-badge";
 import { SectionHeading } from "../../../components/ui/section-heading";
 import { getServerAccessContext } from "../../../server/access/actor";
 import { getProviderDashboardCourses } from "../../../server/provider/dashboard";
@@ -94,6 +95,11 @@ export default async function ProviderCoursesPage({
               <li key={course.courseId}>
                 <Card className="h-full space-y-3 p-6">
                   <h2 className="text-lg font-extrabold leading-8">{course.title}</h2>
+                  <div className="flex flex-wrap items-center gap-2 text-sm text-dena-muted">
+                    <span>{course.instituteName}</span>
+                    <VerificationBadge kind="institute" />
+                    {course.providerCollaborationApproved && <VerificationBadge kind="provider" />}
+                  </div>
                   <p className="text-sm font-semibold">نظارت: {supervisionLabels[course.supervisionStatus]}</p>
                   <p className="text-sm text-dena-muted">انتشار: {publicationLabels[course.publicationStatus]}</p>
                   <p className="text-sm text-dena-muted">
