@@ -629,7 +629,7 @@ test.describe("reviewed role requests, scoped grants and audit on PostgreSQL", (
     await expect(page.getByRole("heading", {
       name: "ارائه‌دهنده · ارائه‌دهنده آزمایشی",
     })).toBeVisible();
-    await page.getByRole("link", { name: "صف بررسی درخواست‌های نقش" }).click();
+    await page.getByRole("link", { name: "بازکردن همین پرونده در صف بررسی" }).click();
     await expect(page).toHaveURL(/\/admin\/role-applications$/);
     await expect(page.getByRole("heading", { name: "درخواست‌های نقش سازمانی" })).toBeVisible();
     const entry = page.locator("li").filter({ hasText: "ارائه‌دهنده آزمایشی" });
