@@ -66,6 +66,8 @@ CREATE TABLE "dena_assessment_exams" (
   )
 );
 --> statement-breakpoint
+-- The composite exam scope key must exist before the exam-question foreign key.
+CREATE UNIQUE INDEX "dena_assessment_exam_scope_uidx" ON "dena_assessment_exams" USING btree ("id","bank_id","owner_type","owner_id");--> statement-breakpoint
 ALTER TABLE "dena_assessment_exam_questions" ADD CONSTRAINT "dena_assessment_exam_question_exam_scope_fk" FOREIGN KEY ("exam_id","bank_id","owner_type","owner_id") REFERENCES "public"."dena_assessment_exams"("id","bank_id","owner_type","owner_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "dena_assessment_exam_questions" ADD CONSTRAINT "dena_assessment_exam_question_bank_scope_fk" FOREIGN KEY ("bank_question_id","bank_id","owner_type","owner_id") REFERENCES "public"."dena_assessment_question_bank_questions"("id","bank_id","owner_type","owner_id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "dena_assessment_exams" ADD CONSTRAINT "dena_assessment_exams_created_by_user_id_user_id_fk" FOREIGN KEY ("created_by_user_id") REFERENCES "public"."user"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
@@ -74,6 +76,5 @@ ALTER TABLE "dena_assessment_exams" ADD CONSTRAINT "dena_assessment_exam_course_
 CREATE UNIQUE INDEX "dena_assessment_exam_question_position_uidx" ON "dena_assessment_exam_questions" USING btree ("exam_id","position");--> statement-breakpoint
 CREATE UNIQUE INDEX "dena_assessment_exam_question_source_uidx" ON "dena_assessment_exam_questions" USING btree ("exam_id","bank_question_id");--> statement-breakpoint
 CREATE INDEX "dena_assessment_exam_question_bank_idx" ON "dena_assessment_exam_questions" USING btree ("bank_id","bank_question_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "dena_assessment_exam_scope_uidx" ON "dena_assessment_exams" USING btree ("id","bank_id","owner_type","owner_id");--> statement-breakpoint
 CREATE INDEX "dena_assessment_exam_owner_schedule_idx" ON "dena_assessment_exams" USING btree ("owner_type","owner_id","starts_at","id");--> statement-breakpoint
 CREATE INDEX "dena_assessment_exam_status_idx" ON "dena_assessment_exams" USING btree ("exam_type","status","starts_at");
