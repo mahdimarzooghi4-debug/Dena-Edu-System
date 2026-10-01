@@ -155,7 +155,7 @@ test.describe("student learning assessment lifecycle", () => {
     const instituteHome = await institute.get("/institute");
     expect(instituteHome.status()).toBe(200);
     const instituteHomeHtml = await instituteHome.text();
-    expect(instituteHomeHtml).toContain("تأییدشده: ۱");
+    expect(instituteHomeHtml).toMatch(/تأییدشده:(?: <!-- -->)۱/);
     expect(instituteHomeHtml).toContain("مشاهدهٔ ارزیابی‌های یادگیری");
     const instituteCourses = await institute.get("/institute/courses");
     expect(instituteCourses.status()).toBe(200);
