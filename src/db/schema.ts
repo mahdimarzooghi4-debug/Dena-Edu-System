@@ -1016,7 +1016,8 @@ export const providerInstituteCollaborations = pgTable(
       OR (status = 'approved'
         AND institute_reviewed_by_user_id IS NOT NULL AND institute_reviewed_at IS NOT NULL
         AND institute_decision_reason IS NOT NULL
-        AND dena_reviewed_by_user_id IS NOT NULL AND dena_reviewed_at IS NOT NULL)
+        AND dena_reviewed_by_user_id IS NOT NULL AND dena_reviewed_at IS NOT NULL
+        AND dena_decision_reason IS NOT NULL)
       OR (status = 'institute_rejected'
         AND institute_reviewed_by_user_id IS NOT NULL AND institute_reviewed_at IS NOT NULL
         AND institute_decision_reason IS NOT NULL

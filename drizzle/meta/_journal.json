@@ -239,6 +239,13 @@
       "when": 1790858760653,
       "tag": "0033_dena_provider_institute_collaboration",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1790859323397,
+      "tag": "0034_require_dena_collaboration_decision_reason",
+      "breakpoints": true
     }
   ]
 }

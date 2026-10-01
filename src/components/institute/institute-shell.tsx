@@ -9,6 +9,7 @@ const sections = [
   { href: "/institute", label: "داشبورد" },
   { href: "/institute/courses", label: "دوره‌ها" },
   { href: "/institute/providers", label: "ارائه‌دهندگان و مدرس‌ها" },
+  { href: "/institute/collaborations", label: "درخواست همکاری ارائه‌دهنده" },
   { href: "/institute/question-bank", label: "بانک سؤال" },
   { href: "/institute/exams", label: "آزمون‌ها" },
   { href: "/institute/services", label: "خدمات جانبی" },

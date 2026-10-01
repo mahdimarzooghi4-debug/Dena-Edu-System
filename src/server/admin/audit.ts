@@ -16,7 +16,8 @@ export type AuditEntityType =
   | "ORGANIZATION_STUDENT"
   | "ORGANIZATION_API_KEY"
   | "INSTITUTE_SERVICE"
-  | "SERVICE_ORDER";
+  | "SERVICE_ORDER"
+  | "PROVIDER_COLLABORATION";
 
 export const auditActions = [
   "role_application.approved",
@@ -43,6 +44,11 @@ export const auditActions = [
   "institute.service.updated",
   "student.service_order.created",
   "student.service_order.cancelled",
+  "provider.collaboration.requested",
+  "institute.provider_collaboration.accepted",
+  "institute.provider_collaboration.rejected",
+  "admin.provider_collaboration.approved",
+  "admin.provider_collaboration.rejected",
 ] as const;
 export type AuditAction = (typeof auditActions)[number];
 

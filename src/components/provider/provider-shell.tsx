@@ -11,6 +11,7 @@ const sections = [
   { href: "/provider/assessments", label: "ارزیابی‌های یادگیری" },
   { href: "/provider/learning", label: "پیگیری یادگیری" },
   { href: "/provider/supervision", label: "درخواست‌های نظارت" },
+  { href: "/provider/collaborations", label: "همکاری با مؤسسه‌ها" },
   { href: "/provider/profile", label: "پروفایل ارائه‌دهنده" },
 ] as const;
 
