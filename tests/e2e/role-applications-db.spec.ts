@@ -373,7 +373,8 @@ test.describe("reviewed role requests, scoped grants and audit on PostgreSQL", (
     const students = await applicant.get("/organization/students");
     expect(students.status()).toBe(200);
     const studentsHtml = await students.text();
-    expect(studentsHtml).toContain("فهرست دانش‌آموزان فعال نیست");
+    expect(studentsHtml).toContain("فهرست دانش‌آموزان این سازمان");
+    expect(studentsHtml).toContain("هنوز دانش‌آموزی در این سازمان ثبت نشده است.");
     expect(studentsHtml).not.toContain("سازمان دیگر خصوصی");
     expect(studentsHtml).not.toContain("private-review/");
     const account = await applicant.get("/account");
