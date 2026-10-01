@@ -111,7 +111,7 @@ export function DenaHomepage() {
             <h1 id="hero-title">یک مسیر یکپارچه برای رشد تحصیلی</h1>
             <p>دوره‌های آموزشی آفلاین از مؤسسات، تمرین و آزمون، همراهی آموزشی مؤسسه و مشاهدهٔ مسیر رشد تحصیلی؛ همه در یک تجربهٔ یکپارچه.</p>
             <div className="dena-hero__actions">
-              <Link className="dena-button dena-button--primary" href="#courses">ورود به دنا</Link>
+            <Link className="dena-button dena-button--primary" href="/login">ورود به دنا</Link>
               <Link className="dena-button dena-button--text" href="#courses">مشاهده دوره‌ها</Link>
             </div>
           </div>
