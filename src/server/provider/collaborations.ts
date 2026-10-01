@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNotNull, ne, notExists, or } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, ne, notExists, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { getDb } from "../../db";
 import {
@@ -6,7 +6,7 @@ import {
   providerInstituteCollaborations, verifiedEntities,
 } from "../../db/schema";
 import { auditLogRecord } from "../admin/audit";
-import type { CollaborationDecision } from "./collaboration-contracts";
+import type { CollaborationDecision, ProviderCollaborationStatus } from "./collaboration-contracts";
 
 export type CollaborationWorkflowFailure =
   | "provider_unavailable" | "institute_unavailable" | "request_conflict"
@@ -39,7 +39,10 @@ export async function getProviderCollaborations(userId: string) {
       providerId: providerInstituteCollaborations.providerId,
       instituteId: providerInstituteCollaborations.instituteId,
       instituteName: verifiedEntities.name,
-      status: providerInstituteCollaborations.status,
+      status: sql<ProviderCollaborationStatus>`case
+        when ${providerInstituteCollaborations.withdrawnAt} is not null then 'withdrawn'
+        else ${providerInstituteCollaborations.status}::text
+      end`,
       instituteDecisionReason: providerInstituteCollaborations.instituteDecisionReason,
       denaDecisionReason: providerInstituteCollaborations.denaDecisionReason,
       createdAt: providerInstituteCollaborations.createdAt,
@@ -65,7 +68,10 @@ export async function getInstituteCollaborations(userId: string) {
     providerId: providerInstituteCollaborations.providerId,
     providerName: providerEntity.name,
     instituteId: providerInstituteCollaborations.instituteId,
-    status: providerInstituteCollaborations.status,
+    status: sql<ProviderCollaborationStatus>`case
+      when ${providerInstituteCollaborations.withdrawnAt} is not null then 'withdrawn'
+      else ${providerInstituteCollaborations.status}::text
+    end`,
     createdAt: providerInstituteCollaborations.createdAt,
     instituteDecisionReason: providerInstituteCollaborations.instituteDecisionReason,
     denaDecisionReason: providerInstituteCollaborations.denaDecisionReason,
@@ -134,6 +140,7 @@ export async function createProviderCollaboration(
       instituteId: providerInstituteCollaborations.instituteId,
       requestedByUserId: providerInstituteCollaborations.requestedByUserId,
       status: providerInstituteCollaborations.status,
+      withdrawnAt: providerInstituteCollaborations.withdrawnAt,
     }).from(providerInstituteCollaborations).where(and(
       eq(providerInstituteCollaborations.providerId, input.providerId),
       eq(providerInstituteCollaborations.clientRequestId, input.clientRequestId),
@@ -143,7 +150,9 @@ export async function createProviderCollaboration(
         existingRequest.requestedByUserId !== userId) {
         throw new CollaborationWorkflowError("request_conflict");
       }
-      return { id: existingRequest.id, status: existingRequest.status, replayed: true };
+      return { id: existingRequest.id,
+        status: existingRequest.withdrawnAt ? "withdrawn" as const : existingRequest.status,
+        replayed: true };
     }
 
     const [created] = await tx.insert(providerInstituteCollaborations).values({
@@ -167,6 +176,42 @@ export async function createProviderCollaboration(
   });
 }
 
+/** A provider may withdraw its own request only before the institute decides.
+ * Ending an approved affiliation needs a separate policy and review flow. */
+export async function withdrawProviderCollaboration(userId: string, collaborationId: string) {
+  return getDb().transaction(async (tx) => {
+    const [record] = await tx.select().from(providerInstituteCollaborations)
+      .where(eq(providerInstituteCollaborations.id, collaborationId)).limit(1).for("update");
+    if (!record) throw new CollaborationWorkflowError("not_found");
+    const [providerMembership] = await tx.select({ id: memberships.id }).from(memberships)
+      .where(and(eq(memberships.userId, userId), eq(memberships.role, "provider"),
+        eq(memberships.providerId, record.providerId), eq(memberships.status, "active")))
+      .limit(1).for("share");
+    if (!providerMembership || record.requestedByUserId !== userId) {
+      throw new CollaborationWorkflowError("reviewer_unavailable");
+    }
+    if (record.status !== "requested") {
+      throw new CollaborationWorkflowError("invalid_transition");
+    }
+    if (record.withdrawnAt) {
+      return { id: record.id, status: "withdrawn" as const, duplicate: true };
+    }
+
+    await tx.update(providerInstituteCollaborations).set({
+      withdrawnAt: new Date(), updatedAt: new Date(),
+    }).where(eq(providerInstituteCollaborations.id, record.id));
+    await tx.insert(providerInstituteCollaborationEvents).values({
+      collaborationId: record.id, actorUserId: userId, kind: "provider_withdrew",
+      reason: "درخواست همکاری توسط ارائه‌دهنده پس گرفته شد",
+    });
+    await tx.insert(auditLogs).values(auditLogRecord({
+      actorId: userId, actorRole: "provider", action: "provider.collaboration.withdrawn",
+      entityType: "PROVIDER_COLLABORATION", entityId: record.id,
+    }));
+    return { id: record.id, status: "withdrawn" as const, duplicate: false };
+  });
+}
+
 export async function decideInstituteCollaboration(
   userId: string, collaborationId: string, decision: CollaborationDecision,
 ) {
@@ -185,7 +230,9 @@ export async function decideInstituteCollaboration(
     if (conflictingProvider || record.requestedByUserId === userId) {
       throw new CollaborationWorkflowError("conflicted_reviewer");
     }
-    if (record.status !== "requested") throw new CollaborationWorkflowError("invalid_transition");
+    if (record.status !== "requested" || record.withdrawnAt) {
+      throw new CollaborationWorkflowError("invalid_transition");
+    }
 
     const status = decision.action === "approve" ? "awaiting_dena" as const : "institute_rejected" as const;
     const eventKind = decision.action === "approve" ? "institute_approved" as const : "institute_rejected" as const;

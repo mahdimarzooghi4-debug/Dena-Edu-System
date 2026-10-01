@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+export const providerCollaborationStatusSchema = z.enum([
+  "requested", "awaiting_dena", "approved", "institute_rejected", "dena_rejected", "withdrawn",
+]);
+export type ProviderCollaborationStatus = z.infer<typeof providerCollaborationStatusSchema>;
+
 const reviewReason = z.string().trim().min(15).max(500)
   .refine((value) => !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/u.test(value));
 

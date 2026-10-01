@@ -45,6 +45,7 @@ export const auditActions = [
   "student.service_order.created",
   "student.service_order.cancelled",
   "provider.collaboration.requested",
+  "provider.collaboration.withdrawn",
   "institute.provider_collaboration.accepted",
   "institute.provider_collaboration.rejected",
   "admin.provider_collaboration.approved",

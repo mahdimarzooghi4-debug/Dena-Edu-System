@@ -5,7 +5,7 @@ import { Button } from "../ui/button";
 
 type Collaboration = {
   id: string; providerId: string; providerName: string; instituteId: string;
-  status: "requested" | "awaiting_dena" | "approved" | "institute_rejected" | "dena_rejected";
+  status: "requested" | "awaiting_dena" | "approved" | "institute_rejected" | "dena_rejected" | "withdrawn";
   createdAt: string; instituteDecisionReason: string | null; denaDecisionReason: string | null;
 };
 const statusText: Record<Collaboration["status"], string> = {
@@ -14,6 +14,7 @@ const statusText: Record<Collaboration["status"], string> = {
   approved: "همکاری تأییدشده",
   institute_rejected: "ردشده توسط مؤسسه",
   dena_rejected: "ردشده در بررسی دنا",
+  withdrawn: "پس‌گرفته‌شده توسط ارائه‌دهنده",
 };
 
 export function ProviderCollaborationQueue() {

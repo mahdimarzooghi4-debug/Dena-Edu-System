@@ -967,7 +967,7 @@ export const providerInstituteCollaborationStatus = pgEnum(
 );
 export const providerInstituteCollaborationEventKind = pgEnum(
   "dena_provider_institute_collaboration_event_kind",
-  ["requested", "institute_approved", "institute_rejected", "dena_approved", "dena_rejected"],
+  ["requested", "institute_approved", "institute_rejected", "dena_approved", "dena_rejected", "provider_withdrew"],
 );
 
 export const providerInstituteCollaborations = pgTable(
@@ -982,6 +982,7 @@ export const providerInstituteCollaborations = pgTable(
       .references(() => user.id, { onDelete: "restrict" }),
     clientRequestId: uuid("client_request_id").notNull(),
     status: providerInstituteCollaborationStatus("status").notNull().default("requested"),
+    withdrawnAt: timestamp("withdrawn_at", { withTimezone: true }),
     instituteReviewedByUserId: uuid("institute_reviewed_by_user_id")
       .references(() => user.id, { onDelete: "restrict" }),
     instituteReviewedAt: timestamp("institute_reviewed_at", { withTimezone: true }),
@@ -998,7 +999,7 @@ export const providerInstituteCollaborations = pgTable(
       .on(table.providerId, table.clientRequestId),
     uniqueIndex("dena_provider_institute_collab_active_uidx")
       .on(table.providerId, table.instituteId)
-      .where(sql`status IN ('requested', 'awaiting_dena', 'approved')`),
+      .where(sql`status IN ('requested', 'awaiting_dena', 'approved') AND withdrawn_at IS NULL`),
     index("dena_provider_institute_collab_provider_idx").on(table.providerId, table.status),
     index("dena_provider_institute_collab_institute_idx").on(table.instituteId, table.status),
     check("dena_provider_institute_collab_distinct_scopes_ck", sql`provider_id <> institute_id`),
@@ -1028,6 +1029,13 @@ export const providerInstituteCollaborations = pgTable(
         AND institute_decision_reason IS NOT NULL
         AND dena_reviewed_by_user_id IS NOT NULL AND dena_reviewed_at IS NOT NULL
         AND dena_decision_reason IS NOT NULL)
+    `),
+    check("dena_provider_institute_collab_withdrawal_ck", sql`
+      withdrawn_at IS NULL OR (status = 'requested'
+        AND institute_reviewed_by_user_id IS NULL AND institute_reviewed_at IS NULL
+        AND institute_decision_reason IS NULL
+        AND dena_reviewed_by_user_id IS NULL AND dena_reviewed_at IS NULL
+        AND dena_decision_reason IS NULL)
     `),
   ],
 );

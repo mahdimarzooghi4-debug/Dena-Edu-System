@@ -6,7 +6,7 @@ import { Button } from "../ui/button";
 type Institute = { id: string; name: string };
 type Collaboration = {
   id: string; providerId: string; instituteId: string; instituteName: string;
-  status: "requested" | "awaiting_dena" | "approved" | "institute_rejected" | "dena_rejected";
+  status: "requested" | "awaiting_dena" | "approved" | "institute_rejected" | "dena_rejected" | "withdrawn";
   instituteDecisionReason: string | null; denaDecisionReason: string | null;
   createdAt: string; updatedAt: string;
 };
@@ -16,6 +16,7 @@ const statusLabel: Record<Collaboration["status"], string> = {
   approved: "همکاری تأیید شده",
   institute_rejected: "درخواست توسط مؤسسه رد شده",
   dena_rejected: "درخواست در بررسی نهایی دنا رد شده",
+  withdrawn: "درخواست را پس گرفته‌اید",
 };
 
 export function ProviderCollaborationWorkspace({ providerIds, institutes, initialCollaborations }: {
@@ -63,6 +64,26 @@ export function ProviderCollaborationWorkspace({ providerIds, institutes, initia
     }
   }
 
+  async function withdraw(collaborationId: string) {
+    if (busy) return;
+    setBusy(true); setError(""); setNotice("");
+    try {
+      const response = await fetch(`/api/provider/collaborations/${encodeURIComponent(collaborationId)}`, {
+        method: "DELETE", credentials: "same-origin", cache: "no-store",
+      });
+      const body = await response.json().catch(() => null) as { error?: string } | null;
+      if (!response.ok) {
+        setError(body?.error === "invalid_transition"
+          ? "مؤسسه تصمیم خود را ثبت کرده است و این درخواست دیگر قابل پس‌گرفتن نیست."
+          : "پس‌گرفتن درخواست انجام نشد؛ مجوز و وضعیت آن را بررسی کنید.");
+        return;
+      }
+      await refresh();
+      setNotice("درخواست همکاری پس گرفته شد. در صورت نیاز می‌توانید درخواست تازه‌ای ثبت کنید.");
+    } catch { setError("ارتباط برقرار نشد؛ فهرست را تازه کنید و وضعیت درخواست را بررسی کنید."); }
+    finally { setBusy(false); }
+  }
+
   return <div className="space-y-8">
     <form onSubmit={submit} className="space-y-5 rounded-2xl border border-dena-border p-5">
       <div>
@@ -106,6 +127,10 @@ export function ProviderCollaborationWorkspace({ providerIds, institutes, initia
           <p className="mt-3 text-sm font-semibold text-dena-deep">{statusLabel[item.status]}</p>
           {item.instituteDecisionReason && <p className="mt-2 text-sm leading-7 text-dena-muted">یادداشت مؤسسه: {item.instituteDecisionReason}</p>}
           {item.denaDecisionReason && <p className="mt-2 text-sm leading-7 text-dena-muted">یادداشت دنا: {item.denaDecisionReason}</p>}
+          {item.status === "requested" && <Button type="button" variant="outline"
+            disabled={busy} onClick={() => void withdraw(item.id)} className="mt-4">
+            {busy ? "در حال ثبت…" : "پس‌گرفتن درخواست"}
+          </Button>}
         </li>)}</ul>}
     </section>
   </div>;
