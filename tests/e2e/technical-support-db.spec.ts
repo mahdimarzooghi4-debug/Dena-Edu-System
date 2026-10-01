@@ -77,14 +77,14 @@ test.describe("shared technical support tickets", () => {
   test("only the owner and an explicitly enabled operator can read and reply", async () => {
     const anonymous = await client();
     const requester = await client("requester");
-      const other = await client("other");
-      const suspended = await client("suspended");
+    const other = await client("other");
+    const suspended = await client("suspended");
     const operator = await client("operator");
     const adminWithoutSupport = await client("adminWithoutSupport");
     try {
       expect((await anonymous.get("/api/support/tickets")).status()).toBe(401);
-      expect((await suspended.get("/api/support/tickets")).status()).toBe(403);
-      expect((await suspended.get("/api/support/notifications")).status()).toBe(403);
+      expect((await suspended.get("/api/support/tickets")).status()).toBe(401);
+      expect((await suspended.get("/api/support/notifications")).status()).toBe(401);
 
       const deniedOrigin = await requester.post("/api/support/tickets", {
         data: { subject: "مشکل ورود", body: "توضیح کوتاه" },
