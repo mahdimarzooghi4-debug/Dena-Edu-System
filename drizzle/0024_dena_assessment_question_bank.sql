@@ -44,14 +44,16 @@ CREATE TABLE "dena_assessment_question_banks" (
   )
 );
 --> statement-breakpoint
+-- The composite scope key must exist before PostgreSQL can attach the
+-- question-to-bank foreign key below.
+CREATE UNIQUE INDEX "dena_assessment_bank_owner_uidx" ON "dena_assessment_question_banks" USING btree ("owner_type","owner_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "dena_assessment_bank_scope_uidx" ON "dena_assessment_question_banks" USING btree ("id","owner_type","owner_id");--> statement-breakpoint
 ALTER TABLE "dena_assessment_question_bank_questions" ADD CONSTRAINT "dena_assessment_question_bank_questions_created_by_user_id_user_id_fk" FOREIGN KEY ("created_by_user_id") REFERENCES "public"."user"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "dena_assessment_question_bank_questions" ADD CONSTRAINT "dena_assessment_bank_question_bank_scope_fk" FOREIGN KEY ("bank_id","owner_type","owner_id") REFERENCES "public"."dena_assessment_question_banks"("id","owner_type","owner_id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "dena_assessment_question_bank_questions" ADD CONSTRAINT "dena_assessment_bank_question_course_scope_fk" FOREIGN KEY ("course_id","owner_id") REFERENCES "public"."dena_courses"("id","responsible_institute_id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "dena_assessment_question_bank_questions" ADD CONSTRAINT "dena_assessment_bank_question_lesson_scope_fk" FOREIGN KEY ("lesson_asset_id","course_id") REFERENCES "public"."dena_private_media_assets"("id","course_id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "dena_assessment_bank_question_id_scope_uidx" ON "dena_assessment_question_bank_questions" USING btree ("id","bank_id","owner_type","owner_id");--> statement-breakpoint
 CREATE INDEX "dena_assessment_bank_question_list_idx" ON "dena_assessment_question_bank_questions" USING btree ("bank_id","created_at","id");--> statement-breakpoint
-CREATE UNIQUE INDEX "dena_assessment_bank_owner_uidx" ON "dena_assessment_question_banks" USING btree ("owner_type","owner_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "dena_assessment_bank_scope_uidx" ON "dena_assessment_question_banks" USING btree ("id","owner_type","owner_id");--> statement-breakpoint
 CREATE INDEX "dena_assessment_bank_owner_idx" ON "dena_assessment_question_banks" USING btree ("owner_type","owner_id");
 --> statement-breakpoint
 INSERT INTO "dena_assessment_question_banks" ("id", "owner_type", "owner_id")
