@@ -3,8 +3,8 @@ import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { getDb } from "../../db";
 import {
-  courses, providerInstituteCollaborations, studentEnrollments,
-  supervisionGrants, verifiedEntities,
+  courses, independentEducatorProfiles, providerInstituteCollaborations,
+  studentEnrollments, supervisionGrants, verifiedEntities,
 } from "../../db/schema";
 import { listedFreeCourse } from "./entitlement";
 
@@ -75,8 +75,10 @@ export async function listStudentCatalog(
   const rows = await db.select({
     courseId: courses.id,
     title: courses.title,
+    ownerType: courses.ownerType,
     providerId: courses.providerId,
     providerName: catalogProvider.name,
+    independentEducatorName: independentEducatorProfiles.displayName,
     responsibleInstituteId: courses.responsibleInstituteId,
     instituteName: catalogInstitute.name,
     providerCollaborationApproved: exists(db.select({ id: providerInstituteCollaborations.id })
@@ -88,8 +90,10 @@ export async function listStudentCatalog(
     enrolled: ownActiveEnrollment,
   }).from(courses).innerJoin(
     supervisionGrants, eq(supervisionGrants.courseId, courses.id),
-  ).innerJoin(catalogProvider, and(
+  ).leftJoin(catalogProvider, and(
     eq(catalogProvider.id, courses.providerId), eq(catalogProvider.role, "provider"),
+  )).leftJoin(independentEducatorProfiles, eq(
+    independentEducatorProfiles.id, courses.independentEducatorProfileId,
   )).innerJoin(catalogInstitute, and(
     eq(catalogInstitute.id, courses.responsibleInstituteId),
     eq(catalogInstitute.role, "institute"),

@@ -1,6 +1,7 @@
 import { and, eq, or } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "../../db";
+import { isVerifiedProviderCourse } from "../courses/ownership";
 import {
   auditLogs, coursePracticeQuestions, courses, memberships, studentPracticeAttempts,
   supervisionGrants,
@@ -54,6 +55,7 @@ export async function getProviderPractice(
   const db = getDb();
   const [course] = await db.select({
     courseId: courses.id, title: courses.title,
+    ownerType: courses.ownerType,
     publicationStatus: courses.publicationStatus,
     supervisionStatus: supervisionGrants.status,
     providerId: courses.providerId,
@@ -62,7 +64,7 @@ export async function getProviderPractice(
   }).from(courses).innerJoin(supervisionGrants,
     eq(supervisionGrants.courseId, courses.id),
   ).where(eq(courses.id, courseId)).limit(1);
-  if (!course) return null;
+  if (!course || !isVerifiedProviderCourse(course)) return null;
   const active = await db.select({
     role: memberships.role, providerId: memberships.providerId,
     instituteId: memberships.instituteId, userId: memberships.userId,
@@ -104,7 +106,7 @@ export async function createProviderPractice(
   return getDb().transaction(async (tx) => {
     const [course] = await tx.select().from(courses)
       .where(eq(courses.id, courseId)).limit(1).for("share");
-    if (!course || course.publicationStatus !== "draft") {
+    if (!course || !isVerifiedProviderCourse(course) || course.publicationStatus !== "draft") {
       throw new PracticeUnavailable("not_available");
     }
     const [grant] = await tx.select().from(supervisionGrants).where(and(
@@ -232,6 +234,7 @@ export async function getInstitutePractice(
   const db = getDb();
   const [course] = await db.select({
     courseId: courses.id, title: courses.title,
+    ownerType: courses.ownerType,
     publicationStatus: courses.publicationStatus,
     providerId: courses.providerId,
     instituteId: courses.responsibleInstituteId,
@@ -240,7 +243,7 @@ export async function getInstitutePractice(
   }).from(courses).innerJoin(supervisionGrants,
     eq(supervisionGrants.courseId, courses.id),
   ).where(eq(courses.id, courseId)).limit(1);
-  if (!course || course.supervisionStatus !== "approved") return null;
+  if (!course || !isVerifiedProviderCourse(course) || course.supervisionStatus !== "approved") return null;
   const active = await db.select({
     role: memberships.role, providerId: memberships.providerId,
     instituteId: memberships.instituteId, userId: memberships.userId,
@@ -290,7 +293,7 @@ export async function decideInstitutePractice(
   return getDb().transaction(async (tx) => {
     const [course] = await tx.select().from(courses)
       .where(eq(courses.id, courseId)).limit(1).for("share");
-    if (!course || course.publicationStatus !== "draft") return null;
+    if (!course || !isVerifiedProviderCourse(course) || course.publicationStatus !== "draft") return null;
     const [grant] = await tx.select().from(supervisionGrants).where(and(
       eq(supervisionGrants.courseId, courseId),
       eq(supervisionGrants.providerId, course.providerId),

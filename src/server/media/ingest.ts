@@ -4,6 +4,7 @@ import { getDb } from "../../db";
 import {
   courses, mediaIngests, mediaMultipartPlans, mediaProcessingJobs, memberships, privateMediaAssets, supervisionGrants,
 } from "../../db/schema";
+import { isVerifiedProviderCourse } from "../courses/ownership";
 import { configuredPrivateMediaOrigin } from "../student/private-media";
 import { readBoundedInspectionReport } from "./inspection-report";
 import {
@@ -56,7 +57,7 @@ export async function reserveIngest(userId: string, courseId: string, input: Ing
   return getDb().transaction(async (tx) => {
     const [course] = await tx.select().from(courses)
       .where(eq(courses.id, courseId)).limit(1).for("update");
-    if (!course || course.publicationStatus !== "draft") {
+    if (!course || !isVerifiedProviderCourse(course) || course.publicationStatus !== "draft") {
       throw new IngestError("not_available");
     }
     const [provider] = await tx.select({ id: memberships.id })
@@ -153,7 +154,7 @@ export async function receiveQuarantinedUpload(
   const intent = await db.transaction(async (tx) => {
     const [course] = await tx.select().from(courses)
       .where(eq(courses.id, courseId)).limit(1).for("update");
-    if (!course || course.publicationStatus !== "draft") return "not_found" as const;
+    if (!course || !isVerifiedProviderCourse(course) || course.publicationStatus !== "draft") return "not_found" as const;
     const [job] = await tx.select().from(mediaIngests).where(and(
       eq(mediaIngests.id, uploadId), eq(mediaIngests.courseId, courseId),
       eq(mediaIngests.createdByUserId, userId),
@@ -408,7 +409,7 @@ export async function completeAttestedIngest(uploadId: string, leaseToken: strin
         eq(supervisionGrants.providerId, job.providerId),
         eq(supervisionGrants.status, "approved")))
       .limit(1).for("share");
-    if (!course || course.publicationStatus !== "draft" ||
+    if (!course || !isVerifiedProviderCourse(course) || course.publicationStatus !== "draft" ||
         !grant?.approvedByInstituteUserId || !grant.approvedAt ||
         course.providerId !== job.providerId ||
         grant.instituteId !== course.responsibleInstituteId) return "conflict" as const;

@@ -94,8 +94,13 @@ export default async function StudentCourseDetailPage({
               </h2>
               <div className="flex flex-col gap-3 text-xs text-dena-muted">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span>ارائه‌دهنده: {detail.providerName}</span>
-                  {detail.providerCollaborationApproved && <VerificationBadge kind="provider" />}
+                  {detail.providerName
+                    ? <><span>ارائه‌دهنده: {detail.providerName}</span>
+                        {detail.providerCollaborationApproved && <VerificationBadge kind="provider" />}</>
+                    : detail.ownerType === "independent_educator"
+                      ? <><span>{detail.independentEducatorName}</span>
+                          <VerificationBadge kind="independent-educator" /></>
+                      : <span>مالک دوره: مؤسسهٔ مسئول</span>}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <span>مؤسسهٔ مسئول: {detail.responsibleInstituteName}</span>

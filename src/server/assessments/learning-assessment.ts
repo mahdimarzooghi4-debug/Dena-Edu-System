@@ -1,6 +1,7 @@
 import { and, eq, inArray, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "../../db";
+import { isVerifiedProviderCourse } from "../courses/ownership";
 import {
   auditLogs, courseLearningAssessments, courseLearningAssessmentQuestions, courses,
   memberships, privateMediaAssets, studentLearningAssessmentAttempts,
@@ -325,7 +326,7 @@ export async function acknowledgeStudentLearningAssessmentLessonReview(
 async function courseContext(courseId: string) {
   const db = getDb();
   const [course] = await db.select({
-    id: courses.id, providerId: courses.providerId,
+    id: courses.id, ownerType: courses.ownerType, providerId: courses.providerId,
     instituteId: courses.responsibleInstituteId,
     publicationStatus: courses.publicationStatus,
     supervisionStatus: supervisionGrants.status,
@@ -337,6 +338,7 @@ async function courseContext(courseId: string) {
 }
 
 async function activeScopeActors(course: NonNullable<Awaited<ReturnType<typeof courseContext>>>) {
+  if (!isVerifiedProviderCourse(course)) return [];
   return getDb().select({ role: memberships.role, userId: memberships.userId,
     providerId: memberships.providerId, instituteId: memberships.instituteId,
   }).from(memberships).where(and(
@@ -418,7 +420,7 @@ export async function createProviderLearningAssessment(
   return getDb().transaction(async (tx) => {
     const [course] = await tx.select().from(courses).where(eq(courses.id, courseId))
       .limit(1).for("share");
-    if (!course || course.publicationStatus !== "draft") {
+    if (!course || !isVerifiedProviderCourse(course) || course.publicationStatus !== "draft") {
       throw new LearningAssessmentUnavailable("not_available");
     }
     const [grant] = await tx.select().from(supervisionGrants).where(and(
@@ -527,7 +529,7 @@ export async function decideInstituteLearningAssessment(
   return getDb().transaction(async (tx) => {
     const [course] = await tx.select().from(courses).where(eq(courses.id, courseId))
       .limit(1).for("share");
-    if (!course || course.publicationStatus !== "draft") return null;
+    if (!course || !isVerifiedProviderCourse(course) || course.publicationStatus !== "draft") return null;
     const [grant] = await tx.select().from(supervisionGrants).where(and(
       eq(supervisionGrants.courseId, courseId),
       eq(supervisionGrants.providerId, course.providerId),

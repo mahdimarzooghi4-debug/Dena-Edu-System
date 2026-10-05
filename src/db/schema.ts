@@ -124,12 +124,18 @@ export const memberships = pgTable("dena_memberships", {
 export const supervisionStatus = pgEnum("dena_supervision_status", [
   "requested", "approved", "revoked",
 ]);
+export const courseOwnerType = pgEnum("dena_course_owner_type", [
+  "verified_provider", "independent_educator", "institute",
+]);
 export const coursePublicationStatus = pgEnum("dena_course_publication_status", [
   "draft", "published", "archived",
 ]);
 export const courses = pgTable("dena_courses", {
   id: uuid("id").primaryKey().defaultRandom(),
-  providerId: uuid("provider_id").notNull(),
+  ownerType: courseOwnerType("owner_type").notNull().default("verified_provider"),
+  providerId: uuid("provider_id"),
+  independentEducatorProfileId: uuid("independent_educator_profile_id")
+    .references(() => independentEducatorProfiles.id, { onDelete: "restrict" }),
   responsibleInstituteId: uuid("responsible_institute_id").notNull(),
   title: text("title").notNull(),
   // Explicit free-only launch; paid enrollment is deliberately NOT available.
@@ -142,21 +148,41 @@ export const courses = pgTable("dena_courses", {
   clientRequestId: uuid("client_request_id"),
 }, (table) => [
   uniqueIndex("dena_courses_provider_request_uidx").on(table.providerId, table.clientRequestId),
-  uniqueIndex("dena_courses_scope_fk_uidx").on(
-    table.id, table.providerId, table.responsibleInstituteId,
+  uniqueIndex("dena_courses_independent_request_uidx")
+    .on(table.independentEducatorProfileId, table.clientRequestId)
+    .where(sql`owner_type = 'independent_educator'`),
+  uniqueIndex("dena_courses_institute_request_uidx")
+    .on(table.responsibleInstituteId, table.clientRequestId)
+    .where(sql`owner_type = 'institute'`),
+  uniqueIndex("dena_courses_owner_scope_fk_uidx").on(
+    table.id, table.ownerType, table.providerId,
+    table.independentEducatorProfileId, table.responsibleInstituteId,
   ),
   uniqueIndex("dena_courses_institute_scope_uidx").on(
     table.id, table.responsibleInstituteId,
   ),
   index("dena_courses_provider_idx").on(table.providerId),
+  index("dena_courses_independent_educator_idx")
+    .on(table.independentEducatorProfileId, table.publicationStatus),
   index("dena_courses_institute_idx").on(table.responsibleInstituteId),
+  check("dena_courses_owner_scope_ck", sql`
+    (owner_type = 'verified_provider'
+      AND provider_id IS NOT NULL AND independent_educator_profile_id IS NULL)
+    OR (owner_type = 'independent_educator'
+      AND provider_id IS NULL AND independent_educator_profile_id IS NOT NULL)
+    OR (owner_type = 'institute'
+      AND provider_id IS NULL AND independent_educator_profile_id IS NULL)
+  `),
 ]);
 
 export const supervisionGrants = pgTable("dena_supervision_grants", {
   // One current approval state per course. Audit/history belongs in an append-only
   // event table in the follow-up write-flow; no self-approval API is exposed.
   courseId: uuid("course_id").primaryKey().references(() => courses.id, { onDelete: "cascade" }),
-  providerId: uuid("provider_id").notNull(),
+  ownerType: courseOwnerType("owner_type").notNull().default("verified_provider"),
+  providerId: uuid("provider_id"),
+  independentEducatorProfileId: uuid("independent_educator_profile_id")
+    .references(() => independentEducatorProfiles.id, { onDelete: "restrict" }),
   instituteId: uuid("institute_id").notNull(),
   status: supervisionStatus("status").notNull().default("requested"),
   requestedByProviderUserId: uuid("requested_by_provider_user_id")
@@ -171,10 +197,20 @@ export const supervisionGrants = pgTable("dena_supervision_grants", {
   `),
   index("dena_supervision_institute_idx").on(table.instituteId, table.status),
   foreignKey({
-    columns: [table.courseId, table.providerId, table.instituteId],
-    foreignColumns: [courses.id, courses.providerId, courses.responsibleInstituteId],
+    columns: [table.courseId, table.ownerType, table.providerId,
+      table.independentEducatorProfileId, table.instituteId],
+    foreignColumns: [courses.id, courses.ownerType, courses.providerId,
+      courses.independentEducatorProfileId, courses.responsibleInstituteId],
     name: "dena_supervision_matching_course_fk",
   }).onDelete("cascade"),
+  check("dena_supervision_owner_scope_ck", sql`
+    (owner_type = 'verified_provider'
+      AND provider_id IS NOT NULL AND independent_educator_profile_id IS NULL)
+    OR (owner_type = 'independent_educator'
+      AND provider_id IS NULL AND independent_educator_profile_id IS NOT NULL)
+    OR (owner_type = 'institute'
+      AND provider_id IS NULL AND independent_educator_profile_id IS NULL)
+  `),
 ]);
 
 /** Audit events are insert-only in app routes. Production DB identity must
@@ -188,7 +224,10 @@ export const supervisionEvents = pgTable("dena_supervision_events", {
   courseId: uuid("course_id").notNull().references(() => courses.id, {
     onDelete: "restrict",
   }),
-  providerId: uuid("provider_id").notNull(),
+  ownerType: courseOwnerType("owner_type").notNull().default("verified_provider"),
+  providerId: uuid("provider_id"),
+  independentEducatorProfileId: uuid("independent_educator_profile_id")
+    .references(() => independentEducatorProfiles.id, { onDelete: "restrict" }),
   instituteId: uuid("institute_id").notNull(),
   actorUserId: uuid("actor_user_id").notNull().references(() => user.id, {
     onDelete: "restrict",
@@ -201,6 +240,14 @@ export const supervisionEvents = pgTable("dena_supervision_events", {
   check("dena_supervision_event_reason_ck", sql`
     (kind = 'requested' AND reason IS NULL)
     OR (kind <> 'requested' AND reason IS NOT NULL)
+  `),
+  check("dena_supervision_event_owner_scope_ck", sql`
+    (owner_type = 'verified_provider'
+      AND provider_id IS NOT NULL AND independent_educator_profile_id IS NULL)
+    OR (owner_type = 'independent_educator'
+      AND provider_id IS NULL AND independent_educator_profile_id IS NOT NULL)
+    OR (owner_type = 'institute'
+      AND provider_id IS NULL AND independent_educator_profile_id IS NULL)
   `),
 ]);
 
@@ -1181,6 +1228,43 @@ export const educatorInstituteAffiliationEvents = pgTable(
       (kind = 'requested' AND reason IS NULL)
       OR (kind <> 'requested' AND reason IS NOT NULL
         AND char_length(reason) BETWEEN 15 AND 500 AND btrim(reason) <> '')
+    `),
+  ],
+);
+
+/** Immutable audit record for course custody moving from a license-free
+ * educator to the institute responsible for supervising that course. */
+export const courseOwnershipEvents = pgTable(
+  "dena_course_ownership_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    courseId: uuid("course_id").notNull()
+      .references(() => courses.id, { onDelete: "restrict" }),
+    sourceAffiliationId: uuid("source_affiliation_id").notNull()
+      .references(() => educatorInstituteAffiliations.id, { onDelete: "restrict" }),
+    actorUserId: uuid("actor_user_id").notNull()
+      .references(() => user.id, { onDelete: "restrict" }),
+    previousOwnerType: courseOwnerType("previous_owner_type").notNull(),
+    previousProviderId: uuid("previous_provider_id"),
+    previousEducatorProfileId: uuid("previous_educator_profile_id")
+      .references(() => independentEducatorProfiles.id, { onDelete: "restrict" }),
+    nextOwnerType: courseOwnerType("next_owner_type").notNull(),
+    instituteId: uuid("institute_id").notNull()
+      .references(() => verifiedEntities.id, { onDelete: "restrict" }),
+    reason: text("reason").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("dena_course_ownership_transfer_uidx")
+      .on(table.courseId, table.sourceAffiliationId),
+    index("dena_course_ownership_course_idx").on(table.courseId, table.createdAt),
+    check("dena_course_ownership_transfer_ck", sql`
+      previous_owner_type = 'independent_educator'
+      AND previous_provider_id IS NULL
+      AND previous_educator_profile_id IS NOT NULL
+      AND next_owner_type = 'institute'
+      AND char_length(reason) BETWEEN 15 AND 500 AND btrim(reason) <> ''
     `),
   ],
 );

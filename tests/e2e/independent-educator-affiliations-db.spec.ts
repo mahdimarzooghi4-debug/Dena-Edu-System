@@ -4,9 +4,14 @@ import { serializeSignedCookie } from "better-call";
 import { expect, request, test, type APIRequestContext } from "@playwright/test";
 import { getDb } from "../../src/db";
 import {
-  auditLogs, educatorInstituteAffiliationEvents, educatorInstituteAffiliations,
-  independentEducatorProfiles, memberships, session, user, verifiedEntities,
+  auditLogs, courseOwnershipEvents, courses, educatorInstituteAffiliationEvents,
+  educatorInstituteAffiliations, independentEducatorProfiles, memberships,
+  privateMediaAssets, session, studentEnrollments, supervisionGrants,
+  user, verifiedEntities,
 } from "../../src/db/schema";
+import { hasStudentEntitlement } from "../../src/server/student/entitlement";
+import { listStudentCatalog, readCatalogQuery } from "../../src/server/student/course-catalog";
+import { getStudentCourseDetail } from "../../src/server/student/course-detail";
 
 test.describe.configure({ mode: "serial" });
 
@@ -21,6 +26,8 @@ test.describe("independent educator institute affiliations", () => {
     outsider: randomUUID(), selfApplicant: randomUUID(),
   };
   const institutes = { a: randomUUID(), b: randomUUID() };
+  const ownedCourseId = randomUUID();
+  const ownedAssetId = randomUUID();
   const requestIds = { a: randomUUID(), b: randomUUID(), self: randomUUID() };
   let affiliationA = "";
   let affiliationB = "";
@@ -70,6 +77,11 @@ test.describe("independent educator institute affiliations", () => {
   });
 
   test.afterAll(async () => {
+    await db.delete(courseOwnershipEvents).where(eq(courseOwnershipEvents.courseId, ownedCourseId));
+    await db.delete(studentEnrollments).where(eq(studentEnrollments.courseId, ownedCourseId));
+    await db.delete(privateMediaAssets).where(eq(privateMediaAssets.courseId, ownedCourseId));
+    await db.delete(supervisionGrants).where(eq(supervisionGrants.courseId, ownedCourseId));
+    await db.delete(courses).where(eq(courses.id, ownedCourseId));
     const profileIds = await db.select({ id: independentEducatorProfiles.id })
       .from(independentEducatorProfiles)
       .where(inArray(independentEducatorProfiles.userId, Object.values(users)));
@@ -162,6 +174,49 @@ test.describe("independent educator institute affiliations", () => {
     const [profile] = await db.select().from(independentEducatorProfiles)
       .where(eq(independentEducatorProfiles.userId, users.applicant));
     expect(profile?.displayName).toBe("برند مستقل آوا");
+    const approvedAt = new Date();
+    await db.insert(courses).values({
+      id: ownedCourseId,
+      ownerType: "independent_educator",
+      independentEducatorProfileId: profile!.id,
+      responsibleInstituteId: institutes.a,
+      title: "دورهٔ آزمایشی همکار مستقل",
+      publicationStatus: "published",
+      publishedAt: approvedAt,
+      createdByProviderUserId: users.applicant,
+      clientRequestId: randomUUID(),
+    });
+    await db.insert(supervisionGrants).values({
+      courseId: ownedCourseId,
+      ownerType: "independent_educator",
+      independentEducatorProfileId: profile!.id,
+      instituteId: institutes.a,
+      requestedByProviderUserId: users.applicant,
+      status: "approved",
+      approvedByInstituteUserId: users.instituteA,
+      approvedAt,
+    });
+    await db.insert(privateMediaAssets).values({
+      id: ownedAssetId,
+      courseId: ownedCourseId,
+      title: "درس آزمایشی",
+      objectKey: `${ownedCourseId}/${ownedAssetId}.mp4`,
+      status: "ready",
+    });
+    await db.insert(studentEnrollments).values({
+      courseId: ownedCourseId, studentUserId: users.outsider,
+    });
+    expect(await hasStudentEntitlement(users.outsider, ownedCourseId)).toBe(true);
+    const preTransferCatalog = await listStudentCatalog(
+      users.outsider, readCatalogQuery(new URLSearchParams("mine=1")),
+    );
+    expect(preTransferCatalog.courses.some((course) =>
+      course.courseId === ownedCourseId && course.ownerType === "independent_educator" &&
+      course.independentEducatorName === "برند مستقل آوا")).toBe(true);
+    expect(await getStudentCourseDetail(users.outsider, ownedCourseId)).toMatchObject({
+      courseId: ownedCourseId, ownerType: "independent_educator",
+      independentEducatorName: "برند مستقل آوا",
+    });
     const providerMemberships = await db.select().from(memberships).where(and(
       eq(memberships.userId, users.applicant), eq(memberships.role, "provider"),
     ));
@@ -188,6 +243,41 @@ test.describe("independent educator institute affiliations", () => {
     expect((await post(instituteA, decisionPath(affiliationA), {
       action: "revoke", reason: "پایان همکاری به درخواست و تصمیم مؤسسه ثبت شد.",
     })).status()).toBe(200);
+    const [transferredCourse] = await db.select().from(courses)
+      .where(eq(courses.id, ownedCourseId));
+    expect(transferredCourse).toMatchObject({
+      ownerType: "institute", providerId: null,
+      independentEducatorProfileId: null,
+      responsibleInstituteId: institutes.a,
+      publicationStatus: "published",
+    });
+    const [transferredGrant] = await db.select().from(supervisionGrants)
+      .where(eq(supervisionGrants.courseId, ownedCourseId));
+    expect(transferredGrant).toMatchObject({
+      ownerType: "institute", providerId: null,
+      independentEducatorProfileId: null, instituteId: institutes.a,
+      status: "approved",
+    });
+    expect(await hasStudentEntitlement(users.outsider, ownedCourseId)).toBe(true);
+    const studentCatalog = await listStudentCatalog(
+      users.outsider, readCatalogQuery(new URLSearchParams("mine=1")),
+    );
+    expect(studentCatalog.courses.some((course) =>
+      course.courseId === ownedCourseId && course.ownerType === "institute" &&
+      course.providerName === null && course.independentEducatorName === null)).toBe(true);
+    expect(await getStudentCourseDetail(users.outsider, ownedCourseId)).toMatchObject({
+      courseId: ownedCourseId, ownerType: "institute", providerName: null,
+      independentEducatorName: null,
+    });
+    const [transferEvent] = await db.select().from(courseOwnershipEvents)
+      .where(eq(courseOwnershipEvents.courseId, ownedCourseId));
+    expect(transferEvent).toMatchObject({
+      sourceAffiliationId: affiliationA,
+      previousOwnerType: "independent_educator",
+      previousEducatorProfileId: profile!.id,
+      nextOwnerType: "institute",
+      instituteId: institutes.a,
+    });
     const applicantState = await (await applicant.get("/api/independent-educator/affiliations")).json() as {
       affiliations: Array<{ id: string; status: string }>;
     };

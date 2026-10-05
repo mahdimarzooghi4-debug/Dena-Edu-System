@@ -57,6 +57,7 @@ export const auditActions = [
   "institute.educator_affiliation.approved",
   "institute.educator_affiliation.rejected",
   "institute.educator_affiliation.revoked",
+  "institute.course_ownership.transferred",
 ] as const;
 export type AuditAction = (typeof auditActions)[number];
 

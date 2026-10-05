@@ -1,9 +1,9 @@
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { getDb } from "../../db";
 import {
-  auditLogs, educatorInstituteAffiliationEvents,
-  educatorInstituteAffiliations, independentEducatorProfiles,
-  memberships, user, verifiedEntities,
+  auditLogs, courseOwnershipEvents, courses, educatorInstituteAffiliationEvents,
+  educatorInstituteAffiliations, independentEducatorProfiles, memberships,
+  supervisionGrants, user, verifiedEntities,
 } from "../../db/schema";
 import { auditLogRecord } from "../admin/audit";
 import type {
@@ -208,6 +208,58 @@ export async function decideEducatorAffiliation(
       ? affiliation.status === "approved"
       : affiliation.status === "requested";
     if (!valid) throw new EducatorAffiliationError("invalid_transition");
+
+    if (decision.action === "revoke") {
+      const ownedCourses = await tx.select().from(courses).where(and(
+        eq(courses.ownerType, "independent_educator"),
+        eq(courses.independentEducatorProfileId, affiliation.educatorProfileId),
+        eq(courses.responsibleInstituteId, affiliation.instituteId),
+      )).orderBy(asc(courses.id)).for("update");
+      for (const course of ownedCourses) {
+        const [grant] = await tx.select().from(supervisionGrants)
+          .where(eq(supervisionGrants.courseId, course.id))
+          .limit(1).for("update");
+        if (!grant || grant.ownerType !== "independent_educator" ||
+            grant.independentEducatorProfileId !== affiliation.educatorProfileId ||
+            grant.instituteId !== affiliation.instituteId) {
+          throw new EducatorAffiliationError("invalid_transition");
+        }
+        // Delete/recreate the current grant inside this transaction so the
+        // composite owner FK remains immediate and no intermediate state is visible.
+        await tx.delete(supervisionGrants).where(eq(supervisionGrants.courseId, course.id));
+        await tx.update(courses).set({
+          ownerType: "institute",
+          independentEducatorProfileId: null,
+        }).where(eq(courses.id, course.id));
+        await tx.insert(supervisionGrants).values({
+          courseId: grant.courseId,
+          ownerType: "institute",
+          providerId: null,
+          independentEducatorProfileId: null,
+          instituteId: grant.instituteId,
+          status: grant.status,
+          requestedByProviderUserId: grant.requestedByProviderUserId,
+          requestedAt: grant.requestedAt,
+          approvedByInstituteUserId: grant.approvedByInstituteUserId,
+          approvedAt: grant.approvedAt,
+        });
+        await tx.insert(courseOwnershipEvents).values({
+          courseId: course.id,
+          sourceAffiliationId: affiliation.id,
+          actorUserId: reviewerUserId,
+          previousOwnerType: "independent_educator",
+          previousEducatorProfileId: affiliation.educatorProfileId,
+          nextOwnerType: "institute",
+          instituteId: affiliation.instituteId,
+          reason: decision.reason,
+        });
+        await tx.insert(auditLogs).values(auditLogRecord({
+          actorId: reviewerUserId, actorRole: "institute",
+          action: "institute.course_ownership.transferred",
+          entityType: "COURSE", entityId: course.id,
+        }));
+      }
+    }
 
     const now = new Date();
     await tx.update(educatorInstituteAffiliations).set({

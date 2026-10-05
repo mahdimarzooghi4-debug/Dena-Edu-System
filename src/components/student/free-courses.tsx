@@ -8,8 +8,10 @@ import { VerificationBadge } from "../ui/verification-badge";
 type Course = {
   courseId: string;
   title: string;
-  providerId: string;
-  providerName: string;
+  ownerType: "verified_provider" | "independent_educator" | "institute";
+  providerId: string | null;
+  providerName: string | null;
+  independentEducatorName: string | null;
   responsibleInstituteId: string;
   instituteName: string;
   providerCollaborationApproved: boolean;
@@ -202,10 +204,18 @@ export function FreeCourses() {
                 <span className="text-sm text-dena-muted">{course.instituteName}</span>
                 <VerificationBadge kind="institute" />
               </div>
-              <div className="flex flex-wrap items-center gap-2">
+              {course.providerName && <div className="flex flex-wrap items-center gap-2">
                 <span className="text-sm text-dena-muted">{course.providerName}</span>
                 {course.providerCollaborationApproved && <VerificationBadge kind="provider" />}
-              </div>
+              </div>}
+              {course.ownerType === "independent_educator" && course.independentEducatorName &&
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm text-dena-muted">{course.independentEducatorName}</span>
+                  <VerificationBadge kind="independent-educator" />
+                </div>}
+              {course.ownerType === "institute" && <p className="text-sm text-dena-muted">
+                مالک دوره: مؤسسهٔ مسئول
+              </p>}
               <Link href={`/student/courses/${course.courseId}`}
                 className="inline-block text-sm font-bold text-dena-brand hover:underline">
                 جزئیات دوره و مؤسسهٔ مسئول
