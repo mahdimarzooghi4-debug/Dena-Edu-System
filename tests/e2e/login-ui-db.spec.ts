@@ -28,7 +28,7 @@ test("mobile UI verifies OTP and creates student only, then signs out", async ({
     const { code } = await response.json() as { code: string };
     await page.getByLabel("کد تأیید").fill(code);
     await page.getByRole("button", { name: "تأیید و ورود" }).click();
-    await expect(page).toHaveURL(/\/account$/);
+    await expect(page).toHaveURL("http://localhost:3000/account/role-applications");
     await expect(page.getByRole("heading", { name: "درخواست دسترسی جدید" })).toBeVisible();
     await expect(page.getByLabel("نوع درخواست")).toHaveValue("institute");
     
