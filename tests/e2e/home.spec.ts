@@ -14,7 +14,7 @@ test("institute application uses the protected role review workflow", async ({ p
   await expect(page.getByRole("heading", { name: "درخواست همکاری مؤسسهٔ آموزشی" })).toBeVisible();
   await expect(page.getByRole("link", { name: "ورود و ثبت درخواست مؤسسه" })).toHaveAttribute(
     "href",
-    "/account/role-applications",
+    "/login?next=%2Faccount%2Frole-applications",
   );
   await expect(page.locator('input[name="nationalId"]')).toHaveCount(0);
   await expect(page.locator('input[name="phone"]')).toHaveCount(0);
