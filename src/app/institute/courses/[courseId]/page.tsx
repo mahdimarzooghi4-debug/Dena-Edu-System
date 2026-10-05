@@ -79,8 +79,10 @@ export default async function InstituteCoursePage({
         </div>
         <dl className="grid gap-4 md:grid-cols-2">
           <div className="rounded-xl bg-dena-bg p-5">
-            <dt className="text-sm text-dena-muted">ارائه‌دهندهٔ ثبت‌شده</dt>
-            <dd className="mt-2 font-bold leading-8">{course.providerName}</dd>
+            <dt className="text-sm text-dena-muted">مالک/ارائه‌دهندهٔ دوره</dt>
+            <dd className="mt-2 font-bold leading-8">
+              {course.providerName ?? course.independentEducatorName ?? "مؤسسهٔ مسئول"}
+            </dd>
           </div>
           <div className="rounded-xl bg-dena-bg p-5">
             <dt className="text-sm text-dena-muted">وضعیت نظارت</dt>

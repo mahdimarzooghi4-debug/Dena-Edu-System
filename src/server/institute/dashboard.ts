@@ -4,8 +4,8 @@ import { z } from "zod";
 import { getDb } from "../../db";
 import {
   courseLearningAssessments, coursePracticeQuestions, courses,
-  privateMediaAssets, providerInstituteCollaborations, supervisionGrants,
-  verifiedEntities,
+  independentEducatorProfiles, privateMediaAssets,
+  providerInstituteCollaborations, supervisionGrants, verifiedEntities,
 } from "../../db/schema";
 
 const instituteDashboardProvider = alias(verifiedEntities, "institute_dashboard_provider");
@@ -55,7 +55,9 @@ export async function getInstituteDashboardCourses(
   const rows = await db.select({
     courseId: courses.id,
     title: courses.title,
+    ownerType: courses.ownerType,
     providerName: instituteDashboardProvider.name,
+    independentEducatorName: independentEducatorProfiles.displayName,
     instituteName: instituteDashboardInstitute.name,
     providerCollaborationApproved: sql<boolean>`exists (
       select 1 from ${providerInstituteCollaborations}
@@ -68,11 +70,13 @@ export async function getInstituteDashboardCourses(
     requestedAt: supervisionGrants.requestedAt,
   }).from(supervisionGrants).innerJoin(courses, and(
     eq(courses.id, supervisionGrants.courseId),
-    eq(courses.providerId, supervisionGrants.providerId),
+    eq(courses.ownerType, supervisionGrants.ownerType),
     eq(courses.responsibleInstituteId, supervisionGrants.instituteId),
-  )).innerJoin(instituteDashboardProvider, and(
+  )).leftJoin(instituteDashboardProvider, and(
     eq(instituteDashboardProvider.id, courses.providerId),
     eq(instituteDashboardProvider.role, "provider"),
+  )).leftJoin(independentEducatorProfiles, eq(
+    independentEducatorProfiles.id, courses.independentEducatorProfileId,
   )).innerJoin(instituteDashboardInstitute, and(
     eq(instituteDashboardInstitute.id, courses.responsibleInstituteId),
     eq(instituteDashboardInstitute.role, "institute"),

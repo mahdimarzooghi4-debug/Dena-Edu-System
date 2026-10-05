@@ -67,7 +67,7 @@ export default async function InstituteCoursesPage({
           دوره‌های تحت نظارت من
         </h1>
         <p className="mt-2 max-w-3xl text-sm leading-8 text-dena-muted">
-          فقط دوره‌های دارای درخواست نظارت در دامنهٔ فعال مؤسسه نمایش داده می‌شوند.
+          دوره‌های تحت نظارت و دوره‌های متعلق به مؤسسه در محدودهٔ فعال شما نمایش داده می‌شوند.
           آمار ارزیابی‌ها از داده‌های همان صفحه محاسبه می‌شود.
         </p>
       </section>
@@ -78,9 +78,9 @@ export default async function InstituteCoursesPage({
         </SectionHeading>
         {result.courses.length === 0 ? (
           <Card className="space-y-3">
-            <h2 className="font-extrabold">درخواستی برای نمایش نیست</h2>
+            <h2 className="font-extrabold">دوره‌ای برای نمایش نیست</h2>
             <p className="text-sm leading-7 text-dena-muted">
-              دوره پس از ثبت درخواست نظارت از سوی ارائه‌دهنده در این فهرست ظاهر می‌شود.
+              دوره پس از ثبت درخواست نظارت یا انتقال مالکیت به مؤسسه در این فهرست ظاهر می‌شود.
             </p>
             <Link href="/institute/providers" className={buttonClassName()}>
               رفتن به صف نظارت
@@ -93,8 +93,15 @@ export default async function InstituteCoursesPage({
                 <Card className="h-full space-y-3 p-6">
                   <h2 className="text-lg font-extrabold leading-8">{course.title}</h2>
                   <div className="flex flex-wrap items-center gap-2 text-sm text-dena-muted">
-                    <span>{course.providerName}</span>
-                    {course.providerCollaborationApproved && <VerificationBadge kind="provider" />}
+                    {course.providerName && <>
+                      <span>{course.providerName}</span>
+                      {course.providerCollaborationApproved && <VerificationBadge kind="provider" />}
+                    </>}
+                    {course.ownerType === "independent_educator" && course.independentEducatorName && <>
+                      <span>{course.independentEducatorName}</span>
+                      <VerificationBadge kind="independent-educator" />
+                    </>}
+                    {course.ownerType === "institute" && <span>مالک دوره: مؤسسه</span>}
                     <span>{course.instituteName}</span>
                     <VerificationBadge kind="institute" />
                   </div>

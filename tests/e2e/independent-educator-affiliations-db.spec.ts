@@ -12,6 +12,8 @@ import {
 import { hasStudentEntitlement } from "../../src/server/student/entitlement";
 import { listStudentCatalog, readCatalogQuery } from "../../src/server/student/course-catalog";
 import { getStudentCourseDetail } from "../../src/server/student/course-detail";
+import { getInstituteDashboardCourses } from "../../src/server/institute/dashboard";
+import { getInstituteCourseDetail } from "../../src/server/institute/course-detail";
 
 test.describe.configure({ mode: "serial" });
 
@@ -257,6 +259,14 @@ test.describe("independent educator institute affiliations", () => {
       ownerType: "institute", providerId: null,
       independentEducatorProfileId: null, instituteId: institutes.a,
       status: "approved",
+    });
+    const instituteCourses = await getInstituteDashboardCourses([institutes.a]);
+    expect(instituteCourses.courses.some((course) =>
+      course.courseId === ownedCourseId && course.ownerType === "institute" &&
+      course.providerName === null && course.independentEducatorName === null)).toBe(true);
+    expect(await getInstituteCourseDetail([institutes.a], ownedCourseId)).toMatchObject({
+      courseId: ownedCourseId, ownerType: "institute", providerName: null,
+      independentEducatorName: null, supervisionStatus: "approved",
     });
     expect(await hasStudentEntitlement(users.outsider, ownedCourseId)).toBe(true);
     const studentCatalog = await listStudentCatalog(
