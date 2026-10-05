@@ -4,7 +4,7 @@ import { expect, test } from "@playwright/test";
 import { getDb } from "../../src/db";
 import { user } from "../../src/db/schema";
 
-test("mobile UI verifies OTP and creates student only, then signs out", async ({ page }) => {
+test("mobile UI returns to institute application after OTP, then signs out", async ({ page }) => {
   const token = process.env.DENA_SMS_GATEWAY_TOKEN;
   if (process.env.DENA_DB_INTEGRATION !== "1" || !token) throw new Error("OTP mock is required");
   const phone = `+989${String(randomInt(1_000_000_000)).padStart(9, "0")}`;
@@ -35,7 +35,11 @@ test("mobile UI verifies OTP and creates student only, then signs out", async ({
 
     const identity = await page.request.get("http://localhost:3000/api/access/me");
     expect(identity.status()).toBe(200);
-    userId = (await identity.json()).userId as string;
+    const access = await identity.json();
+    expect(access.memberships).toEqual([{ role: "student" }]);
+    userId = access.userId as string;
+
+    await page.goto("http://localhost:3000/account");
 
     await page.getByRole("button", { name: "خروج از حساب" }).click();
     await expect(page).toHaveURL(/\/login$/);
