@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getDb } from "../../../../../../db";
 import { courses, mediaIngests } from "../../../../../../db/schema";
 import { getServerAccessContext } from "../../../../../../server/access/actor";
+import { isVerifiedProviderCourse } from "../../../../../../server/courses/ownership";
 import { validSameOrigin } from "../../../../../../server/access/role-application-contracts";
 import {
   ingestAvailable, IngestError, MAX_PILOT_UPLOAD_BYTES, reserveIngest,
@@ -22,9 +23,10 @@ const input = z.object({
 async function ownProvider(userId: string, courseId: string,
   providerIds: string[]): Promise<boolean> {
   const [course] = await getDb().select({
+    ownerType: courses.ownerType,
     providerId: courses.providerId,
   }).from(courses).where(eq(courses.id, courseId)).limit(1);
-  return Boolean(course && providerIds.includes(course.providerId));
+  return Boolean(course && isVerifiedProviderCourse(course) && providerIds.includes(course.providerId));
 }
 
 export async function GET(

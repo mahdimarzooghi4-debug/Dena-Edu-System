@@ -6,6 +6,7 @@ type StudentSection =
   | "home"
   | "courses"
   | "assessments"
+  | "services"
   | "growth"
   | "elite"
   | "account";
@@ -36,6 +37,7 @@ const desktopItems: ReadonlyArray<{
   { key: "home", href: "/student", label: "خانه من", icon: "home" },
   { key: "courses", href: "/student/courses", label: "دوره‌های من", icon: "book" },
   { key: "assessments", href: "/student/assessments", label: "تمرین‌ها و آزمون‌ها", icon: "assessment" },
+  { key: "services", href: "/student/services", label: "خدمات مؤسسه‌ها", icon: "help" },
   { key: "growth", href: "/student/growth", label: "مسیر رشد", icon: "growth" },
   { key: "elite", href: "/student/elite-club", label: "باشگاه نخبگان", icon: "star" },
   { key: "account", href: "/student/profile", label: "پروفایل کاربری", icon: "user" },
@@ -50,6 +52,7 @@ const mobileItems: ReadonlyArray<{
   { key: "home", href: "/student", label: "خانه", icon: "home" },
   { key: "courses", href: "/student/courses", label: "دوره‌ها", icon: "book" },
   { key: "assessments", href: "/student/assessments", label: "تمرین‌ها", icon: "assessment" },
+  { key: "services", href: "/student/services", label: "خدمات", icon: "help" },
   { key: "growth", href: "/student/growth", label: "رشد", icon: "growth" },
   { key: "account", href: "/student/profile", label: "حساب", icon: "user" },
 ];

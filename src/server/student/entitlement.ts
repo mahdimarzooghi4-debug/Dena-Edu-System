@@ -1,33 +1,69 @@
-import { and, eq, exists, inArray } from "drizzle-orm";
+import { and, eq, exists, inArray, isNull, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { getDb } from "../../db";
 import {
-  courses, memberships, privateMediaAssets, studentEnrollments, supervisionGrants,
+  courses, educatorInstituteAffiliations, memberships, privateMediaAssets,
+  studentEnrollments, supervisionGrants,
 } from "../../db/schema";
 
 const provider = alias(memberships, "free_course_provider");
 const institute = alias(memberships, "free_course_institute");
 const approver = alias(memberships, "free_course_approver");
 const student = alias(memberships, "free_course_student");
+const independentAffiliation = alias(
+  educatorInstituteAffiliations, "free_course_independent_affiliation",
+);
 
 function validSupervision(db: ReturnType<typeof getDb>) { return and(
   eq(supervisionGrants.status, "approved"),
   eq(supervisionGrants.courseId, courses.id),
-  eq(supervisionGrants.providerId, courses.providerId),
   eq(supervisionGrants.instituteId, courses.responsibleInstituteId),
-  exists(db.select({ id: provider.id }).from(provider).where(and(
-    eq(provider.role, "provider"), eq(provider.status, "active"),
-    eq(provider.providerId, courses.providerId),
-  ))),
+  eq(supervisionGrants.ownerType, courses.ownerType),
   exists(db.select({ id: institute.id }).from(institute).where(and(
     eq(institute.role, "institute"), eq(institute.status, "active"),
     eq(institute.instituteId, courses.responsibleInstituteId),
   ))),
-  exists(db.select({ id: approver.id }).from(approver).where(and(
-    eq(approver.userId, supervisionGrants.approvedByInstituteUserId),
-    eq(approver.role, "institute"), eq(approver.status, "active"),
-    eq(approver.instituteId, courses.responsibleInstituteId),
-  ))),
+  or(
+    and(
+      eq(courses.ownerType, "verified_provider"),
+      eq(supervisionGrants.providerId, courses.providerId),
+      isNull(courses.independentEducatorProfileId),
+      exists(db.select({ id: provider.id }).from(provider).where(and(
+        eq(provider.role, "provider"), eq(provider.status, "active"),
+        eq(provider.providerId, courses.providerId),
+      ))),
+      exists(db.select({ id: approver.id }).from(approver).where(and(
+        eq(approver.userId, supervisionGrants.approvedByInstituteUserId),
+        eq(approver.role, "institute"), eq(approver.status, "active"),
+        eq(approver.instituteId, courses.responsibleInstituteId),
+      ))),
+    ),
+    and(
+      eq(courses.ownerType, "independent_educator"),
+      eq(supervisionGrants.independentEducatorProfileId,
+        courses.independentEducatorProfileId),
+      isNull(courses.providerId),
+      exists(db.select({ id: independentAffiliation.id })
+        .from(independentAffiliation).where(and(
+          eq(independentAffiliation.educatorProfileId,
+            courses.independentEducatorProfileId),
+          eq(independentAffiliation.instituteId, courses.responsibleInstituteId),
+          eq(independentAffiliation.status, "approved"),
+        ))),
+      exists(db.select({ id: approver.id }).from(approver).where(and(
+        eq(approver.userId, supervisionGrants.approvedByInstituteUserId),
+        eq(approver.role, "institute"), eq(approver.status, "active"),
+        eq(approver.instituteId, courses.responsibleInstituteId),
+      ))),
+    ),
+    and(
+      eq(courses.ownerType, "institute"),
+      isNull(courses.providerId),
+      isNull(courses.independentEducatorProfileId),
+      isNull(supervisionGrants.providerId),
+      isNull(supervisionGrants.independentEducatorProfileId),
+    ),
+  ),
 ); }
 
 /** Base conditions are applied again on *every* catalog, enrollment, asset

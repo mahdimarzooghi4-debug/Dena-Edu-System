@@ -1,8 +1,10 @@
-import { and, eq, or } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "../../db";
 import {
-  courses, memberships, privateMediaAssets, studentEnrollments, supervisionGrants,
+  courses, educatorInstituteAffiliations, memberships, privateMediaAssets,
+  studentEnrollments, supervisionGrants,
 } from "../../db/schema";
+import { isVerifiedProviderCourse } from "../courses/ownership";
 
 export type StudentEnrollmentErrorKind =
   | "not_student" | "not_available" | "enrollment_cancelled";
@@ -34,11 +36,12 @@ export async function enrollFreeCourse(
     const [grant] = await tx.select().from(supervisionGrants)
       .where(and(
         eq(supervisionGrants.courseId, courseId),
-        eq(supervisionGrants.providerId, course.providerId),
         eq(supervisionGrants.instituteId, course.responsibleInstituteId),
         eq(supervisionGrants.status, "approved"),
       )).limit(1).for("share");
-    if (!grant?.approvedByInstituteUserId || !grant.approvedAt) {
+    if (!grant?.approvedAt || grant.ownerType !== course.ownerType ||
+        grant.providerId !== course.providerId ||
+        grant.independentEducatorProfileId !== course.independentEducatorProfileId) {
       throw new StudentEnrollmentError("not_available");
     }
     const [media] = await tx.select({ id: privateMediaAssets.id })
@@ -47,27 +50,49 @@ export async function enrollFreeCourse(
         eq(privateMediaAssets.status, "ready"),
       )).limit(1).for("share");
     if (!media) throw new StudentEnrollmentError("not_available");
-    const active = await tx.select({
-      id: memberships.id, role: memberships.role,
-      providerId: memberships.providerId, instituteId: memberships.instituteId,
-      userId: memberships.userId,
-    }).from(memberships).where(and(
-      eq(memberships.status, "active"),
-      or(
-        and(eq(memberships.role, "provider"),
-          eq(memberships.providerId, course.providerId)),
-        and(eq(memberships.role, "institute"),
-          eq(memberships.instituteId, course.responsibleInstituteId)),
-      ),
-    )).for("share");
-    const providerActive = active.some((row) =>
-      row.role === "provider" && row.providerId === course.providerId);
-    const instituteActive = active.some((row) =>
-      row.role === "institute" && row.instituteId === course.responsibleInstituteId);
-    const approverActive = active.some((row) =>
-      row.role === "institute" && row.userId === grant.approvedByInstituteUserId &&
-      row.instituteId === course.responsibleInstituteId);
-    if (!providerActive || !instituteActive || !approverActive) {
+    const [instituteActive] = await tx.select({ id: memberships.id })
+      .from(memberships).where(and(
+        eq(memberships.role, "institute"),
+        eq(memberships.instituteId, course.responsibleInstituteId),
+        eq(memberships.status, "active"),
+      )).limit(1).for("share");
+    if (!instituteActive) throw new StudentEnrollmentError("not_available");
+
+    let ownerActive = course.ownerType === "institute";
+    if (isVerifiedProviderCourse(course)) {
+      const [providerActive] = await tx.select({ id: memberships.id })
+        .from(memberships).where(and(
+          eq(memberships.role, "provider"),
+          eq(memberships.providerId, course.providerId),
+          eq(memberships.status, "active"),
+        )).limit(1).for("share");
+      const [approverActive] = await tx.select({ id: memberships.id })
+        .from(memberships).where(and(
+          eq(memberships.userId, grant.approvedByInstituteUserId!),
+          eq(memberships.role, "institute"),
+          eq(memberships.instituteId, course.responsibleInstituteId),
+          eq(memberships.status, "active"),
+        )).limit(1).for("share");
+      ownerActive = Boolean(providerActive && approverActive);
+    } else if (course.ownerType === "independent_educator" &&
+        course.independentEducatorProfileId) {
+      const [activeAffiliation] = await tx.select({ id: educatorInstituteAffiliations.id })
+        .from(educatorInstituteAffiliations).where(and(
+          eq(educatorInstituteAffiliations.educatorProfileId,
+            course.independentEducatorProfileId),
+          eq(educatorInstituteAffiliations.instituteId, course.responsibleInstituteId),
+          eq(educatorInstituteAffiliations.status, "approved"),
+        )).limit(1).for("share");
+      const [approverActive] = await tx.select({ id: memberships.id })
+        .from(memberships).where(and(
+          eq(memberships.userId, grant.approvedByInstituteUserId!),
+          eq(memberships.role, "institute"),
+          eq(memberships.instituteId, course.responsibleInstituteId),
+          eq(memberships.status, "active"),
+        )).limit(1).for("share");
+      ownerActive = Boolean(activeAffiliation && approverActive);
+    }
+    if (!ownerActive) {
       throw new StudentEnrollmentError("not_available");
     }
 

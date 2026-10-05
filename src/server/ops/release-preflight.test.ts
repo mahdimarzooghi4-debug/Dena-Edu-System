@@ -17,12 +17,16 @@ const good = {
   DENA_MEDIA_PROCESSOR_TOKEN: "worker-" + "d".repeat(36),
   DENA_MEDIA_ATTESTATION_HMAC_KEY: "attest-" + "e".repeat(36),
   DENA_MEDIA_CLEANUP_TOKEN: "cleanup-" + "f".repeat(36),
+  DENA_SUPPORT_ATTACHMENT_SCANNER_TOKEN: "support-scan-" + "g".repeat(36),
+  DENA_SUPPORT_ATTACHMENT_SCAN_HMAC_KEY: "support-hmac-" + "h".repeat(36),
   DENA_SMS_ENABLED: "1",
   DENA_MEDIA_ENABLED: "1",
   DENA_INGEST_ENABLED: "1",
   DENA_MEDIA_PROCESSOR_ENABLED: "1",
   DENA_MEDIA_ATTESTATION_ENABLED: "1",
   DENA_MEDIA_CLEANUP_ENABLED: "1",
+  DENA_SUPPORT_ATTACHMENTS_ENABLED: "1",
+  DENA_SUPPORT_ATTACHMENT_SCANNER_ENABLED: "1",
 };
 function run(overrides: Record<string, string | undefined> = {}) {
   const env = { ...good, ...overrides } as NodeJS.ProcessEnv;
@@ -114,6 +118,7 @@ describe("release preflight only validates static configuration", () => {
     const result = run({
       DENA_MEDIA_ATTESTATION_HMAC_KEY: good.DENA_MEDIA_PROCESSOR_TOKEN,
       DENA_MEDIA_CLEANUP_TOKEN: undefined,
+      DENA_SUPPORT_ATTACHMENT_SCAN_HMAC_KEY: good.DENA_SUPPORT_ATTACHMENT_SCANNER_TOKEN,
       BETTER_AUTH_SECRET: "short",
     });
     expect(result.status).toBe(1);
@@ -121,6 +126,9 @@ describe("release preflight only validates static configuration", () => {
       "DENA_MEDIA_PROCESSOR_TOKEN+DENA_MEDIA_ATTESTATION_HMAC_KEY:reused_secret",
     );
     expect(result.stderr).toContain("DENA_MEDIA_CLEANUP_TOKEN:missing_or_short");
+    expect(result.stderr).toContain(
+      "DENA_SUPPORT_ATTACHMENT_SCANNER_TOKEN+DENA_SUPPORT_ATTACHMENT_SCAN_HMAC_KEY:reused_secret",
+    );
     expect(result.stderr).toContain("BETTER_AUTH_SECRET:missing_or_short");
     expect(result.stderr).not.toContain(good.DENA_MEDIA_PROCESSOR_TOKEN);
   });

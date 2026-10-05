@@ -35,6 +35,18 @@ export default async function BenefactorHomePage() {
           className={buttonClassName("secondary")}>
           وضعیت درخواست‌های نقش من
         </Link>
+        <Link href="/benefactor/reports" className={buttonClassName("secondary")}>
+          گزارش‌های صندوق
+        </Link>
+        <Link href="/benefactor/students" className={buttonClassName("secondary")}>
+          حریم خصوصی دانش‌آموزان
+        </Link>
+        <Link href="/benefactor/growth" className={buttonClassName("secondary")}>
+          رشد و پیشرفت
+        </Link>
+        <Link href="/benefactor/notifications" className={buttonClassName("secondary")}>
+          اعلان‌ها
+        </Link>
       </header>
 
       <section className="rounded-[20px] bg-dena-lavender px-6 py-7 md:px-8">

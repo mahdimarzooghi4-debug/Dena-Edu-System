@@ -1,8 +1,9 @@
-import { and, count, eq } from "drizzle-orm";
+import { and, count, eq, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { getDb } from "../../db";
 import {
-  courses, privateMediaAssets, studentEnrollments, supervisionGrants,
+  courses, independentEducatorProfiles, privateMediaAssets,
+  providerInstituteCollaborations, studentEnrollments, supervisionGrants,
   verifiedEntities,
 } from "../../db/schema";
 import { listedFreeCourse } from "./entitlement";
@@ -21,20 +22,31 @@ export async function getStudentCourseDetail(studentUserId: string, courseId: st
   const [detail] = await db.select({
     courseId: courses.id,
     title: courses.title,
+    ownerType: courses.ownerType,
     publishedAt: courses.publishedAt,
     providerName: provider.name,
+    independentEducatorName: independentEducatorProfiles.displayName,
+    providerCollaborationApproved: sql<boolean>`${providerInstituteCollaborations.id} IS NOT NULL`,
     responsibleInstituteName: institute.name,
     readyVideoCount: count(privateMediaAssets.id),
     enrollmentStatus: studentEnrollments.status,
   }).from(courses)
     .innerJoin(supervisionGrants,
       eq(supervisionGrants.courseId, courses.id))
-    .innerJoin(provider, and(
+    .leftJoin(provider, and(
       eq(provider.id, courses.providerId), eq(provider.role, "provider"),
+    ))
+    .leftJoin(independentEducatorProfiles, eq(
+      independentEducatorProfiles.id, courses.independentEducatorProfileId,
     ))
     .innerJoin(institute, and(
       eq(institute.id, courses.responsibleInstituteId),
       eq(institute.role, "institute"),
+    ))
+    .leftJoin(providerInstituteCollaborations, and(
+      eq(providerInstituteCollaborations.providerId, courses.providerId),
+      eq(providerInstituteCollaborations.instituteId, courses.responsibleInstituteId),
+      eq(providerInstituteCollaborations.status, "approved"),
     ))
     .innerJoin(privateMediaAssets, and(
       eq(privateMediaAssets.courseId, courses.id),
@@ -51,6 +63,8 @@ export async function getStudentCourseDetail(studentUserId: string, courseId: st
     .groupBy(
       courses.id, courses.title, courses.publishedAt,
       provider.name, institute.name, studentEnrollments.status,
+      independentEducatorProfiles.displayName,
+      providerInstituteCollaborations.id,
     )
     .limit(1);
   return detail ?? null;

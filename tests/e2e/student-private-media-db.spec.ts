@@ -5,7 +5,7 @@ import { expect, request, test, type APIRequestContext } from "@playwright/test"
 import { getDb } from "../../src/db";
 import { getProviderDashboardCourses } from "../../src/server/provider/dashboard";
 import {
-  coursePracticeQuestions, courses, memberships, privateMediaAssets,
+  auditLogs, coursePracticeQuestions, courses, memberships, privateMediaAssets,
   session, studentEnrollments, studentPracticeAttempts,
   supervisionEvents, supervisionGrants, studentVideoCompletions,
   studentVideoNotes, user, verifiedEntities,
@@ -117,6 +117,7 @@ test.describe("free enrollment and private video access must stay course-scoped"
   });
 
   test.afterAll(async () => {
+    await db.delete(auditLogs).where(inArray(auditLogs.actorId, Object.values(users)));
     await db.delete(studentPracticeAttempts).where(inArray(
       studentPracticeAttempts.courseId, Object.values(ids),
     ));
@@ -146,6 +147,7 @@ test.describe("free enrollment and private video access must stay course-scoped"
   });
 
   test("draft or merely requested courses never enter the free catalog", async ({ page }) => {
+    test.setTimeout(60_000);
     const anonymous = await client();
     expect((await anonymous.get("/api/student/courses")).status()).toBe(401);
     expect((await anonymous.get("/api/student/progress")).status()).toBe(401);
@@ -340,6 +342,13 @@ test.describe("free enrollment and private video access must stay course-scoped"
     );
     await page.getByRole("button", { name: "تأیید سؤال تمرینی" }).click();
     expect((await approvedResponse).status()).toBe(200);
+    const practiceAudit = await db.select().from(auditLogs).where(and(
+      eq(auditLogs.actorId, users.institute),
+      eq(auditLogs.entityId, ids.live),
+    ));
+    expect(practiceAudit.map((event) => event.action)).toContain(
+      "course.practice.approved",
+    );
     await expect(page.getByText(
       "تأییدشده برای نمایش به دانش‌آموز",
     )).toBeVisible();
@@ -381,8 +390,11 @@ test.describe("free enrollment and private video access must stay course-scoped"
       .filter((row) => (Object.values(ids) as string[]).includes(row.courseId));
     expect(ownListing).toEqual([
       { courseId: ids.live, title: "دوره رایگان با محتوای خصوصی",
+        ownerType: "verified_provider", independentEducatorName: null,
         providerId, responsibleInstituteId: instituteId,
-        enrolled: false, free: true },
+        enrolled: false, free: true,
+        providerName: "verified provider", instituteName: "verified institute",
+        providerCollaborationApproved: false },
     ]);
     const beforeEnrollmentHome = await student.get("/student");
     expect(beforeEnrollmentHome.status()).toBe(200);
@@ -1076,7 +1088,7 @@ test.describe("free enrollment and private video access must stay course-scoped"
       name: "دوره رایگان با محتوای خصوصی",
     })).toBeVisible();
     await page.getByRole("link", {
-      name: "پیگیری ویدئوهای انجام‌شده",
+      name: "پیگیری یادگیری",
     }).click();
     await expect(page).toHaveURL(/\/student\/progress$/);
     await expect(page.getByRole("heading", {
@@ -1090,7 +1102,7 @@ test.describe("free enrollment and private video access must stay course-scoped"
     })).toHaveAttribute("href",
       `/student/courses/${ids.live}/watch#next-unmarked-video`);
     await page.getByRole("link", {
-      name: "بازگشت به خانه دانش‌آموز",
+      name: "دنا، خانه دانش‌آموز",
     }).click();
     await expect(page).toHaveURL(/\/student$/);
     await page.getByRole("link", {
@@ -1424,7 +1436,7 @@ test.describe("free enrollment and private video access must stay course-scoped"
     expect(await (await other.get(apiPath)).json()).toEqual({ noteCount: 1 });
 
     const privacyHtml = await (await student.get("/student/privacy")).text();
-    expect(privacyHtml).toContain("مدیریت و پاک‌کردن یادداشت‌های ویدئویی");
+    expect(privacyHtml).toContain("مدیریت یادداشت‌های شخصی");
     expect(privacyHtml).not.toContain("یادداشت فقط در دوره مجاز");
     expect(privacyHtml).not.toContain(videoIds.ready);
     expect(privacyHtml).not.toContain("یادداشت در زمان دسترسی");

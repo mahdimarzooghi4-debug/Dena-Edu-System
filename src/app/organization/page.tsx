@@ -35,6 +35,18 @@ export default async function OrganizationHomePage() {
           className={buttonClassName("secondary")}>
           وضعیت درخواست‌های نقش من
         </Link>
+        <Link href="/organization/notifications" className={buttonClassName("secondary")}>
+          اعلان‌ها
+        </Link>
+        <Link href="/organization/reports" className={buttonClassName("secondary")}>
+          گزارش‌ها
+        </Link>
+        <Link href="/organization/growth" className={buttonClassName("secondary")}>
+          رشد و پیشرفت
+        </Link>
+        <Link href="/organization/students" className={buttonClassName("secondary")}>
+          دانش‌آموزان
+        </Link>
       </header>
 
       <section className="rounded-[20px] bg-dena-lavender px-6 py-7 md:px-8">
@@ -95,15 +107,15 @@ export default async function OrganizationHomePage() {
 
       <section aria-labelledby="organization-next" className="space-y-4">
         <SectionHeading id="organization-next">
-          اعضا، تخصیص دوره و گزارش استفاده
+          دانش‌آموزان سازمان
         </SectionHeading>
         <Card>
           <p className="text-sm leading-8 text-dena-muted">
-            فرایند افزودن عضو و تخصیص دوره، گزارش تجمیعی استفاده و سفارش یا
-            صورتحساب هنوز به بک‌اند عملیاتی متصل نشده‌اند؛ این صفحه هیچ
-            عضویت دانش‌آموز، تخصیص، پرداخت یا گزارش مصرفی را حدس نمی‌زند.
-            اطلاعات فردی دانش‌آموزان نیز از این مسیر ارائه نمی‌شود.
+            دانش‌آموزان را از مسیر دستی، فایل CSV یا Excel، یا API در محدودهٔ
+            سازمان خود ثبت کنید. تخصیص دوره، گزارش مصرف و صورتحساب هنوز در این
+            پنل عملیاتی نیستند.
           </p>
+          <Link href="/organization/students" className={`${buttonClassName()} mt-4`}>مدیریت دانش‌آموزان</Link>
         </Card>
       </section>
     </main>

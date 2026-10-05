@@ -2,8 +2,10 @@ import { and, eq, ne, notExists } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { getDb } from "../../db";
 import {
-  courses, memberships, supervisionEvents, supervisionGrants, verifiedEntities,
+  auditLogs, courses, independentEducatorProfiles, memberships,
+  supervisionEvents, supervisionGrants, verifiedEntities,
 } from "../../db/schema";
+import { auditLogRecord } from "../admin/audit";
 import type { NewSupervisedCourse, SupervisionDecision } from "./contracts";
 
 export type CourseWorkflowFailure =
@@ -102,6 +104,13 @@ export async function createSupervisedCourse(
       actorUserId: providerUserId,
       kind: "requested",
     });
+    await tx.insert(auditLogs).values(auditLogRecord({
+      actorId: providerUserId,
+      actorRole: "provider",
+      action: "course.supervision.requested",
+      entityType: "COURSE",
+      entityId: created.id,
+    }));
     return { courseId: created.id, status: "requested" as const, replayed: false };
   });
 }
@@ -128,17 +137,29 @@ export async function decideCourseSupervision(
     if (!institute) throw new CourseWorkflowError("course_not_found");
 
     // Dual-role actors cannot approve or revoke their own provider's work.
-    const [conflictingProvider] = await tx.select({ id: memberships.id })
-      .from(memberships).where(and(
-        eq(memberships.userId, instituteUserId),
-        eq(memberships.role, "provider"),
-        eq(memberships.providerId, course.providerId),
-      )).limit(1);
-    if (conflictingProvider) throw new CourseWorkflowError("conflicted_reviewer");
+    if (course.ownerType === "verified_provider" && course.providerId) {
+      const [conflictingProvider] = await tx.select({ id: memberships.id })
+        .from(memberships).where(and(
+          eq(memberships.userId, instituteUserId),
+          eq(memberships.role, "provider"),
+          eq(memberships.providerId, course.providerId),
+        )).limit(1);
+      if (conflictingProvider) throw new CourseWorkflowError("conflicted_reviewer");
+    } else if (course.ownerType === "independent_educator" &&
+        course.independentEducatorProfileId) {
+      const [profile] = await tx.select({ userId: independentEducatorProfiles.userId })
+        .from(independentEducatorProfiles)
+        .where(eq(independentEducatorProfiles.id, course.independentEducatorProfileId))
+        .limit(1);
+      if (profile?.userId === instituteUserId) {
+        throw new CourseWorkflowError("conflicted_reviewer");
+      }
+    } else {
+      throw new CourseWorkflowError("invalid_transition");
+    }
 
     const [grant] = await tx.select().from(supervisionGrants).where(and(
       eq(supervisionGrants.courseId, course.id),
-      eq(supervisionGrants.providerId, course.providerId),
       eq(supervisionGrants.instituteId, course.responsibleInstituteId),
     )).limit(1).for("update");
     if (!grant || !grant.requestedByProviderUserId) {
@@ -168,11 +189,22 @@ export async function decideCourseSupervision(
     await tx.insert(supervisionEvents).values({
       courseId: course.id,
       providerId: course.providerId,
+      ownerType: course.ownerType,
+      independentEducatorProfileId: course.independentEducatorProfileId,
       instituteId: course.responsibleInstituteId,
       actorUserId: instituteUserId,
       kind,
       reason: decision.reason,
     });
+    await tx.insert(auditLogs).values(auditLogRecord({
+      actorId: instituteUserId,
+      actorRole: "institute",
+      action: kind === "approved" ? "course.supervision.approved"
+        : kind === "rejected" ? "course.supervision.rejected"
+          : "course.supervision.revoked",
+      entityType: "COURSE",
+      entityId: course.id,
+    }));
     return { courseId: course.id, status: nextStatus, decision: kind };
   });
 }

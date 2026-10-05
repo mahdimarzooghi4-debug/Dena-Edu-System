@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getDb } from "../../../../../../db";
 import { coursePracticeQuestions, courses, memberships, privateMediaAssets, supervisionGrants } from "../../../../../../db/schema";
 import { getServerAccessContext } from "../../../../../../server/access/actor";
+import { isVerifiedProviderCourse } from "../../../../../../server/courses/ownership";
 import { validSameOrigin } from "../../../../../../server/access/role-application-contracts";
 import { configuredPrivateMediaOrigin } from "../../../../../../server/student/private-media";
 
@@ -41,7 +42,7 @@ export async function POST(
   const result = await getDb().transaction(async (tx) => {
     const [course] = await tx.select().from(courses)
       .where(eq(courses.id, courseId)).limit(1).for("update");
-    if (!course || !actor.memberships.some((entry) => entry.role === "provider"
+    if (!course || !isVerifiedProviderCourse(course) || !actor.memberships.some((entry) => entry.role === "provider"
         && entry.providerId === course.providerId)) return null;
     const [provider] = await tx.select({ id: memberships.id })
       .from(memberships).where(and(

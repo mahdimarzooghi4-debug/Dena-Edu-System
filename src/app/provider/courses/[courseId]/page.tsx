@@ -122,6 +122,10 @@ export default async function ProviderCoursePage({
               className={buttonClassName("secondary")}>
               سؤال تمرینی دوره
             </Link>
+            <Link href={`/provider/courses/${course.courseId}/assessments`}
+              className={buttonClassName("secondary")}>
+              ارزیابی یادگیری چندسؤالی
+            </Link>
             <Link href="/provider/supervision"
               className={buttonClassName()}>
               مدیریت انتشار در فهرست درخواست‌ها
@@ -136,6 +140,10 @@ export default async function ProviderCoursePage({
             <Link href={`/provider/courses/${course.courseId}/practice`}
               className={buttonClassName("secondary")}>
               مشاهدهٔ وضعیت سؤال تمرینی
+            </Link>
+            <Link href={`/provider/courses/${course.courseId}/assessments`}
+              className={buttonClassName("secondary")}>
+              مشاهدهٔ ارزیابی‌های یادگیری
             </Link>
           </section>
         ) : (

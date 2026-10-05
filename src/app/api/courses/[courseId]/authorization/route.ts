@@ -7,6 +7,7 @@ import {
   canManageSupervisedCourse, canOverseeProviderCourse,
 } from "../../../../../domain/access/policy";
 import { getServerAccessContext } from "../../../../../server/access/actor";
+import { isVerifiedProviderCourse } from "../../../../../server/courses/ownership";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,10 +29,11 @@ export async function GET(
   const db = getDb();
   const [course] = await db.select({
     id: courses.id,
+    ownerType: courses.ownerType,
     providerId: courses.providerId,
     responsibleInstituteId: courses.responsibleInstituteId,
   }).from(courses).where(eq(courses.id, courseId)).limit(1);
-  if (!course) return NextResponse.json({ error: "Not found" }, {
+  if (!course || !isVerifiedProviderCourse(course)) return NextResponse.json({ error: "Not found" }, {
     status: 404, headers: noStore,
   });
   const [grant] = await db.select().from(supervisionGrants)
@@ -41,10 +43,15 @@ export async function GET(
       eq(supervisionGrants.instituteId, course.responsibleInstituteId),
     )).limit(1);
 
-  const supervision = grant ? {
-    ...grant,
-    approvedAt: grant.approvedAt?.toISOString() ?? null,
-  } : null;
+  const supervision = grant?.ownerType === "verified_provider" && grant.providerId
+    ? {
+      courseId: grant.courseId,
+      providerId: grant.providerId,
+      instituteId: grant.instituteId,
+      status: grant.status,
+      approvedByInstituteUserId: grant.approvedByInstituteUserId,
+      approvedAt: grant.approvedAt?.toISOString() ?? null,
+    } : null;
   // This endpoint authorizes provider/institute oversight ONLY; it must never
   // be interpreted as a student's enrollment or permission to stream media.
   if (!canManageSupervisedCourse(actor, course, supervision) &&

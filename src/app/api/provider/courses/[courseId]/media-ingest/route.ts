@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getDb } from "../../../../../../db";
 import { courses, mediaIngests, memberships } from "../../../../../../db/schema";
 import { getServerAccessContext } from "../../../../../../server/access/actor";
+import { isVerifiedProviderCourse } from "../../../../../../server/courses/ownership";
 import { validSameOrigin } from "../../../../../../server/access/role-application-contracts";
 import {
   ingestAvailable, IngestError, MAX_PILOT_UPLOAD_BYTES, reserveIngest,
@@ -33,9 +34,10 @@ export async function GET(
     error: "Not found",
   }, { status: 404, headers: noStore });
   const [course] = await getDb().select({
+    ownerType: courses.ownerType,
     providerId: courses.providerId,
   }).from(courses).where(eq(courses.id, courseId)).limit(1);
-  if (!course || !actor.memberships.some((m) =>
+  if (!course || !isVerifiedProviderCourse(course) || !actor.memberships.some((m) =>
     m.role === "provider" && m.providerId === course.providerId)) {
     return NextResponse.json({ error: "Not found" }, { status: 404, headers: noStore });
   }

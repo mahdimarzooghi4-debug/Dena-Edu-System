@@ -1,8 +1,8 @@
 import { and, count, eq, inArray } from "drizzle-orm";
 import { getDb } from "../../db";
 import {
-  coursePracticeQuestions, courses, privateMediaAssets, supervisionGrants,
-  verifiedEntities,
+  coursePracticeQuestions, courses, independentEducatorProfiles,
+  privateMediaAssets, supervisionGrants, verifiedEntities,
 } from "../../db/schema";
 
 /** Read-only, institute-scoped course metadata. The caller derives scopes
@@ -18,16 +18,20 @@ export async function getInstituteCourseDetail(
   const [course] = await db.select({
     courseId: courses.id,
     title: courses.title,
+    ownerType: courses.ownerType,
     publicationStatus: courses.publicationStatus,
     supervisionStatus: supervisionGrants.status,
     providerName: verifiedEntities.name,
+    independentEducatorName: independentEducatorProfiles.displayName,
   }).from(courses).innerJoin(supervisionGrants, and(
     eq(supervisionGrants.courseId, courses.id),
-    eq(supervisionGrants.providerId, courses.providerId),
+    eq(supervisionGrants.ownerType, courses.ownerType),
     eq(supervisionGrants.instituteId, courses.responsibleInstituteId),
-  )).innerJoin(verifiedEntities, and(
+  )).leftJoin(verifiedEntities, and(
     eq(verifiedEntities.id, courses.providerId),
     eq(verifiedEntities.role, "provider"),
+  )).leftJoin(independentEducatorProfiles, eq(
+    independentEducatorProfiles.id, courses.independentEducatorProfileId,
   )).where(and(
     eq(courses.id, courseId),
     inArray(supervisionGrants.instituteId, [...instituteIds]),

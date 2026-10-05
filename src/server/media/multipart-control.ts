@@ -3,6 +3,7 @@ import { getDb } from "../../db";
 import { courses, mediaIngests, mediaMultipartPlans, memberships, supervisionGrants } from "../../db/schema";
 import { MAX_MULTIPART_BYTES, MULTIPART_PART_BYTES, planMultipart } from "./multipart";
 import { IngestError, type IngestInput } from "./ingest";
+import { isVerifiedProviderCourse } from "../courses/ownership";
 
 /** Purely inert control-plane switch: even when enabled this MUST NOT grant
  * direct upload, create storage sessions or accept arbitrary client keys.
@@ -22,7 +23,7 @@ export async function reserveMultipartPlan(userId: string, courseId: string, inp
     // Shared course row lock serializes both the pilot and dry-run quota.
     const [course] = await tx.select().from(courses)
       .where(eq(courses.id, courseId)).limit(1).for("update");
-    if (!course || course.publicationStatus !== "draft") {
+    if (!course || !isVerifiedProviderCourse(course) || course.publicationStatus !== "draft") {
       throw new IngestError("not_available");
     }
     const [provider] = await tx.select({ id: memberships.id })
@@ -107,9 +108,11 @@ export async function reserveMultipartPlan(userId: string, courseId: string, inp
 export async function listOwnMultipartPlans(userId: string, courseId: string) {
   if (!multipartPlanningEnabled()) throw new IngestError("not_available");
   const db = getDb();
-  const [course] = await db.select({ providerId: courses.providerId })
+  const [course] = await db.select({
+    ownerType: courses.ownerType, providerId: courses.providerId,
+  })
     .from(courses).where(eq(courses.id, courseId)).limit(1);
-  if (!course) throw new IngestError("not_available");
+  if (!course || !isVerifiedProviderCourse(course)) throw new IngestError("not_available");
   const [provider] = await db.select({ id: memberships.id }).from(memberships)
     .where(and(eq(memberships.userId, userId),
       eq(memberships.role, "provider"),
@@ -143,9 +146,11 @@ export async function cancelOwnMultipartPlan(
   if (!multipartPlanningEnabled()) throw new IngestError("not_available");
   return getDb().transaction(async tx => {
     // A course row lock serializes quota with BOTH pilot and multipart create.
-    const [course] = await tx.select({ providerId: courses.providerId })
+    const [course] = await tx.select({
+      ownerType: courses.ownerType, providerId: courses.providerId,
+    })
       .from(courses).where(eq(courses.id, courseId)).limit(1).for("update");
-    if (!course) return "not_found" as const;
+    if (!course || !isVerifiedProviderCourse(course)) return "not_found" as const;
     const [provider] = await tx.select({ id: memberships.id })
       .from(memberships).where(and(eq(memberships.userId, userId),
         eq(memberships.role, "provider"),

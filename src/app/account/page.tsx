@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { Card } from "../../components/ui/card";
 import { buttonClassName } from "../../components/ui/button";
 import { roleLabels } from "../../lib/preview";
+import { navigation } from "../../lib/navigation";
 import {
   getServerAccessContext,
   getServerIdentity,
@@ -27,6 +28,7 @@ export default async function AccountPage() {
     getActiveCourseTeamAssignments(identity.userId),
   ]);
   const activeMemberships = actor?.memberships ?? [];
+  const activeRoles = [...new Set(activeMemberships.map((membership) => membership.role))];
 
   return (
     <main id="main-content" className="mx-auto min-h-screen max-w-4xl px-5 py-8 md:px-10 md:py-12">
@@ -66,20 +68,22 @@ export default async function AccountPage() {
           </ul>
         </section>
         <p className="rounded-xl bg-dena-bg p-4 text-sm leading-7 text-dena-muted">
-          پنل‌های کامل عملیاتی هنوز منتشر نشده‌اند؛ بخش محدودی از دوره‌های
-          رایگان و یک تمرین کوتاه اختیاری دانش‌آموز و گردش‌کار بررسی نقش‌ها
-          به دادهٔ واقعی متصل است.
-          این صفحه فقط وضعیت نشست و نقش‌های معتبر شما را نمایش می‌دهد.
+          دسترسی‌ها از عضویت فعال پایگاه داده تعیین می‌شوند. بعضی گردش‌کارها
+          هنوز به دادهٔ عملیاتی وصل نیستند؛ وضعیت هر قابلیت در صفحهٔ همان نقش
+          مشخص شده است. این صفحه فقط وضعیت نشست و نقش‌های معتبر شما را نمایش می‌دهد.
         </p>
         <div className="flex flex-wrap gap-3">
+          {activeMemberships.length > 0 && (
+            <Link href="/support" className={buttonClassName("secondary")}>
+              پشتیبانی فنی
+            </Link>
+          )}
           <Link href="/account/role-applications" className={buttonClassName("secondary")}>
             درخواست و پیگیری نقش سازمانی
           </Link>
-          {activeMemberships.some((entry) => entry.role === "student") && (
-            <Link href="/student" className={buttonClassName()}>
-              خانه دانش‌آموز
-            </Link>
-          )}
+          <Link href="/account/independent-educator" className={buttonClassName("secondary")}>
+            درخواست همکاری مستقل با مؤسسه
+          </Link>
           {activeMemberships.some((entry) => entry.role === "student") && (
             <Link href="/student/privacy" className={buttonClassName("secondary")}>
               مدیریت یادداشت‌های شخصی
@@ -90,58 +94,46 @@ export default async function AccountPage() {
               پیگیری شخصی ویدئوها
             </Link>
           )}
-          {activeMemberships.some((entry) => entry.role === "student") && (
-            <Link href="/student/courses" className={buttonClassName("secondary")}>
-              دوره‌های رایگان و ثبت‌نام من
-            </Link>
-          )}
           {courseTeamAssignments.length > 0 && (
             <Link href="/course-team" className={buttonClassName("secondary")}>
               فضای تیم آموزشی
             </Link>
           )}
-          {activeMemberships.some((entry) => entry.role === "provider") && (
-            <Link href="/provider" className={buttonClassName()}>
-              خانه ارائه‌دهنده
-            </Link>
-          )}
-          {activeMemberships.some((entry) => entry.role === "provider") && (
-            <Link href="/provider/supervision" className={buttonClassName("secondary")}>
-              درخواست نظارت دوره‌های من
-            </Link>
-          )}
-          {activeMemberships.some((entry) => entry.role === "institute") && (
-            <Link href="/institute" className={buttonClassName()}>
-              خانه مؤسسه
-            </Link>
-          )}
-          {activeMemberships.some((entry) => entry.role === "institute") && (
-            <Link href="/institute/providers" className={buttonClassName("secondary")}>
-              بررسی درخواست نظارت دوره‌ها
-            </Link>
-          )}
-          {activeMemberships.some((entry) => entry.role === "benefactor") && (
-            <Link href="/benefactor" className={buttonClassName()}>
-              خانه خیر و حامی
-            </Link>
-          )}
-          {activeMemberships.some((entry) => entry.role === "organization") && (
-            <Link href="/organization" className={buttonClassName()}>
-              خانه سازمان
-            </Link>
-          )}
-          {activeMemberships.some((entry) => entry.role === "admin") && (
-            <Link href="/admin" className={buttonClassName()}>
-              خانه مدیر
-            </Link>
-          )}
-          {activeMemberships.some((entry) => entry.role === "admin") && (
-            <Link href="/admin/role-applications" className={buttonClassName()}>
-              صف بررسی درخواست‌های نقش
-            </Link>
-          )}
           <Link href="/" className={buttonClassName("outline")}>بازگشت به صفحه اصلی</Link>
         </div>
+        {activeRoles.length > 0 && (
+          <section aria-labelledby="active-role-panels" className="mt-8 border-t border-dena-border pt-6">
+            <h2 id="active-role-panels" className="text-lg font-extrabold">
+              مسیرهای پنل‌های فعال
+            </h2>
+            <ul className="mt-4 grid gap-3 md:grid-cols-2">
+              {activeRoles.map((role) => {
+                const routes = navigation[role].filter((route) =>
+                  route.href !== "/admin/support" || activeMemberships.some((membership) =>
+                    membership.role === "admin" && membership.canHandleTechnicalSupport));
+                return (
+                  <li key={role}>
+                    <details className="rounded-xl border border-dena-border bg-white p-4">
+                      <summary className="cursor-pointer font-bold text-dena-deep">
+                        پنل {roleLabels[role]}
+                      </summary>
+                      <ul className="mt-3 space-y-2 border-t border-dena-border pt-3">
+                        {routes.map((route) => (
+                          <li key={route.href}>
+                            <Link href={route.href}
+                              className="text-sm font-semibold text-dena-brand hover:underline">
+                              {route.title}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
       </Card>
     </main>
   );

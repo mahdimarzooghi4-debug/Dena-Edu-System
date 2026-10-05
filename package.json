@@ -15,7 +15,10 @@
     "test:watch": "vitest",
     "check:release-config": "node scripts/release-preflight.mjs",
     "test:e2e": "playwright test",
-    "test:e2e:db": "playwright test --workers=1 access-db.spec.ts phone-otp-db.spec.ts login-ui-db.spec.ts role-applications-db.spec.ts course-supervision-db.spec.ts student-private-media-db.spec.ts media-ingest-db.spec.ts course-team-communications-db.spec.ts"
+    "test:e2e:db": "npm run test:e2e:db:auth && npm run test:e2e:db:course && npm run test:e2e:db:operations",
+    "test:e2e:db:auth": "playwright test --workers=1 access-db.spec.ts phone-otp-db.spec.ts login-ui-db.spec.ts role-applications-db.spec.ts",
+    "test:e2e:db:course": "playwright test --workers=1 course-supervision-db.spec.ts student-private-media-db.spec.ts student-learning-assessment-db.spec.ts",
+    "test:e2e:db:operations": "playwright test --workers=1 media-ingest-db.spec.ts course-team-communications-db.spec.ts provider-collaborations-db.spec.ts independent-educator-affiliations-db.spec.ts technical-support-db.spec.ts institute-service-orders-db.spec.ts"
   },
   "dependencies": {
     "@fontsource-variable/estedad": "5.3.0",

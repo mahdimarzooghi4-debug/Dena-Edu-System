@@ -18,6 +18,12 @@ async function apiPost(url: string, body: object): Promise<Response> {
   });
 }
 
+function postAuthDestination(): string {
+  const requested = new URLSearchParams(window.location.search).get("next");
+  // Only this known local destination is allowed; never trust arbitrary redirect URLs.
+  return requested === "/account/role-applications" ? requested : "/account";
+}
+
 function explain(status: number, stage: Stage): string {
   if (status === 429) return "تعداد درخواست‌ها بیش از حد مجاز است. کمی بعد دوباره تلاش کنید.";
   if (status === 503 || status >= 500) return "این خدمت در حال حاضر در دسترس نیست.";
@@ -101,7 +107,7 @@ export function MobileSignIn({ enabled }: { enabled: boolean }) {
         setError("تأیید دسترسی کامل نشد. دوباره تلاش کنید.");
         return;
       }
-      router.replace("/account");
+      router.replace(postAuthDestination());
       router.refresh();
     } catch {
       setError("ارتباط برقرار نشد. مجدداً تلاش کنید.");

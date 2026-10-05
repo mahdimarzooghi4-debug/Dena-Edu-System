@@ -1,8 +1,10 @@
 import { and, eq } from "drizzle-orm";
 import { getDb } from "../../db";
 import {
-  memberships, roleApplicationEvents, roleApplications, user, verifiedEntities,
+  auditLogs, memberships, roleApplicationEvents, roleApplications, user,
+  verifiedEntities,
 } from "../../db/schema";
+import { auditLogRecord } from "../admin/audit";
 import type { RoleApplicationDecision } from "./role-application-contracts";
 
 type ReviewFailure =
@@ -88,6 +90,14 @@ export async function reviewRoleApplication(
       kind: decision.action === "approve" ? "approved" : "rejected",
       assignedScopeId: scopeId,
     });
+    await tx.insert(auditLogs).values(auditLogRecord({
+      actorId: reviewerId,
+      actorRole: "admin",
+      action: decision.action === "approve"
+        ? "role_application.approved" : "role_application.rejected",
+      entityType: "ROLE_APPLICATION",
+      entityId: application.id,
+    }));
 
     return {
       id: application.id,

@@ -4,7 +4,7 @@ import { expect, test } from "@playwright/test";
 import { getDb } from "../../src/db";
 import { user } from "../../src/db/schema";
 
-test("mobile UI verifies OTP and creates student only, then signs out", async ({ page }) => {
+test("mobile UI returns to institute application after OTP, then signs out", async ({ page }) => {
   const token = process.env.DENA_SMS_GATEWAY_TOKEN;
   if (process.env.DENA_DB_INTEGRATION !== "1" || !token) throw new Error("OTP mock is required");
   const phone = `+989${String(randomInt(1_000_000_000)).padStart(9, "0")}`;
@@ -12,7 +12,7 @@ test("mobile UI verifies OTP and creates student only, then signs out", async ({
   try {
     // The configured BETTER_AUTH_URL in CI is localhost, not 127.0.0.1.
     // Verify same-origin CSRF handling from the canonical app origin.
-    await page.goto("http://localhost:3000/login");
+    await page.goto("http://localhost:3000/login?next=%2Faccount%2Frole-applications");
     await expect(page.getByRole("heading", { name: "ورود یا ثبت‌نام" })).toBeVisible();
     const local = "0" + phone.slice(3);
     const persian = local.replace(/\d/g, (digit) => "۰۱۲۳۴۵۶۷۸۹"[Number(digit)]);
@@ -28,14 +28,18 @@ test("mobile UI verifies OTP and creates student only, then signs out", async ({
     const { code } = await response.json() as { code: string };
     await page.getByLabel("کد تأیید").fill(code);
     await page.getByRole("button", { name: "تأیید و ورود" }).click();
-    await expect(page).toHaveURL(/\/account$/);
-    await expect(page.getByRole("heading", { name: "به دنا خوش آمدید" })).toBeVisible();
-    await expect(page.getByText("دانش‌آموز", { exact: true })).toBeVisible();
-    await expect(page.getByText("ادمین", { exact: true })).toHaveCount(0);
+    await expect(page).toHaveURL("http://localhost:3000/account/role-applications");
+    await expect(page.getByRole("heading", { name: "درخواست دسترسی جدید" })).toBeVisible();
+    await expect(page.getByLabel("نوع درخواست")).toHaveValue("institute");
+    
 
     const identity = await page.request.get("http://localhost:3000/api/access/me");
     expect(identity.status()).toBe(200);
-    userId = (await identity.json()).userId as string;
+    const access = await identity.json();
+    expect(access.memberships).toEqual([{ role: "student" }]);
+    userId = access.userId as string;
+
+    await page.goto("http://localhost:3000/account");
 
     await page.getByRole("button", { name: "خروج از حساب" }).click();
     await expect(page).toHaveURL(/\/login$/);
