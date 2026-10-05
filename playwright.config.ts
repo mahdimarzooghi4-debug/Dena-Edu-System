@@ -13,6 +13,7 @@ export default defineConfig({
     "**/media-ingest-db.spec.ts",
     "**/course-team-communications-db.spec.ts",
     "**/provider-collaborations-db.spec.ts",
+    "**/independent-educator-affiliations-db.spec.ts",
     "**/technical-support-db.spec.ts",
     "**/institute-service-orders-db.spec.ts",
   ],

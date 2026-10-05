@@ -81,6 +81,9 @@ export default async function AccountPage() {
           <Link href="/account/role-applications" className={buttonClassName("secondary")}>
             درخواست و پیگیری نقش سازمانی
           </Link>
+          <Link href="/account/independent-educator" className={buttonClassName("secondary")}>
+            درخواست همکاری مستقل با مؤسسه
+          </Link>
           {activeMemberships.some((entry) => entry.role === "student") && (
             <Link href="/student/privacy" className={buttonClassName("secondary")}>
               مدیریت یادداشت‌های شخصی

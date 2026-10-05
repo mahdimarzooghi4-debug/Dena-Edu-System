@@ -253,6 +253,13 @@
       "when": 1790861195017,
       "tag": "0035_cool_moira_mactaggert",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1791184110136,
+      "tag": "0036_independent_educator_affiliations",
+      "breakpoints": true
     }
   ]
 }

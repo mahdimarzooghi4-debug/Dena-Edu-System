@@ -1062,6 +1062,129 @@ export const providerInstituteCollaborationEvents = pgTable(
   ],
 );
 
+/** An educator without an independent educational license is a user profile,
+ * not a verified provider entity or a global provider membership. */
+export const independentEducatorProfiles = pgTable(
+  "dena_independent_educator_profiles",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull().unique()
+      .references(() => user.id, { onDelete: "restrict" }),
+    displayName: text("display_name").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull().defaultNow(),
+  },
+  () => [
+    check("dena_independent_educator_display_name_ck", sql`
+      char_length(display_name) BETWEEN 3 AND 120 AND btrim(display_name) <> ''
+    `),
+  ],
+);
+
+export const educatorInstituteAffiliationStatus = pgEnum(
+  "dena_educator_institute_affiliation_status",
+  ["requested", "approved", "rejected", "withdrawn", "revoked"],
+);
+export const educatorInstituteAffiliationEventKind = pgEnum(
+  "dena_educator_institute_affiliation_event_kind",
+  ["requested", "approved", "rejected", "withdrawn", "revoked"],
+);
+
+/** Institution-specific acceptance for an independent educator. It does not
+ * grant the global provider role, a verified entity, or course access. */
+export const educatorInstituteAffiliations = pgTable(
+  "dena_educator_institute_affiliations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    educatorProfileId: uuid("educator_profile_id").notNull()
+      .references(() => independentEducatorProfiles.id, { onDelete: "restrict" }),
+    instituteId: uuid("institute_id").notNull()
+      .references(() => verifiedEntities.id, { onDelete: "restrict" }),
+    requestedByUserId: uuid("requested_by_user_id").notNull()
+      .references(() => user.id, { onDelete: "restrict" }),
+    clientRequestId: uuid("client_request_id").notNull(),
+    displayNameSnapshot: text("display_name_snapshot").notNull(),
+    statement: text("statement").notNull(),
+    status: educatorInstituteAffiliationStatus("status")
+      .notNull().default("requested"),
+    reviewedByUserId: uuid("reviewed_by_user_id")
+      .references(() => user.id, { onDelete: "restrict" }),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    decisionReason: text("decision_reason"),
+    withdrawnAt: timestamp("withdrawn_at", { withTimezone: true }),
+    endedAt: timestamp("ended_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("dena_educator_affiliation_request_uidx")
+      .on(table.educatorProfileId, table.clientRequestId),
+    uniqueIndex("dena_educator_affiliation_active_uidx")
+      .on(table.educatorProfileId, table.instituteId)
+      .where(sql`status IN ('requested', 'approved')`),
+    index("dena_educator_affiliation_profile_idx")
+      .on(table.educatorProfileId, table.status, table.createdAt),
+    index("dena_educator_affiliation_institute_idx")
+      .on(table.instituteId, table.status, table.createdAt),
+    check("dena_educator_affiliation_snapshot_ck", sql`
+      char_length(display_name_snapshot) BETWEEN 3 AND 120
+      AND btrim(display_name_snapshot) <> ''
+      AND char_length(statement) BETWEEN 20 AND 500
+      AND btrim(statement) <> ''
+    `),
+    check("dena_educator_affiliation_decision_reason_ck", sql`
+      decision_reason IS NULL OR
+      (char_length(decision_reason) BETWEEN 15 AND 500
+        AND btrim(decision_reason) <> '')
+    `),
+    check("dena_educator_affiliation_state_ck", sql`
+      (status = 'requested' AND reviewed_by_user_id IS NULL
+        AND reviewed_at IS NULL AND decision_reason IS NULL
+        AND withdrawn_at IS NULL AND ended_at IS NULL)
+      OR (status = 'approved' AND reviewed_by_user_id IS NOT NULL
+        AND reviewed_at IS NOT NULL AND decision_reason IS NOT NULL
+        AND withdrawn_at IS NULL AND ended_at IS NULL)
+      OR (status = 'rejected' AND reviewed_by_user_id IS NOT NULL
+        AND reviewed_at IS NOT NULL AND decision_reason IS NOT NULL
+        AND withdrawn_at IS NULL AND ended_at IS NULL)
+      OR (status = 'withdrawn' AND reviewed_by_user_id IS NULL
+        AND reviewed_at IS NULL AND decision_reason IS NULL
+        AND withdrawn_at IS NOT NULL AND ended_at IS NULL)
+      OR (status = 'revoked' AND reviewed_by_user_id IS NOT NULL
+        AND reviewed_at IS NOT NULL AND decision_reason IS NOT NULL
+        AND withdrawn_at IS NULL AND ended_at IS NOT NULL)
+    `),
+  ],
+);
+
+export const educatorInstituteAffiliationEvents = pgTable(
+  "dena_educator_institute_affiliation_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    affiliationId: uuid("affiliation_id").notNull()
+      .references(() => educatorInstituteAffiliations.id, { onDelete: "restrict" }),
+    actorUserId: uuid("actor_user_id").notNull()
+      .references(() => user.id, { onDelete: "restrict" }),
+    kind: educatorInstituteAffiliationEventKind("kind").notNull(),
+    reason: text("reason"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull().defaultNow(),
+  },
+  (table) => [
+    index("dena_educator_affiliation_events_idx")
+      .on(table.affiliationId, table.createdAt),
+    check("dena_educator_affiliation_event_reason_ck", sql`
+      (kind = 'requested' AND reason IS NULL)
+      OR (kind <> 'requested' AND reason IS NOT NULL
+        AND char_length(reason) BETWEEN 15 AND 500 AND btrim(reason) <> '')
+    `),
+  ],
+);
+
 /**
  * Exam question ownership is attached to a bank. The Dena bank uses the fixed
  * system owner UUID below; every institute bank is owned by its verified
@@ -1417,7 +1540,7 @@ export const auditEntityType = pgEnum("dena_audit_entity_type", [
   "SYSTEM", "USER", "COURSE", "PRACTICE", "MEDIA", "ROLE_APPLICATION",
   "ORGANIZATION_STUDENT", "ORGANIZATION_API_KEY", "ASSESSMENT_QUESTION",
   "ASSESSMENT_EXAM", "INSTITUTE_SERVICE", "SERVICE_ORDER",
-  "PROVIDER_COLLABORATION",
+  "PROVIDER_COLLABORATION", "EDUCATOR_AFFILIATION",
 ]);
 export const auditLogs = pgTable("dena_audit_logs", {
   id: uuid("id").primaryKey().defaultRandom(),
