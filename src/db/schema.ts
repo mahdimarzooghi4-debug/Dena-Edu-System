@@ -1,6 +1,6 @@
 import {
   bigint, boolean, check, date, foreignKey, index, integer, pgEnum, pgTable,
-  primaryKey, text, timestamp, unique, uniqueIndex, uuid,
+  primaryKey, text, timestamp, uniqueIndex, uuid,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { roles } from "../domain/access/contracts";
@@ -154,10 +154,12 @@ export const courses = pgTable("dena_courses", {
   uniqueIndex("dena_courses_institute_request_uidx")
     .on(table.responsibleInstituteId, table.clientRequestId)
     .where(sql`owner_type = 'institute'`),
-  unique("dena_courses_owner_scope_fk_uq").on(
-    table.id, table.ownerType, table.providerId,
-    table.independentEducatorProfileId, table.responsibleInstituteId,
-  ).nullsNotDistinct(),
+  uniqueIndex("dena_courses_scope_fk_uidx").on(
+    table.id, table.providerId, table.responsibleInstituteId,
+  ),
+  uniqueIndex("dena_courses_independent_scope_fk_uidx").on(
+    table.id, table.independentEducatorProfileId, table.responsibleInstituteId,
+  ),
   uniqueIndex("dena_courses_institute_scope_uidx").on(
     table.id, table.responsibleInstituteId,
   ),
@@ -197,11 +199,20 @@ export const supervisionGrants = pgTable("dena_supervision_grants", {
   `),
   index("dena_supervision_institute_idx").on(table.instituteId, table.status),
   foreignKey({
-    columns: [table.courseId, table.ownerType, table.providerId,
-      table.independentEducatorProfileId, table.instituteId],
-    foreignColumns: [courses.id, courses.ownerType, courses.providerId,
-      courses.independentEducatorProfileId, courses.responsibleInstituteId],
-    name: "dena_supervision_matching_course_fk",
+    columns: [table.courseId, table.providerId, table.instituteId],
+    foreignColumns: [courses.id, courses.providerId, courses.responsibleInstituteId],
+    name: "dena_supervision_matching_provider_course_fk",
+  }).onDelete("cascade"),
+  foreignKey({
+    columns: [table.courseId, table.independentEducatorProfileId, table.instituteId],
+    foreignColumns: [courses.id, courses.independentEducatorProfileId,
+      courses.responsibleInstituteId],
+    name: "dena_supervision_matching_independent_course_fk",
+  }).onDelete("cascade"),
+  foreignKey({
+    columns: [table.courseId, table.instituteId],
+    foreignColumns: [courses.id, courses.responsibleInstituteId],
+    name: "dena_supervision_matching_institute_course_fk",
   }).onDelete("cascade"),
   check("dena_supervision_owner_scope_ck", sql`
     (owner_type = 'verified_provider'

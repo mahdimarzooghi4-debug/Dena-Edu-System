@@ -267,6 +267,13 @@
       "when": 1791194535852,
       "tag": "0037_course_ownership_transfer",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1791194874131,
+      "tag": "0038_multi_owner_course_foreign_keys",
+      "breakpoints": true
     }
   ]
 }
