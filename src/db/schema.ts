@@ -1,6 +1,6 @@
 import {
   bigint, boolean, check, date, foreignKey, index, integer, pgEnum, pgTable,
-  primaryKey, text, timestamp, uniqueIndex, uuid,
+  primaryKey, text, timestamp, unique, uniqueIndex, uuid,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { roles } from "../domain/access/contracts";
@@ -154,10 +154,10 @@ export const courses = pgTable("dena_courses", {
   uniqueIndex("dena_courses_institute_request_uidx")
     .on(table.responsibleInstituteId, table.clientRequestId)
     .where(sql`owner_type = 'institute'`),
-  uniqueIndex("dena_courses_owner_scope_fk_uidx").on(
+  unique("dena_courses_owner_scope_fk_uq").on(
     table.id, table.ownerType, table.providerId,
     table.independentEducatorProfileId, table.responsibleInstituteId,
-  ),
+  ).nullsNotDistinct(),
   uniqueIndex("dena_courses_institute_scope_uidx").on(
     table.id, table.responsibleInstituteId,
   ),

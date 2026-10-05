@@ -264,15 +264,8 @@
     {
       "idx": 37,
       "version": "7",
-      "when": 1791193165948,
-      "tag": "0037_odd_barracuda",
-      "breakpoints": true
-    },
-    {
-      "idx": 38,
-      "version": "7",
-      "when": 1791193725568,
-      "tag": "0038_vengeful_grey_gargoyle",
+      "when": 1791194535852,
+      "tag": "0037_course_ownership_transfer",
       "breakpoints": true
     }
   ]
