@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
   if (!actor) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: noStore });
   }
-  if (!actor.memberships.some((entry) => entry.role === "student" && entry.status === "active")) {
+  if (!actor.memberships.some((entry) => entry.role === "student")) {
     return NextResponse.json({ error: "Not found" }, { status: 404, headers: noStore });
   }
 
