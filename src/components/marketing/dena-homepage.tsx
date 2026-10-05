@@ -3,44 +3,11 @@ import Link from "next/link";
 import "./dena-homepage.css";
 import { DenaRoleIcon } from "./dena-site-shell";
 
-const courses = [
-  {
-    id: "math-tenth",
-    subject: "ریاضی دهم تجربی و ریاضی",
-    provider: "مؤسسه آموزشی نمونه",
-    teacher: "استاد علیرضا احمدی",
-    sessions: "۲۴ جلسه آموزشی",
-    hours: "۱۸ ساعت محتوای آموزشی",
-    price: "۳,۸۰۰,۰۰۰ تومان",
-    photo: "math",
-  },
-  {
-    id: "physics-tenth",
-    subject: "فیزیک دهم (مکانیک)",
-    provider: "گروه ماز · تحت نظارت مؤسسه البرز",
-    teacher: "دکتر رضا علوی",
-    sessions: "۲۰ جلسه آموزشی",
-    hours: "۱۵ ساعت محتوای آموزشی",
-    price: "۳,۲۰۰,۰۰۰ تومان",
-    photo: "physics",
-  },
-  {
-    id: "chemistry-tenth",
-    subject: "شیمی دهم (کیهان و ساختار)",
-    provider: "مؤسسه کنکور برتر",
-    teacher: "استاد مریم سهرابی",
-    sessions: "۲۸ جلسه آموزشی",
-    hours: "۲۲ ساعت محتوای آموزشی",
-    price: "۴,۱۰۰,۰۰۰ تومان",
-    photo: "chemistry",
-  },
-];
-
 const steps = [
-  ["۱", "انتخاب دوره از مؤسسه", "دوره‌های ساختارمند مؤسسات آموزشی دارای مجوز را ببین و انتخاب کن."],
-  ["۲", "یادگیری آفلاین", "جلسه‌های ضبط‌شده را ببین، تمرین کن و با سرعت خودت جلو برو."],
-  ["۳", "آزمون و ارزیابی", "نتیجهٔ آزمون‌ها، تمرین‌ها و عملکرد درسی را در مسیر یادگیری ثبت کن."],
-  ["۴", "پایش مسیر رشد", "روند رشد و قدم بعدی را با ترکیب پیشرفت دوره و عملکرد درسی ببین."],
+  ["۱", "ساخت زیرساخت دنا", "پنل‌ها و ابزارهای لازم برای دانش‌آموزان و مؤسسات در حال آماده‌سازی است."],
+  ["۲", "پیوستن مؤسسات آموزشی", "مؤسسات پس از تکمیل سامانه می‌توانند درخواست همکاری ثبت کنند."],
+  ["۳", "ثبت و بررسی محتوا", "دوره‌ها پس از ثبت محتوا و تأیید مجوز و مالکیت منتشر می‌شوند."],
+  ["۴", "آغاز یادگیری", "دانش‌آموزان پس از انتشار دوره‌ها به آموزش و ارزیابی دسترسی خواهند داشت."],
 ];
 
 const roles = [
@@ -84,36 +51,36 @@ export function DenaHomepage() {
         <div className="dena-hero__inner">
           <div className="growth-preview" aria-label="نمونهٔ مسیر رشد و یادگیری دانش‌آموز">
             <div className="growth-preview__heading">
-              <strong><i />مسیر رشد من</strong>
-              <span>+۱۸٪ نسبت به ماه قبل</span>
+              <strong><i />مسیر راه‌اندازی دنا</strong>
+              <span>زیرساخت ← مؤسسات ← محتوا</span>
             </div>
-            <div className="growth-chart" aria-label="روند پیشرفت ماهانه">
+            <div className="growth-chart" aria-hidden="true">
               {[30, 45, 35, 60, 50, 75, 90].map((height, index) => (
                 <div className="growth-chart__item" key={index}>
                   <i style={{ height }} />
-                  <span>{["مهر", "آبان", "آذر", "دی", "بهمن", "اسفند", "خرداد"][index]}</span>
+                  <span>{["۱", "۲", "۳", "۴", "۵", "۶", "۷"][index]}</span>
                 </div>
               ))}
             </div>
             <div className="growth-preview__cards">
               <article className="mini-course">
-                <span className="pill">ادامه یادگیری</span>
-                <strong>ریاضی دهم</strong>
-                <small>جلسه ۸ از ۲۴ · محتوای آفلاین</small>
+                <span className="pill">گام نخست</span>
+                <strong>تکمیل زیرساخت سامانه</strong>
+                <small>پنل‌های دانش‌آموز و مؤسسه</small>
                 <div className="progress"><i /></div>
               </article>
               <article className="mini-course mini-course--next">
-                <span className="pill">گام بعدی پیشنهادی</span>
-                <strong>آزمون سنجش مستمر فصل ۳</strong>
-                <small>تعیین‌شده توسط مؤسسه البرز</small>
-                <Link href="/login">شروع ارزیابی <b aria-hidden="true">←</b></Link>
+                <span className="pill">گام بعدی</span>
+                <strong>پیوستن مؤسسات آموزشی</strong>
+                <small>ورود دوره‌ها پس از آماده‌شدن سامانه</small>
+                <Link href="/institutes/request">ثبت درخواست همکاری <b aria-hidden="true">←</b></Link>
               </article>
             </div>
           </div>
           <div className="dena-hero__copy">
             <span className="eyebrow">اکوسیستم آموزشی دنا</span>
             <h1 id="hero-title">یک مسیر یکپارچه برای رشد تحصیلی</h1>
-            <p>دوره‌های آموزشی آفلاین از مؤسسات، تمرین و آزمون، همراهی آموزشی مؤسسه و مشاهدهٔ مسیر رشد تحصیلی؛ همه در یک تجربهٔ یکپارچه.</p>
+            <p>دنا در حال آماده‌سازی زیرساختی است که دانش‌آموزان، مؤسسات آموزشی و خدمات رشد تحصیلی را در یک مسیر به هم پیوند دهد. دوره‌ها پس از پیوستن مؤسسات و تأیید محتوای آن‌ها منتشر می‌شوند.</p>
             <div className="dena-hero__actions">
             <Link className="dena-button dena-button--primary" href="/login">ورود به دنا</Link>
               <Link className="dena-button dena-button--text" href="/courses">مشاهده دوره‌ها</Link>
@@ -139,30 +106,20 @@ export function DenaHomepage() {
 
       <section className="dena-section dena-courses" id="courses">
         <div className="dena-section__heading dena-section__heading--right">
-          <h2>دوره‌های آموزشی در مسیر رشد تو</h2>
-          <p>دوره‌ها را مؤسسات آموزشی دارای مجوز و ارائه‌دهندگان تحت نظارت آن‌ها ارائه می‌کنند. مسئولیت آموزشی هر دوره با ارائه‌دهندهٔ آن است.</p>
+          <h2>دوره‌ها پس از پیوستن مؤسسات منتشر می‌شوند</h2>
+          <p>در حال حاضر دوره‌ای برای ثبت‌نام منتشر نشده است. پس از تکمیل زیرساخت دنا، مؤسسات آموزشی می‌توانند دوره‌ها و محتوای دارای مجوز خود را ثبت کنند.</p>
         </div>
         <div className="course-grid">
-          {courses.map((course, index) => (
-            <article className="course-card" key={course.subject}>
-              <div className={`course-card__image course-card__image--${course.photo}`} role="img" aria-label={`تصویر دورهٔ ${course.subject}`}>
-                <span className="course-card__image-label">یادگیری مفهومی · پایه دهم</span>
-              </div>
-              <div className="course-card__body">
-                <div className="course-card__badges">
-                  <span>{course.sessions}</span>
-                  <span className={index === 1 ? "badge-supervised" : "badge-licensed"}>{index === 1 ? "ارائه‌دهندهٔ تحت نظارت" : "مؤسسهٔ دارای مجوز"}</span>
-                </div>
-                <h3>{course.subject}</h3>
-                <p>ارائه‌دهنده: {course.provider}<br />مدرس: {course.teacher}</p>
-                <small>{course.hours}</small>
-                <div className="course-card__price"><strong>{course.price}</strong><span>پرداخت در ۴ قسط، بدون افزایش قیمت</span></div>
-                <Link className="dena-button dena-button--primary" href={`/courses/${course.id}`}>مشاهده دوره</Link>
-              </div>
-            </article>
-          ))}
+          <article className="course-card">
+            <div className="course-card__body">
+              <span className="badge-supervised">مرحلهٔ فعلی</span>
+              <h3>آماده‌سازی سامانه و همکاری با مؤسسات</h3>
+              <p>پس از آماده‌شدن پنل مؤسسات، فرایند ثبت دوره، بررسی مجوز محتوا و انتشار در دنا آغاز می‌شود.</p>
+              <Link className="dena-button dena-button--primary" href="/institutes/collaboration">آشنایی با همکاری مؤسسات</Link>
+            </div>
+          </article>
         </div>
-        <Link className="dena-button dena-button--outline dena-courses__all" href="/courses">مشاهده همهٔ دوره‌ها</Link>
+        <Link className="dena-button dena-button--outline dena-courses__all" href="/institutes/request">ثبت درخواست همکاری مؤسسه</Link>
       </section>
 
       <section className="dena-section dena-growth" id="growth">
