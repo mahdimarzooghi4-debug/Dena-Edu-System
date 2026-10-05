@@ -90,11 +90,49 @@ export function DenaInstituteCollaborationPage() {
 }
 
 export function DenaInstituteRequestPage() {
-  return <DenaPublicLayout><section className="catalog-intro"><TitleBlock eyebrow="همکاری با دنا" title="درخواست همکاری مؤسسهٔ آموزشی" text="اطلاعات مؤسسه را ثبت کنید تا درخواست برای بررسی اولیه آماده شود."/></section><section className="dena-section institute-form-layout"><aside><h2>پس از ارسال درخواست</h2><p>اطلاعات برای بررسی اولیه استفاده می‌شوند. ارسال فرم به‌تنهایی به معنای تأیید مجوز یا شروع همکاری نیست.</p><ol><li>بررسی اطلاعات و هویت مؤسسه</li><li>بررسی مدارک مجوز آموزشی</li><li>تماس برای تکمیل فرایند همکاری</li></ol><div className="content-disclaimer-block"><b>دقت اطلاعات</b><p>فقط اطلاعاتی را ثبت کنید که مجاز به ارائهٔ آن هستید.</p></div></aside><form className="institute-request-form" action="/institutes/request/confirmation" method="get"><h2>فرم درخواست همکاری</h2><p>فیلدهای ستاره‌دار الزامی هستند.</p><div className="request-fields"><label>نام رسمی مؤسسه *<input required name="instituteName" /></label><label>شناسه ملی *<input required name="nationalId" inputMode="numeric" /></label><label>نام و نام خانوادگی نماینده *<input required name="representative" /></label><label>سمت نماینده *<input required name="position" /></label><label>شماره همراه *<input required name="phone" inputMode="tel" /></label><label>ایمیل سازمانی<input name="email" type="email" /></label><label>استان و شهر *<input required name="location" /></label><label>وب‌سایت مؤسسه<input name="website" type="url" /></label><label className="request-fields__wide">توضیح کوتاه دربارهٔ دوره‌ها و زمینهٔ همکاری<textarea name="description" rows={4}/></label></div><label className="request-consent"><input type="checkbox" required /> صحت اطلاعات بالا را تأیید می‌کنم و می‌دانم این فرم فقط درخواست اولیه است.</label><p className="content-disclaimer">این فرم در نسخهٔ نمایشی اطلاعات را ذخیره یا ارسال نمی‌کند.</p><button className="dena-button dena-button--primary" type="submit">ثبت درخواست برای بررسی</button></form></section></DenaPublicLayout>;
+  return <DenaPublicLayout>
+    <section className="catalog-intro">
+      <TitleBlock
+        eyebrow="همکاری با دنا"
+        title="درخواست همکاری مؤسسهٔ آموزشی"
+        text="برای ثبت و پیگیری درخواست، از مسیر امن حساب کاربری دنا اقدام کنید. این صفحه اطلاعات هویتی یا مدارک مؤسسه را جمع‌آوری نمی‌کند."
+      />
+    </section>
+    <section className="dena-section institute-form-layout">
+      <aside>
+        <h2>مسیر بررسی درخواست</h2>
+        <ol>
+          <li>ورود به حساب با شمارهٔ همراه تأییدشده</li>
+          <li>ثبت درخواست نقش مؤسسه و شرح زمینهٔ همکاری</li>
+          <li>بررسی درخواست توسط تیم دنا</li>
+        </ol>
+        <div className="content-disclaimer-block">
+          <b>مدارک و مجوزها</b>
+          <p>در فرم درخواست، کد ملی، اطلاعات دانش‌آموزان یا فایل مدرک وارد نکنید. ثبت درخواست به‌معنای تأیید مؤسسه یا صدور مجوز فعالیت آموزشی نیست.</p>
+        </div>
+      </aside>
+      <div className="institute-request-form">
+        <h2>ثبت درخواست از پنل امن</h2>
+        <p>در حساب دنا، نوع درخواست را «مؤسسه» انتخاب کنید. وضعیت درخواست نیز در همان بخش قابل پیگیری است.</p>
+        <Link className="dena-button dena-button--primary" href="/account/role-applications">ورود و ثبت درخواست مؤسسه</Link>
+      </div>
+    </section>
+  </DenaPublicLayout>;
 }
 
 export function DenaInstituteConfirmationPage() {
-  return <DenaPublicLayout><section className="confirmation-state"><span className="confirmation-check" aria-hidden="true">✓</span><Eyebrow>وضعیت درخواست</Eyebrow><h1>درخواست شما آمادهٔ بررسی است</h1><p>این صفحه فقط وضعیت نمایشی فرم را نشان می‌دهد. در نسخهٔ نمایشی هیچ اطلاعاتی ذخیره یا برای دنا ارسال نشده است.</p><div className="content-disclaimer-block"><b>مراحل بعدی</b><p>در فرایند عملیاتی، اطلاعات مؤسسه و مدارک مجوز بررسی می‌شود؛ سپس برای ادامهٔ همکاری با نماینده تماس می‌گیریم.</p></div><Link className="dena-button dena-button--primary" href="/">بازگشت به صفحهٔ اصلی</Link></section></DenaPublicLayout>;
+  return <DenaPublicLayout>
+    <section className="confirmation-state">
+      <Eyebrow>درخواست همکاری مؤسسه</Eyebrow>
+      <h1>برای ثبت درخواست وارد حساب دنا شوید</h1>
+      <p>هیچ درخواستی از این صفحه ثبت نشده است. برای ارسال و پیگیری درخواست نقش مؤسسه، از مسیر حساب کاربری اقدام کنید.</p>
+      <div className="content-disclaimer-block">
+        <b>حریم اطلاعات</b>
+        <p>اطلاعات هویتی و مدارک مجوز را در نشانی صفحه یا فرم‌های عمومی ارسال نکنید. درخواست اولیه فقط شرح فعالیت و نام مؤسسه را می‌گیرد.</p>
+      </div>
+      <Link className="dena-button dena-button--primary" href="/account/role-applications">ورود و ثبت درخواست مؤسسه</Link>
+    </section>
+  </DenaPublicLayout>;
 }
 
 export function DenaAccountInfoPage({ mode }: { mode: "signup" | "recovery" }) {
