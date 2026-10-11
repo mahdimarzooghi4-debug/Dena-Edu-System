@@ -1,11 +1,11 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { Card } from "../../../../components/ui/card";
-import { buttonClassName } from "../../../../components/ui/button";
-import { SectionHeading } from "../../../../components/ui/section-heading";
-import { StudentShell } from "../../../../components/student/student-shell";
-import { getServerAccessContext } from "../../../../server/access/actor";
+import { Card } from "../../../components/ui/card";
+import { buttonClassName } from "../../../components/ui/button";
+import { SectionHeading } from "../../../components/ui/section-heading";
+import { StudentShell } from "../../../components/student/student-shell";
+import { getServerAccessContext } from "../../../server/access/actor";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
