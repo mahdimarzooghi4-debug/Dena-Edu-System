@@ -4,6 +4,7 @@ import { serializeSignedCookie } from "better-call";
 import { expect, request, test, type APIRequestContext } from "@playwright/test";
 import { getDb } from "../../src/db";
 import {
+  assessmentExamAttempts, assessmentExams, assessmentQuestionBanks,
   courseLearningAssessmentQuestions, courseLearningAssessments,
   coursePracticeQuestions, courses,
   memberships, privateMediaAssets, session, studentEnrollments,
@@ -31,6 +32,11 @@ test.describe("student learning assessment lifecycle", () => {
   const pendingQuestionId = randomUUID();
   const assetIds = [randomUUID(), randomUUID(), randomUUID()];
   const questions = [randomUUID(), randomUUID(), randomUUID()];
+  const denaBankId = randomUUID();
+  const instituteBankId = randomUUID();
+  const denaExamId = randomUUID();
+  const instituteExamId = randomUUID();
+  const denaOwnerId = "00000000-0000-0000-0000-000000000001";
 
   async function client(as: keyof typeof tokens): Promise<APIRequestContext> {
     const cookie = await serializeSignedCookie(
@@ -78,6 +84,24 @@ test.describe("student learning assessment lifecycle", () => {
       requestedByProviderUserId: users.provider,
       approvedByInstituteUserId: users.institute, approvedAt: new Date(),
     });
+    await db.insert(assessmentQuestionBanks).values([
+      { id: denaBankId, ownerType: "dena", ownerId: denaOwnerId },
+      { id: instituteBankId, ownerType: "institute", ownerId: instituteId },
+    ]);
+    const examStartsAt = new Date(Date.now() - 60_000);
+    const examEndsAt = new Date(Date.now() + 3_600_000);
+    await db.insert(assessmentExams).values([
+      { id: denaExamId, examType: "dena_coordinated",
+        ownerType: "dena", ownerId: denaOwnerId, bankId: denaBankId,
+        courseId: null, title: "آزمون هماهنگ دنا", instructions: "آزمون آزمایشی",
+        startsAt: examStartsAt, endsAt: examEndsAt, durationMinutes: 30,
+        attemptLimit: 1, status: "published", createdByUserId: users.admin },
+      { id: instituteExamId, examType: "institute_planned",
+        ownerType: "institute", ownerId: instituteId, bankId: instituteBankId,
+        courseId, title: "آزمون مؤسسه", instructions: "آزمون آزمایشی",
+        startsAt: examStartsAt, endsAt: examEndsAt, durationMinutes: 30,
+        attemptLimit: 1, status: "published", createdByUserId: users.admin },
+    ]);
     await db.insert(privateMediaAssets).values(assetIds.map((id, index) => ({
       id, courseId, title: `درس ${index + 1}`, objectKey: `${courseId}/${id}.mp4`,
     })));
@@ -117,6 +141,13 @@ test.describe("student learning assessment lifecycle", () => {
   });
 
   test.afterAll(async () => {
+    await db.delete(assessmentExamAttempts).where(inArray(
+      assessmentExamAttempts.examId, [denaExamId, instituteExamId],
+    ));
+    await db.delete(assessmentExams).where(inArray(assessmentExams.id,
+      [denaExamId, instituteExamId]));
+    await db.delete(assessmentQuestionBanks).where(inArray(assessmentQuestionBanks.id,
+      [denaBankId, instituteBankId]));
     await db.delete(studentLearningAssessmentLessonReviews)
       .where(eq(studentLearningAssessmentLessonReviews.assessmentId, assessmentId));
     await db.delete(studentLearningAssessmentAttemptQuestions)
@@ -138,6 +169,65 @@ test.describe("student learning assessment lifecycle", () => {
     await db.delete(memberships).where(inArray(memberships.userId, Object.values(users)));
     await db.delete(verifiedEntities).where(inArray(verifiedEntities.id, [providerId, instituteId]));
     await db.delete(user).where(inArray(user.id, Object.values(users)));
+  });
+
+  test("AI tutor enforces student access, blocks both exam types, and fails closed", async () => {
+    const student = await client("student");
+    const otherStudent = await client("other");
+    const institute = await client("institute");
+    const anonymous = await request.newContext({ baseURL: "http://localhost:3000" });
+
+    const noOrigin = await student.post("/api/student/ai-tutor", {
+      data: { courseId, message: "این مفهوم را توضیح بده." },
+      headers: { Origin: "https://attacker.example" },
+    });
+    expect(noOrigin.status()).toBe(403);
+    const unauthenticated = await anonymous.post("/api/student/ai-tutor", {
+      data: { courseId, message: "این مفهوم را توضیح بده." },
+      headers: { Origin: "http://localhost:3000" },
+    });
+    expect(unauthenticated.status()).toBe(401);
+    const wrongRole = await post(institute, "/api/student/ai-tutor", {
+      courseId, message: "این مفهوم را توضیح بده.",
+    });
+    expect(wrongRole.status()).toBe(404);
+    const invalidPayload = await post(student, "/api/student/ai-tutor", {
+      courseId, message: "", unexpected: true,
+    });
+    expect(invalidPayload.status()).toBe(400);
+    const noCourseEntitlement = await post(otherStudent, "/api/student/ai-tutor", {
+      courseId, message: "این مفهوم را توضیح بده.",
+    });
+    expect(noCourseEntitlement.status()).toBe(404);
+
+    for (const examId of [denaExamId, instituteExamId]) {
+      const attemptId = randomUUID();
+      const now = new Date();
+      await db.insert(assessmentExamAttempts).values({
+        id: attemptId, examId, studentUserId: users.student, attemptNumber: 1,
+        status: "in_progress", questionCount: 1,
+        startedAt: now, deadlineAt: new Date(now.getTime() + 1_800_000),
+      });
+      const blocked = await post(student, "/api/student/ai-tutor", {
+        courseId, message: "این مفهوم را توضیح بده.",
+      });
+      expect(blocked.status()).toBe(403);
+      expect(await blocked.json()).toMatchObject({ code: "ACTIVE_EXAM" });
+      expect(blocked.headers()["cache-control"]).toContain("no-store");
+      await db.delete(assessmentExamAttempts)
+        .where(eq(assessmentExamAttempts.id, attemptId));
+    }
+
+    const unavailable = await post(student, "/api/student/ai-tutor", {
+      courseId, message: "این مفهوم را توضیح بده.",
+    });
+    expect(unavailable.status()).toBe(503);
+    expect(await unavailable.json()).toMatchObject({ code: "AI_TUTOR_UNAVAILABLE" });
+    expect(unavailable.headers()["cache-control"]).toContain("no-store");
+    await anonymous.dispose();
+    await otherStudent.dispose();
+    await institute.dispose();
+    await student.dispose();
   });
 
   test("hides answer keys, serializes starts, and requires lesson review before retry", async () => {
