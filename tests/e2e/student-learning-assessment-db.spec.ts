@@ -32,7 +32,7 @@ test.describe("student learning assessment lifecycle", () => {
   const pendingQuestionId = randomUUID();
   const assetIds = [randomUUID(), randomUUID(), randomUUID()];
   const questions = [randomUUID(), randomUUID(), randomUUID()];
-  const denaBankId = randomUUID();
+  const denaBankId = "00000000-0000-0000-0000-000000000002";
   const instituteBankId = randomUUID();
   const denaExamId = randomUUID();
   const instituteExamId = randomUUID();
@@ -84,10 +84,9 @@ test.describe("student learning assessment lifecycle", () => {
       requestedByProviderUserId: users.provider,
       approvedByInstituteUserId: users.institute, approvedAt: new Date(),
     });
-    await db.insert(assessmentQuestionBanks).values([
-      { id: denaBankId, ownerType: "dena", ownerId: denaOwnerId },
-      { id: instituteBankId, ownerType: "institute", ownerId: instituteId },
-    ]);
+    await db.insert(assessmentQuestionBanks).values({
+      id: instituteBankId, ownerType: "institute", ownerId: instituteId,
+    });
     const examStartsAt = new Date(Date.now() - 60_000);
     const examEndsAt = new Date(Date.now() + 3_600_000);
     await db.insert(assessmentExams).values([
@@ -146,8 +145,8 @@ test.describe("student learning assessment lifecycle", () => {
     ));
     await db.delete(assessmentExams).where(inArray(assessmentExams.id,
       [denaExamId, instituteExamId]));
-    await db.delete(assessmentQuestionBanks).where(inArray(assessmentQuestionBanks.id,
-      [denaBankId, instituteBankId]));
+    await db.delete(assessmentQuestionBanks)
+      .where(eq(assessmentQuestionBanks.id, instituteBankId));
     await db.delete(studentLearningAssessmentLessonReviews)
       .where(eq(studentLearningAssessmentLessonReviews.assessmentId, assessmentId));
     await db.delete(studentLearningAssessmentAttemptQuestions)
