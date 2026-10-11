@@ -53,8 +53,34 @@ export default async function StudentHomePage() {
             <Link href="/student/courses" className={buttonClassName()}>
               دوره‌های من
             </Link>
+            <Link href="/student/ai-tutor" className={buttonClassName("outline")}>
+              معلم هوشمند
+            </Link>
             <Link href="/student/progress" className={buttonClassName("outline")}>
               پیگیری یادگیری
+            </Link>
+          </div>
+        </section>
+
+        <section aria-labelledby="student-ai-tutor" className="rounded-[22px] border border-dena-border bg-white p-6 shadow-[0_8px_12px_rgba(91,76,226,0.08)] md:p-7">
+          <div className="flex flex-wrap items-start justify-between gap-5">
+            <div className="max-w-3xl">
+              <p className="text-sm font-bold text-dena-brand">همراه یادگیری دنا</p>
+              <h2 id="student-ai-tutor" className="mt-2 text-xl font-extrabold text-dena-ink md:text-2xl">
+                معلم هوشمند
+              </h2>
+              <p className="mt-2 text-sm leading-8 text-dena-muted">
+                دنا در حال آماده‌سازی معلمی است که با دیتاست آموزشی خود دنا آغاز می‌کند و با ویدئوهای مجازِ دوره‌های تو، برای مسیر یادگیری خودت رشد می‌کند.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 rounded-full bg-dena-lavender px-3 py-2 text-xs font-bold text-dena-brand">
+              <span className="size-2 rounded-full bg-amber-500" aria-hidden="true" />
+              در حال آماده‌سازی
+            </div>
+          </div>
+          <div className="mt-5">
+            <Link href="/student/ai-tutor" className={buttonClassName()}>
+              آشنایی با معلم هوشمند
             </Link>
           </div>
         </section>
