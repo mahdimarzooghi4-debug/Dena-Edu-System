@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 type StudentSection =
   | "home"
+  | "aiTutor"
   | "courses"
   | "assessments"
   | "services"
@@ -19,6 +20,7 @@ type Props = {
 
 type IconName =
   | "home"
+  | "sparkles"
   | "book"
   | "assessment"
   | "growth"
@@ -35,6 +37,7 @@ const desktopItems: ReadonlyArray<{
   icon: IconName;
 }> = [
   { key: "home", href: "/student", label: "خانه من", icon: "home" },
+  { key: "aiTutor", href: "/student/ai-tutor", label: "معلم هوشمند", icon: "sparkles" },
   { key: "courses", href: "/student/courses", label: "دوره‌های من", icon: "book" },
   { key: "assessments", href: "/student/assessments", label: "تمرین‌ها و آزمون‌ها", icon: "assessment" },
   { key: "services", href: "/student/services", label: "خدمات مؤسسه‌ها", icon: "help" },
@@ -71,6 +74,8 @@ function Icon({ name, className = "size-5" }: { name: IconName; className?: stri
   switch (name) {
     case "home":
       return <svg {...common}><path d="M3 10.5 12 3l9 7.5" /><path d="M5 9.5V21h14V9.5" /><path d="M9 21v-7h6v7" /></svg>;
+    case "sparkles":
+      return <svg {...common}><path d="m12 3 1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5z" /><path d="m19 16 .7 2.3L22 19l-2.3.7L19 22l-.7-2.3L16 19l2.3-.7z" /><path d="m5 2 .6 2.4L8 5l-2.4.6L5 8l-.6-2.4L2 5l2.4-.6z" /></svg>;
     case "book":
       return <svg {...common}><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z" /><path d="M4 5.5v16" /></svg>;
     case "assessment":
