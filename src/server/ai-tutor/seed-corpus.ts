@@ -63,6 +63,7 @@ const lessons = [
 export type SeedAnswer = {
   answer: string;
   source: { id: SeedTopicId; title: string; corpusVersion: string };
+  guidedHint?: string;
 };
 export type SeedPractice = {
   id: string;
@@ -120,5 +121,20 @@ export function gradeSeedPractice(
   return {
     correct: practice.correctOption === selectedOption,
     explanation: practice.explanation,
+  };
+}
+
+
+/** Adds only Dena-authored guidance for a student's own explicitly saved
+ * practice outcome. This is deterministic adaptation, not model training.
+ */
+export function applySeedPracticeGuidance(
+  answer: SeedAnswer,
+  needsGuidance: boolean,
+): SeedAnswer {
+  if (!needsGuidance) return answer;
+  return {
+    ...answer,
+    guidedHint: getSeedPractice(answer.source.id).guidedHint,
   };
 }
