@@ -28,7 +28,7 @@ test.describe("independent educator institute affiliations", () => {
     outsider: randomUUID(), selfApplicant: randomUUID(),
   };
   const institutes = { a: randomUUID(), b: randomUUID() };
-  let ownedCourseId = randomUUID();
+  let ownedCourseId: string = randomUUID();
   const ownedAssetId = randomUUID();
   const requestIds = { a: randomUUID(), b: randomUUID(), self: randomUUID() };
   let affiliationA = "";
