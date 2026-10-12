@@ -18,6 +18,8 @@ const topicTitles: Record<string, string> = {
   "math.linear-equation.v1": "معادلهٔ یک‌مجهولی",
   "math.fractions.add.v1": "جمع کسرها",
   "math.percent.v1": "درصد",
+  "science.light.v1": "نور و عدسی",
+  "geography.climate.v1": "اقلیم و رطوبت",
 };
 
 export function AiTutorChat({ courses, initialTopics, initialGuidanceConceptIds }: {

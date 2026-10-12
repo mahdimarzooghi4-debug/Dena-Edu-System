@@ -1,15 +1,19 @@
 /** Small, reviewed Dena-owned starter corpus. This is retrieval over authored
  * examples, not a trained model. Unsupported questions must remain unanswered.
  */
-export const SEED_CORPUS_VERSION = "2026-10-12.1";
+export const SEED_CORPUS_VERSION = "2026-10-12.2";
 export type SeedTopicId =
   | "math.linear-equation.v1"
   | "math.fractions.add.v1"
-  | "math.percent.v1";
+  | "math.percent.v1"
+  | "science.light.v1"
+  | "geography.climate.v1";
 const seedTopicIds: readonly string[] = [
   "math.linear-equation.v1",
   "math.fractions.add.v1",
   "math.percent.v1",
+  "science.light.v1",
+  "geography.climate.v1",
 ];
 export function isSeedTopicId(value: string): value is SeedTopicId {
   return seedTopicIds.includes(value);
@@ -56,6 +60,34 @@ const lessons = [
       correctOption: 1,
       explanation: "(۲۰۰ × ۱۵) ÷ ۱۰۰ = ۳۰.",
       guidedHint: "عدد را در درصد ضرب کن و حاصل را بر ۱۰۰ تقسیم کن.",
+    },
+  },
+  {
+    id: "science.light.v1",
+    title: "نور و عدسی",
+    keywords: ["نور", "عدسی", "محدب", "مقعر", "فاصله کانونی", "کانونی"],
+    answer: "نور در یک محیط یکنواخت معمولاً در مسیر مستقیم منتشر می‌شود. عدسی محدب در شرایط مناسب پرتوهای موازی را به هم نزدیک می‌کند و عدسی مقعر آن‌ها را از هم دور می‌کند.\n\nنقطه‌ای که پرتوهای موازی پس از عبور از عدسی محدب به هم می‌رسند، کانون عدسی نام دارد؛ فاصلهٔ عدسی تا این نقطه را فاصلهٔ کانونی می‌گویند. جای تصویر به فاصلهٔ جسم از عدسی هم بستگی دارد.",
+    practice: {
+      id: "practice.science.light.v1",
+      prompt: "عدسی محدب با پرتوهای موازی نور چه می‌کند؟",
+      options: ["پرتوها را به هم نزدیک می‌کند", "پرتوها را از هم دور می‌کند", "نور را کاملاً متوقف می‌کند", "مسیر نور را همیشه خمیده می‌کند"],
+      correctOption: 0,
+      explanation: "عدسی محدب پرتوهای موازی را پس از عبور به هم نزدیک می‌کند؛ در حالت آرمانی آن‌ها نزدیک کانون به هم می‌رسند.",
+      guidedHint: "شکل عدسی محدب در وسط ضخیم‌تر است و پرتوهای موازی را همگرا می‌کند.",
+    },
+  },
+  {
+    id: "geography.climate.v1",
+    title: "اقلیم و رطوبت",
+    keywords: ["اقلیم", "آب و هوا", "آب‌وهوا", "رطوبت", "بخار آب", "بارش", "هواشناسی"],
+    answer: "وضع هوا شرایط کوتاه‌مدت جو، مثل دما و بارش امروز است؛ اقلیم الگوی معمول این شرایط در یک منطقه طی سال‌های طولانی است.\n\nرطوبت هوا به مقدار بخار آب موجود در هوا گفته می‌شود. هوای گرم می‌تواند بخار آب بیشتری در خود نگه دارد، اما وجود رطوبت به‌تنهایی به معنی بارش نیست؛ برای بارش، بخار آب باید سرد و متراکم شود و قطره‌ها یا بلورهای یخ تشکیل دهند.",
+    practice: {
+      id: "practice.geography.climate.v1",
+      prompt: "کدام گزینه تفاوت وضع هوا و اقلیم را درست بیان می‌کند؟",
+      options: ["وضع هوا کوتاه‌مدت است و اقلیم الگوی بلندمدت یک منطقه است", "اقلیم فقط دمای امروز است", "وضع هوا فقط دریاها را توصیف می‌کند", "این دو واژه همیشه معنی یکسان دارند"],
+      correctOption: 0,
+      explanation: "وضع هوا تغییرهای کوتاه‌مدت جو را توصیف می‌کند؛ اقلیم از الگوی معمول این شرایط در دوره‌ای طولانی به دست می‌آید.",
+      guidedHint: "به بازهٔ زمانی توجه کن: امروز در برابر الگوی چندسالهٔ یک منطقه.",
     },
   },
 ] as const;

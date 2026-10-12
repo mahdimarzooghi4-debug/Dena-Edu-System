@@ -330,6 +330,13 @@
       "when": 1791819000000,
       "tag": "0046_dena_ai_video_learning_concepts",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1791820000000,
+      "tag": "0047_dena_ai_seed_science_geography",
+      "breakpoints": true
     }
   ]
 }
