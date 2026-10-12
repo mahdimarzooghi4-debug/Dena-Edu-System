@@ -6,6 +6,14 @@ export type SeedTopicId =
   | "math.linear-equation.v1"
   | "math.fractions.add.v1"
   | "math.percent.v1";
+const seedTopicIds: readonly string[] = [
+  "math.linear-equation.v1",
+  "math.fractions.add.v1",
+  "math.percent.v1",
+];
+export function isSeedTopicId(value: string): value is SeedTopicId {
+  return seedTopicIds.includes(value);
+}
 
 const lessons = [
   {
