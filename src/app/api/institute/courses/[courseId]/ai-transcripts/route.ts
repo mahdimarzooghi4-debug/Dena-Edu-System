@@ -27,7 +27,15 @@ function splitTranscript(value: string): string[] {
   let current = "";
   for (const word of normalized.split(/\s+/u)) {
     const next = current ? current + " " + word : word;
-    if (next.length > 900 && current) {
+    if (word.length > 900) {
+      if (current) chunks.push(current);
+      const codepoints = Array.from(word);
+      for (let index = 0; index < codepoints.length; index += 900) {
+        const piece = codepoints.slice(index, index + 900).join("");
+        if (piece.length) chunks.push(piece);
+      }
+      current = "";
+    } else if (next.length > 900 && current) {
       chunks.push(current);
       current = word;
     } else current = next;
