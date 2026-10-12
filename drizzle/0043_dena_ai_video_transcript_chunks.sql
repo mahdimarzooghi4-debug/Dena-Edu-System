@@ -18,7 +18,8 @@ CREATE TABLE "dena_ai_video_transcript_chunks" (
     CHECK (
       chunk_index BETWEEN 0 AND 99
       AND char_length(chunk_text) BETWEEN 1 AND 1000
-      AND source_sha256 ~ '^[0-9a-f]{64}$'
+      AND char_length(source_sha256) = 64
+      AND source_sha256 ~ '^[0-9a-f]{64}'
     )
 );
 --> statement-breakpoint
