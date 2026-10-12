@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, or, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import {
   denaAiVideoTranscriptChunks, privateMediaAssets, courses,
@@ -46,7 +46,35 @@ export async function retrieveStudentVideoTranscript(
     .where(and(
       eq(denaAiVideoTranscriptChunks.courseId, courseId),
       eq(privateMediaAssets.status, "ready"),
-      eq(courses.ownerType, "institute"),
+      or(
+        eq(courses.ownerType, "institute"),
+        and(
+          eq(courses.ownerType, "independent_educator"),
+          sql`EXISTS (
+            SELECT 1
+            FROM dena_educator_institute_affiliations AS affiliation
+            JOIN dena_supervision_grants AS supervision
+              ON supervision.course_id = dena_courses.id
+             AND supervision.owner_type = 'independent_educator'
+             AND supervision.independent_educator_profile_id =
+                 dena_courses.independent_educator_profile_id
+             AND supervision.institute_id = dena_courses.responsible_institute_id
+            WHERE affiliation.educator_profile_id =
+                    dena_courses.independent_educator_profile_id
+              AND affiliation.institute_id = dena_courses.responsible_institute_id
+              AND affiliation.status = 'approved'
+              AND supervision.status = 'approved'
+              AND supervision.approved_at IS NOT NULL
+              AND EXISTS (
+                SELECT 1 FROM dena_memberships AS approver
+                WHERE approver.user_id = supervision.approved_by_institute_user_id
+                  AND approver.role = 'institute'
+                  AND approver.institute_id = dena_courses.responsible_institute_id
+                  AND approver.status = 'active'
+              )
+          )`,
+        ),
+      ),
       sql`EXISTS (
         SELECT 1 FROM dena_ai_content_permission_events AS granted
         WHERE granted.asset_id = ${privateMediaAssets.id}
