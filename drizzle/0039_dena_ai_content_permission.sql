@@ -17,7 +17,7 @@ CREATE TABLE "dena_ai_content_permission_events" (
     FOREIGN KEY ("course_id","institute_id")
     REFERENCES "public"."dena_courses"("id","responsible_institute_id")
     ON DELETE restrict ON UPDATE no action,
-  CONSTRAINT "dena_ai_permission_events_actor_user_id_user_id_fk"
+  CONSTRAINT "dena_ai_content_permission_events_actor_user_id_user_id_fk"
     FOREIGN KEY ("actor_user_id") REFERENCES "public"."user"("id")
     ON DELETE restrict ON UPDATE no action,
   CONSTRAINT "dena_ai_permission_decision_ck" CHECK (
