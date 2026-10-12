@@ -194,6 +194,12 @@ test.describe("Dena AI video permission authorization and revocation", () => {
     expect(await savedTranscript.json()).toMatchObject({
       saved: true, chunkCount: 1, sourceSha256: expect.stringMatching(/^[0-9a-f]{64}$/),
     });
+    const transcriptStatus = await institute.get(transcriptPath);
+    expect(transcriptStatus.status()).toBe(200);
+    expect(await transcriptStatus.json()).toMatchObject({
+      assets: [{ assetId: assetIds.ready, chunkCount: 1 }],
+    });
+    expect(JSON.stringify(await transcriptStatus.json())).not.toContain(transcript);
     const transcriptAnswer = await post(student, "/api/student/ai-tutor", {
       courseId,
       message: "در آزمایشگاه چطور نور را با عدسی متمرکز کنیم؟",
