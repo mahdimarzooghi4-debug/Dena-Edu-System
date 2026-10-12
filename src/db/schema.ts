@@ -551,6 +551,8 @@ export const studentAiTutorTopics = pgTable("dena_student_ai_tutor_topics", {
     .references(() => user.id, { onDelete: "cascade" }),
   topicId: text("topic_id").notNull(),
   questionCount: integer("question_count").notNull().default(1),
+  practiceAttemptCount: integer("practice_attempt_count").notNull().default(0),
+  practiceCorrectCount: integer("practice_correct_count").notNull().default(0),
   firstAskedAt: timestamp("first_asked_at", { withTimezone: true })
     .notNull().defaultNow(),
   lastAskedAt: timestamp("last_asked_at", { withTimezone: true })
@@ -568,6 +570,10 @@ export const studentAiTutorTopics = pgTable("dena_student_ai_tutor_topics", {
     )
     AND question_count BETWEEN 1 AND 10000
     AND last_asked_at >= first_asked_at
+  `),
+  check("dena_student_ai_tutor_topics_practice_bounds_ck", sql`
+    practice_attempt_count BETWEEN 0 AND 10000
+    AND practice_correct_count BETWEEN 0 AND practice_attempt_count
   `),
 ]);
 
