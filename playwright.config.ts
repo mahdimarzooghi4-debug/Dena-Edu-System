@@ -9,6 +9,7 @@ export default defineConfig({
     "**/role-applications-db.spec.ts",
     "**/course-supervision-db.spec.ts",
     "**/student-private-media-db.spec.ts",
+    "**/dena-ai-content-permissions-db.spec.ts",
     "**/student-learning-assessment-db.spec.ts",
     "**/media-ingest-db.spec.ts",
     "**/course-team-communications-db.spec.ts",
