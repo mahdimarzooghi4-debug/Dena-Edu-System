@@ -41,7 +41,23 @@ export function AiVideoPermissions({
     }
   }, [courseId]);
 
-  useEffect(() => { void refresh(); }, [refresh]);
+  useEffect(() => {
+    let active = true;
+    void fetch(`/api/institute/courses/${courseId}/ai-permissions`, {
+      cache: "no-store",
+    }).then(async (response) => {
+      if (!response.ok) throw new Error("فهرست ویدئوها در دسترس نیست.");
+      return await response.json() as { assets: VideoAsset[] };
+    }).then((body) => {
+      if (active) setAssets(body.assets);
+    }).catch((cause: unknown) => {
+      if (active) setError(cause instanceof Error
+        ? cause.message : "خطا در دریافت ویدئوها.");
+    }).finally(() => {
+      if (active) setLoading(false);
+    });
+    return () => { active = false; };
+  }, [courseId]);
 
   async function submit(
     event: FormEvent<HTMLFormElement>,
