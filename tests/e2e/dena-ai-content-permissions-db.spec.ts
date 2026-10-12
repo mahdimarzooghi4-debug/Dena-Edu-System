@@ -288,7 +288,18 @@ test.describe("Dena AI video permission authorization and revocation", () => {
     const afterRevocation = await post(student, "/api/student/ai-tutor", {
       courseId, message: "در آزمایشگاه چطور نور را با عدسی متمرکز کنیم؟",
     });
-    expect(afterRevocation.status()).toBe(422);
+    expect(afterRevocation.status()).toBe(200);
+    const fallbackAnswer = await afterRevocation.json();
+    expect(fallbackAnswer).toMatchObject({
+      source: {
+        id: "science.light.v1",
+        title: "نور و عدسی",
+        corpusVersion: "2026-10-12.2",
+      },
+      topicRecorded: false,
+      answer: expect.stringContaining("عدسی محدب"),
+    });
+    expect(fallbackAnswer.source).not.toHaveProperty("kind");
 
     const institutePage = await institute.get(`/institute/courses/${courseId}`);
     expect(institutePage.status()).toBe(200);
