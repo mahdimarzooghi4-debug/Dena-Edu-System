@@ -574,7 +574,14 @@ export const denaAiVideoTranscriptChunks = pgTable(
     check("dena_ai_video_transcript_bounds_ck", sql`
       chunk_index BETWEEN 0 AND 99
       AND char_length(chunk_text) BETWEEN 1 AND 1000
-      AND source_sha256 ~ '^[0-9a-f]{64}
+      AND char_length(source_sha256) = 64
+      AND source_sha256 ~ '^[0-9a-f]{64}'
+    `),
+  ],
+);
+
+/** Optional per-student topic counters and a retry guidance flag. Never store prompt text or infer mastery. */
+export const studentAiTutorTopics = pgTable("dena_student_ai_tutor_topics", {
   studentUserId: uuid("student_user_id").notNull()
     .references(() => user.id, { onDelete: "cascade" }),
   topicId: text("topic_id").notNull(),
