@@ -7,7 +7,10 @@ import { getServerAccessContext } from "@/server/access/actor";
 import { validSameOrigin } from "@/server/access/role-application-contracts";
 import { getSeedPractice, gradeSeedPractice } from "@/server/ai-tutor/seed-corpus";
 import { hasStudentEntitlement } from "@/server/student/entitlement";
-import { getLatestStudentTutorTopic } from "@/server/student/ai-tutor-profile";
+import {
+  getLatestStudentTutorTopic, getStudentTutorPracticeStats,
+  recordStudentTutorPracticeOutcome,
+} from "@/server/student/ai-tutor-profile";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,6 +19,7 @@ const answerSchema = z.object({
   courseId: z.uuid(),
   questionId: z.string().min(1).max(100),
   selectedOption: z.number().int().min(0).max(3),
+  rememberResult: z.boolean().optional(),
 }).strict();
 
 async function activeExam(studentUserId: string) {
@@ -53,11 +57,15 @@ export async function GET(request: NextRequest) {
     status: 404, headers: noStore,
   });
   const practice = getSeedPractice(topicId);
+  const stats = await getStudentTutorPracticeStats(actor.userId, topicId);
+  const guided = Boolean(stats &&
+    stats.practiceAttemptCount > stats.practiceCorrectCount);
   return NextResponse.json({
     questionId: practice.id,
     topicTitle: practice.topicTitle,
     prompt: practice.prompt,
     options: practice.options,
+    guidedHint: guided ? practice.guidedHint : null,
   }, { headers: noStore });
 }
 
@@ -96,5 +104,7 @@ export async function POST(request: NextRequest) {
   if (!result) return NextResponse.json({ error: "Practice unavailable" }, {
     status: 404, headers: noStore,
   });
-  return NextResponse.json(result, { headers: noStore });
+  const resultRecorded = parsed.data.rememberResult === true &&
+    await recordStudentTutorPracticeOutcome(actor.userId, topicId, result.correct);
+  return NextResponse.json({ ...result, resultRecorded }, { headers: noStore });
 }
