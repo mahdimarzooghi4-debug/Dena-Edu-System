@@ -93,6 +93,7 @@ export default async function StudentAiTutorPage() {
             lastAskedAt: topic.lastAskedAt.toISOString(),
             practiceAttemptCount: topic.practiceAttemptCount,
             practiceCorrectCount: topic.practiceCorrectCount,
+            practiceNeedsGuidance: topic.practiceNeedsGuidance,
           }))}
         />
 
