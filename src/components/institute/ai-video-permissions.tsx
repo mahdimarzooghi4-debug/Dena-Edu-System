@@ -53,7 +53,9 @@ export function AiVideoPermissions({
     }
   }, [courseId]);
 
-  useEffect(() => { void refresh(); }, [refresh]);
+  useEffect(() => {
+    void Promise.resolve().then(refresh);
+  }, [refresh]);
 
   async function submitTranscript(
     event: FormEvent<HTMLFormElement>,
