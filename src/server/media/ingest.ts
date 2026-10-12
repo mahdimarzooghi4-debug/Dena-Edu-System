@@ -212,42 +212,97 @@ export async function receiveQuarantinedUpload(
   // The reservation may outlive a provider's role, a course's draft state or
   // institute approval. Re-check those facts and claim the upload atomically.
   const intent = await db.transaction(async (tx) => {
+    const [scope] = await tx.select({
+      ownerType: courses.ownerType,
+      profileId: courses.independentEducatorProfileId,
+      instituteId: courses.responsibleInstituteId,
+    }).from(courses).where(eq(courses.id, courseId)).limit(1);
+    if (scope?.ownerType === "independent_educator" && scope.profileId) {
+      await tx.select({ id: educatorInstituteAffiliations.id })
+        .from(educatorInstituteAffiliations).where(and(
+          eq(educatorInstituteAffiliations.educatorProfileId, scope.profileId),
+          eq(educatorInstituteAffiliations.instituteId, scope.instituteId),
+          eq(educatorInstituteAffiliations.status, "approved"),
+        )).limit(1).for("share");
+    }
     const [course] = await tx.select().from(courses)
       .where(eq(courses.id, courseId)).limit(1).for("update");
-    if (!course || !isVerifiedProviderCourse(course) || course.publicationStatus !== "draft") return "not_found" as const;
+    if (!course || course.publicationStatus !== "draft" ||
+        !(isVerifiedProviderCourse(course) ||
+          (course.ownerType === "independent_educator" &&
+           course.independentEducatorProfileId))) return "not_found" as const;
     const [job] = await tx.select().from(mediaIngests).where(and(
       eq(mediaIngests.id, uploadId), eq(mediaIngests.courseId, courseId),
       eq(mediaIngests.createdByUserId, userId),
-      eq(mediaIngests.providerId, course.providerId),
     )).limit(1).for("update");
-    if (!job) return "not_found" as const;
+    if (!job || job.ownerType !== course.ownerType ||
+        job.providerId !== course.providerId ||
+        job.independentEducatorProfileId !== course.independentEducatorProfileId) {
+      return "not_found" as const;
+    }
     if (job.status !== "reserved") return "conflict" as const;
     if (length !== job.expectedBytes) return "invalid" as const;
-    const [provider] = await tx.select({ id: memberships.id })
-      .from(memberships).where(and(
-        eq(memberships.userId, userId),
-        eq(memberships.role, "provider"),
-        eq(memberships.providerId, course.providerId),
-        eq(memberships.status, "active"),
-      )).limit(1).for("share");
-    const [grant] = await tx.select().from(supervisionGrants)
-      .where(and(
+
+    let authorized = false;
+    if (isVerifiedProviderCourse(course)) {
+      const [provider] = await tx.select({ id: memberships.id })
+        .from(memberships).where(and(
+          eq(memberships.userId, userId), eq(memberships.role, "provider"),
+          eq(memberships.providerId, course.providerId),
+          eq(memberships.status, "active"),
+        )).limit(1).for("share");
+      const [grant] = await tx.select().from(supervisionGrants).where(and(
         eq(supervisionGrants.courseId, courseId),
         eq(supervisionGrants.providerId, course.providerId),
         eq(supervisionGrants.instituteId, course.responsibleInstituteId),
         eq(supervisionGrants.status, "approved"),
       )).limit(1).for("share");
-    if (!provider || !grant?.approvedByInstituteUserId || !grant.approvedAt) {
-      return "not_found" as const;
-    }
-    const [approver] = await tx.select({ id: memberships.id })
-      .from(memberships).where(and(
-        eq(memberships.userId, grant.approvedByInstituteUserId),
-        eq(memberships.role, "institute"),
-        eq(memberships.instituteId, course.responsibleInstituteId),
-        eq(memberships.status, "active"),
+      const [approver] = grant?.approvedByInstituteUserId
+        ? await tx.select({ id: memberships.id }).from(memberships).where(and(
+            eq(memberships.userId, grant.approvedByInstituteUserId),
+            eq(memberships.role, "institute"),
+            eq(memberships.instituteId, course.responsibleInstituteId),
+            eq(memberships.status, "active"),
+          )).limit(1).for("share")
+        : [];
+      authorized = Boolean(provider && grant?.approvedAt && approver);
+    } else if (course.ownerType === "independent_educator" &&
+        course.independentEducatorProfileId) {
+      const profileId = course.independentEducatorProfileId;
+      const [profile] = await tx.select({ id: independentEducatorProfiles.id })
+        .from(independentEducatorProfiles).where(and(
+          eq(independentEducatorProfiles.id, profileId),
+          eq(independentEducatorProfiles.userId, userId),
+        )).limit(1).for("share");
+      const [student] = await tx.select({ id: memberships.id }).from(memberships)
+        .where(and(eq(memberships.userId, userId),
+          eq(memberships.role, "student"), eq(memberships.status, "active")))
+        .limit(1).for("share");
+      const [affiliation] = await tx.select({ id: educatorInstituteAffiliations.id })
+        .from(educatorInstituteAffiliations).where(and(
+          eq(educatorInstituteAffiliations.educatorProfileId, profileId),
+          eq(educatorInstituteAffiliations.instituteId, course.responsibleInstituteId),
+          eq(educatorInstituteAffiliations.status, "approved"),
+        )).limit(1).for("share");
+      const [grant] = await tx.select().from(supervisionGrants).where(and(
+        eq(supervisionGrants.courseId, courseId),
+        eq(supervisionGrants.ownerType, "independent_educator"),
+        eq(supervisionGrants.independentEducatorProfileId, profileId),
+        eq(supervisionGrants.instituteId, course.responsibleInstituteId),
+        eq(supervisionGrants.status, "approved"),
       )).limit(1).for("share");
-    if (!approver) return "not_found" as const;
+      const [approver] = grant?.approvedByInstituteUserId
+        ? await tx.select({ id: memberships.id }).from(memberships).where(and(
+            eq(memberships.userId, grant.approvedByInstituteUserId),
+            eq(memberships.role, "institute"),
+            eq(memberships.instituteId, course.responsibleInstituteId),
+            eq(memberships.status, "active"),
+          )).limit(1).for("share")
+        : [];
+      authorized = Boolean(profile && student && affiliation &&
+        grant?.approvedAt && approver);
+    }
+    if (!authorized) return "not_found" as const;
     await tx.update(mediaIngests).set({ status: "uploading" })
       .where(eq(mediaIngests.id, uploadId));
     return job;
