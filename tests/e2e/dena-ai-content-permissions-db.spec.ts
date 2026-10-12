@@ -356,13 +356,54 @@ test.describe("Dena AI video permission authorization and revocation", () => {
     const educatorAnswer = await post(supervisedStudent, "/api/student/ai-tutor", {
       courseId: educatorCourseId,
       message: "چطور رطوبت و اقلیم را در درس جغرافیا مقایسه کنم؟",
+      rememberTopic: true,
     });
     expect(educatorAnswer.status()).toBe(200);
     const educatorAnswerBody = await educatorAnswer.json();
     expect(educatorAnswerBody).toMatchObject({
       source: { id: assetIds.educatorReady, title: "ویدئوی مدرس مستقل", kind: "video" },
       answer: expect.stringContaining("رطوبت"),
+      topicRecorded: true,
+      topicId: "geography.climate.v1",
     });
+    const sciencePractice = await supervisedStudent.get(
+      `/api/student/ai-tutor/practice?courseId=${courseId}&topicId=science.light.v1`,
+    );
+    expect(sciencePractice.status()).toBe(200);
+    expect(await sciencePractice.json()).toMatchObject({
+      topicId: "science.light.v1",
+      topicTitle: "نور و عدسی",
+    });
+    const geographyPractice = await supervisedStudent.get(
+      `/api/student/ai-tutor/practice?courseId=${educatorCourseId}&topicId=geography.climate.v1`,
+    );
+    expect(geographyPractice.status()).toBe(200);
+    expect(await geographyPractice.json()).toMatchObject({
+      topicId: "geography.climate.v1",
+      topicTitle: "اقلیم و رطوبت",
+    });
+    expect((await supervisedStudent.get(
+      `/api/student/ai-tutor/practice?courseId=${courseId}&topicId=math.percent.v1`,
+    )).status()).toBe(404);
+    const sciencePracticeQuestion = await sciencePractice.json();
+    const recordedScienceResult = await post(supervisedStudent,
+      "/api/student/ai-tutor/practice", {
+        courseId, questionId: sciencePracticeQuestion.questionId,
+        topicId: "science.light.v1", selectedOption: 1, rememberResult: true,
+      });
+    expect(await recordedScienceResult.json()).toMatchObject({
+      correct: false, resultRecorded: true,
+    });
+    const savedPracticeTopics = (await (await supervisedStudent.get(
+      "/api/student/ai-tutor/profile",
+    )).json()).topics;
+    expect(savedPracticeTopics).toContainEqual(expect.objectContaining({
+      topicId: "science.light.v1", practiceAttemptCount: 1, practiceCorrectCount: 0,
+      practiceNeedsGuidance: true,
+    }));
+    expect(savedPracticeTopics).toContainEqual(expect.objectContaining({
+      topicId: "geography.climate.v1", practiceAttemptCount: 0,
+    }));
     const followupTranscript = "در درس جغرافیا بررسی رطوبت و اقلیم به شناخت تغییرات آب‌وهوا کمک می‌کند. مقایسهٔ رطوبت در چند منطقه، الگوی بارش را روشن می‌کند.";
     expect((await post(supervisedInstitute, educatorTranscriptPath, {
       assetId: assetIds.educatorFollowup, conceptId: "geography.climate.v1", transcript: followupTranscript,
