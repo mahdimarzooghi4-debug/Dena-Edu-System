@@ -58,8 +58,7 @@ export async function GET(request: NextRequest) {
   });
   const practice = getSeedPractice(topicId);
   const stats = await getStudentTutorPracticeStats(actor.userId, topicId);
-  const guided = Boolean(stats &&
-    stats.practiceAttemptCount > stats.practiceCorrectCount);
+  const guided = stats?.practiceNeedsGuidance ?? false;
   return NextResponse.json({
     questionId: practice.id,
     topicId: practice.topicId,
