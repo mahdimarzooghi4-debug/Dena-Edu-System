@@ -140,7 +140,6 @@ export async function getIndependentEducatorCourses(userId: string) {
     instituteName: verifiedEntities.name,
     publicationStatus: courses.publicationStatus,
     supervisionStatus: supervisionGrants.status,
-    createdAt: courses.createdAt,
   }).from(courses).innerJoin(
     supervisionGrants, eq(supervisionGrants.courseId, courses.id),
   ).innerJoin(verifiedEntities, and(
@@ -149,5 +148,5 @@ export async function getIndependentEducatorCourses(userId: string) {
   )).where(and(
     eq(courses.ownerType, "independent_educator"),
     eq(courses.independentEducatorProfileId, profile.id),
-  )).orderBy(desc(courses.createdAt), desc(courses.id)).limit(100);
+  )).orderBy(desc(courses.id)).limit(100);
 }
