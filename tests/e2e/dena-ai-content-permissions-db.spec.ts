@@ -153,7 +153,7 @@ test.describe("Dena AI video permission authorization and revocation", () => {
     await db.delete(denaAiContentPermissionEvents)
       .where(inArray(denaAiContentPermissionEvents.courseId, [courseId, providerCourseId, educatorCourseId]));
     await db.delete(studentEnrollments)
-      .where(eq(studentEnrollments.courseId, courseId));
+      .where(inArray(studentEnrollments.courseId, [courseId, educatorCourseId]));
     await db.delete(privateMediaAssets)
       .where(inArray(privateMediaAssets.id, Object.values(assetIds)));
     await db.delete(supervisionGrants)
@@ -290,42 +290,50 @@ test.describe("Dena AI video permission authorization and revocation", () => {
     expect(html).toContain("مجوز استفاده از ویدئو برای معلم هوشمند");
     expect(html).toContain("ارجاع ثبت‌شده به پروندهٔ بازبینی");
 
-    const supervisedPermissionList = await (await client("institute"))
-      .get(educatorPermissionPath);
+    const supervisedInstitute = await client("institute");
+    const supervisedStudent = await client("student");
+    const supervisedPermissionList = await supervisedInstitute.get(educatorPermissionPath);
     expect(supervisedPermissionList.status()).toBe(200);
     expect((await supervisedPermissionList.json()).assets).toContainEqual(
       expect.objectContaining({
         assetId: assetIds.educatorReady, permissionDecision: null, mediaStatus: "ready",
       }),
     );
-    const noTranscriptYet = await post(await client("institute"), educatorTranscriptPath, {
+    const noTranscriptYet = await post(supervisedInstitute, educatorTranscriptPath, {
       assetId: assetIds.educatorReady,
       transcript: "در درس جغرافیا بررسی رطوبت و اقلیم به شناخت تغییرات آب‌وهوا کمک می‌کند. مقایسهٔ رطوبت در چند منطقه، الگوی بارش را روشن می‌کند.",
     });
     expect(noTranscriptYet.status()).toBe(404);
-    const supervisedGrant = await post(await client("institute"), educatorPermissionPath, {
+    const supervisedGrant = await post(supervisedInstitute, educatorPermissionPath, {
       decision: "granted", assetId: assetIds.educatorReady,
       requestId: randomUUID(), rightsReviewRef: "educator-video-rights-2026",
     });
     expect(supervisedGrant.status()).toBe(201);
     const educatorTranscript = "در درس جغرافیا بررسی رطوبت و اقلیم به شناخت تغییرات آب‌وهوا کمک می‌کند. مقایسهٔ رطوبت در چند منطقه، الگوی بارش را روشن می‌کند.";
-    const savedEducatorTranscript = await post(await client("institute"), educatorTranscriptPath, {
+    const savedEducatorTranscript = await post(supervisedInstitute, educatorTranscriptPath, {
       assetId: assetIds.educatorReady, transcript: educatorTranscript,
     });
     expect(savedEducatorTranscript.status()).toBe(201);
-    const educatorAnswer = await post(await client("student"),
-      "/api/student/ai-tutor", {
-        courseId: educatorCourseId,
-        message: "چطور رطوبت و اقلیم را در درس جغرافیا مقایسه کنم؟",
-      });
+    const studentSources = await supervisedStudent.get(
+      `/api/student/ai-tutor/sources?courseId=${educatorCourseId}`,
+    );
+    expect((await studentSources.json()).sources).toEqual([
+      { assetId: assetIds.educatorReady, title: "ویدئوی مدرس مستقل" },
+    ]);
+    const educatorAnswer = await post(supervisedStudent, "/api/student/ai-tutor", {
+      courseId: educatorCourseId,
+      message: "چطور رطوبت و اقلیم را در درس جغرافیا مقایسه کنم؟",
+    });
     expect(educatorAnswer.status()).toBe(200);
     expect(await educatorAnswer.json()).toMatchObject({
       source: { id: assetIds.educatorReady, title: "ویدئوی مدرس مستقل" },
       answer: expect.stringContaining("رطوبت"),
     });
-    await (await client("institute")).dispose();
-    await (await client("institute")).dispose();
-    await (await client("student")).dispose();
+    const otherInstituteForEducator = await client("otherInstitute");
+    expect((await otherInstituteForEducator.get(educatorPermissionPath)).status()).toBe(404);
+    await otherInstituteForEducator.dispose();
+    await supervisedInstitute.dispose();
+    await supervisedStudent.dispose();
   });
 
   test("withdrawn videos cannot be granted and provider-owned videos stay blocked", async () => {
