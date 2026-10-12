@@ -345,7 +345,7 @@ test.describe("Dena AI video permission authorization and revocation", () => {
     });
     const followupTranscript = "در درس جغرافیا بررسی رطوبت و اقلیم به شناخت تغییرات آب‌وهوا کمک می‌کند. مقایسهٔ رطوبت در چند منطقه، الگوی بارش را روشن می‌کند.";
     expect((await post(supervisedInstitute, educatorTranscriptPath, {
-      assetId: assetIds.educatorFollowup, transcript: followupTranscript,
+      assetId: assetIds.educatorFollowup, conceptId: "geography.climate.v1", transcript: followupTranscript,
     })).status()).toBe(201);
     const selectedAssetId = educatorAnswerBody.source.id as string;
     const videoFeedback = await post(supervisedStudent,
