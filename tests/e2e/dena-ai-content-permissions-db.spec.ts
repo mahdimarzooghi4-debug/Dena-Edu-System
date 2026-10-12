@@ -318,7 +318,7 @@ test.describe("Dena AI video permission authorization and revocation", () => {
     expect(supervisedGrant.status()).toBe(201);
     const educatorTranscript = "در درس جغرافیا بررسی رطوبت و اقلیم به شناخت تغییرات آب‌وهوا کمک می‌کند. مقایسهٔ رطوبت در چند منطقه، الگوی بارش را روشن می‌کند.";
     const savedEducatorTranscript = await post(supervisedInstitute, educatorTranscriptPath, {
-      assetId: assetIds.educatorReady, transcript: educatorTranscript,
+      assetId: assetIds.educatorReady, conceptId: "geography.climate.v1", transcript: educatorTranscript,
     });
     expect(savedEducatorTranscript.status()).toBe(201);
     const followupGrant = await post(supervisedInstitute, educatorPermissionPath, {
