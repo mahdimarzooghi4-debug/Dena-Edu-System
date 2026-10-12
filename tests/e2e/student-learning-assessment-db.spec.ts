@@ -219,12 +219,29 @@ test.describe("student learning assessment lifecycle", () => {
 
     const supported = await post(student, "/api/student/ai-tutor", {
       courseId, message: "معادلهٔ یک‌مجهولی را چطور حل کنم؟",
+      rememberTopic: true,
     });
     expect(supported.status()).toBe(200);
     expect(await supported.json()).toMatchObject({
       source: { id: "math.linear-equation.v1", corpusVersion: expect.any(String) },
+      topicRecorded: true,
     });
     expect(supported.headers()["cache-control"]).toContain("no-store");
+
+    const ownProfile = await student.get("/api/student/ai-tutor/profile");
+    expect(ownProfile.status()).toBe(200);
+    expect(await ownProfile.json()).toMatchObject({
+      topics: [{ topicId: "math.linear-equation.v1", questionCount: 1 }],
+    });
+    const otherProfile = await otherStudent.get("/api/student/ai-tutor/profile");
+    expect(await otherProfile.json()).toMatchObject({ topics: [] });
+    const cleared = await student.delete("/api/student/ai-tutor/profile", {
+      headers: { Origin: "http://localhost:3000" },
+    });
+    expect(cleared.status()).toBe(200);
+    expect(await cleared.json()).toMatchObject({ deleted: 1 });
+    expect(await (await student.get("/api/student/ai-tutor/profile")).json())
+      .toMatchObject({ topics: [] });
 
     const unsupported = await post(student, "/api/student/ai-tutor", {
       courseId, message: "نظریه نسبیت را توضیح بده.",
