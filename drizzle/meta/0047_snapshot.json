@@ -8964,7 +8964,7 @@
       "checkConstraints": {
         "dena_student_ai_tutor_topics_bounds_ck": {
           "name": "dena_student_ai_tutor_topics_bounds_ck",
-          "value": "\n    topic_id IN (\n      'math.linear-equation.v1',\n      'math.fractions.add.v1',\n      'math.percent.v1',\\n      'science.light.v1',\\n      'geography.climate.v1'\n    )\n    AND question_count BETWEEN 1 AND 10000\n    AND last_asked_at >= first_asked_at\n  "
+          "value": "\n    topic_id IN (\n      'math.linear-equation.v1',\n      'math.fractions.add.v1',\n      'math.percent.v1',\n      'science.light.v1',\n      'geography.climate.v1'\n    )\n    AND question_count BETWEEN 1 AND 10000\n    AND last_asked_at >= first_asked_at\n  "
         },
         "dena_student_ai_tutor_topics_practice_bounds_ck": {
           "name": "dena_student_ai_tutor_topics_practice_bounds_ck",
