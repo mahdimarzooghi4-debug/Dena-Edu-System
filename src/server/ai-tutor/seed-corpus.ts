@@ -27,6 +27,7 @@ const lessons = [
       options: ["۳", "۴", "۵", "۷"],
       correctOption: 1,
       explanation: "۳ را از دو طرف کم کن: ۲x = ۸. سپس دو طرف را بر ۲ تقسیم کن: x = ۴.",
+      guidedHint: "اول عددی را که تنهاست از هر دو طرف کم کن؛ بعد ضریب کنار x را حذف کن.",
     },
   },
   {
@@ -40,6 +41,7 @@ const lessons = [
       options: ["۱/۴", "۲/۴", "۳/۴", "۳/۶"],
       correctOption: 2,
       explanation: "۱/۲ را به ۲/۴ تبدیل کن؛ سپس ۱/۴ + ۲/۴ = ۳/۴.",
+      guidedHint: "مخرج مشترک ۴ است؛ کسر دوم را هم‌ارزِ چهارم بنویس و بعد صورت‌ها را جمع کن.",
     },
   },
   {
@@ -53,6 +55,7 @@ const lessons = [
       options: ["۲۰", "۳۰", "۳۵", "۴۰"],
       correctOption: 1,
       explanation: "(۲۰۰ × ۱۵) ÷ ۱۰۰ = ۳۰.",
+      guidedHint: "عدد را در درصد ضرب کن و حاصل را بر ۱۰۰ تقسیم کن.",
     },
   },
 ] as const;
@@ -67,6 +70,7 @@ export type SeedPractice = {
   topicTitle: string;
   prompt: string;
   options: readonly string[];
+  guidedHint: string;
 };
 export type SeedPracticeResult = {
   correct: boolean;
@@ -103,6 +107,7 @@ export function getSeedPractice(topicId: SeedTopicId): SeedPractice {
     topicTitle: lesson.title,
     prompt: lesson.practice.prompt,
     options: lesson.practice.options,
+    guidedHint: lesson.practice.guidedHint,
   };
 }
 
