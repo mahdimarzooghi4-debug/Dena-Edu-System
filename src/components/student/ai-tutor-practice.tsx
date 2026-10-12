@@ -4,6 +4,7 @@ import { useState } from "react";
 
 type PracticeQuestion = {
   questionId: string;
+  topicId: string;
   topicTitle: string;
   prompt: string;
   options: string[];
@@ -18,7 +19,7 @@ type PracticeResult = {
 export function AiTutorPractice({ courseId, enabled, onOutcomeSaved }: {
   courseId: string;
   enabled: boolean;
-  onOutcomeSaved: (correct: boolean) => void;
+  onOutcomeSaved: (topicId: string, correct: boolean) => void;
 }) {
   const [question, setQuestion] = useState<PracticeQuestion | null>(null);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
@@ -78,7 +79,7 @@ export function AiTutorPractice({ courseId, enabled, onOutcomeSaved }: {
         return;
       }
       setResult(data);
-      if (data.resultRecorded) onOutcomeSaved(data.correct);
+      if (data.resultRecorded && question) onOutcomeSaved(question.topicId, data.correct);
     } catch {
       setError("ارتباط با سرور برقرار نشد؛ دوباره تلاش کن.");
     } finally {
