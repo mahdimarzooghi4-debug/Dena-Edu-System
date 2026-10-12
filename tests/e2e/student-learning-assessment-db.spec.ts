@@ -271,6 +271,7 @@ test.describe("student learning assessment lifecycle", () => {
     const profileWithResults = await (await student.get("/api/student/ai-tutor/profile")).json();
     expect(profileWithResults).toMatchObject({ topics: [{
       topicId: "math.linear-equation.v1", practiceAttemptCount: 2, practiceCorrectCount: 1,
+      practiceNeedsGuidance: true,
     }] });
     const nextPractice = await (await student.get(
       "/api/student/ai-tutor/practice?courseId=" + courseId,
@@ -284,6 +285,23 @@ test.describe("student learning assessment lifecycle", () => {
     const profileWithoutThirdResult = await (await student.get("/api/student/ai-tutor/profile")).json();
     expect(profileWithoutThirdResult).toMatchObject({ topics: [{
       topicId: "math.linear-equation.v1", practiceAttemptCount: 2, practiceCorrectCount: 1,
+      practiceNeedsGuidance: true,
+    }] });
+    const savedCorrectPractice = await post(student, "/api/student/ai-tutor/practice", {
+      courseId, questionId: practiceQuestion.questionId, selectedOption: 1,
+      rememberResult: true,
+    });
+    expect(await savedCorrectPractice.json()).toMatchObject({
+      correct: true, resultRecorded: true,
+    });
+    const recoveredPractice = await (await student.get(
+      "/api/student/ai-tutor/practice?courseId=" + courseId,
+    )).json();
+    expect(recoveredPractice.guidedHint).toBeNull();
+    const recoveredProfile = await (await student.get("/api/student/ai-tutor/profile")).json();
+    expect(recoveredProfile).toMatchObject({ topics: [{
+      topicId: "math.linear-equation.v1", practiceAttemptCount: 3, practiceCorrectCount: 2,
+      practiceNeedsGuidance: false,
     }] });
     const cleared = await student.delete("/api/student/ai-tutor/profile", {
       headers: { Origin: "http://localhost:3000" },
