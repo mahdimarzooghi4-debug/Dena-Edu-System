@@ -1,0 +1,1 @@
+ALTER TYPE "public"."dena_audit_entity_type" ADD VALUE 'INSTITUTE_SERVICE';
