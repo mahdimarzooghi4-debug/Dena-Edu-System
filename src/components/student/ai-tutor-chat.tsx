@@ -112,7 +112,7 @@ export function AiTutorChat({ courses, initialTopics }: {
             <input type="checkbox" checked={rememberTopic}
               onChange={(event) => setRememberTopic(event.target.checked)}
               className="mt-2 size-4 accent-dena-brand" />
-            <span>موضوع این پرسش برای پیشنهادهای آینده ذخیره شود. فقط شناسهٔ درس و تعداد پرسش ثبت می‌شود، نه متن گفت‌وگو. این گزینه اختیاری است.</span>
+            <span>موضوع این پرسش برای پیشنهادهای آینده ذخیره شود. فقط شناسهٔ درس و تعداد پرسش نگه‌داری می‌شود، نه متن گفت‌وگو. نتیجهٔ تمرین رضایت جداگانه می‌خواهد. این گزینه اختیاری است.</span>
           </label>
           <button className="rounded-xl bg-dena-brand px-5 py-3 text-sm font-bold text-white disabled:opacity-50" disabled={busy || !courseId}>
             {busy ? "در حال بررسی…" : "پرسیدن"}
