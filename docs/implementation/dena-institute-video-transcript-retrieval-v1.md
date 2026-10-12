@@ -17,3 +17,8 @@ This is text ingestion, not video processing. An authorized institute operator m
 ## Before production use
 
 The permission event's `rightsReviewRef` is an institute-provided audit pointer; Dena does not verify the underlying rights record. Production use remains blocked until the rights review operation is independently validated and the production database role is confirmed unable to update or delete permission events. Verified-provider content remains blocked pending a separate authorization workflow. Rights references remain human-reviewed audit pointers, not proof. These are release gates; this PR does not deploy or enable them in production.
+
+
+## Learning-concept tags
+
+Each institute-reviewed transcript is assigned one versioned Dena learning-concept ID from the bounded taxonomy. That tag is stored with each transcript chunk, exposed only in institute transcript status, and used as a secondary retrieval preference when the same student has asked for more guidance on a tagged video. A tag is not a mastery score and does not train or fine-tune model weights. Existing transcripts remain untagged until an institute operator replaces them with a tagged transcript.

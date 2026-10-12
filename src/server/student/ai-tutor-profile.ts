@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { getDb } from "../../db";
-import { studentAiTutorTopics, studentAiTutorVideoFeedback } from "../../db/schema";
+import { denaAiVideoTranscriptChunks, studentAiTutorTopics, studentAiTutorVideoFeedback } from "../../db/schema";
 import { isSeedTopicId, type SeedTopicId } from "../ai-tutor/seed-corpus";
 
 export async function recordStudentTutorTopic(
@@ -39,11 +39,30 @@ export async function listStudentTutorVideoGuidanceAssets(
     .from(studentAiTutorVideoFeedback)
     .where(and(
       eq(studentAiTutorVideoFeedback.studentUserId, studentUserId),
-      eq(studentAiTutorVideoFeedback.courseId, courseId),
+      ...(courseId ? [eq(studentAiTutorVideoFeedback.courseId, courseId)] : []),
       eq(studentAiTutorVideoFeedback.needsGuidance, true),
     ));
 }
 
+export async function listStudentTutorVideoGuidanceConceptIds(
+  studentUserId: string,
+  courseId?: string,
+) {
+  const rows = await getDb().selectDistinct({
+    conceptId: denaAiVideoTranscriptChunks.learningConceptId,
+  }).from(studentAiTutorVideoFeedback)
+    .innerJoin(denaAiVideoTranscriptChunks, and(
+      eq(denaAiVideoTranscriptChunks.assetId, studentAiTutorVideoFeedback.assetId),
+      eq(denaAiVideoTranscriptChunks.courseId, studentAiTutorVideoFeedback.courseId),
+    ))
+    .where(and(
+      eq(studentAiTutorVideoFeedback.studentUserId, studentUserId),
+      ...(courseId ? [eq(studentAiTutorVideoFeedback.courseId, courseId)] : []),
+      eq(studentAiTutorVideoFeedback.needsGuidance, true),
+      sql`${denaAiVideoTranscriptChunks.learningConceptId} IS NOT NULL`,
+    ));
+  return rows.map((row) => row.conceptId).filter((id): id is string => id !== null);
+}
 export async function recordStudentTutorVideoFeedback(
   studentUserId: string,
   courseId: string,

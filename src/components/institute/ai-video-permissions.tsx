@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Card } from "../ui/card";
+import { DENA_LEARNING_CONCEPTS } from "../../server/ai-tutor/learning-concepts";
 
 type VideoAsset = {
   assetId: string;
@@ -21,6 +22,7 @@ export function AiVideoPermissions({
 }) {
   const [assets, setAssets] = useState<VideoAsset[]>([]);
   const [transcriptChunkCounts, setTranscriptChunkCounts] = useState<Record<string, number>>({});
+  const [transcriptConceptIds, setTranscriptConceptIds] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [savingAsset, setSavingAsset] = useState<string | null>(null);
   const [message, setMessage] = useState("");
@@ -41,11 +43,14 @@ export function AiVideoPermissions({
       );
       if (!transcriptsResponse.ok) throw new Error("وضعیت رونوشت‌ها در دسترس نیست.");
       const transcriptBody = await transcriptsResponse.json() as {
-        assets: Array<{ assetId: string; chunkCount: number }>;
+        assets: Array<{ assetId: string; chunkCount: number; conceptId: string | null }>;
       };
       setTranscriptChunkCounts(Object.fromEntries(
         transcriptBody.assets.map((item) => [item.assetId, item.chunkCount]),
       ));
+      setTranscriptConceptIds(Object.fromEntries(transcriptBody.assets
+        .filter((item) => item.conceptId)
+        .map((item) => [item.assetId, item.conceptId as string])));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "خطا در دریافت ویدئوها.");
     } finally {
@@ -75,6 +80,7 @@ export function AiVideoPermissions({
           body: JSON.stringify({
             assetId: asset.assetId,
             transcript: String(form.get("transcript") ?? ""),
+            conceptId: String(form.get("conceptId") ?? ""),
           }),
         },
       );
@@ -84,7 +90,7 @@ export function AiVideoPermissions({
         "Course, video, or AI permission unavailable"
         ? "مجوز فعال این ویدئو پیدا نشد."
         : "ثبت رونوشت انجام نشد؛ متن و مجوز را بررسی کنید.");
-      setMessage(`رونوشت ذخیره شد و به ${result?.chunkCount ?? 0} بخش جست‌وجوپذیر تقسیم شد.`);
+      setMessage(`رونوشت مبحث‌گذاری شد و به ${result?.chunkCount ?? 0} بخش جست‌وجوپذیر تقسیم شد.`);
       await refresh();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "ثبت رونوشت انجام نشد.");
@@ -229,10 +235,18 @@ export function AiVideoPermissions({
                       <p className="mt-1 text-xs leading-6 text-dena-muted">
                         متن را از منبع مجاز وارد کنید. دنا فعلاً گفتار را خودکار پیاده نمی‌کند؛ متن در پاسخ‌ها به صورت نقل‌قول قابل جست‌وجو می‌شود.
                         {transcriptChunkCounts[asset.assetId]
-                          ? ` ${transcriptChunkCounts[asset.assetId]} بخش ثبت‌شده.`
+                          ? ` ${transcriptChunkCounts[asset.assetId]} بخش ثبت‌شده · ${DENA_LEARNING_CONCEPTS.find((concept) => concept.id === transcriptConceptIds[asset.assetId])?.label ?? "مبحث نامشخص"}.`
                           : " هنوز رونوشت ثبت نشده است."}
                       </p>
                     </div>
+                    <label className="block text-xs font-bold text-dena-muted">
+                      مبحث آموزشی
+                      <select name="conceptId" required defaultValue={transcriptConceptIds[asset.assetId] ?? ""}
+                        className="mt-2 block min-h-11 w-full rounded-lg border border-dena-border bg-white px-3 text-sm font-normal">
+                        <option value="" disabled>مبحث را انتخاب کنید</option>
+                        {DENA_LEARNING_CONCEPTS.map((concept) => <option key={concept.id} value={concept.id}>{concept.label}</option>)}
+                      </select>
+                    </label>
                     <label className="block text-xs font-bold text-dena-muted">
                       متن رونوشت (۸۰ تا ۲۰٬۰۰۰ نویسه)
                       <textarea name="transcript" required minLength={80} maxLength={20000}

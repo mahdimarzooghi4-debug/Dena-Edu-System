@@ -2,11 +2,12 @@
 
 import { useState, type FormEvent } from "react";
 import { AiTutorPractice } from "./ai-tutor-practice";
+import { DENA_LEARNING_CONCEPTS } from "../../server/ai-tutor/learning-concepts";
 
 type Course = { courseId: string; title: string };
 type TutorResponse = {
   answer?: string;
-  source?: { id: string; title: string; corpusVersion?: string; kind?: "video" };
+  source?: { id: string; title: string; corpusVersion?: string; kind?: "video"; conceptId?: string | null };
   error?: string;
   code?: string;
   topicRecorded?: boolean;
@@ -19,15 +20,17 @@ const topicTitles: Record<string, string> = {
   "math.percent.v1": "درصد",
 };
 
-export function AiTutorChat({ courses, initialTopics }: {
+export function AiTutorChat({ courses, initialTopics, initialGuidanceConceptIds }: {
   courses: Course[];
   initialTopics: Topic[];
+  initialGuidanceConceptIds: string[];
 }) {
   const [courseId, setCourseId] = useState(courses[0]?.courseId ?? "");
   const [message, setMessage] = useState("");
   const [rememberTopic, setRememberTopic] = useState(false);
   const [result, setResult] = useState<TutorResponse | null>(null);
   const [topics, setTopics] = useState(initialTopics);
+  const [guidanceConceptIds, setGuidanceConceptIds] = useState(initialGuidanceConceptIds);
   const [busy, setBusy] = useState(false);
   const [clearBusy, setClearBusy] = useState(false);
   const [profileMessage, setProfileMessage] = useState("");
@@ -84,6 +87,13 @@ export function AiTutorChat({ courses, initialTopics }: {
         return;
       }
       setVideoFeedbackResult({ assetId, needsGuidance });
+      if (needsGuidance && result?.source?.conceptId) {
+        setGuidanceConceptIds((ids) => [...new Set([...ids, result.source!.conceptId!])]);
+      }
+      if (!needsGuidance && result?.source?.conceptId) {
+        const profile = await fetch("/api/student/ai-tutor/profile", { cache: "no-store" }).then((r) => r.json());
+        setGuidanceConceptIds(profile.guidanceConceptIds ?? []);
+      }
       setVideoFeedbackMessage(needsGuidance
         ? "برای پاسخ‌های بعدی از این ویدئو راهنمای بیشتری می‌گیرم."
         : "بازخوردت ثبت شد؛ ممنون.");
@@ -95,7 +105,7 @@ export function AiTutorChat({ courses, initialTopics }: {
   }
 
   async function clearTopics() {
-    if (!topics.length || clearBusy ||
+    if ((!topics.length && !guidanceConceptIds.length) || clearBusy ||
         !window.confirm("موضوع‌های ثبت‌شدهٔ مسیر شخصی‌ات پاک شوند؟")) return;
     setClearBusy(true);
     setProfileMessage("");
@@ -108,7 +118,8 @@ export function AiTutorChat({ courses, initialTopics }: {
         return;
       }
       setTopics([]);
-      setProfileMessage("موضوع‌های ثبت‌شده پاک شدند.");
+      setGuidanceConceptIds([]);
+      setProfileMessage("داده‌های ثبت‌شده پاک شدند.");
     } catch {
       setProfileMessage("ارتباط با سرور برقرار نشد؛ دوباره تلاش کن.");
     } finally {
@@ -151,21 +162,22 @@ export function AiTutorChat({ courses, initialTopics }: {
           </button>
         </form>
       )}
-      {topics.length > 0 && (
+      {(topics.length > 0 || guidanceConceptIds.length > 0) && (
         <div className="space-y-3 rounded-xl border border-dena-line p-4">
-          <h3 className="font-bold text-dena-ink">موضوع‌های ثبت‌شده در مسیر شخصی تو</h3>
-          <ul className="space-y-2 text-sm text-dena-muted">
+          <h3 className="font-bold text-dena-ink">مسیر آموزشی ثبت‌شدهٔ تو</h3>
+          {guidanceConceptIds.length > 0 && <div className="text-sm text-dena-muted"><p className="font-semibold">مباحثی که برایشان راهنمایی بیشتری خواستی:</p><ul className="mt-2 list-inside list-disc">{guidanceConceptIds.map((id) => <li key={id}>{DENA_LEARNING_CONCEPTS.find((concept) => concept.id === id)?.label ?? "مبحث آموزشی"}</li>)}</ul></div>}
+          {topics.length > 0 && <ul className="space-y-2 text-sm text-dena-muted">
             {topics.map((topic) => (
               <li key={topic.topicId}>
                 {topicTitles[topic.topicId] ?? "موضوع آموزشی"} · {topic.questionCount.toLocaleString("fa-IR")} پرسش · آخرین بار {new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium" }).format(new Date(topic.lastAskedAt))}{topic.practiceAttemptCount > 0 && <> · {topic.practiceAttemptCount.toLocaleString("fa-IR")} نتیجهٔ ذخیره‌شده، {topic.practiceCorrectCount.toLocaleString("fa-IR")} پاسخ درست{topic.practiceNeedsGuidance && " · تمرین بعدی با راهنما"} </>}
               </li>
             ))}
-          </ul>
+          </ul>}
           <button type="button" className="text-sm font-bold text-dena-brand underline disabled:opacity-50"
             disabled={clearBusy} onClick={() => void clearTopics()}>
             {clearBusy ? "در حال پاک‌کردن…" : "پاک‌کردن داده‌های مسیر شخصی"}
           </button>
-          <AiTutorPractice key={courseId} courseId={courseId}
+          {topics.length > 0 && <AiTutorPractice key={courseId} courseId={courseId}
             enabled={Boolean(courseId && topics.length > 0)}
             onOutcomeSaved={(topicId, correct) => setTopics((current) => current.map((topic) =>
               topic.topicId === topicId ? {
@@ -173,7 +185,7 @@ export function AiTutorChat({ courses, initialTopics }: {
                 practiceAttemptCount: Math.min(topic.practiceAttemptCount + 1, 10000),
                 practiceCorrectCount: Math.min(topic.practiceCorrectCount + (correct ? 1 : 0), 10000),
                 practiceNeedsGuidance: !correct,
-              } : topic))} />
+              } : topic))} />}
         </div>
       )}
       {profileMessage && <p role="status" className="text-sm text-dena-muted">{profileMessage}</p>}

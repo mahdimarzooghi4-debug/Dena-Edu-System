@@ -559,6 +559,7 @@ export const denaAiVideoTranscriptChunks = pgTable(
     chunkIndex: integer("chunk_index").notNull(),
     chunkText: text("chunk_text").notNull(),
     sourceSha256: text("source_sha256").notNull(),
+    learningConceptId: text("learning_concept_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
@@ -576,6 +577,12 @@ export const denaAiVideoTranscriptChunks = pgTable(
       AND char_length(chunk_text) BETWEEN 1 AND 1000
       AND char_length(source_sha256) = 64
       AND source_sha256 ~ '^[0-9a-f]{64}'
+    `),
+    check("dena_ai_video_learning_concept_ck", sql`
+      learning_concept_id IS NULL OR learning_concept_id IN (
+        'science.light.v1', 'geography.climate.v1', 'math.linear-equation.v1',
+        'math.fractions.add.v1', 'math.percent.v1'
+      )
     `),
   ],
 );

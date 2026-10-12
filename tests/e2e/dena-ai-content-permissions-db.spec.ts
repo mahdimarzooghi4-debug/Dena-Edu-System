@@ -199,6 +199,7 @@ test.describe("Dena AI video permission authorization and revocation", () => {
     expect((await emptySources.json()).sources).toEqual([]);
     const transcriptBeforeGrant = await post(institute, transcriptPath, {
       assetId: assetIds.ready,
+      conceptId: "science.light.v1",
       transcript: "در آزمایشگاه نور را با عدسی محدب روی پرده متمرکز می‌کنیم. فاصله کانونی عدسی به شکل و جنس آن بستگی دارد. با جابه‌جایی پرده می‌توان تصویر واضح را پیدا کرد.",
     });
     expect(transcriptBeforeGrant.status()).toBe(404);
@@ -240,7 +241,7 @@ test.describe("Dena AI video permission authorization and revocation", () => {
 
     const transcript = "در آزمایشگاه نور را با عدسی محدب روی پرده متمرکز می‌کنیم. فاصله کانونی عدسی به شکل و جنس آن بستگی دارد. با جابه‌جایی پرده می‌توان تصویر واضح را پیدا کرد.";
     const savedTranscript = await post(institute, transcriptPath, {
-      assetId: assetIds.ready, transcript,
+      assetId: assetIds.ready, conceptId: "science.light.v1", transcript,
     });
     expect(savedTranscript.status()).toBe(201);
     expect(await savedTranscript.json()).toMatchObject({
@@ -249,10 +250,10 @@ test.describe("Dena AI video permission authorization and revocation", () => {
     const transcriptStatus = await institute.get(transcriptPath);
     expect(transcriptStatus.status()).toBe(200);
     const transcriptStatusBody = await transcriptStatus.json() as {
-      assets: Array<{ assetId: string; chunkCount: number }>;
+      assets: Array<{ assetId: string; chunkCount: number; conceptId: string | null }>;
     };
     expect(transcriptStatusBody.assets).toContainEqual({
-      assetId: assetIds.ready, chunkCount: 1,
+      assetId: assetIds.ready, chunkCount: 1, conceptId: "science.light.v1",
     });
     expect(JSON.stringify(await transcriptStatus.json())).not.toContain(transcript);
     const transcriptAnswer = await post(student, "/api/student/ai-tutor", {

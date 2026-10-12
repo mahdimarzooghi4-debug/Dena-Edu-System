@@ -8,7 +8,7 @@ import { StudentShell } from "../../../components/student/student-shell";
 import { getServerAccessContext } from "../../../server/access/actor";
 import { AiTutorChat } from "../../../components/student/ai-tutor-chat";
 import { listStudentCatalog, readCatalogQuery } from "../../../server/student/course-catalog";
-import { listStudentTutorTopics } from "../../../server/student/ai-tutor-profile";
+import { listStudentTutorTopics, listStudentTutorVideoGuidanceConceptIds } from "../../../server/student/ai-tutor-profile";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -56,6 +56,9 @@ export default async function StudentAiTutorPage() {
   const catalog = await listStudentCatalog(actor.userId,
     readCatalogQuery(new URLSearchParams("mine=1")));
   const topics = await listStudentTutorTopics(actor.userId);
+  const guidanceConceptIds = [...new Set((await Promise.all(catalog.courses.map((course) =>
+    listStudentTutorVideoGuidanceConceptIds(actor.userId, course.courseId),
+  ))).flat())];
 
   return (
     <StudentShell active="aiTutor" title="معلم هوشمند">
@@ -87,6 +90,7 @@ export default async function StudentAiTutorPage() {
           courses={catalog.courses.map((course) => ({
             courseId: course.courseId, title: course.title,
           }))}
+          initialGuidanceConceptIds={guidanceConceptIds}
           initialTopics={topics.map((topic) => ({
             topicId: topic.topicId,
             questionCount: topic.questionCount,

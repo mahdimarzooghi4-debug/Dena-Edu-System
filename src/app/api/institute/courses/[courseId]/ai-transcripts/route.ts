@@ -8,6 +8,7 @@ import {
   memberships, privateMediaAssets,
 } from "@/db/schema";
 import { getServerAccessContext } from "@/server/access/actor";
+import { learningConceptIdSchema } from "@/server/ai-tutor/learning-concepts";
 import { validSameOrigin } from "@/server/access/role-application-contracts";
 
 export const runtime = "nodejs";
@@ -17,6 +18,7 @@ const uuid = z.uuid();
 const transcriptSchema = z.object({
   assetId: uuid,
   transcript: z.string().trim().min(80).max(20000),
+  conceptId: learningConceptIdSchema,
 }).strict();
 const supervisedEducatorScope = sql.raw("EXISTS (\n  SELECT 1\n  FROM dena_educator_institute_affiliations AS affiliation\n  JOIN dena_supervision_grants AS supervision\n    ON supervision.course_id = dena_courses.id\n   AND supervision.owner_type = 'independent_educator'\n   AND supervision.independent_educator_profile_id = dena_courses.independent_educator_profile_id\n   AND supervision.institute_id = dena_courses.responsible_institute_id\n  WHERE affiliation.educator_profile_id = dena_courses.independent_educator_profile_id\n    AND affiliation.institute_id = dena_courses.responsible_institute_id\n    AND affiliation.status = 'approved'\n    AND supervision.status = 'approved'\n    AND supervision.approved_at IS NOT NULL\n    AND EXISTS (\n      SELECT 1 FROM dena_memberships AS approver\n      WHERE approver.user_id = supervision.approved_by_institute_user_id\n        AND approver.role = 'institute'\n        AND approver.institute_id = dena_courses.responsible_institute_id\n        AND approver.status = 'active'\n    )\n)");
 
@@ -82,6 +84,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
   const assets = await getDb().select({
     assetId: privateMediaAssets.id,
     chunkCount: sql<number>`count(${denaAiVideoTranscriptChunks.id})::int`,
+    conceptId: sql<string | null>`max(${denaAiVideoTranscriptChunks.learningConceptId})`,
   }).from(privateMediaAssets)
     .leftJoin(denaAiVideoTranscriptChunks, and(
       eq(denaAiVideoTranscriptChunks.assetId, privateMediaAssets.id),
@@ -165,6 +168,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
       chunkIndex,
       chunkText,
       sourceSha256,
+      learningConceptId: parsed.data.conceptId,
     })));
     return { kind: "created" as const, chunkCount: chunks.length };
   });

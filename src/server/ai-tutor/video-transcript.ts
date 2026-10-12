@@ -3,7 +3,7 @@ import { getDb } from "@/db";
 import {
   denaAiVideoTranscriptChunks, privateMediaAssets, courses,
 } from "@/db/schema";
-import { listStudentTutorVideoGuidanceAssets } from "@/server/student/ai-tutor-profile";
+import { listStudentTutorVideoGuidanceAssets, listStudentTutorVideoGuidanceConceptIds } from "@/server/student/ai-tutor-profile";
 import { hasStudentEntitlement } from "@/server/student/entitlement";
 
 const supervisedEducatorScope = sql`EXISTS (
@@ -104,7 +104,11 @@ export async function retrieveStudentVideoTranscript(
   const guidanceAssets = new Set((await listStudentTutorVideoGuidanceAssets(
     studentUserId, courseId,
   )).map((row) => row.assetId));
+  const guidanceConceptIds = new Set(await listStudentTutorVideoGuidanceConceptIds(
+    studentUserId, courseId,
+  ));
   const rows = await getDb().select({
+    conceptId: denaAiVideoTranscriptChunks.learningConceptId,
     assetId: denaAiVideoTranscriptChunks.assetId,
     chunkIndex: denaAiVideoTranscriptChunks.chunkIndex,
     chunkText: denaAiVideoTranscriptChunks.chunkText,
@@ -169,16 +173,17 @@ export async function retrieveStudentVideoTranscript(
       score: questionTerms.reduce((score, term) =>
         score + (chunkTerms.has(term) ? 1 : 0), 0),
       needsGuidance: guidanceAssets.has(row.assetId),
+      conceptNeedsGuidance: Boolean(row.conceptId && guidanceConceptIds.has(row.conceptId)),
     };
   }).filter((row) => row.score >= Math.min(2, questionTerms.length))
     .sort((a, b) => b.score - a.score ||
-      Number(b.needsGuidance) - Number(a.needsGuidance) ||
+      Number(b.needsGuidance || b.conceptNeedsGuidance) - Number(a.needsGuidance || a.conceptNeedsGuidance) ||
       a.assetId.localeCompare(b.assetId) || a.chunkIndex - b.chunkIndex);
   const best = ranked[0];
   if (!best) return null;
 
   return {
     answer: `در متن پیاده‌سازی‌شدهٔ ویدئوی «${best.title}» این بخش مرتبط پیدا شد:\n\n«${best.chunkText}»`,
-    source: { id: best.assetId, title: best.title, kind: "video" as const },
+    source: { id: best.assetId, title: best.title, kind: "video" as const, conceptId: best.conceptId },
   };
 }
