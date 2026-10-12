@@ -14,14 +14,17 @@ test.describe("Dena AI video permission authorization and revocation", () => {
   const db = getDb();
   const users = {
     admin: randomUUID(), institute: randomUUID(), otherInstitute: randomUUID(),
-    student: randomUUID(), stranger: randomUUID(),
+    provider: randomUUID(), student: randomUUID(), stranger: randomUUID(),
   };
   const tokens = Object.fromEntries(
     Object.keys(users).map((name) => [name, randomUUID()]),
   ) as Record<keyof typeof users, string>;
-  const instituteIds = { own: randomUUID(), other: randomUUID() };
+  const instituteIds = { own: randomUUID(), other: randomUUID(), provider: randomUUID() };
   const courseId = randomUUID();
-  const assetIds = { ready: randomUUID(), withdrawn: randomUUID() };
+  const providerCourseId = randomUUID();
+  const assetIds = {
+    ready: randomUUID(), withdrawn: randomUUID(), providerOwned: randomUUID(),
+  };
   const permissionPath = `/api/institute/courses/${courseId}/ai-permissions`;
   const studentSourcesPath = `/api/student/ai-tutor/sources?courseId=${courseId}`;
 
@@ -46,11 +49,14 @@ test.describe("Dena AI video permission authorization and revocation", () => {
         evidenceReference: "test/institute-a", verifiedByUserId: users.admin },
       { id: instituteIds.other, role: "institute", name: "institute B",
         evidenceReference: "test/institute-b", verifiedByUserId: users.admin },
+      { id: instituteIds.provider, role: "provider", name: "verified provider",
+        evidenceReference: "test/provider", verifiedByUserId: users.admin },
     ]);
     await db.insert(memberships).values([
       { userId: users.admin, role: "admin" },
       { userId: users.institute, role: "institute", instituteId: instituteIds.own },
       { userId: users.otherInstitute, role: "institute", instituteId: instituteIds.other },
+      { userId: users.provider, role: "provider", providerId: instituteIds.provider },
       { userId: users.student, role: "student" },
     ]);
     const expiresAt = new Date(Date.now() + 3_600_000);
@@ -64,6 +70,14 @@ test.describe("Dena AI video permission authorization and revocation", () => {
       title: "دورهٔ آزمایشی معلم هوشمند",
       publicationStatus: "published",
       publishedAt: new Date(),
+      clientRequestId: randomUUID(),
+    });
+    await db.insert(courses).values({
+      id: providerCourseId,
+      ownerType: "verified_provider",
+      providerId: instituteIds.provider,
+      responsibleInstituteId: instituteIds.own,
+      title: "دورهٔ متعلق به تولیدکننده",
       clientRequestId: randomUUID(),
     });
     await db.insert(supervisionGrants).values({
@@ -80,6 +94,9 @@ test.describe("Dena AI video permission authorization and revocation", () => {
       { id: assetIds.withdrawn, courseId, title: "درس لغوشده",
         status: "withdrawn",
         objectKey: `${courseId}/${assetIds.withdrawn}.mp4` },
+      { id: assetIds.providerOwned, courseId: providerCourseId,
+        title: "ویدئوی تولیدکننده",
+        objectKey: `${providerCourseId}/${assetIds.providerOwned}.mp4` },
     ]);
     await db.insert(studentEnrollments).values({
       studentUserId: users.student, courseId, status: "active",
@@ -88,13 +105,14 @@ test.describe("Dena AI video permission authorization and revocation", () => {
 
   test.afterAll(async () => {
     await db.delete(denaAiContentPermissionEvents)
-      .where(eq(denaAiContentPermissionEvents.courseId, courseId));
+      .where(inArray(denaAiContentPermissionEvents.courseId, [courseId, providerCourseId]));
     await db.delete(studentEnrollments)
       .where(eq(studentEnrollments.courseId, courseId));
     await db.delete(privateMediaAssets)
       .where(inArray(privateMediaAssets.id, Object.values(assetIds)));
     await db.delete(supervisionGrants).where(eq(supervisionGrants.courseId, courseId));
-    await db.delete(courses).where(eq(courses.id, courseId));
+    await db.delete(courses)
+      .where(inArray(courses.id, [courseId, providerCourseId]));
     await db.delete(memberships).where(inArray(memberships.userId, Object.values(users)));
     await db.delete(verifiedEntities)
       .where(inArray(verifiedEntities.id, Object.values(instituteIds)));
@@ -176,12 +194,17 @@ test.describe("Dena AI video permission authorization and revocation", () => {
     await student.dispose();
   });
 
-  test("withdrawn videos cannot be granted and non-institute-owned courses stay blocked", async () => {
+  test("withdrawn videos cannot be granted and provider-owned videos stay blocked", async () => {
     const institute = await client("institute");
     expect((await post(institute, permissionPath, {
       decision: "granted", assetId: assetIds.withdrawn, requestId: randomUUID(),
       rightsReviewRef: "review-record-2026-02",
     })).status()).toBe(404);
+    expect((await post(institute,
+      `/api/institute/courses/${providerCourseId}/ai-permissions`, {
+        decision: "granted", assetId: assetIds.providerOwned, requestId: randomUUID(),
+        rightsReviewRef: "review-provider-owned-2026",
+      })).status()).toBe(404);
     const admin = await client("admin");
     expect((await admin.get(permissionPath)).status()).toBe(404);
     await institute.dispose();
