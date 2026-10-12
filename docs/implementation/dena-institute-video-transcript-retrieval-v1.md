@@ -2,11 +2,11 @@
 
 ## Delivered
 
-An active institute member can enter a transcript for a ready video in an institute-owned course only after the latest per-video AI permission event is a grant. The submitted text is normalized, fingerprinted with SHA-256, split into bounded chunks, and stored against the exact video and course. The institute page displays chunk counts without returning transcript text.
+An active member of the responsible institute can enter a transcript for a ready video in an institute-owned course or a currently supervised independent-educator course, after the latest per-video AI permission event is a grant. Independent-educator courses also require the approved institute affiliation and supervision grant to remain active. The submitted text is normalized, fingerprinted with SHA-256, split into bounded chunks, and stored against the exact video and course. The institute page displays chunk counts without returning transcript text.
 
 When a student asks a question the reviewed Dena starter set cannot answer, Dena performs deterministic word-overlap retrieval against transcript chunks for that course. It returns one matching excerpt as a quotation with the video title. It does not summarize, infer, or generate new claims from the transcript. No question is retained.
 
-Every transcript submission and retrieval checks current scope. Student retrieval rechecks active course entitlement, ready media status, institute ownership, and the latest permission grant. It is also behind the tutor endpoint's active-exam block. Provider-owned and independent-educator-owned video remain unavailable to this route.
+Every transcript submission and retrieval checks current scope. Student retrieval rechecks active course entitlement, ready media status, current institute ownership or active independent-educator supervision, and the latest permission grant. It is also behind the tutor endpoint's active-exam block. Verified-provider-owned video remains unavailable. An independent educator's video is available only to students with course entitlement, while the supervising institute's affiliation, course supervision and per-video permission remain valid.
 
 A revocation serializes on the video row, appends the permission event, and deletes that video's transcript chunks in the same transaction. Retrieval also filters on the latest grant, so a withdrawn or revoked source cannot be used.
 
@@ -16,4 +16,4 @@ This is text ingestion, not video processing. An authorized institute operator m
 
 ## Before production use
 
-The permission event's `rightsReviewRef` is an institute-provided audit pointer; Dena does not verify the underlying rights record. Production use remains blocked until the rights review operation is independently validated and the production database role is confirmed unable to update or delete permission events. Non-institute content owners also need a separate authorization workflow before their videos can be processed. These are release gates; this PR does not deploy or enable them in production.
+The permission event's `rightsReviewRef` is an institute-provided audit pointer; Dena does not verify the underlying rights record. Production use remains blocked until the rights review operation is independently validated and the production database role is confirmed unable to update or delete permission events. Verified-provider content remains blocked pending a separate authorization workflow. Rights references remain human-reviewed audit pointers, not proof. These are release gates; this PR does not deploy or enable them in production.
