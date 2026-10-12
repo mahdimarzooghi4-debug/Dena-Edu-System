@@ -281,6 +281,13 @@
       "when": 1791789999702,
       "tag": "0039_dena_ai_content_permission",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1791815100000,
+      "tag": "0040_dena_student_ai_tutor_topics",
+      "breakpoints": true
     }
   ]
 }
