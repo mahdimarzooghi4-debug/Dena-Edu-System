@@ -4,6 +4,7 @@ import { Card } from "../../../components/ui/card";
 import { IndependentEducatorWorkspace } from "../../../components/account/independent-educator-workspace";
 import { getServerAccessContext } from "../../../server/access/actor";
 import { getIndependentEducatorWorkspace } from "../../../server/independent-educators/affiliations";
+import { getIndependentEducatorCourses } from "../../../server/independent-educators/course-workflow";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,7 +20,10 @@ export default async function IndependentEducatorPage() {
   if (!actor.memberships.some((item) => item.role === "student")) {
     notFound();
   }
-  const data = await getIndependentEducatorWorkspace(actor.userId);
+  const [data, courses] = await Promise.all([
+    getIndependentEducatorWorkspace(actor.userId),
+    getIndependentEducatorCourses(actor.userId),
+  ]);
   return (
     <main id="main-content" className="mx-auto min-h-screen max-w-4xl space-y-6 px-5 py-8 md:px-10 md:py-12">
       <header className="rounded-[22px] bg-dena-lavender px-6 py-7 md:px-8">
@@ -29,7 +33,7 @@ export default async function IndependentEducatorPage() {
         </h1>
         <p className="mt-2 text-sm leading-8 text-dena-muted">
           اگر مجوز مستقل ندارید، می‌توانید با نام خودتان برای همکاری زیر نظر یک یا چند مؤسسه درخواست بدهید.
-          تأیید مؤسسه، مجوز رسمی آموزشی یا دسترسی به ساخت دوره ایجاد نمی‌کند.
+          پذیرش همکاری اجازهٔ ثبت پیش‌نویس می‌دهد؛ هر دوره برای نظارت و انتشار بررسی جداگانه می‌شود.
         </p>
       </header>
       <Card className="rounded-[24px] p-6 md:p-8">
@@ -39,6 +43,9 @@ export default async function IndependentEducatorPage() {
           initialAffiliations={data.affiliations.map((item) => ({
             ...item, createdAt: item.createdAt.toISOString(),
             updatedAt: item.updatedAt.toISOString(),
+          }))}
+          initialCourses={courses.map((course) => ({
+            ...course, createdAt: course.createdAt.toISOString(),
           }))}
         />
       </Card>
