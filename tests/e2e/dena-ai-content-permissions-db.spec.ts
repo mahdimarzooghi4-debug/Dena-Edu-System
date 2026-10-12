@@ -4,7 +4,8 @@ import { serializeSignedCookie } from "better-call";
 import { expect, request, test, type APIRequestContext } from "@playwright/test";
 import { getDb } from "../../src/db";
 import {
-  courses, denaAiContentPermissionEvents, memberships, privateMediaAssets,
+  courses, denaAiContentPermissionEvents, denaAiVideoTranscriptChunks,
+  memberships, privateMediaAssets,
   session, studentEnrollments, supervisionGrants, user, verifiedEntities,
 } from "../../src/db/schema";
 
@@ -27,6 +28,7 @@ test.describe("Dena AI video permission authorization and revocation", () => {
   };
   const permissionPath = `/api/institute/courses/${courseId}/ai-permissions`;
   const studentSourcesPath = `/api/student/ai-tutor/sources?courseId=${courseId}`;
+  const transcriptPath = `/api/institute/courses/${courseId}/ai-transcripts`;
 
   async function client(as?: keyof typeof users): Promise<APIRequestContext> {
     const cookie = as ? await serializeSignedCookie(
@@ -104,6 +106,8 @@ test.describe("Dena AI video permission authorization and revocation", () => {
   });
 
   test.afterAll(async () => {
+    await db.delete(denaAiVideoTranscriptChunks)
+      .where(inArray(denaAiVideoTranscriptChunks.courseId, [courseId, providerCourseId]));
     await db.delete(denaAiContentPermissionEvents)
       .where(inArray(denaAiContentPermissionEvents.courseId, [courseId, providerCourseId]));
     await db.delete(studentEnrollments)
@@ -141,6 +145,11 @@ test.describe("Dena AI video permission authorization and revocation", () => {
     const emptySources = await student.get(studentSourcesPath);
     expect(emptySources.status()).toBe(200);
     expect((await emptySources.json()).sources).toEqual([]);
+    const transcriptBeforeGrant = await post(institute, transcriptPath, {
+      assetId: assetIds.ready,
+      transcript: "در آزمایشگاه نور را با عدسی محدب روی پرده متمرکز می‌کنیم. فاصله کانونی عدسی به شکل و جنس آن بستگی دارد. با جابه‌جایی پرده می‌توان تصویر واضح را پیدا کرد.",
+    });
+    expect(transcriptBeforeGrant.status()).toBe(404);
 
     const badOrigin = await institute.post(permissionPath, {
       data: { decision: "granted", assetId: assetIds.ready, requestId: randomUUID(),
@@ -177,6 +186,26 @@ test.describe("Dena AI video permission authorization and revocation", () => {
     expect(JSON.stringify(await sourcesAfterGrant.json())).not.toContain("objectKey");
     expect(JSON.stringify(await sourcesAfterGrant.json())).not.toContain("review-record");
 
+    const transcript = "در آزمایشگاه نور را با عدسی محدب روی پرده متمرکز می‌کنیم. فاصله کانونی عدسی به شکل و جنس آن بستگی دارد. با جابه‌جایی پرده می‌توان تصویر واضح را پیدا کرد.";
+    const savedTranscript = await post(institute, transcriptPath, {
+      assetId: assetIds.ready, transcript,
+    });
+    expect(savedTranscript.status()).toBe(201);
+    expect(await savedTranscript.json()).toMatchObject({
+      saved: true, chunkCount: 1, sourceSha256: expect.stringMatching(/^[0-9a-f]{64}$/),
+    });
+    const transcriptAnswer = await post(student, "/api/student/ai-tutor", {
+      courseId,
+      message: "در آزمایشگاه چطور نور را با عدسی متمرکز کنیم؟",
+      rememberTopic: true,
+    });
+    expect(transcriptAnswer.status()).toBe(200);
+    expect(await transcriptAnswer.json()).toMatchObject({
+      source: { id: assetIds.ready, title: "درس اول" },
+      topicRecorded: false,
+      answer: expect.stringContaining("عدسی محدب"),
+    });
+
     const otherInstitute = await client("otherInstitute");
     expect((await otherInstitute.get(permissionPath)).status()).toBe(404);
     expect((await post(otherInstitute, permissionPath, {
@@ -190,6 +219,14 @@ test.describe("Dena AI video permission authorization and revocation", () => {
     });
     expect(revoke.status()).toBe(201);
     expect((await (await student.get(studentSourcesPath)).json()).sources).toEqual([]);
+    const retainedTranscript = await db.select({ id: denaAiVideoTranscriptChunks.id })
+      .from(denaAiVideoTranscriptChunks)
+      .where(eq(denaAiVideoTranscriptChunks.assetId, assetIds.ready));
+    expect(retainedTranscript).toEqual([]);
+    const afterRevocation = await post(student, "/api/student/ai-tutor", {
+      courseId, message: "در آزمایشگاه چطور نور را با عدسی متمرکز کنیم؟",
+    });
+    expect(afterRevocation.status()).toBe(422);
 
     const institutePage = await institute.get(`/institute/courses/${courseId}`);
     expect(institutePage.status()).toBe(200);
