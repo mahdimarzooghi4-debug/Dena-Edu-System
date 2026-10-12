@@ -1,4 +1,4 @@
-import { asc, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { getDb } from "../../db";
 import { studentAiTutorTopics } from "../../db/schema";
 import { isSeedTopicId, type SeedTopicId } from "../ai-tutor/seed-corpus";
@@ -21,6 +21,8 @@ export async function listStudentTutorTopics(studentUserId: string) {
   return getDb().select({
     topicId: studentAiTutorTopics.topicId,
     questionCount: studentAiTutorTopics.questionCount,
+    practiceAttemptCount: studentAiTutorTopics.practiceAttemptCount,
+    practiceCorrectCount: studentAiTutorTopics.practiceCorrectCount,
     firstAskedAt: studentAiTutorTopics.firstAskedAt,
     lastAskedAt: studentAiTutorTopics.lastAskedAt,
   }).from(studentAiTutorTopics)
@@ -44,4 +46,33 @@ export async function getLatestStudentTutorTopic(
     .orderBy(desc(studentAiTutorTopics.lastAskedAt), asc(studentAiTutorTopics.topicId))
     .limit(1);
   return row && isSeedTopicId(row.topicId) ? row.topicId : null;
+}
+
+export async function getStudentTutorPracticeStats(
+  studentUserId: string,
+  topicId: SeedTopicId,
+) {
+  const [row] = await getDb().select({
+    practiceAttemptCount: studentAiTutorTopics.practiceAttemptCount,
+    practiceCorrectCount: studentAiTutorTopics.practiceCorrectCount,
+  }).from(studentAiTutorTopics).where(and(
+    eq(studentAiTutorTopics.studentUserId, studentUserId),
+    eq(studentAiTutorTopics.topicId, topicId),
+  )).limit(1);
+  return row ?? null;
+}
+
+export async function recordStudentTutorPracticeOutcome(
+  studentUserId: string,
+  topicId: SeedTopicId,
+  correct: boolean,
+) {
+  const rows = await getDb().update(studentAiTutorTopics).set({
+    practiceAttemptCount: sql`LEAST(${studentAiTutorTopics.practiceAttemptCount} + 1, 10000)`,
+    practiceCorrectCount: sql`LEAST(${studentAiTutorTopics.practiceCorrectCount} + ${correct ? 1 : 0}, 10000)`,
+  }).where(and(
+    eq(studentAiTutorTopics.studentUserId, studentUserId),
+    eq(studentAiTutorTopics.topicId, topicId),
+  )).returning({ topicId: studentAiTutorTopics.topicId });
+  return rows.length > 0;
 }
