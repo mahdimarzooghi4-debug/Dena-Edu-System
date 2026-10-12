@@ -309,6 +309,13 @@
       "when": 1791803189397,
       "tag": "0043_dena_ai_video_transcript_chunks",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1791818000000,
+      "tag": "0044_dena_independent_educator_media_ingest",
+      "breakpoints": true
     }
   ]
 }
