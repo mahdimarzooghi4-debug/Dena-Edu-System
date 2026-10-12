@@ -7,7 +7,7 @@ type Institute = { id: string; name: string };
 type EducatorCourse = {
   courseId: string; title: string; instituteId: string; instituteName: string;
   publicationStatus: "draft" | "published" | "archived";
-  supervisionStatus: "requested" | "approved" | "revoked"; createdAt: string;
+  supervisionStatus: "requested" | "approved" | "revoked";
 };
 type Affiliation = {
   id: string; instituteId: string; instituteName: string; displayName: string;
