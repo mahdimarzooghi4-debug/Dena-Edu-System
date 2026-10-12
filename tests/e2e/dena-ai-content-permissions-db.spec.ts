@@ -190,6 +190,12 @@ test.describe("Dena AI video permission authorization and revocation", () => {
     });
     expect(revoke.status()).toBe(201);
     expect((await (await student.get(studentSourcesPath)).json()).sources).toEqual([]);
+
+    const institutePage = await institute.get(`/institute/courses/${courseId}`);
+    expect(institutePage.status()).toBe(200);
+    const html = await institutePage.text();
+    expect(html).toContain("مجوز استفاده از ویدئو برای معلم هوشمند");
+    expect(html).toContain("ارجاع ثبت‌شده به پروندهٔ بازبینی");
     await institute.dispose();
     await student.dispose();
   });
