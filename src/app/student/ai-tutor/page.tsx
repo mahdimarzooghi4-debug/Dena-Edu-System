@@ -72,16 +72,14 @@ export default async function StudentAiTutorPage() {
             معلم هوشمند، در مسیر یادگیری تو
           </h2>
           <p className="mt-2 max-w-3xl text-sm leading-8 text-dena-muted">
-            معلم هوشمند دنا با دیتاست آموزشی خود دنا آغاز می‌شود و در ادامه با ویدئوهای مجازِ
-            دوره‌های تو رشد می‌کند تا بتواند درس‌ها را متناسب با مسیر خودت توضیح دهد.
+            نسخهٔ فعلی از مجموعهٔ آموزشی آغازین دنا پاسخ می‌دهد. استفاده از ویدئوهای دوره و شخصی‌سازی پاسخ‌ها هنوز فعال نشده است.
           </p>
-          <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-amber-200 bg-white px-4 py-2 text-sm font-bold text-dena-ink">
-            <span className="size-2 rounded-full bg-amber-500" aria-hidden="true" />
-            پاسخ‌گویی هنوز فعال نیست
+          <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-bold text-dena-ink">
+            <span className="size-2 rounded-full bg-emerald-500" aria-hidden="true" />
+            نسخهٔ آغازین فعال است
           </div>
           <p className="mt-3 max-w-3xl text-xs leading-7 text-dena-muted">
-            تا زمانی که مدل و محتوای آموزشی آماده و ارزیابی نشده‌اند، گفت‌وگو یا پاسخ آزمایشی نمایش
-            داده نمی‌شود.
+            پاسخ‌ها با جست‌وجوی محدود در چند درس بازبینی‌شده پیدا می‌شوند؛ اگر درس مرتبطی نباشد، معلم پاسخ نمی‌سازد.
           </p>
         </section>
 
