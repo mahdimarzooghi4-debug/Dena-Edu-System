@@ -20,6 +20,7 @@ export function AiVideoPermissions({
   grantEligible: boolean;
 }) {
   const [assets, setAssets] = useState<VideoAsset[]>([]);
+  const [transcriptChunkCounts, setTranscriptChunkCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [savingAsset, setSavingAsset] = useState<string | null>(null);
   const [message, setMessage] = useState("");
@@ -34,6 +35,17 @@ export function AiVideoPermissions({
       if (!response.ok) throw new Error("فهرست ویدئوها در دسترس نیست.");
       const body = await response.json() as { assets: VideoAsset[] };
       setAssets(body.assets);
+      const transcriptsResponse = await fetch(
+        `/api/institute/courses/${courseId}/ai-transcripts`,
+        { cache: "no-store" },
+      );
+      if (!transcriptsResponse.ok) throw new Error("وضعیت رونوشت‌ها در دسترس نیست.");
+      const transcriptBody = await transcriptsResponse.json() as {
+        assets: Array<{ assetId: string; chunkCount: number }>;
+      };
+      setTranscriptChunkCounts(Object.fromEntries(
+        transcriptBody.assets.map((item) => [item.assetId, item.chunkCount]),
+      ));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "خطا در دریافت ویدئوها.");
     } finally {
@@ -41,23 +53,43 @@ export function AiVideoPermissions({
     }
   }, [courseId]);
 
-  useEffect(() => {
-    let active = true;
-    void fetch(`/api/institute/courses/${courseId}/ai-permissions`, {
-      cache: "no-store",
-    }).then(async (response) => {
-      if (!response.ok) throw new Error("فهرست ویدئوها در دسترس نیست.");
-      return await response.json() as { assets: VideoAsset[] };
-    }).then((body) => {
-      if (active) setAssets(body.assets);
-    }).catch((cause: unknown) => {
-      if (active) setError(cause instanceof Error
-        ? cause.message : "خطا در دریافت ویدئوها.");
-    }).finally(() => {
-      if (active) setLoading(false);
-    });
-    return () => { active = false; };
-  }, [courseId]);
+  useEffect(() => { void refresh(); }, [refresh]);
+
+  async function submitTranscript(
+    event: FormEvent<HTMLFormElement>,
+    asset: VideoAsset,
+  ) {
+    event.preventDefault();
+    setSavingAsset(asset.assetId);
+    setError("");
+    setMessage("");
+    const form = new FormData(event.currentTarget);
+    try {
+      const response = await fetch(
+        `/api/institute/courses/${courseId}/ai-transcripts`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            assetId: asset.assetId,
+            transcript: String(form.get("transcript") ?? ""),
+          }),
+        },
+      );
+      const result = await response.json().catch(() => null) as
+        { error?: string; chunkCount?: number } | null;
+      if (!response.ok) throw new Error(result?.error ===
+        "Course, video, or AI permission unavailable"
+        ? "مجوز فعال این ویدئو پیدا نشد."
+        : "ثبت رونوشت انجام نشد؛ متن و مجوز را بررسی کنید.");
+      setMessage(`رونوشت ذخیره شد و به ${result?.chunkCount ?? 0} بخش جست‌وجوپذیر تقسیم شد.`);
+      await refresh();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "ثبت رونوشت انجام نشد.");
+    } finally {
+      setSavingAsset(null);
+    }
+  }
 
   async function submit(
     event: FormEvent<HTMLFormElement>,
@@ -183,6 +215,32 @@ export function AiVideoPermissions({
                     <button disabled={saving}
                       className="min-h-11 rounded-lg bg-dena-brand px-4 text-sm font-bold text-white disabled:opacity-60">
                       {saving ? "در حال ثبت…" : "ثبت ارجاع بازبینی"}
+                    </button>
+                  </form>
+                )}
+
+                {granted && asset.mediaStatus === "ready" && (
+                  <form onSubmit={(event) => void submitTranscript(event, asset)}
+                    className="space-y-3 rounded-xl bg-dena-bg p-4">
+                    <div>
+                      <h4 className="font-bold">رونوشت آموزشی ویدئو</h4>
+                      <p className="mt-1 text-xs leading-6 text-dena-muted">
+                        متن را از منبع مجاز وارد کنید. دنا فعلاً گفتار را خودکار پیاده نمی‌کند؛ متن در پاسخ‌ها به صورت نقل‌قول قابل جست‌وجو می‌شود.
+                        {transcriptChunkCounts[asset.assetId]
+                          ? ` ${transcriptChunkCounts[asset.assetId]} بخش ثبت‌شده.`
+                          : " هنوز رونوشت ثبت نشده است."}
+                      </p>
+                    </div>
+                    <label className="block text-xs font-bold text-dena-muted">
+                      متن رونوشت (۸۰ تا ۲۰٬۰۰۰ نویسه)
+                      <textarea name="transcript" required minLength={80} maxLength={20000}
+                        className="mt-2 min-h-36 w-full rounded-lg border border-dena-border bg-white p-3 text-sm font-normal leading-7"
+                        placeholder="بخش پیاده‌سازی‌شدهٔ درس را وارد کنید…"
+                      />
+                    </label>
+                    <button disabled={saving}
+                      className="min-h-10 rounded-lg bg-dena-brand px-4 text-sm font-bold text-white disabled:opacity-60">
+                      {saving ? "در حال ثبت…" : "جایگزینی رونوشت"}
                     </button>
                   </form>
                 )}
