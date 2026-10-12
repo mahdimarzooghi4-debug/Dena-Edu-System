@@ -6,8 +6,8 @@ import { getDb } from "../../src/db";
 import {
   auditLogs, courseOwnershipEvents, courses, educatorInstituteAffiliationEvents,
   educatorInstituteAffiliations, independentEducatorProfiles, memberships,
-  privateMediaAssets, session, studentEnrollments, supervisionGrants,
-  user, verifiedEntities,
+  privateMediaAssets, session, studentEnrollments, supervisionEvents,
+  supervisionGrants, user, verifiedEntities,
 } from "../../src/db/schema";
 import { hasStudentEntitlement } from "../../src/server/student/entitlement";
 import { listStudentCatalog, readCatalogQuery } from "../../src/server/student/course-catalog";
@@ -28,7 +28,7 @@ test.describe("independent educator institute affiliations", () => {
     outsider: randomUUID(), selfApplicant: randomUUID(),
   };
   const institutes = { a: randomUUID(), b: randomUUID() };
-  const ownedCourseId = randomUUID();
+  let ownedCourseId = randomUUID();
   const ownedAssetId = randomUUID();
   const requestIds = { a: randomUUID(), b: randomUUID(), self: randomUUID() };
   let affiliationA = "";
@@ -79,6 +79,7 @@ test.describe("independent educator institute affiliations", () => {
   });
 
   test.afterAll(async () => {
+    await db.delete(supervisionEvents).where(eq(supervisionEvents.courseId, ownedCourseId));
     await db.delete(courseOwnershipEvents).where(eq(courseOwnershipEvents.courseId, ownedCourseId));
     await db.delete(studentEnrollments).where(eq(studentEnrollments.courseId, ownedCourseId));
     await db.delete(privateMediaAssets).where(eq(privateMediaAssets.courseId, ownedCourseId));
@@ -131,6 +132,10 @@ test.describe("independent educator institute affiliations", () => {
       apply(institutes.a, requestIds.a, "برند مستقل آوا"));
     expect(first.status()).toBe(201);
     affiliationA = (await first.json() as { id: string }).id;
+    expect((await post(applicant, "/api/independent-educator/courses", {
+      instituteId: institutes.a, clientRequestId: randomUUID(),
+      title: "پیش‌نویس قبل از تأیید همکاری",
+    })).status()).toBe(404);
     const replay = await post(applicant, "/api/independent-educator/affiliations",
       apply(institutes.a, requestIds.a, "برند مستقل آوا"));
     expect(replay.status()).toBe(200);
@@ -176,28 +181,31 @@ test.describe("independent educator institute affiliations", () => {
     const [profile] = await db.select().from(independentEducatorProfiles)
       .where(eq(independentEducatorProfiles.userId, users.applicant));
     expect(profile?.displayName).toBe("برند مستقل آوا");
-    const approvedAt = new Date();
-    await db.insert(courses).values({
-      id: ownedCourseId,
-      ownerType: "independent_educator",
-      independentEducatorProfileId: profile!.id,
-      responsibleInstituteId: institutes.a,
+    const courseRequest = {
+      instituteId: institutes.a, clientRequestId: randomUUID(),
       title: "دورهٔ آزمایشی همکار مستقل",
-      publicationStatus: "published",
-      publishedAt: approvedAt,
-      createdByProviderUserId: users.applicant,
-      clientRequestId: randomUUID(),
+    };
+    const createdCourse = await post(applicant, "/api/independent-educator/courses",
+      courseRequest);
+    expect(createdCourse.status()).toBe(201);
+    const createdBody = await createdCourse.json() as {
+      courseId: string; status: string; replayed: boolean;
+    };
+    expect(createdBody).toMatchObject({ status: "requested", replayed: false });
+    ownedCourseId = createdBody.courseId;
+    const courseReplay = await post(applicant, "/api/independent-educator/courses",
+      courseRequest);
+    expect(courseReplay.status()).toBe(200);
+    expect(await courseReplay.json()).toMatchObject({
+      courseId: ownedCourseId, status: "requested", replayed: true,
     });
-    await db.insert(supervisionGrants).values({
-      courseId: ownedCourseId,
-      ownerType: "independent_educator",
-      independentEducatorProfileId: profile!.id,
-      instituteId: institutes.a,
-      requestedByProviderUserId: users.applicant,
-      status: "approved",
-      approvedByInstituteUserId: users.instituteA,
-      approvedAt,
-    });
+    const approvedAt = new Date();
+    await db.update(courses).set({
+      publicationStatus: "published", publishedAt: approvedAt,
+    }).where(eq(courses.id, ownedCourseId));
+    await db.update(supervisionGrants).set({
+      status: "approved", approvedByInstituteUserId: users.instituteA, approvedAt,
+    }).where(eq(supervisionGrants.courseId, ownedCourseId));
     await db.insert(privateMediaAssets).values({
       id: ownedAssetId,
       courseId: ownedCourseId,
@@ -242,6 +250,9 @@ test.describe("independent educator institute affiliations", () => {
     await page.goto("http://localhost:3000/account/independent-educator");
     await expect(page.getByRole("heading", { name: "همکاری با مؤسسه‌های تأییدشده" })).toBeVisible();
     await expect(page.getByText("همکار مستقل · نشان نارنجی")).toBeVisible();
+    await expect(page.getByRole("heading", {
+      name: "دورهٔ آزمایشی همکار مستقل",
+    })).toBeVisible();
     expect((await post(instituteA, decisionPath(affiliationA), {
       action: "revoke", reason: "پایان همکاری به درخواست و تصمیم مؤسسه ثبت شد.",
     })).status()).toBe(200);
