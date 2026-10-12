@@ -8,6 +8,7 @@ import { getServerAccessContext } from "../../../../server/access/actor";
 import { getInstituteCourseDetail } from "../../../../server/institute/course-detail";
 import { getInstituteCourseTeam } from "../../../../server/institute/course-team";
 import { CourseTeamSessionPolicyControl } from "../../../../components/institute/course-team-controls";
+import { AiVideoPermissions } from "../../../../components/institute/ai-video-permissions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -147,6 +148,12 @@ export default async function InstituteCoursePage({
           تأیید داخلی دنا جایگزین مجوز رسمی آموزشی نیست.
         </p>
       </Card>
+
+      <AiVideoPermissions
+        courseId={courseId}
+        grantEligible={course.providerName === null &&
+          course.independentEducatorName === null}
+      />
 
       <section aria-labelledby="institute-course-team" className="space-y-4">
         <div>
