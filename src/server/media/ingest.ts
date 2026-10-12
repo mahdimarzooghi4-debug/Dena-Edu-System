@@ -2,7 +2,8 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { and, eq, sql } from "drizzle-orm";
 import { getDb } from "../../db";
 import {
-  courses, mediaIngests, mediaMultipartPlans, mediaProcessingJobs, memberships, privateMediaAssets, supervisionGrants,
+  courses, educatorInstituteAffiliations, independentEducatorProfiles, mediaIngests,
+  mediaMultipartPlans, mediaProcessingJobs, memberships, privateMediaAssets, supervisionGrants,
 } from "../../db/schema";
 import { isVerifiedProviderCourse } from "../courses/ownership";
 import { configuredPrivateMediaOrigin } from "../student/private-media";
@@ -55,36 +56,88 @@ export class IngestError extends Error {
  */
 export async function reserveIngest(userId: string, courseId: string, input: IngestInput) {
   return getDb().transaction(async (tx) => {
+    // A revocation locks affiliation before course. Discover ownership first,
+    // then take those same locks in that order for independent educators.
+    const [scope] = await tx.select({
+      ownerType: courses.ownerType,
+      providerId: courses.providerId,
+      profileId: courses.independentEducatorProfileId,
+      instituteId: courses.responsibleInstituteId,
+    }).from(courses).where(eq(courses.id, courseId)).limit(1);
+    if (scope?.ownerType === "independent_educator" && scope.profileId) {
+      await tx.select({ id: educatorInstituteAffiliations.id })
+        .from(educatorInstituteAffiliations).where(and(
+          eq(educatorInstituteAffiliations.educatorProfileId, scope.profileId),
+          eq(educatorInstituteAffiliations.instituteId, scope.instituteId),
+          eq(educatorInstituteAffiliations.status, "approved"),
+        )).limit(1).for("share");
+    }
     const [course] = await tx.select().from(courses)
       .where(eq(courses.id, courseId)).limit(1).for("update");
-    if (!course || !isVerifiedProviderCourse(course) || course.publicationStatus !== "draft") {
+    if (!course || course.publicationStatus !== "draft") {
       throw new IngestError("not_available");
     }
-    const [provider] = await tx.select({ id: memberships.id })
-      .from(memberships).where(and(
-        eq(memberships.userId, userId),
-        eq(memberships.role, "provider"),
-        eq(memberships.providerId, course.providerId),
-        eq(memberships.status, "active"),
+
+    let ownerAuthorized = false;
+    if (isVerifiedProviderCourse(course)) {
+      const [provider] = await tx.select({ id: memberships.id })
+        .from(memberships).where(and(
+          eq(memberships.userId, userId), eq(memberships.role, "provider"),
+          eq(memberships.providerId, course.providerId),
+          eq(memberships.status, "active"),
+        )).limit(1).for("share");
+      const [grant] = await tx.select().from(supervisionGrants).where(and(
+        eq(supervisionGrants.courseId, courseId),
+        eq(supervisionGrants.providerId, course.providerId),
+        eq(supervisionGrants.instituteId, course.responsibleInstituteId),
+        eq(supervisionGrants.status, "approved"),
       )).limit(1).for("share");
-    if (!provider) throw new IngestError("not_provider");
-    const [grant] = await tx.select().from(supervisionGrants).where(and(
-      eq(supervisionGrants.courseId, courseId),
-      eq(supervisionGrants.providerId, course.providerId),
-      eq(supervisionGrants.instituteId, course.responsibleInstituteId),
-      eq(supervisionGrants.status, "approved"),
-    )).limit(1).for("share");
-    if (!grant?.approvedByInstituteUserId || !grant.approvedAt) {
-      throw new IngestError("not_available");
+      const [approver] = grant?.approvedByInstituteUserId
+        ? await tx.select({ id: memberships.id }).from(memberships).where(and(
+            eq(memberships.userId, grant.approvedByInstituteUserId),
+            eq(memberships.role, "institute"),
+            eq(memberships.instituteId, course.responsibleInstituteId),
+            eq(memberships.status, "active"),
+          )).limit(1).for("share")
+        : [];
+      ownerAuthorized = Boolean(provider && grant?.approvedAt && approver);
+    } else if (course.ownerType === "independent_educator" &&
+        course.independentEducatorProfileId) {
+      const profileId = course.independentEducatorProfileId;
+      const [profile] = await tx.select({ id: independentEducatorProfiles.id })
+        .from(independentEducatorProfiles).where(and(
+          eq(independentEducatorProfiles.id, profileId),
+          eq(independentEducatorProfiles.userId, userId),
+        )).limit(1).for("share");
+      const [student] = await tx.select({ id: memberships.id }).from(memberships)
+        .where(and(eq(memberships.userId, userId),
+          eq(memberships.role, "student"), eq(memberships.status, "active")))
+        .limit(1).for("share");
+      const [affiliation] = await tx.select({ id: educatorInstituteAffiliations.id })
+        .from(educatorInstituteAffiliations).where(and(
+          eq(educatorInstituteAffiliations.educatorProfileId, profileId),
+          eq(educatorInstituteAffiliations.instituteId, course.responsibleInstituteId),
+          eq(educatorInstituteAffiliations.status, "approved"),
+        )).limit(1).for("share");
+      const [grant] = await tx.select().from(supervisionGrants).where(and(
+        eq(supervisionGrants.courseId, courseId),
+        eq(supervisionGrants.ownerType, "independent_educator"),
+        eq(supervisionGrants.independentEducatorProfileId, profileId),
+        eq(supervisionGrants.instituteId, course.responsibleInstituteId),
+        eq(supervisionGrants.status, "approved"),
+      )).limit(1).for("share");
+      const [approver] = grant?.approvedByInstituteUserId
+        ? await tx.select({ id: memberships.id }).from(memberships).where(and(
+            eq(memberships.userId, grant.approvedByInstituteUserId),
+            eq(memberships.role, "institute"),
+            eq(memberships.instituteId, course.responsibleInstituteId),
+            eq(memberships.status, "active"),
+          )).limit(1).for("share")
+        : [];
+      ownerAuthorized = Boolean(profile && student && affiliation &&
+        grant?.approvedAt && approver);
     }
-    const [approver] = await tx.select({ id: memberships.id })
-      .from(memberships).where(and(
-        eq(memberships.userId, grant.approvedByInstituteUserId),
-        eq(memberships.role, "institute"),
-        eq(memberships.instituteId, course.responsibleInstituteId),
-        eq(memberships.status, "active"),
-      )).limit(1).for("share");
-    if (!approver) throw new IngestError("not_available");
+    if (!ownerAuthorized) throw new IngestError("not_provider");
 
     const [prior] = await tx.select().from(mediaIngests).where(and(
       eq(mediaIngests.courseId, courseId),
@@ -93,7 +146,12 @@ export async function reserveIngest(userId: string, courseId: string, input: Ing
     if (prior) {
       if (prior.createdByUserId !== userId || prior.title !== input.title ||
           prior.expectedBytes !== input.expectedBytes ||
-          prior.expectedSha256 !== input.sha256) throw new IngestError("conflict");
+          prior.expectedSha256 !== input.sha256 ||
+          prior.ownerType !== course.ownerType ||
+          prior.providerId !== course.providerId ||
+          prior.independentEducatorProfileId !== course.independentEducatorProfileId) {
+        throw new IngestError("conflict");
+      }
       return { uploadId: prior.id, assetId: prior.assetId, status: prior.status,
         replayed: true };
     }
@@ -120,9 +178,11 @@ export async function reserveIngest(userId: string, courseId: string, input: Ing
     ));
     if (count + planned >= 20) throw new IngestError("limit_reached");
     const [created] = await tx.insert(mediaIngests).values({
-      courseId, providerId: course.providerId, createdByUserId: userId,
-      requestId: input.clientRequestId, title: input.title,
-      expectedBytes: input.expectedBytes, expectedSha256: input.sha256,
+      courseId, ownerType: course.ownerType, providerId: course.providerId,
+      independentEducatorProfileId: course.independentEducatorProfileId,
+      createdByUserId: userId, requestId: input.clientRequestId,
+      title: input.title, expectedBytes: input.expectedBytes,
+      expectedSha256: input.sha256,
     }).returning({ id: mediaIngests.id, assetId: mediaIngests.assetId });
     return { uploadId: created.id, assetId: created.assetId,
       status: "reserved" as const, replayed: false };
