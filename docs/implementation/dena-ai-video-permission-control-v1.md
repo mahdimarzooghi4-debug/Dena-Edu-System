@@ -31,10 +31,10 @@ Both operations require same-origin requests and a server-authenticated session.
 
 `GET /api/student/ai-tutor/sources?courseId=...` requires an active student session and a current course entitlement. It returns only ready asset IDs and titles whose latest event is a grant. It excludes withdrawn videos, missing/ revoked permission, unpublished or unsupervised courses, and cancelled enrollments through the entitlement check.
 
-The response is a point-in-time manifest. Any future retrieval pipeline must recheck entitlement, publication, supervision, media status and the latest permission immediately before reading derived content; it must also invalidate derived content after a revocation. This endpoint does not authorize byte access.
+The response is a point-in-time manifest and does not authorize byte access. The later manual transcript retrieval path rechecks student entitlement, course publication/supervision, ready media and the latest permission before reading text. Permission revocation serializes on the video row and deletes its transcript chunks in the same transaction.
 
 ## Data and tests
 
 Migration `0039_dena_ai_content_permission.sql` creates a scoped event table with composite foreign keys to the exact asset/course and course/institute pair, decision checks, an idempotency index and an asset history index. There are no backfilled grants, so existing videos remain unavailable to AI by default.
 
-CI must pass schema generation/drift validation, typecheck, unit tests and the PostgreSQL integration suite. Before any future AI content processing can be enabled, add owner authorization for non-institute-owned courses, production DB append-only privileges, real rights-review operations, derived-content deletion/invalidation, and concurrency tests for grant/revoke races.
+CI must pass schema generation/drift validation, typecheck, unit tests and the PostgreSQL integration suite. Before production AI content processing is enabled, complete real rights-review operations and verify production DB append-only privileges for the permission event log. Non-institute-owned courses remain blocked until a separate owner-authorization workflow is added. The code serializes transcript submission against permission events and removes chunks on revocation; production rollout still requires concurrency tests and operational verification.
