@@ -6,6 +6,8 @@ import { buttonClassName } from "../../../components/ui/button";
 import { SectionHeading } from "../../../components/ui/section-heading";
 import { StudentShell } from "../../../components/student/student-shell";
 import { getServerAccessContext } from "../../../server/access/actor";
+import { AiTutorChat } from "../../../components/student/ai-tutor-chat";
+import { listStudentCatalog, readCatalogQuery } from "../../../server/student/course-catalog";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -50,6 +52,9 @@ export default async function StudentAiTutorPage() {
   if (!actor) redirect("/login");
   if (!actor.memberships.some((entry) => entry.role === "student")) notFound();
 
+  const catalog = await listStudentCatalog(actor.userId,
+    readCatalogQuery(new URLSearchParams("mine=1")));
+
   return (
     <StudentShell active="aiTutor" title="معلم هوشمند">
       <div className="space-y-7">
@@ -78,7 +83,7 @@ export default async function StudentAiTutorPage() {
           </p>
         </section>
 
-        <section aria-labelledby="ai-tutor-growth" className="space-y-4">
+        <AiTutorChat courses={catalog.courses.map((course) => ({\n          courseId: course.courseId, title: course.title,\n        }))} />\n\n        <section aria-labelledby="ai-tutor-growth" className="space-y-4">
           <SectionHeading id="ai-tutor-growth" note="برنامهٔ یادگیری معلم دنا">
             معلم هوشمند چطور رشد می‌کند؟
           </SectionHeading>
