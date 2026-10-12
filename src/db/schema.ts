@@ -545,7 +545,7 @@ export const denaAiContentPermissionEvents = pgTable(
   ],
 );
 
-/** Optional, per-student topic counters. Never store prompt text or infer mastery. */
+/** Optional per-student topic counters and a retry guidance flag. Never store prompt text or infer mastery. */
 export const studentAiTutorTopics = pgTable("dena_student_ai_tutor_topics", {
   studentUserId: uuid("student_user_id").notNull()
     .references(() => user.id, { onDelete: "cascade" }),
@@ -553,6 +553,7 @@ export const studentAiTutorTopics = pgTable("dena_student_ai_tutor_topics", {
   questionCount: integer("question_count").notNull().default(1),
   practiceAttemptCount: integer("practice_attempt_count").notNull().default(0),
   practiceCorrectCount: integer("practice_correct_count").notNull().default(0),
+  practiceNeedsGuidance: boolean("practice_needs_guidance").notNull().default(false),
   firstAskedAt: timestamp("first_asked_at", { withTimezone: true })
     .notNull().defaultNow(),
   lastAskedAt: timestamp("last_asked_at", { withTimezone: true })
