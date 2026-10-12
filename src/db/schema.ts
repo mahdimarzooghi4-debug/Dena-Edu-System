@@ -545,6 +545,32 @@ export const denaAiContentPermissionEvents = pgTable(
   ],
 );
 
+/** Optional, per-student topic counters. Never store prompt text or infer mastery. */
+export const studentAiTutorTopics = pgTable("dena_student_ai_tutor_topics", {
+  studentUserId: uuid("student_user_id").notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  topicId: text("topic_id").notNull(),
+  questionCount: integer("question_count").notNull().default(1),
+  firstAskedAt: timestamp("first_asked_at", { withTimezone: true })
+    .notNull().defaultNow(),
+  lastAskedAt: timestamp("last_asked_at", { withTimezone: true })
+    .notNull().defaultNow(),
+}, (table) => [
+  primaryKey({
+    columns: [table.studentUserId, table.topicId],
+    name: "dena_student_ai_tutor_topics_pk",
+  }),
+  check("dena_student_ai_tutor_topics_bounds_ck", sql`
+    topic_id IN (
+      'math.linear-equation.v1',
+      'math.fractions.add.v1',
+      'math.percent.v1'
+    )
+    AND question_count BETWEEN 1 AND 10000
+    AND last_asked_at >= first_asked_at
+  `),
+]);
+
 /** Self-reported learning marker; it is NOT proof of watching or assessment. */
 export const studentVideoCompletions = pgTable("dena_student_video_completions", {
   id: uuid("id").primaryKey().defaultRandom(),
