@@ -170,7 +170,7 @@ test.describe("student learning assessment lifecycle", () => {
     await db.delete(user).where(inArray(user.id, Object.values(users)));
   });
 
-  test("AI tutor enforces student access, blocks both exam types, and fails closed", async () => {
+  test("AI tutor enforces student access, blocks both exam types, and uses its starter corpus", async () => {
     const student = await client("student");
     const otherStudent = await client("other");
     const institute = await client("institute");
@@ -217,12 +217,23 @@ test.describe("student learning assessment lifecycle", () => {
         .where(eq(assessmentExamAttempts.id, attemptId));
     }
 
-    const unavailable = await post(student, "/api/student/ai-tutor", {
-      courseId, message: "این مفهوم را توضیح بده.",
+    const supported = await post(student, "/api/student/ai-tutor", {
+      courseId, message: "معادلهٔ یک‌مجهولی را چطور حل کنم؟",
     });
-    expect(unavailable.status()).toBe(503);
-    expect(await unavailable.json()).toMatchObject({ code: "AI_TUTOR_UNAVAILABLE" });
-    expect(unavailable.headers()["cache-control"]).toContain("no-store");
+    expect(supported.status()).toBe(200);
+    expect(await supported.json()).toMatchObject({
+      source: { id: "math.linear-equation.v1", corpusVersion: expect.any(String) },
+    });
+    expect(supported.headers()["cache-control"]).toContain("no-store");
+
+    const unsupported = await post(student, "/api/student/ai-tutor", {
+      courseId, message: "نظریه نسبیت را توضیح بده.",
+    });
+    expect(unsupported.status()).toBe(422);
+    expect(await unsupported.json()).toMatchObject({
+      code: "STARTER_CONTENT_NOT_FOUND",
+    });
+    expect(unsupported.headers()["cache-control"]).toContain("no-store");
     await anonymous.dispose();
     await otherStudent.dispose();
     await institute.dispose();
