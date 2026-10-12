@@ -249,8 +249,7 @@ export function AiVideoPermissions({
 
                 {!grantEligible && !granted && (
                   <p className="rounded-lg bg-dena-bg p-3 text-xs leading-7 text-dena-muted">
-                    این دوره متعلق به ارائه‌دهنده یا مدرس مستقل است؛ تا زمان اضافه‌شدن تأیید مالک محتوا،
-                    مجوز پردازش AI برای آن قابل ثبت نیست.
+                    این ویدئو متعلق به ارائه‌دهنده یا مدرس مستقلِ بدون نظارت فعال شماست؛ مجوز پردازش AI برای آن قابل ثبت نیست.
                   </p>
                 )}
               </Card>
