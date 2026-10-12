@@ -274,6 +274,13 @@
       "when": 1791194874131,
       "tag": "0038_multi_owner_course_foreign_keys",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1791789999702,
+      "tag": "0039_dena_ai_content_permission",
+      "breakpoints": true
     }
   ]
 }
