@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import { Card } from "../ui/card";
 
 type VideoAsset = {
@@ -45,7 +46,7 @@ export function AiVideoPermissions({
   useEffect(() => { void refresh(); }, [refresh]);
 
   async function submit(
-    event: React.FormEvent<HTMLFormElement>,
+    event: FormEvent<HTMLFormElement>,
     asset: VideoAsset,
     decision: "granted" | "revoked",
   ) {
