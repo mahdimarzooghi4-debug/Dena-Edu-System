@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, or, sql } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { getDb } from "@/db";
@@ -28,6 +28,8 @@ const decisionSchema = z.discriminatedUnion("decision", [
   }).strict(),
 ]);
 
+const supervisedEducatorScope = sql.raw("EXISTS (\n  SELECT 1\n  FROM dena_educator_institute_affiliations AS affiliation\n  JOIN dena_supervision_grants AS supervision\n    ON supervision.course_id = dena_courses.id\n   AND supervision.owner_type = 'independent_educator'\n   AND supervision.independent_educator_profile_id = dena_courses.independent_educator_profile_id\n   AND supervision.institute_id = dena_courses.responsible_institute_id\n  WHERE affiliation.educator_profile_id = dena_courses.independent_educator_profile_id\n    AND affiliation.institute_id = dena_courses.responsible_institute_id\n    AND affiliation.status = 'approved'\n    AND supervision.status = 'approved'\n    AND supervision.approved_at IS NOT NULL\n    AND EXISTS (\n      SELECT 1 FROM dena_memberships AS approver\n      WHERE approver.user_id = supervision.approved_by_institute_user_id\n        AND approver.role = 'institute'\n        AND approver.institute_id = dena_courses.responsible_institute_id\n        AND approver.status = 'active'\n    )\n)");
+
 type RouteContext = { params: Promise<{ courseId: string }> };
 
 async function scopedInstituteCourse(userId: string, courseId: string) {
@@ -39,7 +41,13 @@ async function scopedInstituteCourse(userId: string, courseId: string) {
       eq(memberships.status, "active"),
       eq(memberships.instituteId, courses.responsibleInstituteId),
     ))
-    .where(eq(courses.id, courseId))
+    .where(and(
+      eq(courses.id, courseId),
+      or(
+        eq(courses.ownerType, "institute"),
+        and(eq(courses.ownerType, "independent_educator"), supervisedEducatorScope),
+      ),
+    ))
     .limit(1);
   return row ?? null;
 }
@@ -153,7 +161,11 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
       .where(and(
         eq(courses.id, courseId),
         ...(input.decision === "granted"
-          ? [eq(courses.ownerType, "institute" as const)]
+          ? [or(
+              eq(courses.ownerType, "institute" as const),
+              and(eq(courses.ownerType, "independent_educator" as const),
+                supervisedEducatorScope),
+            )!]
           : []),
       ))
       .limit(1);
