@@ -8,8 +8,8 @@ This is an authorization control plane. It does **not** ingest media, create tra
 
 ## Authority and limits
 
-- A grant is accepted only for a ready video in a course owned by the responsible institute, and only from an active member of that same institute.
-- Provider-owned and independent-educator-owned courses cannot receive an AI grant through this route. They need a separate owner authorization workflow before any AI processing can be enabled. The responsible institute can still record a revocation for its course.
+- A grant is accepted for a ready video in an institute-owned course or a course whose independent educator currently has an approved affiliation and an approved supervision grant with that institute. The decision must come from an active member of the responsible institute.
+- Verified-provider courses remain ineligible. An independent-educator-owned course is eligible only while the responsible institute's supervision decision and the educator affiliation are both approved; revocation or transfer removes the active independent-educator scope. A supervising institute may review the course's videos using the existing per-video rights reference.
 - A grant requires a `rightsReviewRef`: a short reference to the institute's external rights review record. Dena validates and stores the reference but does not verify its truth, legal sufficiency, or copyright ownership. A reference is an audit pointer, not proof.
 - Grants and revocations are insert-only events at the application layer. Every event records the authenticated actor, institute, course, asset, request ID, decision and timestamp. Replays with the same actor/request ID are idempotent; reuse for different data conflicts.
 - Production database credentials must deny `UPDATE` and `DELETE` on `dena_ai_content_permission_events`. This privilege boundary is an operational release gate and is not created by this migration.
@@ -31,10 +31,10 @@ Both operations require same-origin requests and a server-authenticated session.
 
 `GET /api/student/ai-tutor/sources?courseId=...` requires an active student session and a current course entitlement. It returns only ready asset IDs and titles whose latest event is a grant. It excludes withdrawn videos, missing/ revoked permission, unpublished or unsupervised courses, and cancelled enrollments through the entitlement check.
 
-The response is a point-in-time manifest and does not authorize byte access. The later manual transcript retrieval path rechecks student entitlement, course publication/supervision, ready media and the latest permission before reading text. Permission revocation serializes on the video row and deletes its transcript chunks in the same transaction.
+The response is a point-in-time manifest and does not authorize byte access. The manual transcript path rechecks student entitlement, active institute supervision for an independent-educator-owned course, ready media and the latest permission before reading text. Permission revocation serializes on the video row and deletes its transcript chunks in the same transaction.
 
 ## Data and tests
 
 Migration `0039_dena_ai_content_permission.sql` creates a scoped event table with composite foreign keys to the exact asset/course and course/institute pair, decision checks, an idempotency index and an asset history index. There are no backfilled grants, so existing videos remain unavailable to AI by default.
 
-CI must pass schema generation/drift validation, typecheck, unit tests and the PostgreSQL integration suite. Before production AI content processing is enabled, complete real rights-review operations and verify production DB append-only privileges for the permission event log. Non-institute-owned courses remain blocked until a separate owner-authorization workflow is added. The code serializes transcript submission against permission events and removes chunks on revocation; production rollout still requires concurrency tests and operational verification.
+CI must pass schema generation/drift validation, typecheck, unit tests and the PostgreSQL integration suite. Before production AI content processing is enabled, complete real rights-review operations and verify production DB append-only privileges for the permission event log. Verified-provider-owned courses remain blocked. Supervised independent-educator courses are eligible only within the active institute affiliation and supervision scope. The code serializes transcript submission against permission events and removes chunks on revocation; production rollout still requires concurrency tests and operational verification.
