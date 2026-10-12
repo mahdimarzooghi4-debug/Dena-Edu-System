@@ -974,7 +974,10 @@ export const mediaIngests = pgTable("dena_media_ingests", {
   courseId: uuid("course_id").notNull().references(() => courses.id, {
     onDelete: "restrict",
   }),
-  providerId: uuid("provider_id").notNull(),
+  ownerType: courseOwnerType("owner_type").notNull().default("verified_provider"),
+  providerId: uuid("provider_id"),
+  independentEducatorProfileId: uuid("independent_educator_profile_id")
+    .references(() => independentEducatorProfiles.id, { onDelete: "restrict" }),
   createdByUserId: uuid("created_by_user_id").notNull().references(() => user.id, {
     onDelete: "restrict",
   }),
@@ -990,6 +993,12 @@ export const mediaIngests = pgTable("dena_media_ingests", {
 }, (table) => [
   uniqueIndex("dena_ingest_course_request_uidx").on(table.courseId, table.requestId),
   index("dena_ingest_status_idx").on(table.status, table.createdAt),
+  check("dena_media_ingest_owner_scope_ck", sql`
+    (owner_type = 'verified_provider' AND provider_id IS NOT NULL
+      AND independent_educator_profile_id IS NULL)
+    OR (owner_type = 'independent_educator' AND provider_id IS NULL
+      AND independent_educator_profile_id IS NOT NULL)
+  `),
   check("dena_ingest_bytes_ck", sql`
     expected_bytes >= 16 AND expected_bytes <= 8388608
   `),
