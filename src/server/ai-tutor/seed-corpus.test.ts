@@ -26,6 +26,7 @@ describe("personalized starter practice", () => {
     expect(practice.id).toBe("practice.linear-equation.v1");
     expect(practice.prompt).toContain("۲x + ۳");
     expect(practice.options).toHaveLength(4);
+    expect(practice.guidedHint).toEqual(expect.any(String));
     expect(practice).not.toHaveProperty("correctOption");
   });
 
