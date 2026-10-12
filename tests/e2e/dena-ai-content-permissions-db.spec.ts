@@ -5,6 +5,7 @@ import { expect, request, test, type APIRequestContext } from "@playwright/test"
 import { getDb } from "../../src/db";
 import {
   courses, denaAiContentPermissionEvents, denaAiVideoTranscriptChunks,
+  educatorInstituteAffiliations, independentEducatorProfiles,
   memberships, privateMediaAssets,
   session, studentEnrollments, supervisionGrants, user, verifiedEntities,
 } from "../../src/db/schema";
@@ -23,12 +24,17 @@ test.describe("Dena AI video permission authorization and revocation", () => {
   const instituteIds = { own: randomUUID(), other: randomUUID(), provider: randomUUID() };
   const courseId = randomUUID();
   const providerCourseId = randomUUID();
+  const educatorCourseId = randomUUID();
+  const educatorProfileId = randomUUID();
   const assetIds = {
     ready: randomUUID(), withdrawn: randomUUID(), providerOwned: randomUUID(),
+    educatorReady: randomUUID(),
   };
   const permissionPath = `/api/institute/courses/${courseId}/ai-permissions`;
   const studentSourcesPath = `/api/student/ai-tutor/sources?courseId=${courseId}`;
   const transcriptPath = `/api/institute/courses/${courseId}/ai-transcripts`;
+  const educatorPermissionPath = `/api/institute/courses/${educatorCourseId}/ai-permissions`;
+  const educatorTranscriptPath = `/api/institute/courses/${educatorCourseId}/ai-transcripts`;
 
   async function client(as?: keyof typeof users): Promise<APIRequestContext> {
     const cookie = as ? await serializeSignedCookie(
@@ -61,6 +67,17 @@ test.describe("Dena AI video permission authorization and revocation", () => {
       { userId: users.provider, role: "provider", providerId: instituteIds.provider },
       { userId: users.student, role: "student" },
     ]);
+    await db.insert(independentEducatorProfiles).values({
+      id: educatorProfileId, userId: users.student, displayName: "مدرس مستقل آزمایشی",
+    });
+    await db.insert(educatorInstituteAffiliations).values({
+      educatorProfileId, instituteId: instituteIds.own,
+      requestedByUserId: users.student, clientRequestId: randomUUID(),
+      displayNameSnapshot: "مدرس مستقل آزمایشی",
+      statement: "برای همکاری آموزشی زیر نظر مؤسسه درخواست می‌دهم.",
+      status: "approved", reviewedByUserId: users.institute,
+      reviewedAt: new Date(), decisionReason: "همکاری آموزشی تأیید شد.",
+    });
     const expiresAt = new Date(Date.now() + 3_600_000);
     await db.insert(session).values(Object.entries(tokens).map(([name, token]) => ({
       userId: users[name as keyof typeof users], token, expiresAt,
@@ -82,10 +99,29 @@ test.describe("Dena AI video permission authorization and revocation", () => {
       title: "دورهٔ متعلق به تولیدکننده",
       clientRequestId: randomUUID(),
     });
+    await db.insert(courses).values({
+      id: educatorCourseId,
+      ownerType: "independent_educator",
+      independentEducatorProfileId: educatorProfileId,
+      responsibleInstituteId: instituteIds.own,
+      title: "دورهٔ مدرس مستقل زیر نظر مؤسسه",
+      publicationStatus: "published", publishedAt: new Date(),
+      clientRequestId: randomUUID(),
+    });
     await db.insert(supervisionGrants).values({
       courseId,
       ownerType: "institute",
       instituteId: instituteIds.own,
+      status: "approved",
+      approvedByInstituteUserId: users.institute,
+      approvedAt: new Date(),
+    });
+    await db.insert(supervisionGrants).values({
+      courseId: educatorCourseId,
+      ownerType: "independent_educator",
+      independentEducatorProfileId: educatorProfileId,
+      instituteId: instituteIds.own,
+      requestedByProviderUserId: users.student,
       status: "approved",
       approvedByInstituteUserId: users.institute,
       approvedAt: new Date(),
@@ -99,24 +135,35 @@ test.describe("Dena AI video permission authorization and revocation", () => {
       { id: assetIds.providerOwned, courseId: providerCourseId,
         title: "ویدئوی تولیدکننده",
         objectKey: `${providerCourseId}/${assetIds.providerOwned}.mp4` },
+      { id: assetIds.educatorReady, courseId: educatorCourseId,
+        title: "ویدئوی مدرس مستقل",
+        objectKey: `${educatorCourseId}/${assetIds.educatorReady}.mp4` },
     ]);
     await db.insert(studentEnrollments).values({
       studentUserId: users.student, courseId, status: "active",
+    });
+    await db.insert(studentEnrollments).values({
+      studentUserId: users.student, courseId: educatorCourseId, status: "active",
     });
   });
 
   test.afterAll(async () => {
     await db.delete(denaAiVideoTranscriptChunks)
-      .where(inArray(denaAiVideoTranscriptChunks.courseId, [courseId, providerCourseId]));
+      .where(inArray(denaAiVideoTranscriptChunks.courseId, [courseId, providerCourseId, educatorCourseId]));
     await db.delete(denaAiContentPermissionEvents)
-      .where(inArray(denaAiContentPermissionEvents.courseId, [courseId, providerCourseId]));
+      .where(inArray(denaAiContentPermissionEvents.courseId, [courseId, providerCourseId, educatorCourseId]));
     await db.delete(studentEnrollments)
       .where(eq(studentEnrollments.courseId, courseId));
     await db.delete(privateMediaAssets)
       .where(inArray(privateMediaAssets.id, Object.values(assetIds)));
-    await db.delete(supervisionGrants).where(eq(supervisionGrants.courseId, courseId));
+    await db.delete(supervisionGrants)
+      .where(inArray(supervisionGrants.courseId, [courseId, educatorCourseId]));
     await db.delete(courses)
-      .where(inArray(courses.id, [courseId, providerCourseId]));
+      .where(inArray(courses.id, [courseId, providerCourseId, educatorCourseId]));
+    await db.delete(educatorInstituteAffiliations)
+      .where(eq(educatorInstituteAffiliations.educatorProfileId, educatorProfileId));
+    await db.delete(independentEducatorProfiles)
+      .where(eq(independentEducatorProfiles.id, educatorProfileId));
     await db.delete(memberships).where(inArray(memberships.userId, Object.values(users)));
     await db.delete(verifiedEntities)
       .where(inArray(verifiedEntities.id, Object.values(instituteIds)));
@@ -242,8 +289,43 @@ test.describe("Dena AI video permission authorization and revocation", () => {
     const html = await institutePage.text();
     expect(html).toContain("مجوز استفاده از ویدئو برای معلم هوشمند");
     expect(html).toContain("ارجاع ثبت‌شده به پروندهٔ بازبینی");
-    await institute.dispose();
-    await student.dispose();
+
+    const supervisedPermissionList = await (await client("institute"))
+      .get(educatorPermissionPath);
+    expect(supervisedPermissionList.status()).toBe(200);
+    expect((await supervisedPermissionList.json()).assets).toContainEqual(
+      expect.objectContaining({
+        assetId: assetIds.educatorReady, permissionDecision: null, mediaStatus: "ready",
+      }),
+    );
+    const noTranscriptYet = await post(await client("institute"), educatorTranscriptPath, {
+      assetId: assetIds.educatorReady,
+      transcript: "در درس جغرافیا بررسی رطوبت و اقلیم به شناخت تغییرات آب‌وهوا کمک می‌کند. مقایسهٔ رطوبت در چند منطقه، الگوی بارش را روشن می‌کند.",
+    });
+    expect(noTranscriptYet.status()).toBe(404);
+    const supervisedGrant = await post(await client("institute"), educatorPermissionPath, {
+      decision: "granted", assetId: assetIds.educatorReady,
+      requestId: randomUUID(), rightsReviewRef: "educator-video-rights-2026",
+    });
+    expect(supervisedGrant.status()).toBe(201);
+    const educatorTranscript = "در درس جغرافیا بررسی رطوبت و اقلیم به شناخت تغییرات آب‌وهوا کمک می‌کند. مقایسهٔ رطوبت در چند منطقه، الگوی بارش را روشن می‌کند.";
+    const savedEducatorTranscript = await post(await client("institute"), educatorTranscriptPath, {
+      assetId: assetIds.educatorReady, transcript: educatorTranscript,
+    });
+    expect(savedEducatorTranscript.status()).toBe(201);
+    const educatorAnswer = await post(await client("student"),
+      "/api/student/ai-tutor", {
+        courseId: educatorCourseId,
+        message: "چطور رطوبت و اقلیم را در درس جغرافیا مقایسه کنم؟",
+      });
+    expect(educatorAnswer.status()).toBe(200);
+    expect(await educatorAnswer.json()).toMatchObject({
+      source: { id: assetIds.educatorReady, title: "ویدئوی مدرس مستقل" },
+      answer: expect.stringContaining("رطوبت"),
+    });
+    await (await client("institute")).dispose();
+    await (await client("institute")).dispose();
+    await (await client("student")).dispose();
   });
 
   test("withdrawn videos cannot be granted and provider-owned videos stay blocked", async () => {
