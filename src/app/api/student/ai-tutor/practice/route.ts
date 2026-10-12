@@ -62,6 +62,7 @@ export async function GET(request: NextRequest) {
     stats.practiceAttemptCount > stats.practiceCorrectCount);
   return NextResponse.json({
     questionId: practice.id,
+    topicId: practice.topicId,
     topicTitle: practice.topicTitle,
     prompt: practice.prompt,
     options: practice.options,
