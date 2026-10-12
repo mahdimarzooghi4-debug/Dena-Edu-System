@@ -138,7 +138,7 @@ function validateRecord(record, mode, errors, lineNumber, recordIds, contentSpli
       .update(record.target.trim().replace(/\s+/g, " "))
       .digest("hex");
     const previousSplit = contentSplits.get(signature);
-    if (previousSplit) addError(errors, `record:${lineNumber}:duplicate_content_across_splits`);
+    if (previousSplit) addError(errors, `record:${lineNumber}:duplicate_content`);
     else contentSplits.set(signature, record.split);
   }
 }
