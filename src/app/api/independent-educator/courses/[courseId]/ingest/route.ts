@@ -1,0 +1,52 @@
+import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
+import { getServerAccessContext } from "../../../../../../server/access/actor";
+import { validSameOrigin } from "../../../../../../server/access/role-application-contracts";
+import {
+  ingestAvailable, IngestError, MAX_PILOT_UPLOAD_BYTES, reserveIngest,
+} from "../../../../../../server/media/ingest";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+const noStore = { "Cache-Control": "no-store" };
+const input = z.object({
+  title: z.string().trim().min(3).max(120),
+  clientRequestId: z.uuid(),
+  expectedBytes: z.number().int().min(16).max(MAX_PILOT_UPLOAD_BYTES),
+  sha256: z.string().regex(/^[a-f0-9]{64}$/),
+}).strict();
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ courseId: string }> },
+) {
+  if (!validSameOrigin(request.headers.get("origin"))) return NextResponse.json({
+    error: "Forbidden",
+  }, { status: 403, headers: noStore });
+  const actor = await getServerAccessContext();
+  if (!actor) return NextResponse.json({ error: "Unauthorized" }, {
+    status: 401, headers: noStore,
+  });
+  const { courseId } = await params;
+  if (!z.uuid().safeParse(courseId).success) return NextResponse.json({
+    error: "Not found",
+  }, { status: 404, headers: noStore });
+  const parsed = input.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ error: "Invalid request" }, {
+    status: 400, headers: noStore,
+  });
+  if (!ingestAvailable()) return NextResponse.json({
+    error: "Private ingest unavailable",
+  }, { status: 503, headers: noStore });
+  try {
+    const result = await reserveIngest(actor.userId, courseId, parsed.data);
+    return NextResponse.json(result, {
+      status: result.replayed ? 200 : 201, headers: noStore,
+    });
+  } catch (error) {
+    if (!(error instanceof IngestError)) throw error;
+    const status = error.kind === "not_provider" ? 403 :
+      error.kind === "not_available" ? 404 : 409;
+    return NextResponse.json({ error: error.kind }, { status, headers: noStore });
+  }
+}
