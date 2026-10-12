@@ -257,15 +257,34 @@ test.describe("student learning assessment lifecycle", () => {
     expect(practiceQuestion).not.toHaveProperty("correctOption");
     const correctPractice = await post(student, "/api/student/ai-tutor/practice", {
       courseId, questionId: practiceQuestion.questionId, selectedOption: 1,
+      rememberResult: true,
     });
     expect(correctPractice.status()).toBe(200);
     expect(await correctPractice.json()).toMatchObject({
-      correct: true, explanation: expect.stringContaining("x = ۴"),
+      correct: true, explanation: expect.stringContaining("x = ۴"), resultRecorded: true,
     });
     const wrongPractice = await post(student, "/api/student/ai-tutor/practice", {
       courseId, questionId: practiceQuestion.questionId, selectedOption: 0,
+      rememberResult: true,
     });
-    expect(await wrongPractice.json()).toMatchObject({ correct: false });
+    expect(await wrongPractice.json()).toMatchObject({ correct: false, resultRecorded: true });
+    const profileWithResults = await (await student.get("/api/student/ai-tutor/profile")).json();
+    expect(profileWithResults).toMatchObject({ topics: [{
+      topicId: "math.linear-equation.v1", practiceAttemptCount: 2, practiceCorrectCount: 1,
+    }] });
+    const nextPractice = await (await student.get(
+      "/api/student/ai-tutor/practice?courseId=" + courseId,
+    )).json();
+    expect(nextPractice.guidedHint).toEqual(expect.any(String));
+    const unrecordedPractice = await post(student, "/api/student/ai-tutor/practice", {
+      courseId, questionId: practiceQuestion.questionId, selectedOption: 1,
+      rememberResult: false,
+    });
+    expect(await unrecordedPractice.json()).toMatchObject({ correct: true, resultRecorded: false });
+    const profileWithoutThirdResult = await (await student.get("/api/student/ai-tutor/profile")).json();
+    expect(profileWithoutThirdResult).toMatchObject({ topics: [{
+      topicId: "math.linear-equation.v1", practiceAttemptCount: 2, practiceCorrectCount: 1,
+    }] });
     const cleared = await student.delete("/api/student/ai-tutor/profile", {
       headers: { Origin: "http://localhost:3000" },
     });
