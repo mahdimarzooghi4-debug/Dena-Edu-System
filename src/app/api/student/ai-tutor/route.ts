@@ -7,7 +7,7 @@ import { getDb } from "@/db";
 import { assessmentExamAttempts } from "@/db/schema";
 import { hasStudentEntitlement } from "@/server/student/entitlement";
 import {
-  answerFromSeedCorpus, applySeedPracticeGuidance, SEED_CORPUS_VERSION,
+  answerFromSeedCorpus, applySeedPracticeGuidance, isSeedTopicId, SEED_CORPUS_VERSION,
 } from "@/server/ai-tutor/seed-corpus";
 import {
   getStudentTutorPracticeStats, recordStudentTutorTopic,
@@ -73,9 +73,16 @@ export async function POST(request: NextRequest) {
     actor.userId, parsed.data.courseId, parsed.data.message,
   );
   if (videoResult) {
-    return NextResponse.json({ ...videoResult, topicRecorded: false }, {
-      headers: noStore,
-    });
+    const topicId = parsed.data.rememberTopic === true &&
+      videoResult.source.conceptId && isSeedTopicId(videoResult.source.conceptId)
+      ? videoResult.source.conceptId
+      : null;
+    if (topicId) await recordStudentTutorTopic(actor.userId, topicId);
+    return NextResponse.json({
+      ...videoResult,
+      topicRecorded: Boolean(topicId),
+      ...(topicId ? { topicId } : {}),
+    }, { headers: noStore });
   }
 
   const result = answerFromSeedCorpus(parsed.data.message);
@@ -98,7 +105,9 @@ export async function POST(request: NextRequest) {
   if (topicRecorded) {
     await recordStudentTutorTopic(actor.userId, result.source.id);
   }
-  return NextResponse.json({ ...personalizedResult, topicRecorded }, {
-    headers: noStore,
-  });
+  return NextResponse.json({
+    ...personalizedResult,
+    topicRecorded,
+    ...(topicRecorded ? { topicId: result.source.id } : {}),
+  }, { headers: noStore });
 }

@@ -262,11 +262,20 @@ test.describe("Dena AI video permission authorization and revocation", () => {
       rememberTopic: true,
     });
     expect(transcriptAnswer.status()).toBe(200);
-    expect(await transcriptAnswer.json()).toMatchObject({
-      source: { id: assetIds.ready, title: "درس اول" },
-      topicRecorded: false,
+    const transcriptAnswerBody = await transcriptAnswer.json();
+    expect(transcriptAnswerBody).toMatchObject({
+      source: {
+        id: assetIds.ready, title: "درس اول", kind: "video",
+        conceptId: "science.light.v1",
+      },
+      topicRecorded: true,
+      topicId: "science.light.v1",
       answer: expect.stringContaining("عدسی محدب"),
     });
+    const savedTutorProfile = await student.get("/api/student/ai-tutor/profile");
+    expect((await savedTutorProfile.json()).topics).toContainEqual(
+      expect.objectContaining({ topicId: "science.light.v1", questionCount: 1 }),
+    );
 
     const otherInstitute = await client("otherInstitute");
     expect((await otherInstitute.get(permissionPath)).status()).toBe(404);

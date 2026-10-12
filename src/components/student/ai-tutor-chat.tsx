@@ -12,6 +12,7 @@ type TutorResponse = {
   error?: string;
   code?: string;
   topicRecorded?: boolean;
+  topicId?: string;
   guidedHint?: string;
 };
 type Topic = { topicId: string; questionCount: number; lastAskedAt: string; practiceAttemptCount: number; practiceCorrectCount: number; practiceNeedsGuidance: boolean };
@@ -56,8 +57,8 @@ export function AiTutorChat({ courses, initialTopics, initialGuidanceConceptIds 
       setResult(data);
       setVideoFeedbackResult(null);
       setVideoFeedbackMessage("");
-      if (data.topicRecorded && data.source) {
-        const topicId = data.source.id;
+      if (data.topicRecorded && data.topicId) {
+        const topicId = data.topicId;
         const lastAskedAt = new Date().toISOString();
         setTopics((current) => {
           const existing = current.find((topic) => topic.topicId === topicId);
