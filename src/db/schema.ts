@@ -500,6 +500,51 @@ export const privateMediaAssets = pgTable("dena_private_media_assets", {
   `),
 ]);
 
+/**
+ * Append-only record of an institute's AI processing decision for one video.
+ * A review reference is an audit pointer supplied by the institute; it is not
+ * independent proof of copyright or other legal authority.
+ */
+export const denaAiContentPermissionEvents = pgTable(
+  "dena_ai_content_permission_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    courseId: uuid("course_id").notNull(),
+    assetId: uuid("asset_id").notNull(),
+    instituteId: uuid("institute_id").notNull(),
+    actorUserId: uuid("actor_user_id").notNull()
+      .references(() => user.id, { onDelete: "restrict" }),
+    requestId: uuid("request_id").notNull(),
+    decision: text("decision").notNull(),
+    rightsReviewRef: text("rights_review_ref"),
+    reason: text("reason"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("dena_ai_permission_actor_request_uidx")
+      .on(table.actorUserId, table.requestId),
+    index("dena_ai_permission_asset_recent_idx")
+      .on(table.assetId, table.createdAt, table.id),
+    foreignKey({
+      columns: [table.assetId, table.courseId],
+      foreignColumns: [privateMediaAssets.id, privateMediaAssets.courseId],
+      name: "dena_ai_permission_asset_course_fk",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.courseId, table.instituteId],
+      foreignColumns: [courses.id, courses.responsibleInstituteId],
+      name: "dena_ai_permission_institute_course_fk",
+    }).onDelete("restrict"),
+    check("dena_ai_permission_decision_ck", sql`
+      (decision = 'granted' AND rights_review_ref IS NOT NULL
+        AND char_length(btrim(rights_review_ref)) BETWEEN 8 AND 200
+        AND reason IS NULL)
+      OR (decision = 'revoked' AND rights_review_ref IS NULL
+        AND reason IS NOT NULL AND char_length(btrim(reason)) BETWEEN 3 AND 500)
+    `),
+  ],
+);
+
 /** Self-reported learning marker; it is NOT proof of watching or assessment. */
 export const studentVideoCompletions = pgTable("dena_student_video_completions", {
   id: uuid("id").primaryKey().defaultRandom(),
