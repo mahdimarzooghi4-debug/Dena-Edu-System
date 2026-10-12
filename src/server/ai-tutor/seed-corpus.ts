@@ -2,6 +2,7 @@
  * examples, not a trained model. Unsupported questions must remain unanswered.
  */
 export const SEED_CORPUS_VERSION = "2026-10-12.1";
+export type SeedTopicId = "math.linear-equation.v1" | "math.fractions.add.v1" | "math.percent.v1";
 
 const lessons = [
   {
@@ -26,7 +27,7 @@ const lessons = [
 
 export type SeedAnswer = {
   answer: string;
-  source: { id: string; title: string; corpusVersion: string };
+  source: { id: SeedTopicId; title: string; corpusVersion: string };
 };
 
 export function answerFromSeedCorpus(message: string): SeedAnswer | null {
