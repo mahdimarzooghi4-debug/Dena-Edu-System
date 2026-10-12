@@ -35,7 +35,7 @@ const learningStages = [
     number: "۳",
     title: "تمرین متناسب با مسیر تو",
     description:
-      "اگر خودت ثبت یک موضوع را فعال کنی، یک تمرین از همان مبحث می‌بینی. این پیشنهاد هنوز پاسخ‌های معلم را تغییر نمی‌دهد.",
+      "اگر ثبت موضوع را فعال کنی، تمرین همان مبحث را می‌بینی. با رضایت جداگانه می‌توانی فقط تعداد پاسخ‌های درست و کل تمرین‌ها را ذخیره کنی؛ این داده‌ها پاسخ معلم را تغییر نمی‌دهند.",
     status: "پیشنهاد تمرین",
   },
 ] as const;
@@ -91,6 +91,8 @@ export default async function StudentAiTutorPage() {
             topicId: topic.topicId,
             questionCount: topic.questionCount,
             lastAskedAt: topic.lastAskedAt.toISOString(),
+            practiceAttemptCount: topic.practiceAttemptCount,
+            practiceCorrectCount: topic.practiceCorrectCount,
           }))}
         />
 
@@ -132,7 +134,7 @@ export default async function StudentAiTutorPage() {
               هنوز از ویدئوهای دوره پاسخ نمی‌سازد. هنگام آزمون فعال، امکان پاسخ‌گویی بسته می‌ماند.
             </p>
             <p className="text-sm leading-8 text-dena-muted">
-              گفت‌وگوها ذخیره نمی‌شوند و دادهٔ دانش‌آموز دیگری برای ساخت پاسخ استفاده نمی‌شود.
+              گفت‌وگو، متن پاسخ و گزینهٔ انتخابی ذخیره نمی‌شوند. شمارندهٔ درست/کل تمرین فقط با انتخاب جداگانهٔ خودت نگه‌داری می‌شود و با پاک‌کردن مسیر شخصی حذف می‌شود. از دادهٔ دانش‌آموز دیگری برای ساخت پاسخ استفاده نمی‌شود.
             </p>
           </Card>
         </section>
