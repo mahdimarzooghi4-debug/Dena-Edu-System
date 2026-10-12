@@ -119,7 +119,17 @@ test.describe("institute service order guardian consent", () => {
 
     const otherInstitute = await client("otherInstitute");
     expect((await post(otherInstitute, consentPath, { consentConfirmed: true })).status()).toBe(404);
-    expect((await otherInstitute.get("/api/institute/service-orders")).status()).toBe(404);
+    const emptyInbox = await otherInstitute.get("/api/institute/service-orders");
+    expect(emptyInbox.status()).toBe(200);
+    expect((await emptyInbox.json()).summary).toEqual({
+      total: 0,
+      statuses: {
+        awaiting_guardian_consent: 0,
+        awaiting_payment: 0,
+        paid: 0,
+        cancelled: 0,
+      },
+    });
     await otherInstitute.dispose();
 
     const first = await post(institute, consentPath, { consentConfirmed: true });
