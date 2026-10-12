@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 
 type Course = { courseId: string; title: string };
 type TutorResponse = {
@@ -16,7 +16,7 @@ export function AiTutorChat({ courses }: { courses: Course[] }) {
   const [result, setResult] = useState<TutorResponse | null>(null);
   const [busy, setBusy] = useState(false);
 
-  async function ask(event: React.FormEvent<HTMLFormElement>) {
+  async function ask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!courseId || busy) return;
     setBusy(true);
