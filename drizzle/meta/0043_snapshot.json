@@ -9083,7 +9083,7 @@
       "checkConstraints": {
         "dena_ai_video_transcript_bounds_ck": {
           "name": "dena_ai_video_transcript_bounds_ck",
-          "value": "\n      chunk_index BETWEEN 0 AND 99\n      AND char_length(chunk_text) BETWEEN 1 AND 1000\n      AND source_sha256 ~ '^[0-9a-f]{64}$'\n    "
+          "value": "\n      chunk_index BETWEEN 0 AND 99\n      AND char_length(chunk_text) BETWEEN 1 AND 1000\n      AND char_length(source_sha256) = 64\n      AND source_sha256 ~ '^[0-9a-f]{64}'\n    "
         }
       },
       "isRLSEnabled": false
