@@ -53,6 +53,12 @@ export function IndependentEducatorWorkspace({
     };
     setItems(body.affiliations);
     if (body.profile) setDisplayName(body.profile.displayName);
+    const approvedInstitutes = body.affiliations.filter(
+      (item) => item.status === "approved",
+    );
+    setCourseInstituteId((current) =>
+      approvedInstitutes.some((item) => item.instituteId === current)
+        ? current : approvedInstitutes[0]?.instituteId ?? "");
     const courseResponse = await fetch("/api/independent-educator/courses", {
       credentials: "same-origin", cache: "no-store",
     });
