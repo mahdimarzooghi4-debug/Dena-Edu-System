@@ -26,8 +26,6 @@ export function AiVideoPermissions({
   const [error, setError] = useState("");
 
   const refresh = useCallback(async () => {
-    setLoading(true);
-    setError("");
     try {
       const response = await fetch(
         `/api/institute/courses/${courseId}/ai-permissions`,
