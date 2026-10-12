@@ -580,6 +580,35 @@ export const denaAiVideoTranscriptChunks = pgTable(
   ],
 );
 
+/** Explicit per-video learner feedback. Stores no question, answer, or transcript text. */
+export const studentAiTutorVideoFeedback = pgTable(
+  "dena_student_ai_tutor_video_feedback",
+  {
+    studentUserId: uuid("student_user_id").notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    courseId: uuid("course_id").notNull(),
+    assetId: uuid("asset_id").notNull(),
+    needsGuidance: boolean("needs_guidance").notNull(),
+    firstSubmittedAt: timestamp("first_submitted_at", { withTimezone: true })
+      .notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.studentUserId, table.courseId, table.assetId],
+      name: "dena_student_ai_tutor_video_feedback_pk",
+    }),
+    index("dena_student_ai_tutor_video_guidance_idx")
+      .on(table.studentUserId, table.courseId, table.needsGuidance),
+    foreignKey({
+      columns: [table.assetId, table.courseId],
+      foreignColumns: [privateMediaAssets.id, privateMediaAssets.courseId],
+      name: "dena_student_ai_tutor_video_feedback_asset_course_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
 /** Optional per-student topic counters and a retry guidance flag. Never store prompt text or infer mastery. */
 export const studentAiTutorTopics = pgTable("dena_student_ai_tutor_topics", {
   studentUserId: uuid("student_user_id").notNull()

@@ -6,7 +6,7 @@ import { AiTutorPractice } from "./ai-tutor-practice";
 type Course = { courseId: string; title: string };
 type TutorResponse = {
   answer?: string;
-  source?: { id: string; title: string; corpusVersion?: string };
+  source?: { id: string; title: string; corpusVersion?: string; kind?: "video" };
   error?: string;
   code?: string;
   topicRecorded?: boolean;
@@ -31,6 +31,9 @@ export function AiTutorChat({ courses, initialTopics }: {
   const [busy, setBusy] = useState(false);
   const [clearBusy, setClearBusy] = useState(false);
   const [profileMessage, setProfileMessage] = useState("");
+  const [videoFeedbackBusy, setVideoFeedbackBusy] = useState(false);
+  const [videoFeedbackResult, setVideoFeedbackResult] = useState<{ assetId: string; needsGuidance: boolean } | null>(null);
+  const [videoFeedbackMessage, setVideoFeedbackMessage] = useState("");
 
   async function ask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -45,6 +48,8 @@ export function AiTutorChat({ courses, initialTopics }: {
       });
       const data = await response.json() as TutorResponse;
       setResult(data);
+      setVideoFeedbackResult(null);
+      setVideoFeedbackMessage("");
       if (data.topicRecorded && data.source) {
         const topicId = data.source.id;
         const lastAskedAt = new Date().toISOString();
@@ -60,6 +65,32 @@ export function AiTutorChat({ courses, initialTopics }: {
       setResult({ error: "ارتباط برقرار نشد؛ دوباره تلاش کن." });
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function saveVideoFeedback(needsGuidance: boolean) {
+    if (!courseId || !result?.source?.id || videoFeedbackBusy) return;
+    const assetId = result.source.id;
+    setVideoFeedbackBusy(true);
+    setVideoFeedbackMessage("");
+    try {
+      const response = await fetch("/api/student/ai-tutor/video-feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ courseId, assetId, needsGuidance }),
+      });
+      if (!response.ok) {
+        setVideoFeedbackMessage("ثبت بازخورد انجام نشد؛ دوباره تلاش کن.");
+        return;
+      }
+      setVideoFeedbackResult({ assetId, needsGuidance });
+      setVideoFeedbackMessage(needsGuidance
+        ? "برای پاسخ‌های بعدی از این ویدئو راهنمای بیشتری می‌گیرم."
+        : "بازخوردت ثبت شد؛ ممنون.");
+    } catch {
+      setVideoFeedbackMessage("ارتباط با سرور برقرار نشد؛ دوباره تلاش کن.");
+    } finally {
+      setVideoFeedbackBusy(false);
     }
   }
 
@@ -160,6 +191,28 @@ export function AiTutorChat({ courses, initialTopics }: {
                 </p>
               )}
               {result.topicRecorded && <p className="mt-2 text-xs text-dena-muted">موضوع در مسیر شخصی تو ثبت شد.</p>}
+              {result.source?.kind === "video" && (
+                <div className="mt-3 border-t border-dena-line pt-3">
+                  <p className="text-xs text-dena-muted">
+                    این بازخورد فقط برای مسیر شخصی تو ذخیره می‌شود و متن گفت‌وگو ثبت نمی‌شود.
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <button type="button" disabled={videoFeedbackBusy}
+                      onClick={() => void saveVideoFeedback(true)}
+                      className="rounded-lg border border-dena-line px-3 py-2 text-xs font-bold text-dena-ink disabled:opacity-50">
+                      توضیح بیشتری لازم دارم
+                    </button>
+                    <button type="button" disabled={videoFeedbackBusy}
+                      onClick={() => void saveVideoFeedback(false)}
+                      className="rounded-lg border border-dena-line px-3 py-2 text-xs font-bold text-dena-ink disabled:opacity-50">
+                      این پاسخ کمک کرد
+                    </button>
+                  </div>
+                  {videoFeedbackResult?.assetId === result.source.id && videoFeedbackMessage && (
+                    <p role="status" className="mt-2 text-xs text-dena-muted">{videoFeedbackMessage}</p>
+                  )}
+                </div>
+              )}
               <p className="mt-3 border-t border-dena-line pt-2 text-xs text-dena-muted">
                 منبع: {result.source?.title}{result.source?.corpusVersion && <> · نسخهٔ مجموعه: {result.source.corpusVersion}</>}
               </p>

@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { getDb } from "../../db";
-import { studentAiTutorTopics } from "../../db/schema";
+import { studentAiTutorTopics, studentAiTutorVideoFeedback } from "../../db/schema";
 import { isSeedTopicId, type SeedTopicId } from "../ai-tutor/seed-corpus";
 
 export async function recordStudentTutorTopic(
@@ -31,11 +31,45 @@ export async function listStudentTutorTopics(studentUserId: string) {
     .orderBy(desc(studentAiTutorTopics.lastAskedAt));
 }
 
+export async function listStudentTutorVideoGuidanceAssets(
+  studentUserId: string,
+  courseId: string,
+) {
+  return getDb().select({ assetId: studentAiTutorVideoFeedback.assetId })
+    .from(studentAiTutorVideoFeedback)
+    .where(and(
+      eq(studentAiTutorVideoFeedback.studentUserId, studentUserId),
+      eq(studentAiTutorVideoFeedback.courseId, courseId),
+      eq(studentAiTutorVideoFeedback.needsGuidance, true),
+    ));
+}
+
+export async function recordStudentTutorVideoFeedback(
+  studentUserId: string,
+  courseId: string,
+  assetId: string,
+  needsGuidance: boolean,
+) {
+  await getDb().insert(studentAiTutorVideoFeedback).values({
+    studentUserId, courseId, assetId, needsGuidance,
+  }).onConflictDoUpdate({
+    target: [
+      studentAiTutorVideoFeedback.studentUserId,
+      studentAiTutorVideoFeedback.courseId,
+      studentAiTutorVideoFeedback.assetId,
+    ],
+    set: { needsGuidance, updatedAt: new Date() },
+  });
+}
+
 export async function clearStudentTutorTopics(studentUserId: string) {
   const deleted = await getDb().delete(studentAiTutorTopics)
     .where(eq(studentAiTutorTopics.studentUserId, studentUserId))
     .returning({ topicId: studentAiTutorTopics.topicId });
-  return deleted.length;
+  const videoFeedback = await getDb().delete(studentAiTutorVideoFeedback)
+    .where(eq(studentAiTutorVideoFeedback.studentUserId, studentUserId))
+    .returning({ assetId: studentAiTutorVideoFeedback.assetId });
+  return deleted.length + videoFeedback.length;
 }
 
 export async function getLatestStudentTutorTopic(

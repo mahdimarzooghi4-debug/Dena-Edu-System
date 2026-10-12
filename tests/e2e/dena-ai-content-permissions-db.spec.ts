@@ -6,7 +6,7 @@ import { getDb } from "../../src/db";
 import {
   courses, denaAiContentPermissionEvents, denaAiVideoTranscriptChunks,
   educatorInstituteAffiliations, independentEducatorProfiles,
-  memberships, privateMediaAssets,
+  memberships, privateMediaAssets, studentAiTutorVideoFeedback,
   session, studentEnrollments, supervisionGrants, user, verifiedEntities,
 } from "../../src/db/schema";
 
@@ -28,7 +28,7 @@ test.describe("Dena AI video permission authorization and revocation", () => {
   const educatorProfileId = randomUUID();
   const assetIds = {
     ready: randomUUID(), withdrawn: randomUUID(), providerOwned: randomUUID(),
-    educatorReady: randomUUID(),
+    educatorReady: randomUUID(), educatorFollowup: randomUUID(),
   };
   const permissionPath = `/api/institute/courses/${courseId}/ai-permissions`;
   const studentSourcesPath = `/api/student/ai-tutor/sources?courseId=${courseId}`;
@@ -138,6 +138,9 @@ test.describe("Dena AI video permission authorization and revocation", () => {
       { id: assetIds.educatorReady, courseId: educatorCourseId,
         title: "ویدئوی مدرس مستقل",
         objectKey: `${educatorCourseId}/${assetIds.educatorReady}.mp4` },
+      { id: assetIds.educatorFollowup, courseId: educatorCourseId,
+        title: "ادامهٔ درس جغرافیا",
+        objectKey: `${educatorCourseId}/${assetIds.educatorFollowup}.mp4` },
     ]);
     await db.insert(studentEnrollments).values({
       studentUserId: users.student, courseId, status: "active",
@@ -148,6 +151,8 @@ test.describe("Dena AI video permission authorization and revocation", () => {
   });
 
   test.afterAll(async () => {
+    await db.delete(studentAiTutorVideoFeedback)
+      .where(eq(studentAiTutorVideoFeedback.studentUserId, users.student));
     await db.delete(denaAiVideoTranscriptChunks)
       .where(inArray(denaAiVideoTranscriptChunks.courseId, [courseId, providerCourseId, educatorCourseId]));
     await db.delete(denaAiContentPermissionEvents)
@@ -314,21 +319,58 @@ test.describe("Dena AI video permission authorization and revocation", () => {
       assetId: assetIds.educatorReady, transcript: educatorTranscript,
     });
     expect(savedEducatorTranscript.status()).toBe(201);
+    const followupGrant = await post(supervisedInstitute, educatorPermissionPath, {
+      decision: "granted", assetId: assetIds.educatorFollowup,
+      requestId: randomUUID(), rightsReviewRef: "educator-video-rights-followup-2026",
+    });
+    expect(followupGrant.status()).toBe(201);
     const studentSources = await supervisedStudent.get(
       `/api/student/ai-tutor/sources?courseId=${educatorCourseId}`,
     );
-    expect((await studentSources.json()).sources).toEqual([
+    expect((await studentSources.json()).sources).toEqual(expect.arrayContaining([
       { assetId: assetIds.educatorReady, title: "ویدئوی مدرس مستقل" },
-    ]);
+      { assetId: assetIds.educatorFollowup, title: "ادامهٔ درس جغرافیا" },
+    ]));
     const educatorAnswer = await post(supervisedStudent, "/api/student/ai-tutor", {
       courseId: educatorCourseId,
       message: "چطور رطوبت و اقلیم را در درس جغرافیا مقایسه کنم؟",
     });
     expect(educatorAnswer.status()).toBe(200);
-    expect(await educatorAnswer.json()).toMatchObject({
-      source: { id: assetIds.educatorReady, title: "ویدئوی مدرس مستقل" },
+    const educatorAnswerBody = await educatorAnswer.json();
+    expect(educatorAnswerBody).toMatchObject({
+      source: { id: assetIds.educatorReady, title: "ویدئوی مدرس مستقل", kind: "video" },
       answer: expect.stringContaining("رطوبت"),
     });
+    const followupTranscript = "در درس جغرافیا بررسی رطوبت و اقلیم به شناخت تغییرات آب‌وهوا کمک می‌کند. مقایسهٔ رطوبت در چند منطقه، الگوی بارش را روشن می‌کند.";
+    expect((await post(supervisedInstitute, educatorTranscriptPath, {
+      assetId: assetIds.educatorFollowup, transcript: followupTranscript,
+    })).status()).toBe(201);
+    const selectedAssetId = educatorAnswerBody.source.id as string;
+    const videoFeedback = await post(supervisedStudent,
+      "/api/student/ai-tutor/video-feedback", {
+        courseId: educatorCourseId, assetId: selectedAssetId,
+        needsGuidance: true,
+      });
+    expect(videoFeedback.status()).toBe(200);
+    expect(await videoFeedback.json()).toEqual({ saved: true });
+    const prioritizedAnswer = await post(supervisedStudent, "/api/student/ai-tutor", {
+      courseId: educatorCourseId,
+      message: "چطور رطوبت و اقلیم را در درس جغرافیا مقایسه کنم؟",
+    });
+    expect((await prioritizedAnswer.json()).source.id).toBe(selectedAssetId);
+    expect(await db.select({ assetId: studentAiTutorVideoFeedback.assetId })
+      .from(studentAiTutorVideoFeedback)
+      .where(eq(studentAiTutorVideoFeedback.studentUserId, users.student)))
+      .toEqual([{ assetId: selectedAssetId }]);
+    const clearTutorProfile = await supervisedStudent.delete(
+      "/api/student/ai-tutor/profile",
+      { headers: { Origin: "http://localhost:3000" } },
+    );
+    expect(clearTutorProfile.status()).toBe(200);
+    expect(await db.select({ assetId: studentAiTutorVideoFeedback.assetId })
+      .from(studentAiTutorVideoFeedback)
+      .where(eq(studentAiTutorVideoFeedback.studentUserId, users.student)))
+      .toEqual([]);
     const otherInstituteForEducator = await client("otherInstitute");
     expect((await otherInstituteForEducator.get(educatorPermissionPath)).status()).toBe(404);
     await otherInstituteForEducator.dispose();
