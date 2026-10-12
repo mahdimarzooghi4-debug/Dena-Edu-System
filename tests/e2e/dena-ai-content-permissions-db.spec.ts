@@ -360,6 +360,19 @@ test.describe("Dena AI video permission authorization and revocation", () => {
       message: "چطور رطوبت و اقلیم را در درس جغرافیا مقایسه کنم؟",
     });
     expect((await prioritizedAnswer.json()).source.id).toBe(selectedAssetId);
+    const helpfulFeedback = await post(supervisedStudent,
+      "/api/student/ai-tutor/video-feedback", {
+        courseId: educatorCourseId, assetId: selectedAssetId,
+        needsGuidance: false,
+      });
+    expect(helpfulFeedback.status()).toBe(200);
+    const helpfulAnswer = await post(supervisedStudent, "/api/student/ai-tutor", {
+      courseId: educatorCourseId,
+      message: "در جغرافیا ارتباط رطوبت با اقلیم چیست؟",
+    });
+    expect((await helpfulAnswer.json()).source.id).toBe(selectedAssetId);
+    const tutorProfile = await supervisedStudent.get("/api/student/ai-tutor/profile");
+    expect((await tutorProfile.json()).helpfulConceptIds).toContain("geography.climate.v1");
     expect(await db.select({ assetId: studentAiTutorVideoFeedback.assetId })
       .from(studentAiTutorVideoFeedback)
       .where(eq(studentAiTutorVideoFeedback.studentUserId, users.student)))

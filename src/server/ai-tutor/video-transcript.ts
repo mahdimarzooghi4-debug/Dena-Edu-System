@@ -3,7 +3,7 @@ import { getDb } from "@/db";
 import {
   denaAiVideoTranscriptChunks, privateMediaAssets, courses,
 } from "@/db/schema";
-import { listStudentTutorVideoGuidanceAssets, listStudentTutorVideoGuidanceConceptIds } from "@/server/student/ai-tutor-profile";
+import { listStudentTutorVideoGuidanceAssets, listStudentTutorVideoGuidanceConceptIds, listStudentTutorVideoHelpfulAssets, listStudentTutorVideoHelpfulConceptIds } from "@/server/student/ai-tutor-profile";
 import { hasStudentEntitlement } from "@/server/student/entitlement";
 
 const supervisedEducatorScope = sql`EXISTS (
@@ -107,6 +107,12 @@ export async function retrieveStudentVideoTranscript(
   const guidanceConceptIds = new Set(await listStudentTutorVideoGuidanceConceptIds(
     studentUserId, courseId,
   ));
+  const helpfulAssets = new Set((await listStudentTutorVideoHelpfulAssets(
+    studentUserId, courseId,
+  )).map((row) => row.assetId));
+  const helpfulConceptIds = new Set(await listStudentTutorVideoHelpfulConceptIds(
+    studentUserId, courseId,
+  ));
   const rows = await getDb().select({
     conceptId: denaAiVideoTranscriptChunks.learningConceptId,
     assetId: denaAiVideoTranscriptChunks.assetId,
@@ -174,11 +180,15 @@ export async function retrieveStudentVideoTranscript(
         score + (chunkTerms.has(term) ? 1 : 0), 0),
       needsGuidance: guidanceAssets.has(row.assetId),
       conceptNeedsGuidance: Boolean(row.conceptId && guidanceConceptIds.has(row.conceptId)),
+      helpful: helpfulAssets.has(row.assetId),
+      conceptHelpful: Boolean(row.conceptId && helpfulConceptIds.has(row.conceptId)),
     };
   }).filter((row) => row.score >= Math.min(2, questionTerms.length))
     .sort((a, b) => b.score - a.score ||
-      (Number(b.needsGuidance) * 2 + Number(b.conceptNeedsGuidance)) -
-        (Number(a.needsGuidance) * 2 + Number(a.conceptNeedsGuidance)) ||
+      (Number(b.needsGuidance) * 8 + Number(b.conceptNeedsGuidance) * 4 +
+        Number(b.helpful) * 2 + Number(b.conceptHelpful)) -
+        (Number(a.needsGuidance) * 8 + Number(a.conceptNeedsGuidance) * 4 +
+        Number(a.helpful) * 2 + Number(a.conceptHelpful)) ||
       a.assetId.localeCompare(b.assetId) || a.chunkIndex - b.chunkIndex);
   const best = ranked[0];
   if (!best) return null;

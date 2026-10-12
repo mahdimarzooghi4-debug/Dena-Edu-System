@@ -44,8 +44,9 @@ export async function listStudentTutorVideoGuidanceAssets(
     ));
 }
 
-export async function listStudentTutorVideoGuidanceConceptIds(
+async function listStudentTutorVideoConceptIdsForFeedback(
   studentUserId: string,
+  needsGuidance: boolean,
   courseId?: string,
 ) {
   const rows = await getDb().selectDistinct({
@@ -58,10 +59,28 @@ export async function listStudentTutorVideoGuidanceConceptIds(
     .where(and(
       eq(studentAiTutorVideoFeedback.studentUserId, studentUserId),
       ...(courseId ? [eq(studentAiTutorVideoFeedback.courseId, courseId)] : []),
-      eq(studentAiTutorVideoFeedback.needsGuidance, true),
+      eq(studentAiTutorVideoFeedback.needsGuidance, needsGuidance),
       sql`${denaAiVideoTranscriptChunks.learningConceptId} IS NOT NULL`,
     ));
   return rows.map((row) => row.conceptId).filter((id): id is string => id !== null);
+}
+
+export async function listStudentTutorVideoGuidanceConceptIds(studentUserId: string, courseId?: string) {
+  return listStudentTutorVideoConceptIdsForFeedback(studentUserId, true, courseId);
+}
+
+export async function listStudentTutorVideoHelpfulConceptIds(studentUserId: string, courseId?: string) {
+  return listStudentTutorVideoConceptIdsForFeedback(studentUserId, false, courseId);
+}
+
+export async function listStudentTutorVideoHelpfulAssets(studentUserId: string, courseId: string) {
+  return getDb().select({ assetId: studentAiTutorVideoFeedback.assetId })
+    .from(studentAiTutorVideoFeedback)
+    .where(and(
+      eq(studentAiTutorVideoFeedback.studentUserId, studentUserId),
+      eq(studentAiTutorVideoFeedback.courseId, courseId),
+      eq(studentAiTutorVideoFeedback.needsGuidance, false),
+    ));
 }
 export async function recordStudentTutorVideoFeedback(
   studentUserId: string,

@@ -20,10 +20,11 @@ const topicTitles: Record<string, string> = {
   "math.percent.v1": "درصد",
 };
 
-export function AiTutorChat({ courses, initialTopics, initialGuidanceConceptIds }: {
+export function AiTutorChat({ courses, initialTopics, initialGuidanceConceptIds, initialHelpfulConceptIds }: {
   courses: Course[];
   initialTopics: Topic[];
   initialGuidanceConceptIds: string[];
+  initialHelpfulConceptIds: string[];
 }) {
   const [courseId, setCourseId] = useState(courses[0]?.courseId ?? "");
   const [message, setMessage] = useState("");
@@ -31,6 +32,7 @@ export function AiTutorChat({ courses, initialTopics, initialGuidanceConceptIds 
   const [result, setResult] = useState<TutorResponse | null>(null);
   const [topics, setTopics] = useState(initialTopics);
   const [guidanceConceptIds, setGuidanceConceptIds] = useState(initialGuidanceConceptIds);
+  const [helpfulConceptIds, setHelpfulConceptIds] = useState(initialHelpfulConceptIds);
   const [busy, setBusy] = useState(false);
   const [clearBusy, setClearBusy] = useState(false);
   const [profileMessage, setProfileMessage] = useState("");
@@ -87,12 +89,15 @@ export function AiTutorChat({ courses, initialTopics, initialGuidanceConceptIds 
         return;
       }
       setVideoFeedbackResult({ assetId, needsGuidance });
-      if (needsGuidance && result?.source?.conceptId) {
-        setGuidanceConceptIds((ids) => [...new Set([...ids, result.source!.conceptId!])]);
-      }
-      if (!needsGuidance && result?.source?.conceptId) {
-        const profile = await fetch("/api/student/ai-tutor/profile", { cache: "no-store" }).then((r) => r.json());
-        setGuidanceConceptIds(profile.guidanceConceptIds ?? []);
+      try {
+        const profileResponse = await fetch("/api/student/ai-tutor/profile", { cache: "no-store" });
+        if (profileResponse.ok) {
+          const profile = await profileResponse.json() as { guidanceConceptIds?: string[]; helpfulConceptIds?: string[] };
+          setGuidanceConceptIds(profile.guidanceConceptIds ?? []);
+          setHelpfulConceptIds(profile.helpfulConceptIds ?? []);
+        }
+      } catch {
+        // The feedback write succeeded; the updated profile will load next visit.
       }
       setVideoFeedbackMessage(needsGuidance
         ? "برای پاسخ‌های بعدی از این ویدئو راهنمای بیشتری می‌گیرم."
@@ -105,7 +110,7 @@ export function AiTutorChat({ courses, initialTopics, initialGuidanceConceptIds 
   }
 
   async function clearTopics() {
-    if ((!topics.length && !guidanceConceptIds.length) || clearBusy ||
+    if ((!topics.length && !guidanceConceptIds.length && !helpfulConceptIds.length) || clearBusy ||
         !window.confirm("موضوع‌های ثبت‌شدهٔ مسیر شخصی‌ات پاک شوند؟")) return;
     setClearBusy(true);
     setProfileMessage("");
@@ -119,6 +124,7 @@ export function AiTutorChat({ courses, initialTopics, initialGuidanceConceptIds 
       }
       setTopics([]);
       setGuidanceConceptIds([]);
+      setHelpfulConceptIds([]);
       setProfileMessage("داده‌های ثبت‌شده پاک شدند.");
     } catch {
       setProfileMessage("ارتباط با سرور برقرار نشد؛ دوباره تلاش کن.");
@@ -162,10 +168,11 @@ export function AiTutorChat({ courses, initialTopics, initialGuidanceConceptIds 
           </button>
         </form>
       )}
-      {(topics.length > 0 || guidanceConceptIds.length > 0) && (
+      {(topics.length > 0 || guidanceConceptIds.length > 0 || helpfulConceptIds.length > 0) && (
         <div className="space-y-3 rounded-xl border border-dena-line p-4">
           <h3 className="font-bold text-dena-ink">مسیر آموزشی ثبت‌شدهٔ تو</h3>
           {guidanceConceptIds.length > 0 && <div className="text-sm text-dena-muted"><p className="font-semibold">مباحثی که برایشان راهنمایی بیشتری خواستی:</p><ul className="mt-2 list-inside list-disc">{guidanceConceptIds.map((id) => <li key={id}>{DENA_LEARNING_CONCEPTS.find((concept) => concept.id === id)?.label ?? "مبحث آموزشی"}</li>)}</ul></div>}
+          {helpfulConceptIds.length > 0 && <div className="text-sm text-dena-muted"><p className="font-semibold">مباحثی که محتوای ویدئویی‌شان به تو کمک کرده:</p><ul className="mt-2 list-inside list-disc">{helpfulConceptIds.map((id) => <li key={id}>{DENA_LEARNING_CONCEPTS.find((concept) => concept.id === id)?.label ?? "مبحث آموزشی"}</li>)}</ul></div>}
           {topics.length > 0 && <ul className="space-y-2 text-sm text-dena-muted">
             {topics.map((topic) => (
               <li key={topic.topicId}>

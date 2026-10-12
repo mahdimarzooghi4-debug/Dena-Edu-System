@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getServerAccessContext } from "@/server/access/actor";
 import { validSameOrigin } from "@/server/access/role-application-contracts";
-import { clearStudentTutorTopics, listStudentTutorTopics, listStudentTutorVideoGuidanceConceptIds } from "@/server/student/ai-tutor-profile";
+import { clearStudentTutorTopics, listStudentTutorTopics, listStudentTutorVideoGuidanceConceptIds, listStudentTutorVideoHelpfulConceptIds } from "@/server/student/ai-tutor-profile";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,8 +16,11 @@ export async function GET() {
     return NextResponse.json({ error: "Not found" }, { status: 404, headers: noStore });
   }
   const topics = await listStudentTutorTopics(actor.userId);
-  const guidanceConceptIds = await listStudentTutorVideoGuidanceConceptIds(actor.userId);
-  return NextResponse.json({ topics, guidanceConceptIds }, { headers: noStore });
+  const [guidanceConceptIds, helpfulConceptIds] = await Promise.all([
+    listStudentTutorVideoGuidanceConceptIds(actor.userId),
+    listStudentTutorVideoHelpfulConceptIds(actor.userId),
+  ]);
+  return NextResponse.json({ topics, guidanceConceptIds, helpfulConceptIds }, { headers: noStore });
 }
 
 export async function DELETE(request: NextRequest) {
