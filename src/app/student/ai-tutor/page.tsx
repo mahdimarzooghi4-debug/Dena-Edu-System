@@ -8,6 +8,7 @@ import { StudentShell } from "../../../components/student/student-shell";
 import { getServerAccessContext } from "../../../server/access/actor";
 import { AiTutorChat } from "../../../components/student/ai-tutor-chat";
 import { listStudentCatalog, readCatalogQuery } from "../../../server/student/course-catalog";
+import { listStudentTutorTopics } from "../../../server/student/ai-tutor-profile";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -54,6 +55,7 @@ export default async function StudentAiTutorPage() {
 
   const catalog = await listStudentCatalog(actor.userId,
     readCatalogQuery(new URLSearchParams("mine=1")));
+  const topics = await listStudentTutorTopics(actor.userId);
 
   return (
     <StudentShell active="aiTutor" title="معلم هوشمند">
@@ -83,9 +85,16 @@ export default async function StudentAiTutorPage() {
           </p>
         </section>
 
-        <AiTutorChat courses={catalog.courses.map((course) => ({
-          courseId: course.courseId, title: course.title,
-        }))} />
+        <AiTutorChat
+          courses={catalog.courses.map((course) => ({
+            courseId: course.courseId, title: course.title,
+          }))}
+          initialTopics={topics.map((topic) => ({
+            topicId: topic.topicId,
+            questionCount: topic.questionCount,
+            lastAskedAt: topic.lastAskedAt.toISOString(),
+          }))}
+        />
 
         <section aria-labelledby="ai-tutor-growth" className="space-y-4">
           <SectionHeading id="ai-tutor-growth" note="برنامهٔ یادگیری معلم دنا">
