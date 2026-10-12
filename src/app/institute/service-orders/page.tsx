@@ -39,16 +39,27 @@ export default async function InstituteServiceOrdersPage() {
     <Card className="border-amber-300 bg-amber-50 text-sm leading-7 text-amber-950">
       ثبت تأیید فقط گواهی مؤسسه دربارهٔ اخذ رضایت برای همان درخواست است. پرداخت آنلاین هنوز فعال نیست؛ وضعیت «در انتظار پرداخت» به معنی دریافت وجه یا شروع خدمت نیست.
     </Card>
+    <section aria-labelledby="service-order-summary" className="space-y-3">
+      <h2 id="service-order-summary" className="text-lg font-extrabold text-dena-deep">خلاصهٔ همهٔ درخواست‌ها</h2>
+      <p className="text-xs text-dena-muted">این شمارنده‌ها کل تاریخچهٔ مؤسسه را پوشش می‌دهند؛ فهرست پایین فقط ۲۰۰ درخواست آخر است.</p>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <SummaryCard label="همهٔ درخواست‌ها" value={result.summary.total} />
+        {Object.entries(result.summary.statuses).map(([status, total]) => (
+          <SummaryCard key={status} label={statusLabel[status as keyof typeof statusLabel]} value={total} />
+        ))}
+      </div>
+    </section>
     {result.orders.length === 0 ? <Card className="space-y-2">
       <h2 className="font-extrabold text-dena-deep">هنوز درخواستی ثبت نشده است</h2>
       <p className="text-sm leading-7 text-dena-muted">پس از ثبت درخواست از سوی دانش‌آموز، وضعیت آن در این صفحه نمایش داده می‌شود.</p>
     </Card> : <>
-      <p className="text-xs text-dena-muted">آخرین {result.orders.length.toLocaleString("fa-IR")} درخواست</p>
+      <h2 className="text-lg font-extrabold text-dena-deep">آخرین درخواست‌ها</h2>
+      <p className="text-xs text-dena-muted">نمایش {result.orders.length.toLocaleString("fa-IR")} درخواست از ۲۰۰ مورد آخر</p>
       <ul className="grid gap-4 md:grid-cols-2">
         {result.orders.map((order) => <li key={order.id}><Card className="h-full space-y-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div><p className="text-xs font-bold text-dena-brand">کد درخواست {order.id.slice(0, 8)}</p>
-              <h2 className="mt-2 text-lg font-extrabold text-dena-deep">{order.title}</h2></div>
+              <h3 className="mt-2 text-lg font-extrabold text-dena-deep">{order.title}</h3></div>
             <span className={`rounded-full px-3 py-1.5 text-xs font-bold ${statusClass[order.status]}`}>{statusLabel[order.status]}</span>
           </div>
           <dl className="grid gap-3 rounded-xl bg-dena-bg p-4 text-sm">
@@ -63,4 +74,8 @@ export default async function InstituteServiceOrdersPage() {
       </ul>
     </>}
   </main>;
+}
+
+function SummaryCard({ label, value }: { label: string; value: number }) {
+  return <Card className="space-y-2"><p className="text-sm text-dena-muted">{label}</p><p className="text-2xl font-extrabold text-dena-brand">{value.toLocaleString("fa-IR")}</p></Card>;
 }

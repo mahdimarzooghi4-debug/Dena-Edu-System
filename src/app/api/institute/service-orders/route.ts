@@ -14,5 +14,5 @@ export async function GET() {
   }
   const result = await getInstituteServiceOrders(actor.userId);
   if (!result.institutes.length) return NextResponse.json({ error: "Not found" }, { status: 404, headers: noStore });
-  return NextResponse.json({ orders: result.orders }, { headers: noStore });
+  return NextResponse.json({ orders: result.orders, summary: result.summary }, { headers: noStore });
 }

@@ -1,8 +1,21 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, count, desc, eq, inArray } from "drizzle-orm";
 import { getDb } from "../../db";
 import { auditLogs, instituteServiceOrders, memberships, verifiedEntities } from "../../db/schema";
 import { auditLogRecord } from "../admin/audit";
 import { getInstituteScopes } from "./scopes";
+
+export const instituteServiceOrderStatuses = [
+  "awaiting_guardian_consent", "awaiting_payment", "paid", "cancelled",
+] as const;
+export type InstituteServiceOrderStatus = typeof instituteServiceOrderStatuses[number];
+
+export function summarizeInstituteServiceOrderStatuses(
+  rows: readonly { status: InstituteServiceOrderStatus; total: number }[],
+) {
+  return Object.fromEntries(instituteServiceOrderStatuses.map((status) => [
+    status, rows.find((row) => row.status === status)?.total ?? 0,
+  ])) as Record<InstituteServiceOrderStatus, number>;
+}
 
 export class InstituteServiceOrderError extends Error {
   constructor(readonly kind: "reviewer_unavailable" | "order_unavailable" | "consent_not_required") {
@@ -14,21 +27,40 @@ export class InstituteServiceOrderError extends Error {
  * only returns immutable order snapshots for institutes the actor belongs to. */
 export async function getInstituteServiceOrders(userId: string) {
   const scopes = await getInstituteScopes(userId);
-  if (!scopes.length) return { institutes: [], orders: [] };
-  const orders = await getDb().select({
-    id: instituteServiceOrders.id,
-    title: instituteServiceOrders.serviceTitleSnapshot,
-    priceToman: instituteServiceOrders.priceToman,
-    includedMinutes: instituteServiceOrders.includedMinutes,
-    validityDays: instituteServiceOrders.validityDays,
-    guardianConsentRequired: instituteServiceOrders.guardianConsentRequired,
-    guardianConsentConfirmedAt: instituteServiceOrders.guardianConsentConfirmedAt,
-    status: instituteServiceOrders.status,
-    createdAt: instituteServiceOrders.createdAt,
-  }).from(instituteServiceOrders)
-    .where(inArray(instituteServiceOrders.instituteId, scopes.map((scope) => scope.id)))
-    .orderBy(desc(instituteServiceOrders.createdAt), desc(instituteServiceOrders.id)).limit(200);
-  return { institutes: scopes, orders };
+  if (!scopes.length) return {
+    institutes: [], orders: [],
+    summary: { total: 0, statuses: summarizeInstituteServiceOrderStatuses([]) },
+  };
+  const instituteIds = scopes.map((scope) => scope.id);
+  const [orders, statusRows] = await Promise.all([
+    getDb().select({
+      id: instituteServiceOrders.id,
+      title: instituteServiceOrders.serviceTitleSnapshot,
+      priceToman: instituteServiceOrders.priceToman,
+      includedMinutes: instituteServiceOrders.includedMinutes,
+      validityDays: instituteServiceOrders.validityDays,
+      guardianConsentRequired: instituteServiceOrders.guardianConsentRequired,
+      guardianConsentConfirmedAt: instituteServiceOrders.guardianConsentConfirmedAt,
+      status: instituteServiceOrders.status,
+      createdAt: instituteServiceOrders.createdAt,
+    }).from(instituteServiceOrders)
+      .where(inArray(instituteServiceOrders.instituteId, instituteIds))
+      .orderBy(desc(instituteServiceOrders.createdAt), desc(instituteServiceOrders.id)).limit(200),
+    getDb().select({
+      status: instituteServiceOrders.status,
+      total: count(),
+    }).from(instituteServiceOrders)
+      .where(inArray(instituteServiceOrders.instituteId, instituteIds))
+      .groupBy(instituteServiceOrders.status),
+  ]);
+  const statuses = summarizeInstituteServiceOrderStatuses(statusRows);
+  return {
+    institutes: scopes, orders,
+    summary: {
+      total: Object.values(statuses).reduce((total, value) => total + value, 0),
+      statuses,
+    },
+  };
 }
 
 /** Records the institute's attestation that consent was obtained for this

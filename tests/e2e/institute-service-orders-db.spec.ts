@@ -87,7 +87,7 @@ test.describe("institute service order guardian consent", () => {
     await db.delete(user).where(inArray(user.id, Object.values(users)));
   });
 
-  test("scopes confirmation to the responsible institute and records one attestation", async () => {
+  test("scopes confirmation and aggregate summary to the responsible institute", async () => {
     const anonymous = await client();
     expect((await post(anonymous, consentPath, { consentConfirmed: true })).status()).toBe(401);
     await anonymous.dispose();
@@ -102,6 +102,16 @@ test.describe("institute service order guardian consent", () => {
     expect(await inbox.text()).toContain(
       "تأیید می‌کنم رضایت سرپرست برای همین درخواست خدمت اخذ شده است.",
     );
+    const initialSummary = await (await institute.get("/api/institute/service-orders")).json();
+    expect(initialSummary.summary).toEqual({
+      total: 1,
+      statuses: {
+        awaiting_guardian_consent: 1,
+        awaiting_payment: 0,
+        paid: 0,
+        cancelled: 0,
+      },
+    });
     expect((await institute.post(consentPath, {
       data: { consentConfirmed: true }, headers: { Origin: "https://attacker.invalid" },
     })).status()).toBe(403);
@@ -109,6 +119,7 @@ test.describe("institute service order guardian consent", () => {
 
     const otherInstitute = await client("otherInstitute");
     expect((await post(otherInstitute, consentPath, { consentConfirmed: true })).status()).toBe(404);
+    expect((await otherInstitute.get("/api/institute/service-orders")).status()).toBe(404);
     await otherInstitute.dispose();
 
     const first = await post(institute, consentPath, { consentConfirmed: true });
@@ -133,6 +144,9 @@ test.describe("institute service order guardian consent", () => {
     ))).toHaveLength(1);
     const updatedInbox = await institute.get("/institute/service-orders");
     expect(await updatedInbox.text()).toContain("تأیید مؤسسه ثبت شده");
+    const updatedSummary = await (await institute.get("/api/institute/service-orders")).json();
+    expect(updatedSummary.summary.statuses.awaiting_payment).toBe(1);
+    expect(updatedSummary.summary.statuses.paid).toBe(0);
 
     const studentAfter = await client("student");
     const studentHistory = await studentAfter.get("/student/services/orders");
