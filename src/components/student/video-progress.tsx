@@ -60,7 +60,7 @@ export function VideoProgress({
         نمایش‌داده‌شده. این علامت نمره یا اثبات تماشای کامل نیست.
       </p>
       {nextUnmarked && (
-        <a href={`#video-${nextUnmarked.assetId}`}
+        <a href="#next-unmarked-video"
           className="inline-block text-sm font-bold text-dena-brand underline-offset-4 hover:underline">
           رفتن به نخستین ویدئوی بی‌علامت
         </a>
@@ -74,6 +74,9 @@ export function VideoProgress({
           id={`video-${video.assetId}`}
           tabIndex={-1}
           className="scroll-mt-6 space-y-3 rounded-xl border border-dena-border p-4">
+          {video.assetId === nextUnmarked?.assetId && (
+            <span id="next-unmarked-video" aria-hidden="true" />
+          )}
           <h2 className="text-lg font-bold">{video.title}</h2>
           <video controls preload="none" playsInline
             controlsList="nodownload" className="aspect-video w-full rounded-xl bg-black"
