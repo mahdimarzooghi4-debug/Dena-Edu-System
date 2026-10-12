@@ -6,8 +6,12 @@ import { validSameOrigin } from "@/server/access/role-application-contracts";
 import { getDb } from "@/db";
 import { assessmentExamAttempts } from "@/db/schema";
 import { hasStudentEntitlement } from "@/server/student/entitlement";
-import { answerFromSeedCorpus, SEED_CORPUS_VERSION } from "@/server/ai-tutor/seed-corpus";
-import { recordStudentTutorTopic } from "@/server/student/ai-tutor-profile";
+import {
+  answerFromSeedCorpus, applySeedPracticeGuidance, SEED_CORPUS_VERSION,
+} from "@/server/ai-tutor/seed-corpus";
+import {
+  getStudentTutorPracticeStats, recordStudentTutorTopic,
+} from "@/server/student/ai-tutor-profile";
 import { retrieveStudentVideoTranscript } from "@/server/ai-tutor/video-transcript";
 
 export const runtime = "nodejs";
@@ -81,9 +85,18 @@ export async function POST(request: NextRequest) {
     }, { status: 422, headers: noStore });
   }
 
+  const practiceStats = await getStudentTutorPracticeStats(
+    actor.userId, result.source.id,
+  );
+  const personalizedResult = applySeedPracticeGuidance(
+    result, practiceStats?.practiceNeedsGuidance ?? false,
+  );
+
   const topicRecorded = parsed.data.rememberTopic === true;
   if (topicRecorded) {
     await recordStudentTutorTopic(actor.userId, result.source.id);
   }
-  return NextResponse.json({ ...result, topicRecorded }, { headers: noStore });
+  return NextResponse.json({ ...personalizedResult, topicRecorded }, {
+    headers: noStore,
+  });
 }
