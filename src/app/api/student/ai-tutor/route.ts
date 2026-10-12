@@ -8,6 +8,7 @@ import { assessmentExamAttempts } from "@/db/schema";
 import { hasStudentEntitlement } from "@/server/student/entitlement";
 import { answerFromSeedCorpus, SEED_CORPUS_VERSION } from "@/server/ai-tutor/seed-corpus";
 import { recordStudentTutorTopic } from "@/server/student/ai-tutor-profile";
+import { retrieveStudentVideoTranscript } from "@/server/ai-tutor/video-transcript";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -65,6 +66,14 @@ export async function POST(request: NextRequest) {
   // No external model is called and unsupported questions are not generated.
   const result = answerFromSeedCorpus(parsed.data.message);
   if (!result) {
+    const videoResult = await retrieveStudentVideoTranscript(
+      actor.userId, parsed.data.courseId, parsed.data.message,
+    );
+    if (videoResult) {
+      return NextResponse.json({ ...videoResult, topicRecorded: false }, {
+        headers: noStore,
+      });
+    }
     return NextResponse.json({
       error: "برای این پرسش هنوز محتوای آموزشی آماده ندارم.",
       code: "STARTER_CONTENT_NOT_FOUND",
