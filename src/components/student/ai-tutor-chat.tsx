@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { AiTutorPractice } from "./ai-tutor-practice";
 
 type Course = { courseId: string; title: string };
 type TutorResponse = {
@@ -132,6 +133,8 @@ export function AiTutorChat({ courses, initialTopics }: {
             disabled={clearBusy} onClick={() => void clearTopics()}>
             {clearBusy ? "در حال پاک‌کردن…" : "پاک‌کردن داده‌های مسیر شخصی"}
           </button>
+          <AiTutorPractice key={courseId} courseId={courseId}
+            enabled={Boolean(courseId && topics.length > 0)} />
         </div>
       )}
       {profileMessage && <p role="status" className="text-sm text-dena-muted">{profileMessage}</p>}
