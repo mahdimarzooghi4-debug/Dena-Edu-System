@@ -146,7 +146,12 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
           ? [eq(privateMediaAssets.status, "ready" as const)]
           : []),
       ))
-      .where(eq(courses.id, courseId))
+      .where(and(
+        eq(courses.id, courseId),
+        ...(input.decision === "granted"
+          ? [eq(courses.ownerType, "institute" as const)]
+          : []),
+      ))
       .limit(1);
     if (!asset) return { kind: "not_available" as const };
 
