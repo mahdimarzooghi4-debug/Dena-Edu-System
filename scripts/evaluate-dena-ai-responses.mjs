@@ -4,7 +4,7 @@
  * This script never invokes a model and never prints answer or case content.
  */
 import { readFile, lstat } from "node:fs/promises";
-import { isAbsolute, resolve } from "node:path";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const MAX_FILE_BYTES = 32 * 1024 * 1024;
@@ -74,7 +74,7 @@ function validateCase(item, lineNumber, errors) {
   if (item.category === "abstention" && item.expectedDecision !== "abstain") {
     addError(errors, `case:${lineNumber}:abstention_must_expect_abstain`);
   }
-  if (item.expectedDecision === "answer" && item.allowedSourceRefs.length === 0) {
+  if (item.expectedDecision === "answer" && Array.isArray(item.allowedSourceRefs) && item.allowedSourceRefs.length === 0) {
     addError(errors, `case:${lineNumber}:answer_requires_allowed_source`);
   }
   return item;
@@ -223,7 +223,7 @@ export function evaluateResponses(cases, responses) {
 
 async function readJsonl(pathValue, kind) {
   const errors = [];
-  if (typeof pathValue !== "string" || isAbsolute(pathValue)) {
+  if (typeof pathValue !== "string" || !pathValue.trim()) {
     return { rows: [], errors: [`${kind}:path_invalid`] };
   }
   const path = resolve(pathValue);
