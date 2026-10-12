@@ -199,6 +199,13 @@ test.describe("course-scoped provider requests and independent institute decisio
     expect(ownHtml).toContain("ثبت نشده");
     expect(ownHtml).not.toContain(`/provider/courses/${courseIds[0]}/media`);
     expect(ownHtml).toContain(`/provider/courses/${courseIds[0]}`);
+    const providerLearning = await provider.get("/provider/learning");
+    expect(providerLearning.status()).toBe(200);
+    const providerLearningHtml = await providerLearning.text();
+    expect(providerLearningHtml).toContain("آمادگی آموزشی دوره‌ها");
+    expect(providerLearningHtml).toContain("وضعیت محتوا و بازبینی هر دوره");
+    expect(providerLearningHtml).toContain("دوره آزمایشی نظارت مستقل دنا");
+    expect(providerLearningHtml).not.toContain("studentPracticeAttempts");
     const pendingDetail = await provider.get(
       `/api/provider/courses/${courseIds[0]}/overview`,
     );
@@ -267,6 +274,12 @@ test.describe("course-scoped provider requests and independent institute decisio
     expect(instituteHtml).toContain(
       `/institute/courses/${courseIds[0]}`,
     );
+    const instituteLearning = await institute.get("/institute/learning");
+    expect(instituteLearning.status()).toBe(200);
+    const instituteLearningHtml = await instituteLearning.text();
+    expect(instituteLearningHtml).toContain("آمادگی آموزشی دوره‌ها");
+    expect(instituteLearningHtml).toContain("دوره آزمایشی نظارت مستقل دنا");
+    expect(instituteLearningHtml).not.toContain("studentPracticeAttempts");
     const ownInstituteOverview = await institute.get(
       `/api/institute/courses/${courseIds[0]}/overview`,
     );
@@ -302,6 +315,9 @@ test.describe("course-scoped provider requests and independent institute decisio
     expect(await otherInstituteHome.text()).not.toContain(
       "دوره آزمایشی نظارت مستقل دنا",
     );
+    const otherInstituteLearning = await otherInstitute.get("/institute/learning");
+    expect(otherInstituteLearning.status()).toBe(200);
+    expect(await otherInstituteLearning.text()).not.toContain("دوره آزمایشی نظارت مستقل دنا");
     expect((await otherInstitute.get(
       `/api/institute/courses/${courseIds[0]}/overview`,
     )).status()).toBe(404);
