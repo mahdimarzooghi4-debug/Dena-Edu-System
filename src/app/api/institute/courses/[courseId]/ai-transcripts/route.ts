@@ -123,10 +123,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
       FOR UPDATE`);
     const [asset] = await tx.select({ id: privateMediaAssets.id })
       .from(privateMediaAssets)
-      .innerJoin(courses, and(
-        eq(courses.id, privateMediaAssets.courseId),
-        eq(courses.ownerType, "institute"),
-      ))
+      .innerJoin(courses, eq(courses.id, privateMediaAssets.courseId))
       .innerJoin(memberships, and(
         eq(memberships.userId, actor.userId),
         eq(memberships.role, "institute"),
