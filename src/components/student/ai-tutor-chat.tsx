@@ -10,6 +10,7 @@ type TutorResponse = {
   error?: string;
   code?: string;
   topicRecorded?: boolean;
+  guidedHint?: string;
 };
 type Topic = { topicId: string; questionCount: number; lastAskedAt: string; practiceAttemptCount: number; practiceCorrectCount: number; practiceNeedsGuidance: boolean };
 const topicTitles: Record<string, string> = {
@@ -150,6 +151,14 @@ export function AiTutorChat({ courses, initialTopics }: {
           {result.answer ? (
             <>
               <p className="whitespace-pre-line">{result.answer}</p>
+              {result.guidedHint && (
+                <p className="mt-3 rounded-xl border border-dena-line bg-white p-3 text-sm leading-7">
+                  <span className="font-bold text-dena-brand">
+                    راهنمایی بیشتر بر پایهٔ تمرین ذخیره‌شده:
+                  </span>{" "}
+                  {result.guidedHint}
+                </p>
+              )}
               {result.topicRecorded && <p className="mt-2 text-xs text-dena-muted">موضوع در مسیر شخصی تو ثبت شد.</p>}
               <p className="mt-3 border-t border-dena-line pt-2 text-xs text-dena-muted">
                 منبع: {result.source?.title}{result.source?.corpusVersion && <> · نسخهٔ مجموعه: {result.source.corpusVersion}</>}
