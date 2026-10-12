@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { answerFromSeedCorpus, getSeedPractice, gradeSeedPractice, SEED_CORPUS_VERSION } from "./seed-corpus";
+import {
+  answerFromSeedCorpus, applySeedPracticeGuidance, getSeedPractice,
+  gradeSeedPractice, SEED_CORPUS_VERSION,
+} from "./seed-corpus";
 
 describe("Dena internal tutor starter corpus", () => {
   it("returns a Persian explanation and traceable corpus version for covered concepts", () => {
@@ -36,5 +39,20 @@ describe("personalized starter practice", () => {
     expect(gradeSeedPractice("practice.linear-equation.v1", 0))
       .toMatchObject({ correct: false });
     expect(gradeSeedPractice("unknown-question", 0)).toBeNull();
+  });
+});
+
+
+describe("consent-based tutor response guidance", () => {
+  it("adds only reviewed topic guidance after a saved outcome requests help", () => {
+    const answer = answerFromSeedCorpus("معادله را چطور حل کنم؟");
+    expect(answer).not.toBeNull();
+    const plain = applySeedPracticeGuidance(answer!, false);
+    expect(plain).not.toHaveProperty("guidedHint");
+
+    const guided = applySeedPracticeGuidance(answer!, true);
+    expect(guided.guidedHint).toBe(getSeedPractice(answer!.source.id).guidedHint);
+    expect(guided.source).toEqual(answer!.source);
+    expect(guided.answer).toBe(answer!.answer);
   });
 });
