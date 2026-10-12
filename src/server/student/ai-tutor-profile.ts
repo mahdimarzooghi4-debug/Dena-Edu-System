@@ -56,6 +56,7 @@ export async function getStudentTutorPracticeStats(
   const [row] = await getDb().select({
     practiceAttemptCount: studentAiTutorTopics.practiceAttemptCount,
     practiceCorrectCount: studentAiTutorTopics.practiceCorrectCount,
+    practiceNeedsGuidance: studentAiTutorTopics.practiceNeedsGuidance,
   }).from(studentAiTutorTopics).where(and(
     eq(studentAiTutorTopics.studentUserId, studentUserId),
     eq(studentAiTutorTopics.topicId, topicId),
