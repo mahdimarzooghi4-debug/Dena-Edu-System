@@ -60,7 +60,10 @@ function addError(errors, code) {
 }
 
 function validateManifest(manifest, errors) {
-  const expectedKeys = manifest?.mode === "student_context"\n    ? [...MANIFEST_KEYS, "studentScopeRef"]\n    : MANIFEST_KEYS;\n  if (!hasExactKeys(manifest, expectedKeys)) {
+  const expectedKeys = manifest?.mode === "student_context"
+    ? [...MANIFEST_KEYS, "studentScopeRef"]
+    : MANIFEST_KEYS;
+  if (!hasExactKeys(manifest, expectedKeys)) {
     addError(errors, "manifest:keys_or_shape_invalid");
     return false;
   }
@@ -217,6 +220,10 @@ export async function validateDataset(manifestPath) {
 
   const manifestDirectory = dirname(absoluteManifestPath);
   const dataPath = join(manifestDirectory, manifest.dataFile);
+  const dataInfo = await lstat(dataPath).catch(() => null);
+  if (!dataInfo?.isFile() || dataInfo.isSymbolicLink()) {
+    return { ok: false, errors: ["data:not_a_regular_file"], recordCount: 0, sha256: null };
+  }
   const actualManifestDirectory = await realpath(manifestDirectory).catch(() => null);
   const actualDataPath = await realpath(dataPath).catch(() => null);
   if (!actualManifestDirectory || !actualDataPath) {
