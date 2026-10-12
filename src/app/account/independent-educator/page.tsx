@@ -44,9 +44,7 @@ export default async function IndependentEducatorPage() {
             ...item, createdAt: item.createdAt.toISOString(),
             updatedAt: item.updatedAt.toISOString(),
           }))}
-          initialCourses={courses.map((course) => ({
-            ...course, createdAt: course.createdAt.toISOString(),
-          }))}
+          initialCourses={courses}
         />
       </Card>
     </main>
