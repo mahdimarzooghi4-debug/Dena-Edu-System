@@ -6,7 +6,7 @@ import { AiTutorPractice } from "./ai-tutor-practice";
 type Course = { courseId: string; title: string };
 type TutorResponse = {
   answer?: string;
-  source?: { id: string; title: string; corpusVersion: string };
+  source?: { id: string; title: string; corpusVersion?: string };
   error?: string;
   code?: string;
   topicRecorded?: boolean;
@@ -152,7 +152,7 @@ export function AiTutorChat({ courses, initialTopics }: {
               <p className="whitespace-pre-line">{result.answer}</p>
               {result.topicRecorded && <p className="mt-2 text-xs text-dena-muted">موضوع در مسیر شخصی تو ثبت شد.</p>}
               <p className="mt-3 border-t border-dena-line pt-2 text-xs text-dena-muted">
-                منبع: {result.source?.title} · نسخهٔ مجموعه: {result.source?.corpusVersion}
+                منبع: {result.source?.title}{result.source?.corpusVersion && <> · نسخهٔ مجموعه: {result.source.corpusVersion}</>}
               </p>
             </>
           ) : <p>{result.error ?? "برای این پرسش هنوز محتوای آموزشی آماده ندارم."}</p>}
