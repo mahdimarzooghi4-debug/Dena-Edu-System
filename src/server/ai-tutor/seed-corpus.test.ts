@@ -46,13 +46,13 @@ describe("personalized starter practice", () => {
 describe("consent-based tutor response guidance", () => {
   it("adds only reviewed topic guidance after a saved outcome requests help", () => {
     const answer = answerFromSeedCorpus("معادله را چطور حل کنم؟");
-    expect(answer).not.toBeNull();
-    const plain = applySeedPracticeGuidance(answer!, false);
+    if (!answer) throw new Error("expected a starter answer");
+    const plain = applySeedPracticeGuidance(answer, false);
     expect(plain).not.toHaveProperty("guidedHint");
 
-    const guided = applySeedPracticeGuidance(answer!, true);
-    expect(guided.guidedHint).toBe(getSeedPractice(answer!.source.id).guidedHint);
-    expect(guided.source).toEqual(answer!.source);
-    expect(guided.answer).toBe(answer!.answer);
+    const guided = applySeedPracticeGuidance(answer, true);
+    expect(guided.guidedHint).toBe(getSeedPractice(answer.source.id).guidedHint);
+    expect(guided.source).toEqual(answer.source);
+    expect(guided.answer).toBe(answer.answer);
   });
 });
