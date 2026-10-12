@@ -128,7 +128,10 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
       return same ? { kind: "replayed" as const } : { kind: "request_conflict" as const };
     }
 
-    const [asset] = await tx.select({ id: privateMediaAssets.id })
+    const [asset] = await tx.select({
+      id: privateMediaAssets.id,
+      instituteId: courses.responsibleInstituteId,
+    })
       .from(courses)
       .innerJoin(memberships, and(
         eq(memberships.userId, actor.userId),
@@ -150,9 +153,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     await tx.insert(denaAiContentPermissionEvents).values({
       courseId,
       assetId: input.assetId,
-      instituteId: actor.memberships.find((entry) =>
-        entry.role === "institute",
-      )?.instituteId ?? "",
+      instituteId: asset.instituteId,
       actorUserId: actor.userId,
       requestId: input.requestId,
       decision: input.decision,
