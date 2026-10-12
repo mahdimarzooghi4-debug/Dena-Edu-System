@@ -23,6 +23,7 @@ export async function listStudentTutorTopics(studentUserId: string) {
     questionCount: studentAiTutorTopics.questionCount,
     practiceAttemptCount: studentAiTutorTopics.practiceAttemptCount,
     practiceCorrectCount: studentAiTutorTopics.practiceCorrectCount,
+    practiceNeedsGuidance: studentAiTutorTopics.practiceNeedsGuidance,
     firstAskedAt: studentAiTutorTopics.firstAskedAt,
     lastAskedAt: studentAiTutorTopics.lastAskedAt,
   }).from(studentAiTutorTopics)
@@ -70,6 +71,7 @@ export async function recordStudentTutorPracticeOutcome(
   const rows = await getDb().update(studentAiTutorTopics).set({
     practiceAttemptCount: sql`LEAST(${studentAiTutorTopics.practiceAttemptCount} + 1, 10000)`,
     practiceCorrectCount: sql`LEAST(${studentAiTutorTopics.practiceCorrectCount} + ${correct ? 1 : 0}, 10000)`,
+    practiceNeedsGuidance: !correct,
   }).where(and(
     eq(studentAiTutorTopics.studentUserId, studentUserId),
     eq(studentAiTutorTopics.topicId, topicId),
