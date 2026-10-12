@@ -11,7 +11,7 @@ type TutorResponse = {
   code?: string;
   topicRecorded?: boolean;
 };
-type Topic = { topicId: string; questionCount: number; lastAskedAt: string; practiceAttemptCount: number; practiceCorrectCount: number };
+type Topic = { topicId: string; questionCount: number; lastAskedAt: string; practiceAttemptCount: number; practiceCorrectCount: number; practiceNeedsGuidance: boolean };
 const topicTitles: Record<string, string> = {
   "math.linear-equation.v1": "معادلهٔ یک‌مجهولی",
   "math.fractions.add.v1": "جمع کسرها",
@@ -52,7 +52,7 @@ export function AiTutorChat({ courses, initialTopics }: {
           if (existing) return current.map((topic) => topic.topicId === topicId
             ? { ...topic, questionCount: Math.min(topic.questionCount + 1, 10000), lastAskedAt }
             : topic);
-          return [...current, { topicId, questionCount: 1, lastAskedAt, practiceAttemptCount: 0, practiceCorrectCount: 0 }];
+          return [...current, { topicId, questionCount: 1, lastAskedAt, practiceAttemptCount: 0, practiceCorrectCount: 0, practiceNeedsGuidance: false }];
         });
       }
     } catch {
@@ -125,7 +125,7 @@ export function AiTutorChat({ courses, initialTopics }: {
           <ul className="space-y-2 text-sm text-dena-muted">
             {topics.map((topic) => (
               <li key={topic.topicId}>
-                {topicTitles[topic.topicId] ?? "موضوع آموزشی"} · {topic.questionCount.toLocaleString("fa-IR")} پرسش · آخرین بار {new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium" }).format(new Date(topic.lastAskedAt))}{topic.practiceAttemptCount > 0 && <> · {topic.practiceAttemptCount.toLocaleString("fa-IR")} نتیجهٔ ذخیره‌شده، {topic.practiceCorrectCount.toLocaleString("fa-IR")} پاسخ درست</>}
+                {topicTitles[topic.topicId] ?? "موضوع آموزشی"} · {topic.questionCount.toLocaleString("fa-IR")} پرسش · آخرین بار {new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium" }).format(new Date(topic.lastAskedAt))}{topic.practiceAttemptCount > 0 && <> · {topic.practiceAttemptCount.toLocaleString("fa-IR")} نتیجهٔ ذخیره‌شده، {topic.practiceCorrectCount.toLocaleString("fa-IR")} پاسخ درست{topic.practiceNeedsGuidance && " · تمرین بعدی با راهنما"} </>}
               </li>
             ))}
           </ul>
@@ -140,6 +140,7 @@ export function AiTutorChat({ courses, initialTopics }: {
                 ...topic,
                 practiceAttemptCount: Math.min(topic.practiceAttemptCount + 1, 10000),
                 practiceCorrectCount: Math.min(topic.practiceCorrectCount + (correct ? 1 : 0), 10000),
+                practiceNeedsGuidance: !correct,
               } : topic))} />
         </div>
       )}
