@@ -97,7 +97,7 @@ function validateManifest(manifest, errors) {
     addError(errors, "manifest:initial_training_must_be_dena_owned_and_unscoped");
   }
   if (manifest.mode === "student_context" &&
-      (manifest.ownerKind !== "institution" || !validRef(manifest.studentScopeRef, 100))) {
+      (manifest.ownerKind !== "institution" || !/^student-scope:[A-Za-z0-9_-]{8,96}$/.test(manifest.studentScopeRef))) {
     addError(errors, "manifest:student_context_scope_invalid");
   }
   if (manifest.mode === "evaluation" && "studentScopeRef" in manifest) {
@@ -257,7 +257,7 @@ function printResult(result) {
 }
 
 function parseManifestArgument(argv) {
-  if (argv.length !== 3 || argv[0] !== "--manifest" || !argv[1]) return null;
+  if (argv.length !== 2 || argv[0] !== "--manifest" || !argv[1]) return null;
   return argv[1];
 }
 
