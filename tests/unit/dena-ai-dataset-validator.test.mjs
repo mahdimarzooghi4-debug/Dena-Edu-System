@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { createHash } from "node:crypto";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { validateDataset } from "../../scripts/validate-dena-ai-dataset.mjs";
@@ -126,7 +126,7 @@ describe("Dena AI dataset intake validator", () => {
     const result = await validateDataset(fixture.manifestPath);
 
     expect(result.ok).toBe(false);
-    expect(result.errors).toContain("record:2:duplicate_content_across_splits");
+    expect(result.errors).toContain("record:2:duplicate_content");
   });
 
   it("rejects extra answer-key or student identity fields without echoing content", async () => {
@@ -142,6 +142,38 @@ describe("Dena AI dataset intake validator", () => {
     expect(result.ok).toBe(false);
     expect(result.errors).toContain("record:1:keys_or_shape_invalid");
     expect(result.errors.join(" ")).not.toContain("student.person@example.com");
+  });
+
+  it("rejects a student context manifest without its separate pseudonymous scope", async () => {
+    const fixture = await createFixture([{
+      recordId: "video-chunk-01",
+      text: "متن آموزشی مجاز",
+      sourceRef: "institute:video-42",
+      sourceVersion: "v1",
+    }], {
+      mode: "student_context",
+      ownerKind: "institution",
+      ownerRef: "institute:school-17",
+      studentScopeRef: "student-scope:opaque-01",
+    });
+    const manifest = JSON.parse(await readFile(fixture.manifestPath, "utf8"));
+    delete manifest.studentScopeRef;
+    await writeFile(fixture.manifestPath, JSON.stringify(manifest), "utf8");
+
+    const result = await validateDataset(fixture.manifestPath);
+
+    expect(result.ok).toBe(false);
+    expect(result.errors).toContain("manifest:keys_or_shape_invalid");
+  });
+
+  it("rejects symlinked data files even when the target stays inside the directory", async () => {
+    const fixture = await createFixture([trainingRecord()], { dataFile: "alias.jsonl" });
+    await symlink(join(fixture.directory, "records.jsonl"), join(fixture.directory, "alias.jsonl"));
+
+    const result = await validateDataset(fixture.manifestPath);
+
+    expect(result.ok).toBe(false);
+    expect(result.errors).toContain("data:not_a_regular_file");
   });
 
   it("rejects a visible Iranian mobile number in content", async () => {
