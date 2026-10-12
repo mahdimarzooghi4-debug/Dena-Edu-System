@@ -83,7 +83,11 @@ export default async function StudentAiTutorPage() {
           </p>
         </section>
 
-        <AiTutorChat courses={catalog.courses.map((course) => ({\n          courseId: course.courseId, title: course.title,\n        }))} />\n\n        <section aria-labelledby="ai-tutor-growth" className="space-y-4">
+        <AiTutorChat courses={catalog.courses.map((course) => ({
+          courseId: course.courseId, title: course.title,
+        }))} />
+
+        <section aria-labelledby="ai-tutor-growth" className="space-y-4">
           <SectionHeading id="ai-tutor-growth" note="برنامهٔ یادگیری معلم دنا">
             معلم هوشمند چطور رشد می‌کند؟
           </SectionHeading>
