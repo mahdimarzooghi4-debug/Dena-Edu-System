@@ -8819,8 +8819,8 @@
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
-        "dena_ai_permission_events_actor_user_id_user_id_fk": {
-          "name": "dena_ai_permission_events_actor_user_id_user_id_fk",
+        "dena_ai_content_permission_events_actor_user_id_user_id_fk": {
+          "name": "dena_ai_content_permission_events_actor_user_id_user_id_fk",
           "tableFrom": "dena_ai_content_permission_events",
           "tableTo": "user",
           "columnsFrom": [
@@ -8839,7 +8839,7 @@
       "checkConstraints": {
         "dena_ai_permission_decision_ck": {
           "name": "dena_ai_permission_decision_ck",
-          "value": "\n    (decision = 'granted' AND rights_review_ref IS NOT NULL\n      AND char_length(btrim(rights_review_ref)) BETWEEN 8 AND 200\n      AND reason IS NULL)\n    OR (decision = 'revoked' AND rights_review_ref IS NULL\n      AND reason IS NOT NULL AND char_length(btrim(reason)) BETWEEN 3 AND 500)\n  "
+          "value": "\n      (decision = 'granted' AND rights_review_ref IS NOT NULL\n        AND char_length(btrim(rights_review_ref)) BETWEEN 8 AND 200\n        AND reason IS NULL)\n      OR (decision = 'revoked' AND rights_review_ref IS NULL\n        AND reason IS NOT NULL AND char_length(btrim(reason)) BETWEEN 3 AND 500)\n    "
         }
       },
       "isRLSEnabled": false
