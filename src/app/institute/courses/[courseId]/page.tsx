@@ -151,8 +151,9 @@ export default async function InstituteCoursePage({
 
       <AiVideoPermissions
         courseId={courseId}
-        grantEligible={course.providerName === null &&
-          course.independentEducatorName === null}
+        grantEligible={course.supervisionStatus === "approved" &&
+          (course.ownerType === "institute" ||
+            course.ownerType === "independent_educator")}
       />
 
       <section aria-labelledby="institute-course-team" className="space-y-4">
