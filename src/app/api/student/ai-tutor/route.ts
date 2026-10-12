@@ -20,11 +20,8 @@ const requestSchema = z.object({
 }).strict();
 
 /**
- * First server boundary for the student AI tutor.
- *
- * Model retrieval, quota reservation and response generation are intentionally
- * unavailable until the content index, usage package and model adapter are
- * configured. Keep the exam gate here before those integrations are called.
+ * Internal starter-corpus tutor boundary. Entitlement and active-exam checks
+ * run before retrieval; only an opt-in topic ID can be persisted, never text.
  */
 export async function POST(request: NextRequest) {
   if (!validSameOrigin(request.headers.get("origin"))) {
