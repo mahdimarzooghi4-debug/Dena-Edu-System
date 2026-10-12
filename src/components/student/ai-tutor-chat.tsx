@@ -5,7 +5,7 @@ import { useState, type FormEvent } from "react";
 type Course = { courseId: string; title: string };
 type TutorResponse = {
   answer?: string;
-  source?: { title: string; corpusVersion: string };
+  source?: { id: string; title: string; corpusVersion: string };
   error?: string;
   code?: string;
   topicRecorded?: boolean;
@@ -41,7 +41,20 @@ export function AiTutorChat({ courses, initialTopics }: {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ courseId, message, rememberTopic }),
       });
-      setResult(await response.json() as TutorResponse);
+      const data = await response.json() as TutorResponse;
+      setResult(data);
+      if (data.topicRecorded && data.source) {
+        const lastAskedAt = new Date().toISOString();
+        setTopics((current) => {
+          const existing = current.find((topic) => topic.topicId === data.source?.id);
+          if (existing) return current.map((topic) => topic.topicId === data.source?.id
+            ? { ...topic, questionCount: Math.min(topic.questionCount + 1, 10000), lastAskedAt }
+            : topic);
+          return [...current, {
+            topicId: data.source.id, questionCount: 1, lastAskedAt,
+          }];
+        });
+      }
     } catch {
       setResult({ error: "ارتباط برقرار نشد؛ دوباره تلاش کن." });
     } finally {
