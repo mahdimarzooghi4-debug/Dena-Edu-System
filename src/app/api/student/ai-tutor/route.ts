@@ -7,6 +7,7 @@ import { getDb } from "@/db";
 import { assessmentExamAttempts } from "@/db/schema";
 import { hasStudentEntitlement } from "@/server/student/entitlement";
 import { answerFromSeedCorpus, SEED_CORPUS_VERSION } from "@/server/ai-tutor/seed-corpus";
+import { recordStudentTutorTopic } from "@/server/student/ai-tutor-profile";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,6 +16,7 @@ const noStore = { "Cache-Control": "private, no-store, max-age=0" };
 const requestSchema = z.object({
   courseId: z.uuid(),
   message: z.string().trim().min(1).max(3000),
+  rememberTopic: z.boolean().optional(),
 }).strict();
 
 /**
@@ -73,5 +75,9 @@ export async function POST(request: NextRequest) {
     }, { status: 422, headers: noStore });
   }
 
-  return NextResponse.json(result, { headers: noStore });
+  const topicRecorded = parsed.data.rememberTopic === true;
+  if (topicRecorded) {
+    await recordStudentTutorTopic(actor.userId, result.source.id);
+  }
+  return NextResponse.json({ ...result, topicRecorded }, { headers: noStore });
 }
