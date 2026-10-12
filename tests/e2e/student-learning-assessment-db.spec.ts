@@ -383,7 +383,7 @@ test.describe("student learning assessment lifecycle", () => {
     const instituteLearning = await institute.get("/institute/learning");
     expect(instituteLearning.status()).toBe(200);
     const instituteLearningHtml = await instituteLearning.text();
-    expect(instituteLearningHtml).toContain("گزارش تجمیعی هم تعریف نشده است");
+    expect(instituteLearningHtml).toContain("آمادگی آموزشی دوره‌ها");
     expect(instituteLearningHtml).not.toContain("پرسش خصوصی ارزیابی در انتظار بازبینی چیست؟");
     expect((await student.get("/institute/learning")).status()).toBe(404);
 
@@ -412,7 +412,7 @@ test.describe("student learning assessment lifecycle", () => {
     const providerLearning = await provider.get("/provider/learning");
     expect(providerLearning.status()).toBe(200);
     const providerLearningHtml = await providerLearning.text();
-    expect(providerLearningHtml).toContain("گزارش تجمیعی هم تعریف نشده است");
+    expect(providerLearningHtml).toContain("آمادگی آموزشی دوره‌ها");
     expect(providerLearningHtml).not.toContain("پرسش خصوصی ارزیابی در انتظار بازبینی چیست؟");
     expect((await student.get("/provider/courses")).status()).toBe(404);
     expect((await student.get("/provider/assessments")).status()).toBe(404);
