@@ -44,15 +44,14 @@ export function AiTutorChat({ courses, initialTopics }: {
       const data = await response.json() as TutorResponse;
       setResult(data);
       if (data.topicRecorded && data.source) {
+        const topicId = data.source.id;
         const lastAskedAt = new Date().toISOString();
         setTopics((current) => {
-          const existing = current.find((topic) => topic.topicId === data.source?.id);
-          if (existing) return current.map((topic) => topic.topicId === data.source?.id
+          const existing = current.find((topic) => topic.topicId === topicId);
+          if (existing) return current.map((topic) => topic.topicId === topicId
             ? { ...topic, questionCount: Math.min(topic.questionCount + 1, 10000), lastAskedAt }
             : topic);
-          return [...current, {
-            topicId: data.source.id, questionCount: 1, lastAskedAt,
-          }];
+          return [...current, { topicId, questionCount: 1, lastAskedAt }];
         });
       }
     } catch {
