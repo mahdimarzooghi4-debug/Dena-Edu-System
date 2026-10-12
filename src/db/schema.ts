@@ -2090,9 +2090,3 @@ export const instituteServiceOrders = pgTable("dena_institute_service_orders", {
     OR (status = 'cancelled' AND paid_at IS NULL)
   `),
 ]);
-
-    `),
-  ],
-);
-
-/** Optional per-student topic counters and a retry guidance flag. Never store prompt text or infer mastery. */
