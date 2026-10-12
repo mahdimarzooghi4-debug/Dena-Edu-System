@@ -3,7 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { getDb } from "@/db";
 import {
-  courses, denaAiContentPermissionEvents, memberships, privateMediaAssets,
+  courses, denaAiContentPermissionEvents, denaAiVideoTranscriptChunks,
+  memberships, privateMediaAssets,
 } from "@/db/schema";
 import { getServerAccessContext } from "@/server/access/actor";
 import { validSameOrigin } from "@/server/access/role-application-contracts";
@@ -128,6 +129,9 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
       return same ? { kind: "replayed" as const } : { kind: "request_conflict" as const };
     }
 
+    await tx.execute(sql`SELECT id FROM dena_private_media_assets
+      WHERE id = ${input.assetId} AND course_id = ${courseId}
+      FOR UPDATE`);
     const [asset] = await tx.select({
       id: privateMediaAssets.id,
       instituteId: courses.responsibleInstituteId,
@@ -165,7 +169,15 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
       rightsReviewRef: input.decision === "granted" ? input.rightsReviewRef : null,
       reason: input.decision === "revoked" ? input.reason : null,
     }).onConflictDoNothing().returning({ id: denaAiContentPermissionEvents.id });
-    if (inserted) return { kind: "created" as const };
+    if (inserted) {
+      if (input.decision === "revoked") {
+        await tx.delete(denaAiVideoTranscriptChunks).where(and(
+          eq(denaAiVideoTranscriptChunks.assetId, input.assetId),
+          eq(denaAiVideoTranscriptChunks.courseId, courseId),
+        ));
+      }
+      return { kind: "created" as const };
+    }
 
     const [raced] = await tx.select({
       courseId: denaAiContentPermissionEvents.courseId,
