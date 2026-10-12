@@ -213,9 +213,18 @@ test.describe("student learning assessment lifecycle", () => {
       expect(blocked.status()).toBe(403);
       expect(await blocked.json()).toMatchObject({ code: "ACTIVE_EXAM" });
       expect(blocked.headers()["cache-control"]).toContain("no-store");
+      const practiceDuringExam = await student.get(
+        "/api/student/ai-tutor/practice?courseId=" + courseId,
+      );
+      expect(practiceDuringExam.status()).toBe(403);
       await db.delete(assessmentExamAttempts)
         .where(eq(assessmentExamAttempts.id, attemptId));
     }
+
+    const noProfilePractice = await student.get(
+      "/api/student/ai-tutor/practice?courseId=" + courseId,
+    );
+    expect(noProfilePractice.status()).toBe(404);
 
     const supported = await post(student, "/api/student/ai-tutor", {
       courseId, message: "معادلهٔ یک‌مجهولی را چطور حل کنم؟",
@@ -235,11 +244,37 @@ test.describe("student learning assessment lifecycle", () => {
     });
     const otherProfile = await otherStudent.get("/api/student/ai-tutor/profile");
     expect(await otherProfile.json()).toMatchObject({ topics: [] });
+    const practiceResponse = await student.get(
+      "/api/student/ai-tutor/practice?courseId=" + courseId,
+    );
+    expect(practiceResponse.status()).toBe(200);
+    const practiceQuestion = await practiceResponse.json();
+    expect(practiceQuestion).toMatchObject({
+      questionId: "practice.linear-equation.v1",
+      topicTitle: "معادلهٔ یک‌مجهولی",
+      options: expect.any(Array),
+    });
+    expect(practiceQuestion).not.toHaveProperty("correctOption");
+    const correctPractice = await post(student, "/api/student/ai-tutor/practice", {
+      courseId, questionId: practiceQuestion.questionId, selectedOption: 1,
+    });
+    expect(correctPractice.status()).toBe(200);
+    expect(await correctPractice.json()).toMatchObject({
+      correct: true, explanation: expect.stringContaining("x = ۴"),
+    });
+    const wrongPractice = await post(student, "/api/student/ai-tutor/practice", {
+      courseId, questionId: practiceQuestion.questionId, selectedOption: 0,
+    });
+    expect(await wrongPractice.json()).toMatchObject({ correct: false });
     const cleared = await student.delete("/api/student/ai-tutor/profile", {
       headers: { Origin: "http://localhost:3000" },
     });
     expect(cleared.status()).toBe(200);
     expect(await cleared.json()).toMatchObject({ deleted: 1 });
+    const stalePractice = await post(student, "/api/student/ai-tutor/practice", {
+      courseId, questionId: practiceQuestion.questionId, selectedOption: 1,
+    });
+    expect(stalePractice.status()).toBe(404);
     expect(await (await student.get("/api/student/ai-tutor/profile")).json())
       .toMatchObject({ topics: [] });
     const noConsent = await post(student, "/api/student/ai-tutor", {
