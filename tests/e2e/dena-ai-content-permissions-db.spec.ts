@@ -196,8 +196,11 @@ test.describe("Dena AI video permission authorization and revocation", () => {
     });
     const transcriptStatus = await institute.get(transcriptPath);
     expect(transcriptStatus.status()).toBe(200);
-    expect(await transcriptStatus.json()).toMatchObject({
-      assets: [{ assetId: assetIds.ready, chunkCount: 1 }],
+    const transcriptStatusBody = await transcriptStatus.json() as {
+      assets: Array<{ assetId: string; chunkCount: number }>;
+    };
+    expect(transcriptStatusBody.assets).toContainEqual({
+      assetId: assetIds.ready, chunkCount: 1,
     });
     expect(JSON.stringify(await transcriptStatus.json())).not.toContain(transcript);
     const transcriptAnswer = await post(student, "/api/student/ai-tutor", {
