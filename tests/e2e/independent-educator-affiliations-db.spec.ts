@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { and, eq, inArray } from "drizzle-orm";
 import { serializeSignedCookie } from "better-call";
 import { expect, request, test, type APIRequestContext } from "@playwright/test";
@@ -6,7 +6,7 @@ import { getDb } from "../../src/db";
 import {
   auditLogs, courseOwnershipEvents, courses, educatorInstituteAffiliationEvents,
   educatorInstituteAffiliations, independentEducatorProfiles, memberships,
-  privateMediaAssets, session, studentEnrollments, supervisionEvents,
+  mediaIngests, mediaProcessingJobs, privateMediaAssets, session, studentEnrollments, supervisionEvents,
   supervisionGrants, user, verifiedEntities,
 } from "../../src/db/schema";
 import { hasStudentEntitlement } from "../../src/server/student/entitlement";
@@ -30,6 +30,8 @@ test.describe("independent educator institute affiliations", () => {
   const institutes = { a: randomUUID(), b: randomUUID() };
   let ownedCourseId: string = randomUUID();
   const ownedAssetId = randomUUID();
+  const mediaFixture = Buffer.from("00000018667479706d7034326d70343269736f6d00000000", "hex");
+  const mediaDigest = createHash("sha256").update(mediaFixture).digest("hex");
   const requestIds = { a: randomUUID(), b: randomUUID(), self: randomUUID() };
   let affiliationA = "";
   let affiliationB = "";
@@ -82,6 +84,11 @@ test.describe("independent educator institute affiliations", () => {
     await db.delete(supervisionEvents).where(eq(supervisionEvents.courseId, ownedCourseId));
     await db.delete(courseOwnershipEvents).where(eq(courseOwnershipEvents.courseId, ownedCourseId));
     await db.delete(studentEnrollments).where(eq(studentEnrollments.courseId, ownedCourseId));
+    await db.delete(mediaProcessingJobs).where(inArray(
+      mediaProcessingJobs.uploadId, db.select({ id: mediaIngests.id })
+        .from(mediaIngests).where(eq(mediaIngests.courseId, ownedCourseId)),
+    ));
+    await db.delete(mediaIngests).where(eq(mediaIngests.courseId, ownedCourseId));
     await db.delete(privateMediaAssets).where(eq(privateMediaAssets.courseId, ownedCourseId));
     await db.delete(supervisionGrants).where(eq(supervisionGrants.courseId, ownedCourseId));
     await db.delete(courses).where(eq(courses.id, ownedCourseId));
@@ -200,12 +207,42 @@ test.describe("independent educator institute affiliations", () => {
       courseId: ownedCourseId, status: "requested", replayed: true,
     });
     const approvedAt = new Date();
-    await db.update(courses).set({
-      publicationStatus: "published", publishedAt: approvedAt,
-    }).where(eq(courses.id, ownedCourseId));
     await db.update(supervisionGrants).set({
       status: "approved", approvedByInstituteUserId: users.instituteA, approvedAt,
     }).where(eq(supervisionGrants.courseId, ownedCourseId));
+
+    const mediaPath = `/api/independent-educator/courses/${ownedCourseId}/ingest`;
+    const reservation = await post(applicant, mediaPath, {
+      title: "ویدئوی درس آزمایشی", clientRequestId: randomUUID(),
+      expectedBytes: mediaFixture.length, sha256: mediaDigest,
+    });
+    expect(reservation.status()).toBe(201);
+    const reservationBody = await reservation.json() as { uploadId: string };
+    const reservedUploadId = reservationBody.uploadId;
+    const [mediaRow] = await db.select().from(mediaIngests)
+      .where(eq(mediaIngests.id, reservedUploadId));
+    expect(mediaRow).toMatchObject({
+      ownerType: "independent_educator", providerId: null,
+      independentEducatorProfileId: profile!.id, status: "reserved",
+    });
+    const uploaded = await applicant.put(`${mediaPath}/${reservedUploadId}`, {
+      data: mediaFixture,
+      headers: { Origin: "http://localhost:3000", "Content-Type": "video/mp4" },
+    });
+    expect(uploaded.status()).toBe(202);
+    expect(await uploaded.json()).toMatchObject({
+      uploadId: reservedUploadId, status: "quarantined",
+    });
+
+    const staleReservation = await post(applicant, mediaPath, {
+      title: "ویدئوی دوم", clientRequestId: randomUUID(),
+      expectedBytes: mediaFixture.length, sha256: mediaDigest,
+    });
+    expect(staleReservation.status()).toBe(201);
+    const staleUploadId = (await staleReservation.json() as { uploadId: string }).uploadId;
+    await db.update(courses).set({
+      publicationStatus: "published", publishedAt: approvedAt,
+    }).where(eq(courses.id, ownedCourseId));
     await db.insert(privateMediaAssets).values({
       id: ownedAssetId,
       courseId: ownedCourseId,
@@ -256,6 +293,15 @@ test.describe("independent educator institute affiliations", () => {
     expect((await post(instituteA, decisionPath(affiliationA), {
       action: "revoke", reason: "پایان همکاری به درخواست و تصمیم مؤسسه ثبت شد.",
     })).status()).toBe(200);
+    const rejectedLateUpload = await applicant.put(
+      `${mediaPath}/${staleUploadId}`, {
+        data: mediaFixture,
+        headers: { Origin: "http://localhost:3000", "Content-Type": "video/mp4" },
+      });
+    expect(rejectedLateUpload.status()).toBe(404);
+    const [staleMediaRow] = await db.select().from(mediaIngests)
+      .where(eq(mediaIngests.id, staleUploadId));
+    expect(staleMediaRow?.status).toBe("reserved");
     const [transferredCourse] = await db.select().from(courses)
       .where(eq(courses.id, ownedCourseId));
     expect(transferredCourse).toMatchObject({
