@@ -6,6 +6,7 @@ import { validSameOrigin } from "@/server/access/role-application-contracts";
 import { getDb } from "@/db";
 import { assessmentExamAttempts } from "@/db/schema";
 import { hasStudentEntitlement } from "@/server/student/entitlement";
+import { answerFromSeedCorpus, SEED_CORPUS_VERSION } from "@/server/ai-tutor/seed-corpus";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -61,10 +62,16 @@ export async function POST(request: NextRequest) {
     }, { status: 403, headers: noStore });
   }
 
-  // Fail closed until the approved content corpus, paid usage ledger and
-  // provider-neutral model adapter are implemented and configured.
-  return NextResponse.json({
-    error: "AI tutor is not configured yet",
-    code: "AI_TUTOR_UNAVAILABLE",
-  }, { status: 503, headers: noStore });
+  // A small, Dena-authored starter corpus powers this first internal version.
+  // No external model is called and unsupported questions are not generated.
+  const result = answerFromSeedCorpus(parsed.data.message);
+  if (!result) {
+    return NextResponse.json({
+      error: "برای این پرسش هنوز محتوای آموزشی آماده ندارم.",
+      code: "STARTER_CONTENT_NOT_FOUND",
+      corpusVersion: SEED_CORPUS_VERSION,
+    }, { status: 422, headers: noStore });
+  }
+
+  return NextResponse.json(result, { headers: noStore });
 }
