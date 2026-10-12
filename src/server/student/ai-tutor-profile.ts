@@ -1,7 +1,7 @@
-import { desc, eq, sql } from "drizzle-orm";
+import { asc, desc, eq, sql } from "drizzle-orm";
 import { getDb } from "../../db";
 import { studentAiTutorTopics } from "../../db/schema";
-import type { SeedTopicId } from "../ai-tutor/seed-corpus";
+import { isSeedTopicId, type SeedTopicId } from "../ai-tutor/seed-corpus";
 
 export async function recordStudentTutorTopic(
   studentUserId: string,
@@ -33,4 +33,15 @@ export async function clearStudentTutorTopics(studentUserId: string) {
     .where(eq(studentAiTutorTopics.studentUserId, studentUserId))
     .returning({ topicId: studentAiTutorTopics.topicId });
   return deleted.length;
+}
+
+export async function getLatestStudentTutorTopic(
+  studentUserId: string,
+): Promise<SeedTopicId | null> {
+  const [row] = await getDb().select({ topicId: studentAiTutorTopics.topicId })
+    .from(studentAiTutorTopics)
+    .where(eq(studentAiTutorTopics.studentUserId, studentUserId))
+    .orderBy(desc(studentAiTutorTopics.lastAskedAt), asc(studentAiTutorTopics.topicId))
+    .limit(1);
+  return row && isSeedTopicId(row.topicId) ? row.topicId : null;
 }
