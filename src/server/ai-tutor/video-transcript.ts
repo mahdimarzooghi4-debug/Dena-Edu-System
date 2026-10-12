@@ -177,7 +177,8 @@ export async function retrieveStudentVideoTranscript(
     };
   }).filter((row) => row.score >= Math.min(2, questionTerms.length))
     .sort((a, b) => b.score - a.score ||
-      Number(b.needsGuidance || b.conceptNeedsGuidance) - Number(a.needsGuidance || a.conceptNeedsGuidance) ||
+      (Number(b.needsGuidance) * 2 + Number(b.conceptNeedsGuidance)) -
+        (Number(a.needsGuidance) * 2 + Number(a.conceptNeedsGuidance)) ||
       a.assetId.localeCompare(b.assetId) || a.chunkIndex - b.chunkIndex);
   const best = ranked[0];
   if (!best) return null;
