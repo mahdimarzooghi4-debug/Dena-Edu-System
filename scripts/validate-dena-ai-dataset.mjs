@@ -60,7 +60,7 @@ function addError(errors, code) {
 }
 
 function validateManifest(manifest, errors) {
-  if (!hasExactKeys(manifest, MANIFEST_KEYS)) {
+  const expectedKeys = manifest?.mode === "student_context"\n    ? [...MANIFEST_KEYS, "studentScopeRef"]\n    : MANIFEST_KEYS;\n  if (!hasExactKeys(manifest, expectedKeys)) {
     addError(errors, "manifest:keys_or_shape_invalid");
     return false;
   }
