@@ -242,6 +242,16 @@ test.describe("student learning assessment lifecycle", () => {
     expect(await cleared.json()).toMatchObject({ deleted: 1 });
     expect(await (await student.get("/api/student/ai-tutor/profile")).json())
       .toMatchObject({ topics: [] });
+    const noConsent = await post(student, "/api/student/ai-tutor", {
+      courseId, message: "جمع کسرها را توضیح بده.",
+    });
+    expect(await noConsent.json()).toMatchObject({ topicRecorded: false });
+    expect(await (await student.get("/api/student/ai-tutor/profile")).json())
+      .toMatchObject({ topics: [] });
+    const crossOriginDelete = await student.delete("/api/student/ai-tutor/profile", {
+      headers: { Origin: "https://attacker.example" },
+    });
+    expect(crossOriginDelete.status()).toBe(403);
 
     const unsupported = await post(student, "/api/student/ai-tutor", {
       courseId, message: "نظریه نسبیت را توضیح بده.",
