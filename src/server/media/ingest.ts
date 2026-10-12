@@ -517,32 +517,89 @@ export async function completeAttestedIngest(uploadId: string, leaseToken: strin
         !leased.leaseUntil || leased.leaseUntil <= new Date()) {
       return "conflict" as const;
     }
+    const [scope] = await tx.select({
+      ownerType: courses.ownerType,
+      profileId: courses.independentEducatorProfileId,
+      instituteId: courses.responsibleInstituteId,
+    }).from(courses).where(eq(courses.id, job.courseId)).limit(1);
+    if (scope?.ownerType === "independent_educator" && scope.profileId) {
+      await tx.select({ id: educatorInstituteAffiliations.id })
+        .from(educatorInstituteAffiliations).where(and(
+          eq(educatorInstituteAffiliations.educatorProfileId, scope.profileId),
+          eq(educatorInstituteAffiliations.instituteId, scope.instituteId),
+          eq(educatorInstituteAffiliations.status, "approved"),
+        )).limit(1).for("share");
+    }
     const [course] = await tx.select().from(courses)
       .where(eq(courses.id, job.courseId)).limit(1).for("share");
-    const [grant] = await tx.select().from(supervisionGrants)
-      .where(and(eq(supervisionGrants.courseId, job.courseId),
-        eq(supervisionGrants.providerId, job.providerId),
-        eq(supervisionGrants.status, "approved")))
-      .limit(1).for("share");
-    if (!course || !isVerifiedProviderCourse(course) || course.publicationStatus !== "draft" ||
-        !grant?.approvedByInstituteUserId || !grant.approvedAt ||
+    if (!course || course.publicationStatus !== "draft" ||
+        course.ownerType !== job.ownerType ||
         course.providerId !== job.providerId ||
-        grant.instituteId !== course.responsibleInstituteId) return "conflict" as const;
-    const [provider] = await tx.select({ id: memberships.id })
-      .from(memberships).where(and(
-        eq(memberships.userId, job.createdByUserId),
-        eq(memberships.providerId, job.providerId),
-        eq(memberships.role, "provider"),
-        eq(memberships.status, "active"),
+        course.independentEducatorProfileId !== job.independentEducatorProfileId) {
+      return "conflict" as const;
+    }
+    let approved = false;
+    if (isVerifiedProviderCourse(course) && job.providerId) {
+      const [grant] = await tx.select().from(supervisionGrants).where(and(
+        eq(supervisionGrants.courseId, job.courseId),
+        eq(supervisionGrants.providerId, job.providerId),
+        eq(supervisionGrants.instituteId, course.responsibleInstituteId),
+        eq(supervisionGrants.status, "approved"),
       )).limit(1).for("share");
-    const [approver] = await tx.select({ id: memberships.id })
-      .from(memberships).where(and(
-        eq(memberships.userId, grant.approvedByInstituteUserId),
-        eq(memberships.instituteId, course.responsibleInstituteId),
-        eq(memberships.role, "institute"),
-        eq(memberships.status, "active"),
+      const [provider] = await tx.select({ id: memberships.id })
+        .from(memberships).where(and(
+          eq(memberships.userId, job.createdByUserId),
+          eq(memberships.providerId, job.providerId),
+          eq(memberships.role, "provider"),
+          eq(memberships.status, "active"),
+        )).limit(1).for("share");
+      const [approver] = grant?.approvedByInstituteUserId
+        ? await tx.select({ id: memberships.id }).from(memberships).where(and(
+            eq(memberships.userId, grant.approvedByInstituteUserId),
+            eq(memberships.instituteId, course.responsibleInstituteId),
+            eq(memberships.role, "institute"),
+            eq(memberships.status, "active"),
+          )).limit(1).for("share")
+        : [];
+      approved = Boolean(grant?.approvedAt && provider && approver);
+    } else if (course.ownerType === "independent_educator" &&
+        course.independentEducatorProfileId &&
+        job.independentEducatorProfileId === course.independentEducatorProfileId) {
+      const profileId = course.independentEducatorProfileId;
+      const [profile] = await tx.select({ id: independentEducatorProfiles.id })
+        .from(independentEducatorProfiles).where(and(
+          eq(independentEducatorProfiles.id, profileId),
+          eq(independentEducatorProfiles.userId, job.createdByUserId),
+        )).limit(1).for("share");
+      const [student] = await tx.select({ id: memberships.id }).from(memberships)
+        .where(and(eq(memberships.userId, job.createdByUserId),
+          eq(memberships.role, "student"), eq(memberships.status, "active")))
+        .limit(1).for("share");
+      const [affiliation] = await tx.select({ id: educatorInstituteAffiliations.id })
+        .from(educatorInstituteAffiliations).where(and(
+          eq(educatorInstituteAffiliations.educatorProfileId, profileId),
+          eq(educatorInstituteAffiliations.instituteId, course.responsibleInstituteId),
+          eq(educatorInstituteAffiliations.status, "approved"),
+        )).limit(1).for("share");
+      const [grant] = await tx.select().from(supervisionGrants).where(and(
+        eq(supervisionGrants.courseId, job.courseId),
+        eq(supervisionGrants.ownerType, "independent_educator"),
+        eq(supervisionGrants.independentEducatorProfileId, profileId),
+        eq(supervisionGrants.instituteId, course.responsibleInstituteId),
+        eq(supervisionGrants.status, "approved"),
       )).limit(1).for("share");
-    if (!provider || !approver) return "conflict" as const;
+      const [approver] = grant?.approvedByInstituteUserId
+        ? await tx.select({ id: memberships.id }).from(memberships).where(and(
+            eq(memberships.userId, grant.approvedByInstituteUserId),
+            eq(memberships.instituteId, course.responsibleInstituteId),
+            eq(memberships.role, "institute"),
+            eq(memberships.status, "active"),
+          )).limit(1).for("share")
+        : [];
+      approved = Boolean(profile && student && affiliation &&
+        grant?.approvedAt && approver);
+    }
+    if (!approved) return "conflict" as const;
 
     // The initial unauthenticated reads are advisory. The row lock, live lease,
     // active provider, institute grant/approver and draft publication status
@@ -550,6 +607,8 @@ export async function completeAttestedIngest(uploadId: string, leaseToken: strin
     if (job.assetId !== initial.assetId ||
         job.courseId !== initial.courseId ||
         job.providerId !== initial.providerId ||
+        job.ownerType !== initial.ownerType ||
+        job.independentEducatorProfileId !== initial.independentEducatorProfileId ||
         job.createdByUserId !== initial.createdByUserId ||
         job.expectedBytes !== initial.expectedBytes ||
         job.expectedSha256 !== initial.expectedSha256) return "conflict" as const;
