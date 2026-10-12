@@ -155,7 +155,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
       .limit(1);
     if (!asset) return { kind: "not_available" as const };
 
-    await tx.insert(denaAiContentPermissionEvents).values({
+    const [inserted] = await tx.insert(denaAiContentPermissionEvents).values({
       courseId,
       assetId: input.assetId,
       instituteId: asset.instituteId,
@@ -164,8 +164,27 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
       decision: input.decision,
       rightsReviewRef: input.decision === "granted" ? input.rightsReviewRef : null,
       reason: input.decision === "revoked" ? input.reason : null,
-    });
-    return { kind: "created" as const };
+    }).onConflictDoNothing().returning({ id: denaAiContentPermissionEvents.id });
+    if (inserted) return { kind: "created" as const };
+
+    const [raced] = await tx.select({
+      courseId: denaAiContentPermissionEvents.courseId,
+      assetId: denaAiContentPermissionEvents.assetId,
+      decision: denaAiContentPermissionEvents.decision,
+      rightsReviewRef: denaAiContentPermissionEvents.rightsReviewRef,
+      reason: denaAiContentPermissionEvents.reason,
+    }).from(denaAiContentPermissionEvents)
+      .where(and(
+        eq(denaAiContentPermissionEvents.actorUserId, actor.userId),
+        eq(denaAiContentPermissionEvents.requestId, input.requestId),
+      ))
+      .limit(1);
+    if (!raced) return { kind: "not_available" as const };
+    const racedSame = raced.courseId === courseId && raced.assetId === input.assetId &&
+      raced.decision === input.decision &&
+      raced.rightsReviewRef === (input.decision === "granted" ? input.rightsReviewRef : null) &&
+      raced.reason === (input.decision === "revoked" ? input.reason : null);
+    return racedSame ? { kind: "replayed" as const } : { kind: "request_conflict" as const };
   });
 
   if (result.kind === "request_conflict") return NextResponse.json({
