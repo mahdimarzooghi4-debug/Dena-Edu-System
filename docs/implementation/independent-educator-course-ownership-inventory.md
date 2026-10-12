@@ -26,7 +26,7 @@
 - صفحات `/provider/courses`, `/provider/courses/[courseId]`, `/provider/courses/[courseId]/assessments`, `/provider/courses/[courseId]/media`
 - routeهای API دوره برای `overview`, `publication`, `assessments`, `practice`, `supervision`, `ingest`, `media-ingest` و multipart plans.
 
-مسیرهای موجود ایجاد، تغییر، انتشار و رسانه همچنان به عضویت `provider` وابسته‌اند و برای مالکیت غیر provider با guard بسته می‌شوند. همکار مستقل هنوز API/UI ساخت دوره ندارد. مسیر بعدی باید شاخهٔ صریح با پروفایل مستقل و affiliation فعال همان مؤسسه بسازد؛ course UUID به‌تنهایی مجوز نیست.
+ایجاد پیش‌نویس مستقل از `/api/independent-educator/courses` فقط با affiliation پذیرفته‌شده و عضویت فعال مؤسسهٔ ناظر انجام می‌شود؛ هر پیش‌نویس برای نظارت همان مؤسسه درخواست جدا ثبت می‌کند و فهرست شخصی از مالکیت جاری خوانده می‌شود. مسیرهای ویرایش محتوای دوره، انتشار و رسانه همچنان به عضویت `provider` وابسته‌اند و برای همکار مستقل غیرفعال‌اند. قدم بعدی برای آن مسیرها باید scope مستقل صریح، احراز affiliation و serialize شدن با revoke داشته باشد؛ course UUID به‌تنهایی مجوز نیست.
 
 ### مؤسسه، supervision و آزمون
 
