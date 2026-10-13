@@ -303,7 +303,7 @@ test.describe("Dena AI video permission authorization and revocation", () => {
       source: {
         id: "science.light.v1",
         title: "نور و عدسی",
-        corpusVersion: "2026-10-12.2",
+        corpusVersion: "2026-10-12.3",
       },
       topicRecorded: false,
       answer: expect.stringContaining("عدسی محدب"),

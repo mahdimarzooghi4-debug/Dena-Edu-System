@@ -30,7 +30,7 @@ export function AiTutorPractice({ courseId, topics, enabled, onOutcomeSaved }: {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  async function loadQuestion() {
+  async function loadQuestion(excludeQuestionId?: string) {
     if (!courseId || !selectedTopicId || busy) return;
     setBusy(true);
     setError("");
@@ -38,9 +38,10 @@ export function AiTutorPractice({ courseId, topics, enabled, onOutcomeSaved }: {
     setResult(null);
     setSelectedOption(null);
     try {
+      const params = new URLSearchParams({ courseId, topicId: selectedTopicId });
+      if (excludeQuestionId) params.set("excludeQuestionId", excludeQuestionId);
       const response = await fetch(
-        "/api/student/ai-tutor/practice?courseId=" + encodeURIComponent(courseId) +
-          "&topicId=" + encodeURIComponent(selectedTopicId),
+        "/api/student/ai-tutor/practice?" + params.toString(),
         { credentials: "same-origin", cache: "no-store" },
       );
       const data = await response.json() as PracticeQuestion & { error?: string };
@@ -161,7 +162,9 @@ export function AiTutorPractice({ courseId, topics, enabled, onOutcomeSaved }: {
               <p>{result.explanation}</p>
               {result.resultRecorded && <p className="mt-2 text-xs text-dena-muted">شمارندهٔ نتیجه ذخیره شد؛ هر زمان می‌توانی کل مسیر شخصی را پاک کنی.</p>}
               <button type="button" className="mt-2 text-sm font-bold text-dena-brand underline"
-                onClick={() => { setQuestion(null); setResult(null); setSelectedOption(null); }}>
+                onClick={() => {
+                  if (question) void loadQuestion(question.questionId);
+                }}>
                 تمرین دیگری بگیر
               </button>
             </div>

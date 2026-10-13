@@ -64,8 +64,9 @@ export async function GET(request: NextRequest) {
   if (!stats) return NextResponse.json({ error: "Practice unavailable" }, {
     status: 404, headers: noStore,
   });
-  const practice = getSeedPractice(topicId);
-  const guided = stats?.practiceNeedsGuidance ?? false;
+  const excludedQuestionId = request.nextUrl.searchParams.get("excludeQuestionId") ?? undefined;
+  const practice = getSeedPractice(topicId, excludedQuestionId);
+  const guided = stats.practiceNeedsGuidance;
   return NextResponse.json({
     questionId: practice.id,
     topicId: practice.topicId,
@@ -107,12 +108,12 @@ export async function POST(request: NextRequest) {
   const stats = topicId
     ? await getStudentTutorPracticeStats(actor.userId, topicId)
     : null;
-  if (!topicId || !stats || getSeedPractice(topicId).id !== parsed.data.questionId) {
-    return NextResponse.json({ error: "Practice unavailable" }, {
-      status: 404, headers: noStore,
-    });
-  }
-  const result = gradeSeedPractice(parsed.data.questionId, parsed.data.selectedOption);
+  if (!topicId || !stats) return NextResponse.json({ error: "Practice unavailable" }, {
+    status: 404, headers: noStore,
+  });
+  const result = gradeSeedPractice(
+    parsed.data.questionId, parsed.data.selectedOption, topicId,
+  );
   if (!result) return NextResponse.json({ error: "Practice unavailable" }, {
     status: 404, headers: noStore,
   });
