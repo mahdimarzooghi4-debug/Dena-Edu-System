@@ -48,3 +48,21 @@ export function getReviewPracticeTopic(
   );
   return topic?.topicId ?? null;
 }
+
+export function applyFocusedReviewOutcome<
+  T extends {
+    topicId: string;
+    practiceAttemptCount: number;
+    practiceCorrectCount: number;
+    practiceNeedsGuidance: boolean;
+  },
+>(topics: readonly T[], topicId: string, correct: boolean): T[] {
+  return topics.map((topic) => topic.topicId === topicId
+    ? {
+        ...topic,
+        practiceAttemptCount: Math.min(topic.practiceAttemptCount + 1, 10000),
+        practiceCorrectCount: Math.min(topic.practiceCorrectCount + (correct ? 1 : 0), 10000),
+        practiceNeedsGuidance: !correct,
+      }
+    : topic);
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getReviewPracticeTopic, getStudyPrompt, recommendNextStudyStep } from "./study-recommendation";
+import { applyFocusedReviewOutcome, getReviewPracticeTopic, getStudyPrompt, recommendNextStudyStep } from "./study-recommendation";
 import {
   answerFromSeedCorpus, applySeedPracticeGuidance, getSeedPractice,
   gradeSeedPractice, SEED_CORPUS_VERSION,
@@ -87,6 +87,21 @@ describe("personalized starter practice", () => {
   });
 });
 
+
+describe("focused review practice outcomes", () => {
+  it("keeps a saved lesson review visible while updating practice guidance", () => {
+    const current = [{
+      topicId: "science.light.v1", practiceAttemptCount: 1,
+      practiceCorrectCount: 0, practiceNeedsGuidance: true,
+      lessonFeedback: "needs_help" as const,
+    }];
+    expect(applyFocusedReviewOutcome(current, "science.light.v1", true)).toEqual([{
+      topicId: "science.light.v1", practiceAttemptCount: 2,
+      practiceCorrectCount: 1, practiceNeedsGuidance: false,
+      lessonFeedback: "needs_help",
+    }]);
+  });
+});
 
 describe("focused lesson review practice", () => {
   it("targets only a supported topic where the student asked for more help", () => {
