@@ -32,9 +32,9 @@ export function getStudyPrompt(topicId: string): string | null {
 }
 
 export function recommendNextStudyStep(
-  topics: readonly { topicId: string; practiceAttemptCount: number; practiceNeedsGuidance: boolean }[],
+  topics: readonly { topicId: string; practiceAttemptCount: number; practiceNeedsGuidance: boolean; lessonFeedback?: "understood" | "needs_help" | null }[],
 ) {
-  const topic = topics.find((item) => item.practiceNeedsGuidance && getStudyPrompt(item.topicId));
+  const topic = topics.find((item) => item.practiceNeedsGuidance && item.lessonFeedback !== "understood" && getStudyPrompt(item.topicId));
   if (!topic) return null;
   const card = studyCards[topic.topicId as SeedTopicId];
   return { topicId: topic.topicId, prompt: card.prompt, explanation: card.explanation };

@@ -35,6 +35,7 @@ export async function listStudentTutorTopics(studentUserId: string) {
     practiceAttemptCount: studentAiTutorTopics.practiceAttemptCount,
     practiceCorrectCount: studentAiTutorTopics.practiceCorrectCount,
     practiceNeedsGuidance: studentAiTutorTopics.practiceNeedsGuidance,
+    lessonFeedback: studentAiTutorTopics.lessonFeedback,
     firstAskedAt: studentAiTutorTopics.firstAskedAt,
     lastAskedAt: studentAiTutorTopics.lastAskedAt,
   }).from(studentAiTutorTopics)
@@ -128,6 +129,24 @@ export async function getStudentTutorPracticeStats(
   return row ?? null;
 }
 
+export type StudentTutorLessonFeedback = "understood" | "needs_help";
+
+export async function recordStudentTutorLessonFeedback(
+  studentUserId: string,
+  topicId: SeedTopicId,
+  lessonFeedback: StudentTutorLessonFeedback,
+) {
+  const db = getDb();
+  await db.insert(studentAiTutorTopics).values({ studentUserId, topicId })
+    .onConflictDoNothing();
+  const rows = await db.update(studentAiTutorTopics).set({ lessonFeedback })
+    .where(and(
+      eq(studentAiTutorTopics.studentUserId, studentUserId),
+      eq(studentAiTutorTopics.topicId, topicId),
+    )).returning({ topicId: studentAiTutorTopics.topicId });
+  return rows.length > 0;
+}
+
 export async function recordStudentTutorPracticeOutcome(
   studentUserId: string,
   topicId: SeedTopicId,
@@ -137,6 +156,7 @@ export async function recordStudentTutorPracticeOutcome(
     practiceAttemptCount: sql`LEAST(${studentAiTutorTopics.practiceAttemptCount} + 1, 10000)`,
     practiceCorrectCount: sql`LEAST(${studentAiTutorTopics.practiceCorrectCount} + ${correct ? 1 : 0}, 10000)`,
     practiceNeedsGuidance: !correct,
+    lessonFeedback: null,
   }).where(and(
     eq(studentAiTutorTopics.studentUserId, studentUserId),
     eq(studentAiTutorTopics.topicId, topicId),
