@@ -308,6 +308,17 @@ test.describe("Dena AI video permission authorization and revocation", () => {
     expect((await updatedTutorProfile.json()).topics).toContainEqual(
       expect.objectContaining({ topicId: "science.light.v1", lessonFeedback: "needs_help" }),
     );
+    const repeatedLessonFeedback = await post(student, "/api/student/ai-tutor/profile", {
+      topicId: "science.light.v1", lessonFeedback: "needs_help", consent: true,
+    });
+    expect(repeatedLessonFeedback.status()).toBe(200);
+    const repeatedFeedbackProfile = await student.get("/api/student/ai-tutor/profile");
+    expect((await repeatedFeedbackProfile.json()).topics).toContainEqual(
+      expect.objectContaining({
+        topicId: "science.light.v1", lessonFeedback: "needs_help",
+        practiceAttemptCount: 0, practiceCorrectCount: 0,
+      }),
+    );
 
     const otherInstitute = await client("otherInstitute");
     expect((await otherInstitute.get(permissionPath)).status()).toBe(404);

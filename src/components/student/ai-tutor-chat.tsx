@@ -5,7 +5,7 @@ import { useState, type FormEvent } from "react";
 import { AiTutorPractice } from "./ai-tutor-practice";
 import { StudentCoursePractice } from "./course-practice";
 import { DENA_LEARNING_CONCEPTS } from "../../server/ai-tutor/learning-concepts";
-import { getStudyPrompt, recommendNextStudyStep } from "../../server/ai-tutor/study-recommendation";
+import { getReviewPracticeTopic, getStudyPrompt, recommendNextStudyStep } from "../../server/ai-tutor/study-recommendation";
 
 type Course = { courseId: string; title: string };
 type TutorResponse = {
@@ -194,6 +194,7 @@ export function AiTutorChat({ courses, initialTopics, initialGuidanceConceptIds 
   }
 
   const recommendation = recommendNextStudyStep(topics);
+  const reviewPracticeTopicId = getReviewPracticeTopic(topics);
 
   return (
     <section className="space-y-4 rounded-2xl border border-dena-line bg-white p-5" aria-labelledby="tutor-chat-title">
@@ -268,6 +269,22 @@ export function AiTutorChat({ courses, initialTopics, initialGuidanceConceptIds 
                   هنوز کمک می‌خواهم
                 </button>
               </div>
+              {reviewPracticeTopicId && (
+                <AiTutorPractice
+                  key={"review-" + courseId + "-" + reviewPracticeTopicId}
+                  courseId={courseId}
+                  topics={[{
+                    topicId: reviewPracticeTopicId,
+                    title: topicTitles[reviewPracticeTopicId] ?? "موضوع آموزشی",
+                  }]}
+                  initialTopicId={reviewPracticeTopicId}
+                  title="تمرین مرور همین مبحث"
+                  headingId={"tutor-review-practice-" + reviewPracticeTopicId}
+                  showTopicSelector={false}
+                  enabled={Boolean(courseId)}
+                  onOutcomeSaved={recordCoursePracticeOutcome}
+                />
+              )}
               <button type="button" onClick={() => setMessage(recommendation.prompt)}
                 className="mt-2 font-bold text-dena-brand underline underline-offset-4">
                 رفتن به تمرین این مبحث

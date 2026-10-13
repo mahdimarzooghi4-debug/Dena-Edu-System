@@ -16,13 +16,17 @@ type PracticeResult = {
   resultRecorded: boolean;
 };
 
-export function AiTutorPractice({ courseId, topics, enabled, onOutcomeSaved }: {
+export function AiTutorPractice({ courseId, topics, enabled, onOutcomeSaved, initialTopicId, title, headingId, showTopicSelector = true }: {
   courseId: string;
   topics: Array<{ topicId: string; title: string }>;
   enabled: boolean;
   onOutcomeSaved: (topicId: string, correct: boolean) => void;
+  initialTopicId?: string;
+  title?: string;
+  headingId?: string;
+  showTopicSelector?: boolean;
 }) {
-  const [selectedTopicId, setSelectedTopicId] = useState(topics[0]?.topicId ?? "");
+  const [selectedTopicId, setSelectedTopicId] = useState(initialTopicId ?? topics[0]?.topicId ?? "");
   const [question, setQuestion] = useState<PracticeQuestion | null>(null);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [rememberResult, setRememberResult] = useState(false);
@@ -94,27 +98,29 @@ export function AiTutorPractice({ courseId, topics, enabled, onOutcomeSaved }: {
 
   if (!enabled) return null;
   return (
-    <section className="space-y-3 rounded-xl bg-dena-bg p-4" aria-labelledby="tutor-practice-title">
+    <section className="space-y-3 rounded-xl bg-dena-bg p-4" aria-labelledby={headingId ?? "tutor-practice-title"}>
       <div>
-        <h3 id="tutor-practice-title" className="font-bold text-dena-ink">تمرین پیشنهادی برای موضوع ثبت‌شده</h3>
+        <h3 id={headingId ?? "tutor-practice-title"} className="font-bold text-dena-ink">{title ?? "تمرین پیشنهادی برای موضوع ثبت‌شده"}</h3>
         <p className="mt-1 text-xs leading-6 text-dena-muted">
           نتیجه فقط وقتی ذخیره می‌شود که خودت گزینهٔ جداگانهٔ ثبت را روشن کنی؛ این تمرین نمره نیست.
         </p>
       </div>
-      <label className="block text-sm font-semibold text-dena-ink">
-        مبحث
-        <select className="mt-2 block w-full rounded-xl border border-dena-line bg-white p-3"
-          value={selectedTopicId} disabled={busy}
-          onChange={(event) => {
-            setSelectedTopicId(event.target.value);
-            setQuestion(null);
-            setSelectedOption(null);
-            setResult(null);
-            setError("");
-          }}>
-          {topics.map((topic) => <option key={topic.topicId} value={topic.topicId}>{topic.title}</option>)}
-        </select>
-      </label>
+      {showTopicSelector && topics.length > 1 && (
+        <label className="block text-sm font-semibold text-dena-ink">
+          مبحث
+          <select className="mt-2 block w-full rounded-xl border border-dena-line bg-white p-3"
+            value={selectedTopicId} disabled={busy}
+            onChange={(event) => {
+              setSelectedTopicId(event.target.value);
+              setQuestion(null);
+              setSelectedOption(null);
+              setResult(null);
+              setError("");
+            }}>
+            {topics.map((topic) => <option key={topic.topicId} value={topic.topicId}>{topic.title}</option>)}
+          </select>
+        </label>
+      )}
       {!question && (
         <button type="button" disabled={busy || !courseId || !selectedTopicId}
           onClick={() => void loadQuestion()}

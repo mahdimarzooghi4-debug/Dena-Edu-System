@@ -39,3 +39,12 @@ export function recommendNextStudyStep(
   const card = studyCards[topic.topicId as SeedTopicId];
   return { topicId: topic.topicId, prompt: card.prompt, explanation: card.explanation };
 }
+
+export function getReviewPracticeTopic(
+  topics: readonly { topicId: string; lessonFeedback?: "understood" | "needs_help" | null }[],
+): string | null {
+  const topic = topics.find((item) =>
+    item.lessonFeedback === "needs_help" && getStudyPrompt(item.topicId),
+  );
+  return topic?.topicId ?? null;
+}
