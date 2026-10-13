@@ -5,6 +5,7 @@ import { useState, type FormEvent } from "react";
 import { AiTutorPractice } from "./ai-tutor-practice";
 import { StudentCoursePractice } from "./course-practice";
 import { DENA_LEARNING_CONCEPTS } from "../../server/ai-tutor/learning-concepts";
+import { getStudyPrompt, recommendNextStudyStep } from "../../server/ai-tutor/study-recommendation";
 
 type Course = { courseId: string; title: string };
 type TutorResponse = {
@@ -83,6 +84,27 @@ export function AiTutorChat({ courses, initialTopics, initialGuidanceConceptIds 
     }
   }
 
+  function recordCoursePracticeOutcome(conceptId: string, correct: boolean) {
+    if (!getStudyPrompt(conceptId)) return;
+    const lastAskedAt = new Date().toISOString();
+    setTopics((current) => {
+      const existing = current.find((topic) => topic.topicId === conceptId);
+      if (existing) return current.map((topic) => topic.topicId === conceptId
+        ? {
+            ...topic,
+            practiceAttemptCount: Math.min(topic.practiceAttemptCount + 1, 10000),
+            practiceCorrectCount: Math.min(topic.practiceCorrectCount + (correct ? 1 : 0), 10000),
+            practiceNeedsGuidance: !correct,
+          }
+        : topic);
+      return [...current, {
+        topicId: conceptId, questionCount: 1, lastAskedAt,
+        practiceAttemptCount: 1, practiceCorrectCount: correct ? 1 : 0,
+        practiceNeedsGuidance: !correct,
+      }];
+    });
+  }
+
   async function saveVideoFeedback(needsGuidance: boolean) {
     if (!courseId || !result?.source?.id || videoFeedbackBusy) return;
     const assetId = result.source.id;
@@ -139,6 +161,8 @@ export function AiTutorChat({ courses, initialTopics, initialGuidanceConceptIds 
     }
   }
 
+  const recommendation = recommendNextStudyStep(topics);
+
   return (
     <section className="space-y-4 rounded-2xl border border-dena-line bg-white p-5" aria-labelledby="tutor-chat-title">
       <div>
@@ -185,6 +209,18 @@ export function AiTutorChat({ courses, initialTopics, initialGuidanceConceptIds 
               </li>
             ))}
           </ul>}
+          {recommendation && (
+            <div className="rounded-xl bg-dena-bg p-4 text-sm leading-7">
+              <p className="font-bold text-dena-ink">پیشنهاد مرور بعدی</p>
+              <p className="mt-1 text-dena-muted">
+                چون در تمرین ذخیره‌شدهٔ «{topicTitles[recommendation.topicId] ?? "این مبحث"}» به راهنمایی بیشتری نیاز داشتی، این مرور از محتوای آغازین دنا پیشنهاد شده است.
+              </p>
+              <button type="button" onClick={() => setMessage(recommendation.prompt)}
+                className="mt-2 font-bold text-dena-brand underline underline-offset-4">
+                طرح پرسش مرور
+              </button>
+            </div>
+          )}
           <button type="button" className="text-sm font-bold text-dena-brand underline disabled:opacity-50"
             disabled={clearBusy} onClick={() => void clearTopics()}>
             {clearBusy ? "در حال پاک‌کردن…" : "پاک‌کردن داده‌های مسیر شخصی"}
@@ -220,7 +256,8 @@ export function AiTutorChat({ courses, initialTopics, initialGuidanceConceptIds 
               )}
               {result.coursePractice && (
                 <StudentCoursePractice courseId={result.coursePractice.courseId}
-                  question={result.coursePractice} />
+                  question={result.coursePractice}
+                  onResultRecorded={recordCoursePracticeOutcome} />
               )}
               {result.topicRecorded && <p className="mt-2 text-xs text-dena-muted">موضوع در مسیر شخصی تو ثبت شد.</p>}
               {result.source?.kind === "video" && (
