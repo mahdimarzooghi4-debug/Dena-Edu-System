@@ -264,9 +264,10 @@ test.describe("Dena AI video permission authorization and revocation", () => {
     const transcriptStatusBody = await transcriptStatus.json() as {
       assets: Array<{ assetId: string; chunkCount: number; conceptId: string | null }>;
     };
-    expect(transcriptStatusBody.assets).toContainEqual({
+    expect(transcriptStatusBody.assets).toContainEqual(expect.objectContaining({
       assetId: assetIds.ready, chunkCount: 1, conceptId: "science.light.v1",
-    });
+      feedbackResponses: null, needsGuidanceResponses: null,
+    }));
     expect(JSON.stringify(await transcriptStatus.json())).not.toContain(transcript);
     const transcriptAnswer = await post(student, "/api/student/ai-tutor", {
       courseId,
