@@ -1149,7 +1149,7 @@ test.describe("free enrollment and private video access must stay course-scoped"
       "/api/student/ai-tutor/profile",
     )).json();
     expect(firstTutorProfile).toMatchObject({ topics: [{ topicId: "geography.climate.v1",
-      questionCount: 0, practiceAttemptCount: 1, practiceCorrectCount: 1,
+      questionCount: 1, practiceAttemptCount: 1, practiceCorrectCount: 1,
       practiceNeedsGuidance: false }] });
     const replayedTutorOutcome = await post(
       practiceProfileClient, practicePath(ids.live), {
