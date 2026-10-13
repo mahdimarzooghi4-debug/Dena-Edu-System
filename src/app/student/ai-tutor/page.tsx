@@ -98,7 +98,8 @@ export default async function StudentAiTutorPage() {
             practiceAttemptCount: topic.practiceAttemptCount,
             practiceCorrectCount: topic.practiceCorrectCount,
             practiceNeedsGuidance: topic.practiceNeedsGuidance,
-            lessonFeedback: topic.lessonFeedback,
+            lessonFeedback: topic.lessonFeedback === "understood" ||
+              topic.lessonFeedback === "needs_help" ? topic.lessonFeedback : null,
           }))}
         />
 
