@@ -96,7 +96,20 @@ describe("student next study recommendation", () => {
     ])).toMatchObject({
       topicId: "math.linear-equation.v1",
       prompt: expect.stringContaining("معادله"),
+      explanation: expect.stringContaining("۳x + ۵ = ۱۷"),
     });
+    expect(recommendNextStudyStep([
+      { topicId: "math.fractions.add.v1", practiceAttemptCount: 1, practiceNeedsGuidance: true },
+    ])?.explanation).toContain("۵/۶");
+    expect(recommendNextStudyStep([
+      { topicId: "math.percent.v1", practiceAttemptCount: 1, practiceNeedsGuidance: true },
+    ])?.explanation).toContain("۲۰٪");
+    expect(recommendNextStudyStep([
+      { topicId: "science.light.v1", practiceAttemptCount: 1, practiceNeedsGuidance: true },
+    ])?.explanation).toContain("عدسی محدب");
+    expect(recommendNextStudyStep([
+      { topicId: "geography.climate.v1", practiceAttemptCount: 1, practiceNeedsGuidance: true },
+    ])?.explanation).toContain("اقلیم");
   });
 
   it("does not recommend without a saved need for guidance or for unsupported topics", () => {
