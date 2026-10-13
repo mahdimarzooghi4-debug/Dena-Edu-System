@@ -4,7 +4,7 @@ import { serializeSignedCookie } from "better-call";
 import { expect, request, test, type APIRequestContext } from "@playwright/test";
 import { getDb } from "../../src/db";
 import {
-  courses, denaAiContentPermissionEvents, denaAiVideoTranscriptChunks,
+  courses, coursePracticeQuestions, denaAiContentPermissionEvents, denaAiVideoTranscriptChunks,
   educatorInstituteAffiliations, independentEducatorProfiles,
   memberships, privateMediaAssets, studentAiTutorVideoFeedback,
   session, studentEnrollments, supervisionGrants, user, verifiedEntities,
@@ -165,6 +165,8 @@ test.describe("Dena AI video permission authorization and revocation", () => {
   test.afterAll(async () => {
     await db.delete(studentAiTutorVideoFeedback)
       .where(eq(studentAiTutorVideoFeedback.studentUserId, users.student));
+    await db.delete(coursePracticeQuestions)
+      .where(eq(coursePracticeQuestions.courseId, educatorCourseId));
     await db.delete(denaAiVideoTranscriptChunks)
       .where(inArray(denaAiVideoTranscriptChunks.courseId, [courseId, providerCourseId, educatorCourseId]));
     await db.delete(denaAiContentPermissionEvents)
@@ -438,6 +440,17 @@ test.describe("Dena AI video permission authorization and revocation", () => {
       assetId: assetIds.educatorFollowup, conceptId: "geography.climate.v1", transcript: followupTranscript,
     })).status()).toBe(201);
     const selectedAssetId = educatorAnswerBody.source.id as string;
+    await db.insert(coursePracticeQuestions).values({
+      courseId: educatorCourseId, learningConceptId: "geography.climate.v1",
+      prompt: "کدام گزینه تفاوت وضع هوا و اقلیم را نشان می‌دهد؟",
+      option0: "وضع هوا کوتاه‌مدت و اقلیم بلندمدت است",
+      option1: "این دو همیشه یک معنی دارند",
+      option2: "اقلیم فقط دمای امروز است",
+      option3: "وضع هوا فقط دریاها را توصیف می‌کند",
+      correctOption: 0, authoredByProviderUserId: users.provider,
+      reviewStatus: "approved", reviewedByInstituteUserId: users.institute,
+      reviewedAt: new Date(), reviewReason: "محتوا و کلید پاسخ بازبینی شد.",
+    });
     const videoFeedback = await post(supervisedStudent,
       "/api/student/ai-tutor/video-feedback", {
         courseId: educatorCourseId, assetId: selectedAssetId,
@@ -481,6 +494,11 @@ test.describe("Dena AI video permission authorization and revocation", () => {
     const prioritizedAnswerBody = await prioritizedAnswer.json();
     expect(prioritizedAnswerBody.source.id).toBe(selectedAssetId);
     expect(prioritizedAnswerBody.guidedHint).toContain("بازهٔ زمانی");
+    expect(prioritizedAnswerBody.coursePractice).toMatchObject({
+      courseId: educatorCourseId, learningConceptId: "geography.climate.v1",
+      prompt: "کدام گزینه تفاوت وضع هوا و اقلیم را نشان می‌دهد؟",
+    });
+    expect(prioritizedAnswerBody.coursePractice).not.toHaveProperty("correctOption");
     expect(await db.select({ assetId: studentAiTutorVideoFeedback.assetId })
       .from(studentAiTutorVideoFeedback)
       .where(eq(studentAiTutorVideoFeedback.studentUserId, users.student)))
