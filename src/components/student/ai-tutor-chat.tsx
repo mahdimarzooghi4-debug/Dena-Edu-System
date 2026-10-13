@@ -292,6 +292,7 @@ export function AiTutorChat({ courses, initialTopics, initialGuidanceConceptIds 
                 practiceAttemptCount: Math.min(topic.practiceAttemptCount + 1, 10000),
                 practiceCorrectCount: Math.min(topic.practiceCorrectCount + (correct ? 1 : 0), 10000),
                 practiceNeedsGuidance: !correct,
+                lessonFeedback: null,
               } : topic))} />}
         </div>
       )}
