@@ -1130,6 +1130,9 @@ test.describe("free enrollment and private video access must stay course-scoped"
     expect(await page.locator("main").textContent()).not.toContain(
       "correctOption",
     );
+    await page.getByRole("checkbox", {
+      name: /نتیجهٔ این تمرین را برای پیشنهاد توضیح و تمرین در معلم دنا ذخیره کن/,
+    }).check();
     const practiceResponse = page.waitForResponse((response) =>
       response.url().endsWith(practicePath(ids.live)) &&
       response.request().method() === "POST",
@@ -1141,6 +1144,18 @@ test.describe("free enrollment and private video access must stay course-scoped"
       name: "ثبت نهایی پاسخ تمرین",
     }).click();
     expect((await practiceResponse).status()).toBe(201);
+    const firstTutorProfile = await (await student.get("/api/student/ai-tutor/profile")).json();
+    expect(firstTutorProfile).toMatchObject({ topics: [{ topicId: "geography.climate.v1",
+      questionCount: 0, practiceAttemptCount: 1, practiceCorrectCount: 1,
+      practiceNeedsGuidance: false }] });
+    const replayedTutorOutcome = await post(student, practicePath(ids.live), {
+      selectedOption: 2, rememberResult: true,
+    });
+    expect(replayedTutorOutcome.status()).toBe(200);
+    expect(await replayedTutorOutcome.json()).toMatchObject({
+      replayed: true, resultRecorded: false,
+    });
+
     await expect(page.getByText(
       "پاسخ این تمرین درست بود.", { exact: false },
     )).toBeVisible();

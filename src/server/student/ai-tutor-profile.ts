@@ -3,6 +3,17 @@ import { getDb } from "../../db";
 import { denaAiVideoTranscriptChunks, studentAiTutorTopics, studentAiTutorVideoFeedback } from "../../db/schema";
 import { isSeedTopicId, type SeedTopicId } from "../ai-tutor/seed-corpus";
 
+/** Creates a private topic row when an explicitly opted-in course result is
+ * saved, without counting the practice as a chat question.
+ */
+export async function ensureStudentTutorTopic(
+  studentUserId: string,
+  topicId: SeedTopicId,
+) {
+  await getDb().insert(studentAiTutorTopics).values({ studentUserId, topicId })
+    .onConflictDoNothing();
+}
+
 export async function recordStudentTutorTopic(
   studentUserId: string,
   topicId: SeedTopicId,

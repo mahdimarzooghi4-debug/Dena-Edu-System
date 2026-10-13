@@ -1,5 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
+import { isSeedTopicId } from "../../../../../../server/ai-tutor/seed-corpus";
+import {
+  ensureStudentTutorTopic, recordStudentTutorPracticeOutcome,
+} from "../../../../../../server/student/ai-tutor-profile";
 import { getServerAccessContext } from "../../../../../../server/access/actor";
 import { validSameOrigin } from "../../../../../../server/access/role-application-contracts";
 import { hasStudentEntitlement } from "../../../../../../server/student/entitlement";
@@ -60,7 +64,16 @@ export async function POST(request: NextRequest, params: Params) {
   if (!result) return NextResponse.json({ error: "Not found" }, {
     status: 404, headers: noStore,
   });
-  return NextResponse.json(result, {
+  const { learningConceptId, ...publicResult } = result;
+  let resultRecorded = false;
+  if (parsed.data.rememberResult === true && !result.replayed &&
+      learningConceptId && isSeedTopicId(learningConceptId)) {
+    await ensureStudentTutorTopic(checked.userId!, learningConceptId);
+    resultRecorded = await recordStudentTutorPracticeOutcome(
+      checked.userId!, learningConceptId, result.correct,
+    );
+  }
+  return NextResponse.json({ ...publicResult, resultRecorded }, {
     status: result.replayed ? 200 : 201,
     headers: noStore,
   });
