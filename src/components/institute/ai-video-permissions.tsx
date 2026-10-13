@@ -5,6 +5,11 @@ import type { FormEvent } from "react";
 import { Card } from "../ui/card";
 import { DENA_LEARNING_CONCEPTS } from "../../server/ai-tutor/learning-concepts";
 
+type TranscriptFeedback = {
+  feedbackResponses: number | null;
+  needsGuidanceResponses: number | null;
+};
+
 type VideoAsset = {
   assetId: string;
   title: string;
@@ -23,6 +28,7 @@ export function AiVideoPermissions({
   const [assets, setAssets] = useState<VideoAsset[]>([]);
   const [transcriptChunkCounts, setTranscriptChunkCounts] = useState<Record<string, number>>({});
   const [transcriptConceptIds, setTranscriptConceptIds] = useState<Record<string, string>>({});
+  const [transcriptFeedback, setTranscriptFeedback] = useState<Record<string, TranscriptFeedback>>({});
   const [loading, setLoading] = useState(true);
   const [savingAsset, setSavingAsset] = useState<string | null>(null);
   const [message, setMessage] = useState("");
@@ -43,7 +49,11 @@ export function AiVideoPermissions({
       );
       if (!transcriptsResponse.ok) throw new Error("وضعیت رونوشت‌ها در دسترس نیست.");
       const transcriptBody = await transcriptsResponse.json() as {
-        assets: Array<{ assetId: string; chunkCount: number; conceptId: string | null }>;
+        assets: Array<{
+          assetId: string;
+          chunkCount: number;
+          conceptId: string | null;
+        } & TranscriptFeedback>;
       };
       setTranscriptChunkCounts(Object.fromEntries(
         transcriptBody.assets.map((item) => [item.assetId, item.chunkCount]),
@@ -51,6 +61,13 @@ export function AiVideoPermissions({
       setTranscriptConceptIds(Object.fromEntries(transcriptBody.assets
         .filter((item) => item.conceptId)
         .map((item) => [item.assetId, item.conceptId as string])));
+      setTranscriptFeedback(Object.fromEntries(transcriptBody.assets.map((item) => [
+        item.assetId,
+        {
+          feedbackResponses: item.feedbackResponses,
+          needsGuidanceResponses: item.needsGuidanceResponses,
+        },
+      ])));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "خطا در دریافت ویدئوها.");
     } finally {
@@ -238,6 +255,14 @@ export function AiVideoPermissions({
                           ? ` ${transcriptChunkCounts[asset.assetId]} بخش ثبت‌شده · ${DENA_LEARNING_CONCEPTS.find((concept) => concept.id === transcriptConceptIds[asset.assetId])?.label ?? "مبحث نامشخص"}.`
                           : " هنوز رونوشت ثبت نشده است."}
                       </p>
+                      {transcriptFeedback[asset.assetId]?.feedbackResponses !== null &&
+                        transcriptFeedback[asset.assetId]?.feedbackResponses !== undefined && (
+                          <p className="mt-2 rounded-lg border border-dena-border bg-white p-3 text-xs leading-6 text-dena-muted">
+                            گزارش تجمیعی بازخورد: از {transcriptFeedback[asset.assetId].feedbackResponses!.toLocaleString("fa-IR")} پاسخ،
+                            {" "}{transcriptFeedback[asset.assetId].needsGuidanceResponses!.toLocaleString("fa-IR")} مورد نیاز به راهنمایی بیشتر داشته‌اند.
+                            هویت و متن دانش‌آموزان نمایش داده نمی‌شود.
+                          </p>
+                        )}
                     </div>
                     <label className="block text-xs font-bold text-dena-muted">
                       مبحث آموزشی

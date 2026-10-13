@@ -17,6 +17,8 @@ test.describe("Dena AI video permission authorization and revocation", () => {
   const users = {
     admin: randomUUID(), institute: randomUUID(), otherInstitute: randomUUID(),
     provider: randomUUID(), student: randomUUID(), stranger: randomUUID(),
+    feedbackPeer1: randomUUID(), feedbackPeer2: randomUUID(),
+    feedbackPeer3: randomUUID(), feedbackPeer4: randomUUID(),
   };
   const tokens = Object.fromEntries(
     Object.keys(users).map((name) => [name, randomUUID()]),
@@ -66,6 +68,10 @@ test.describe("Dena AI video permission authorization and revocation", () => {
       { userId: users.otherInstitute, role: "institute", instituteId: instituteIds.other },
       { userId: users.provider, role: "provider", providerId: instituteIds.provider },
       { userId: users.student, role: "student" },
+      { userId: users.feedbackPeer1, role: "student" },
+      { userId: users.feedbackPeer2, role: "student" },
+      { userId: users.feedbackPeer3, role: "student" },
+      { userId: users.feedbackPeer4, role: "student" },
     ]);
     await db.insert(independentEducatorProfiles).values({
       id: educatorProfileId, userId: users.student, displayName: "مدرس مستقل آزمایشی",
@@ -148,6 +154,12 @@ test.describe("Dena AI video permission authorization and revocation", () => {
     await db.insert(studentEnrollments).values({
       studentUserId: users.student, courseId: educatorCourseId, status: "active",
     });
+    await db.insert(studentEnrollments).values(
+      [users.feedbackPeer1, users.feedbackPeer2, users.feedbackPeer3, users.feedbackPeer4]
+        .map((studentUserId) => ({
+          studentUserId, courseId: educatorCourseId, status: "active" as const,
+        })),
+    );
   });
 
   test.afterAll(async () => {
@@ -432,6 +444,35 @@ test.describe("Dena AI video permission authorization and revocation", () => {
       });
     expect(videoFeedback.status()).toBe(200);
     expect(await videoFeedback.json()).toEqual({ saved: true });
+    const earlyFeedbackStatus = await supervisedInstitute.get(educatorTranscriptPath);
+    const earlyFeedbackAsset = (await earlyFeedbackStatus.json()).assets.find(
+      (asset: { assetId: string }) => asset.assetId === selectedAssetId,
+    );
+    expect(earlyFeedbackAsset).toMatchObject({
+      feedbackResponses: null, needsGuidanceResponses: null,
+    });
+    for (const peerName of [
+      "feedbackPeer1", "feedbackPeer2", "feedbackPeer3", "feedbackPeer4",
+    ] as const) {
+      const peer = await client(peerName);
+      const peerFeedback = await post(peer, "/api/student/ai-tutor/video-feedback", {
+        courseId: educatorCourseId, assetId: selectedAssetId, needsGuidance: false,
+      });
+      expect(peerFeedback.status()).toBe(200);
+      await peer.dispose();
+    }
+    const aggregatedFeedbackStatus = await supervisedInstitute.get(educatorTranscriptPath);
+    const aggregatedFeedbackBody = await aggregatedFeedbackStatus.json();
+    const aggregatedFeedbackAsset = aggregatedFeedbackBody.assets.find(
+      (asset: { assetId: string }) => asset.assetId === selectedAssetId,
+    );
+    expect(aggregatedFeedbackAsset).toMatchObject({
+      feedbackResponses: 5, needsGuidanceResponses: 1,
+    });
+    for (const peerId of [
+      users.feedbackPeer1, users.feedbackPeer2, users.feedbackPeer3, users.feedbackPeer4,
+    ]) expect(JSON.stringify(aggregatedFeedbackBody)).not.toContain(peerId);
+    expect(JSON.stringify(aggregatedFeedbackBody)).not.toContain("studentUserId");
     const prioritizedAnswer = await post(supervisedStudent, "/api/student/ai-tutor", {
       courseId: educatorCourseId,
       message: "چطور رطوبت و اقلیم را در درس جغرافیا مقایسه کنم؟",
