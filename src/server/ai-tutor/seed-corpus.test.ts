@@ -71,7 +71,10 @@ describe("personalized starter practice", () => {
     expect(next.options).toHaveLength(4);
     expect(next).not.toHaveProperty("correctOption");
     expect(gradeSeedPractice(next.id, correctOption, topicId)?.correct).toBe(true);
-    expect(gradeSeedPractice(next.id, correctOption, "math.percent.v1")).toBeNull();
+    const otherTopicId = topicId === "math.percent.v1"
+      ? "science.light.v1"
+      : "math.percent.v1";
+    expect(gradeSeedPractice(next.id, correctOption, otherTopicId)).toBeNull();
   });
 
   it("grades on the server and teaches after either choice", () => {
