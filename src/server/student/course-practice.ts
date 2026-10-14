@@ -24,6 +24,7 @@ export const newPracticeQuestion = z.object({
 }).strict();
 export const practiceAnswer = z.object({
   selectedOption: z.number().int().min(0).max(3),
+  rememberResult: z.boolean().optional(),
 }).strict();
 export const practiceReviewDecision = z.object({
   action: z.enum(["approve", "reject"]),
@@ -201,6 +202,7 @@ export async function submitStudentPractice(
   return getDb().transaction(async (tx) => {
     const [question] = await tx.select({
       correctOption: coursePracticeQuestions.correctOption,
+      learningConceptId: coursePracticeQuestions.learningConceptId,
     }).from(coursePracticeQuestions)
       .where(and(
         eq(coursePracticeQuestions.courseId, courseId),
@@ -219,7 +221,10 @@ export async function submitStudentPractice(
       correct: studentPracticeAttempts.correct,
       submittedAt: studentPracticeAttempts.submittedAt,
     });
-    if (created) return { courseId, ...created, replayed: false };
+    if (created) return {
+      courseId, ...created, learningConceptId: question.learningConceptId,
+      replayed: false,
+    };
     const [previous] = await tx.select({
       selectedOption: studentPracticeAttempts.selectedOption,
       correct: studentPracticeAttempts.correct,
@@ -229,7 +234,10 @@ export async function submitStudentPractice(
       eq(studentPracticeAttempts.studentUserId, studentUserId),
     )).limit(1);
     if (!previous) throw new Error("practice_attempt_conflict");
-    return { courseId, ...previous, replayed: true };
+    return {
+      courseId, ...previous, learningConceptId: question.learningConceptId,
+      replayed: true,
+    };
   });
 }
 

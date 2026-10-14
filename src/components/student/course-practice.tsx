@@ -5,7 +5,8 @@ import { Button } from "../ui/button";
 
 type Attempt = { selectedOption: number; correct: boolean; submittedAt: string };
 type Question = {
-  courseId: string; prompt: string; options: string[];
+  courseId: string; learningConceptId: string | null;
+  prompt: string; options: string[];
   attempt: Attempt | null;
 };
 
@@ -17,6 +18,7 @@ export function StudentCoursePractice({
   const [selected, setSelected] = useState<number | null>(
     question.attempt?.selectedOption ?? null,
   );
+  const [rememberResult, setRememberResult] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   async function submit() {
@@ -27,7 +29,9 @@ export function StudentCoursePractice({
         `/api/student/courses/${courseId}/practice`, {
           method: "POST", credentials: "same-origin", cache: "no-store",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ selectedOption: selected }),
+          body: JSON.stringify({
+            selectedOption: selected, rememberResult,
+          }),
         },
       );
       if (!response.ok) {
@@ -38,6 +42,7 @@ export function StudentCoursePractice({
       }
       const data = await response.json() as {
         selectedOption: number; correct: boolean; submittedAt: string;
+        resultRecorded: boolean;
       };
       setAttempt({
         selectedOption: data.selectedOption,
@@ -45,7 +50,9 @@ export function StudentCoursePractice({
         submittedAt: data.submittedAt,
       });
       setSelected(data.selectedOption);
-      setMessage("پاسخ شخصی در پایگاه داده ثبت شد.");
+      setMessage(data.resultRecorded
+        ? "پاسخ ثبت شد و با اجازهٔ تو در مسیر یادگیری معلم دنا هم لحاظ شد."
+        : "پاسخ تمرین در سابقهٔ دوره ثبت شد.");
     } catch {
       setMessage("ارتباط با سرور برقرار نشد؛ دوباره تلاش کنید.");
     } finally { setBusy(false); }
@@ -83,10 +90,23 @@ export function StudentCoursePractice({
           {" "}پاسخ دوباره در این نسخه فعال نیست.
         </p>
       ) : (
-        <Button type="button" disabled={busy || selected === null}
+        <div className="space-y-3">
+          {question.learningConceptId && (
+            <label className="flex items-start gap-3 text-sm leading-7">
+              <input type="checkbox" checked={rememberResult}
+                onChange={(event) => setRememberResult(event.target.checked)}
+                className="mt-1 h-4 w-4 accent-dena-brand" />
+              <span>
+                نتیجهٔ این تمرین را برای پیشنهاد توضیح و تمرین در معلم دنا ذخیره کن.
+                هر زمان بخواهی می‌توانی دادهٔ مسیر معلم را پاک کنی.
+              </span>
+            </label>
+          )}
+          <Button type="button" disabled={busy || selected === null}
           onClick={() => void submit()} className="disabled:opacity-50">
           {busy ? "در حال ثبت پاسخ…" : "ثبت نهایی پاسخ تمرین"}
-        </Button>
+          </Button>
+        </div>
       )}
       <div role="status" aria-live="polite" className="text-sm leading-8">
         {message && <p className="text-dena-deep">{message}</p>}
