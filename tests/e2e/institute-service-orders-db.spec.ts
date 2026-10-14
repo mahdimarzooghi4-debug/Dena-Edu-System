@@ -4,9 +4,11 @@ import { serializeSignedCookie } from "better-call";
 import { expect, request, test, type APIRequestContext } from "@playwright/test";
 import { getDb } from "../../src/db";
 import {
-  auditLogs, instituteServiceCatalog, instituteServiceOrders, memberships,
+  auditLogs, financialEntries, financialJournals, instituteServiceCatalog,
+  instituteServiceOrders, memberships,
   session, user, verifiedEntities,
 } from "../../src/db/schema";
+import { captureInstituteServiceOrderPayment } from "../../src/server/finance/service-order-payments";
 
 test.describe.configure({ mode: "serial" });
 
@@ -154,6 +156,12 @@ test.describe("institute service order guardian consent", () => {
     });
     await otherInstitute.dispose();
 
+    await expect(captureInstituteServiceOrderPayment({
+      orderId,
+      gatewayEventId: `gateway-test-${randomUUID()}`,
+      grossRials: 2_000_000,
+    })).rejects.toMatchObject({ kind: "order_not_payable" });
+
     const first = await post(institute, consentPath, { consentConfirmed: true });
     expect(first.status()).toBe(200);
     expect(await first.json()).toMatchObject({
@@ -189,6 +197,42 @@ test.describe("institute service order guardian consent", () => {
     expect(await studentHistory.text()).toContain("هیچ مبلغی دریافت نشده است.");
     await studentAfter.dispose();
     await institute.dispose();
+  });
+
+  test("captures a verified payment once with an atomic balanced journal", async () => {
+    const gatewayEventId = `gateway-test-${randomUUID()}`;
+    const captured = await captureInstituteServiceOrderPayment({
+      orderId, gatewayEventId, grossRials: 2_000_000,
+    });
+    expect(captured).toEqual({ orderId, status: "paid", duplicate: false });
+
+    const replay = await captureInstituteServiceOrderPayment({
+      orderId, gatewayEventId, grossRials: 2_000_000,
+    });
+    expect(replay).toEqual({ orderId, status: "paid", duplicate: true });
+    await expect(captureInstituteServiceOrderPayment({
+      orderId, gatewayEventId: `gateway-test-${randomUUID()}`, grossRials: 2_000_000,
+    })).rejects.toMatchObject({ kind: "event_reused" });
+    await expect(captureInstituteServiceOrderPayment({
+      orderId, gatewayEventId: `gateway-test-${randomUUID()}`, grossRials: 1_999_999,
+    })).rejects.toMatchObject({ kind: "amount_mismatch" });
+
+    const [order] = await db.select().from(instituteServiceOrders)
+      .where(eq(instituteServiceOrders.id, orderId));
+    expect(order?.status).toBe("paid");
+    expect(order?.paidAt).toBeInstanceOf(Date);
+    const [journal] = await db.select().from(financialJournals)
+      .where(eq(financialJournals.eventKey, `service-payment:${gatewayEventId}`));
+    expect(journal).toMatchObject({
+      sourceId: orderId,
+      revenueStream: "institute_service",
+      eventType: "payment_captured",
+    });
+    const entries = await db.select().from(financialEntries)
+      .where(eq(financialEntries.journalId, journal!.id));
+    expect(entries).toHaveLength(3);
+    expect(entries.reduce((sum, entry) => sum + entry.debitRials, 0)).toBe(2_000_000);
+    expect(entries.reduce((sum, entry) => sum + entry.creditRials, 0)).toBe(2_000_000);
   });
 
   test("serializes concurrent idempotent requests and allows unpaid cancellation", async () => {
