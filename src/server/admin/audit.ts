@@ -17,6 +17,7 @@ export type AuditEntityType =
   | "ORGANIZATION_API_KEY"
   | "INSTITUTE_SERVICE"
   | "SERVICE_ORDER"
+  | "SERVICE_CALL"
   | "PROVIDER_COLLABORATION"
   | "EDUCATOR_AFFILIATION";
 
@@ -46,6 +47,10 @@ export const auditActions = [
   "student.service_order.created",
   "student.service_order.cancelled",
   "institute.service_order.guardian_consent_confirmed",
+  "institute.service_call.scheduled",
+  "institute.service_call.started",
+  "institute.service_call.ended",
+  "institute.service_call.cancelled",
   "provider.collaboration.requested",
   "provider.collaboration.withdrawn",
   "institute.provider_collaboration.accepted",

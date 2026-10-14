@@ -1,8 +1,5 @@
-Warning: truncated output (original token count: 74482)
-Total output lines: 9775
-
 {
-  "id": "8ddb14ad-deed-40de-8df4-6c00d02bade1",
+  "id": "22ef237b-f3bf-488d-a113-8c31cd986b8e",
   "prevId": "00490000-0000-4000-8000-000000000049",
   "version": "7",
   "dialect": "postgresql",
@@ -3292,7 +3289,3314 @@ Total output lines: 9775
       },
       "indexes": {
         "dena_educator_affiliation_events_idx": {
-          "name": "dena_educator_affiliation_e…24482 tokens truncated…,
+          "name": "dena_educator_affiliation_events_idx",
+          "columns": [
+            {
+              "expression": "affiliation_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "dena_educator_institute_affiliation_events_affiliation_id_dena_educator_institute_affiliations_id_fk": {
+          "name": "dena_educator_institute_affiliation_events_affiliation_id_dena_educator_institute_affiliations_id_fk",
+          "tableFrom": "dena_educator_institute_affiliation_events",
+          "tableTo": "dena_educator_institute_affiliations",
+          "columnsFrom": [
+            "affiliation_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "dena_educator_institute_affiliation_events_actor_user_id_user_id_fk": {
+          "name": "dena_educator_institute_affiliation_events_actor_user_id_user_id_fk",
+          "tableFrom": "dena_educator_institute_affiliation_events",
+          "tableTo": "user",
+          "columnsFrom": [
+            "actor_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "dena_educator_affiliation_event_reason_ck": {
+          "name": "dena_educator_affiliation_event_reason_ck",
+          "value": "\n      (kind = 'requested' AND reason IS NULL)\n      OR (kind <> 'requested' AND reason IS NOT NULL\n        AND char_length(reason) BETWEEN 15 AND 500 AND btrim(reason) <> '')\n    "
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.dena_educator_institute_affiliations": {
+      "name": "dena_educator_institute_affiliations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "educator_profile_id": {
+          "name": "educator_profile_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "institute_id": {
+          "name": "institute_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "requested_by_user_id": {
+          "name": "requested_by_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "client_request_id": {
+          "name": "client_request_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "display_name_snapshot": {
+          "name": "display_name_snapshot",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "statement": {
+          "name": "statement",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "dena_educator_institute_affiliation_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'requested'"
+        },
+        "reviewed_by_user_id": {
+          "name": "reviewed_by_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reviewed_at": {
+          "name": "reviewed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "decision_reason": {
+          "name": "decision_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "withdrawn_at": {
+          "name": "withdrawn_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ended_at": {
+          "name": "ended_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "dena_educator_affiliation_request_uidx": {
+          "name": "dena_educator_affiliation_request_uidx",
+          "columns": [
+            {
+              "expression": "educator_profile_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "client_request_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "dena_educator_affiliation_active_uidx": {
+          "name": "dena_educator_affiliation_active_uidx",
+          "columns": [
+            {
+              "expression": "educator_profile_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "institute_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "status IN ('requested', 'approved')",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "dena_educator_affiliation_profile_idx": {
+          "name": "dena_educator_affiliation_profile_idx",
+          "columns": [
+            {
+              "expression": "educator_profile_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "dena_educator_affiliation_institute_idx": {
+          "name": "dena_educator_affiliation_institute_idx",
+          "columns": [
+            {
+              "expression": "institute_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "dena_educator_institute_affiliations_educator_profile_id_dena_independent_educator_profiles_id_fk": {
+          "name": "dena_educator_institute_affiliations_educator_profile_id_dena_independent_educator_profiles_id_fk",
+          "tableFrom": "dena_educator_institute_affiliations",
+          "tableTo": "dena_independent_educator_profiles",
+          "columnsFrom": [
+            "educator_profile_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "dena_educator_institute_affiliations_institute_id_dena_verified_entities_id_fk": {
+          "name": "dena_educator_institute_affiliations_institute_id_dena_verified_entities_id_fk",
+          "tableFrom": "dena_educator_institute_affiliations",
+          "tableTo": "dena_verified_entities",
+          "columnsFrom": [
+            "institute_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "dena_educator_institute_affiliations_requested_by_user_id_user_id_fk": {
+          "name": "dena_educator_institute_affiliations_requested_by_user_id_user_id_fk",
+          "tableFrom": "dena_educator_institute_affiliations",
+          "tableTo": "user",
+          "columnsFrom": [
+            "requested_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "dena_educator_institute_affiliations_reviewed_by_user_id_user_id_fk": {
+          "name": "dena_educator_institute_affiliations_reviewed_by_user_id_user_id_fk",
+          "tableFrom": "dena_educator_institute_affiliations",
+          "tableTo": "user",
+          "columnsFrom": [
+            "reviewed_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "dena_educator_affiliation_snapshot_ck": {
+          "name": "dena_educator_affiliation_snapshot_ck",
+          "value": "\n      char_length(display_name_snapshot) BETWEEN 3 AND 120\n      AND btrim(display_name_snapshot) <> ''\n      AND char_length(statement) BETWEEN 20 AND 500\n      AND btrim(statement) <> ''\n    "
+        },
+        "dena_educator_affiliation_decision_reason_ck": {
+          "name": "dena_educator_affiliation_decision_reason_ck",
+          "value": "\n      decision_reason IS NULL OR\n      (char_length(decision_reason) BETWEEN 15 AND 500\n        AND btrim(decision_reason) <> '')\n    "
+        },
+        "dena_educator_affiliation_state_ck": {
+          "name": "dena_educator_affiliation_state_ck",
+          "value": "\n      (status = 'requested' AND reviewed_by_user_id IS NULL\n        AND reviewed_at IS NULL AND decision_reason IS NULL\n        AND withdrawn_at IS NULL AND ended_at IS NULL)\n      OR (status = 'approved' AND reviewed_by_user_id IS NOT NULL\n        AND reviewed_at IS NOT NULL AND decision_reason IS NOT NULL\n        AND withdrawn_at IS NULL AND ended_at IS NULL)\n      OR (status = 'rejected' AND reviewed_by_user_id IS NOT NULL\n        AND reviewed_at IS NOT NULL AND decision_reason IS NOT NULL\n        AND withdrawn_at IS NULL AND ended_at IS NULL)\n      OR (status = 'withdrawn' AND reviewed_by_user_id IS NULL\n        AND reviewed_at IS NULL AND decision_reason IS NULL\n        AND withdrawn_at IS NOT NULL AND ended_at IS NULL)\n      OR (status = 'revoked' AND reviewed_by_user_id IS NOT NULL\n        AND reviewed_at IS NOT NULL AND decision_reason IS NOT NULL\n        AND withdrawn_at IS NULL AND ended_at IS NOT NULL)\n    "
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.dena_financial_entries": {
+      "name": "dena_financial_entries",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "journal_id": {
+          "name": "journal_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "account": {
+          "name": "account",
+          "type": "dena_financial_entry_account",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "debit_rials": {
+          "name": "debit_rials",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "credit_rials": {
+          "name": "credit_rials",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "dena_financial_entry_journal_idx": {
+          "name": "dena_financial_entry_journal_idx",
+          "columns": [
+            {
+              "expression": "journal_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "dena_financial_entries_journal_id_dena_financial_journals_id_fk": {
+          "name": "dena_financial_entries_journal_id_dena_financial_journals_id_fk",
+          "tableFrom": "dena_financial_entries",
+          "tableTo": "dena_financial_journals",
+          "columnsFrom": [
+            "journal_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "dena_financial_entry_one_side_ck": {
+          "name": "dena_financial_entry_one_side_ck",
+          "value": "\n    (debit_rials > 0 AND credit_rials = 0)\n    OR (credit_rials > 0 AND debit_rials = 0)\n  "
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.dena_financial_journals": {
+      "name": "dena_financial_journals",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "event_key": {
+          "name": "event_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "revenue_stream": {
+          "name": "revenue_stream",
+          "type": "dena_financial_revenue_stream",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "event_type": {
+          "name": "event_type",
+          "type": "dena_financial_event_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_by_user_id": {
+          "name": "created_by_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "dena_financial_journal_stream_created_idx": {
+          "name": "dena_financial_journal_stream_created_idx",
+          "columns": [
+            {
+              "expression": "revenue_stream",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "dena_financial_journal_source_idx": {
+          "name": "dena_financial_journal_source_idx",
+          "columns": [
+            {
+              "expression": "source_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "event_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "dena_financial_journals_created_by_user_id_user_id_fk": {
+          "name": "dena_financial_journals_created_by_user_id_user_id_fk",
+          "tableFrom": "dena_financial_journals",
+          "tableTo": "user",
+          "columnsFrom": [
+            "created_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "dena_financial_journals_event_key_unique": {
+          "name": "dena_financial_journals_event_key_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "event_key"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "dena_financial_journal_event_key_ck": {
+          "name": "dena_financial_journal_event_key_ck",
+          "value": "event_key ~ '^[a-zA-Z0-9_.:-]{8,180}$'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.dena_independent_educator_profiles": {
+      "name": "dena_independent_educator_profiles",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "dena_independent_educator_profiles_user_id_user_id_fk": {
+          "name": "dena_independent_educator_profiles_user_id_user_id_fk",
+          "tableFrom": "dena_independent_educator_profiles",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "dena_independent_educator_profiles_user_id_unique": {
+          "name": "dena_independent_educator_profiles_user_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "user_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "dena_independent_educator_display_name_ck": {
+          "name": "dena_independent_educator_display_name_ck",
+          "value": "\n      char_length(display_name) BETWEEN 3 AND 120 AND btrim(display_name) <> ''\n    "
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.dena_institute_service_calls": {
+      "name": "dena_institute_service_calls",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "service_order_id": {
+          "name": "service_order_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "idempotency_key": {
+          "name": "idempotency_key",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "scheduled_at": {
+          "name": "scheduled_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "dena_institute_service_call_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'scheduled'"
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ended_at": {
+          "name": "ended_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by_user_id": {
+          "name": "created_by_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "dena_institute_service_call_order_created_idx": {
+          "name": "dena_institute_service_call_order_created_idx",
+          "columns": [
+            {
+              "expression": "service_order_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "dena_institute_service_call_order_idempotency_uidx": {
+          "name": "dena_institute_service_call_order_idempotency_uidx",
+          "columns": [
+            {
+              "expression": "service_order_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "idempotency_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "dena_institute_service_call_order_open_uidx": {
+          "name": "dena_institute_service_call_order_open_uidx",
+          "columns": [
+            {
+              "expression": "service_order_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"dena_institute_service_calls\".\"status\" IN ('scheduled', 'started')",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "dena_institute_service_calls_service_order_id_dena_institute_service_orders_id_fk": {
+          "name": "dena_institute_service_calls_service_order_id_dena_institute_service_orders_id_fk",
+          "tableFrom": "dena_institute_service_calls",
+          "tableTo": "dena_institute_service_orders",
+          "columnsFrom": [
+            "service_order_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "dena_institute_service_calls_created_by_user_id_user_id_fk": {
+          "name": "dena_institute_service_calls_created_by_user_id_user_id_fk",
+          "tableFrom": "dena_institute_service_calls",
+          "tableTo": "user",
+          "columnsFrom": [
+            "created_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "dena_institute_service_call_state_ck": {
+          "name": "dena_institute_service_call_state_ck",
+          "value": "\n    (status = 'scheduled' AND started_at IS NULL AND ended_at IS NULL)\n    OR (status = 'started' AND started_at IS NOT NULL AND ended_at IS NULL)\n    OR (status = 'ended' AND started_at IS NOT NULL AND ended_at >= started_at)\n    OR (status = 'cancelled' AND started_at IS NULL AND ended_at IS NULL)\n  "
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.dena_institute_services": {
+      "name": "dena_institute_services",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "institute_id": {
+          "name": "institute_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_by_user_id": {
+          "name": "created_by_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category": {
+          "name": "category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "price_toman": {
+          "name": "price_toman",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "included_minutes": {
+          "name": "included_minutes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "validity_days": {
+          "name": "validity_days",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "guardian_consent_required": {
+          "name": "guardian_consent_required",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "cancellation_policy": {
+          "name": "cancellation_policy",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "dena_institute_service_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'draft'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "dena_institute_services_scope_uidx": {
+          "name": "dena_institute_services_scope_uidx",
+          "columns": [
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "institute_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "dena_institute_services_owner_status_created_idx": {
+          "name": "dena_institute_services_owner_status_created_idx",
+          "columns": [
+            {
+              "expression": "institute_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "dena_institute_services_institute_id_dena_verified_entities_id_fk": {
+          "name": "dena_institute_services_institute_id_dena_verified_entities_id_fk",
+          "tableFrom": "dena_institute_services",
+          "tableTo": "dena_verified_entities",
+          "columnsFrom": [
+            "institute_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "dena_institute_services_created_by_user_id_user_id_fk": {
+          "name": "dena_institute_services_created_by_user_id_user_id_fk",
+          "tableFrom": "dena_institute_services",
+          "tableTo": "user",
+          "columnsFrom": [
+            "created_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "dena_institute_services_title_ck": {
+          "name": "dena_institute_services_title_ck",
+          "value": "char_length(title) BETWEEN 3 AND 120"
+        },
+        "dena_institute_services_category_ck": {
+          "name": "dena_institute_services_category_ck",
+          "value": "\n    category IN ('consultation', 'career_guidance', 'assessment', 'support', 'other')\n  "
+        },
+        "dena_institute_services_description_ck": {
+          "name": "dena_institute_services_description_ck",
+          "value": "char_length(description) BETWEEN 10 AND 2000"
+        },
+        "dena_institute_services_price_ck": {
+          "name": "dena_institute_services_price_ck",
+          "value": "price_toman BETWEEN 1 AND 1000000000000"
+        },
+        "dena_institute_services_quota_ck": {
+          "name": "dena_institute_services_quota_ck",
+          "value": "\n    (included_minutes IS NULL AND validity_days IS NULL)\n    OR (included_minutes BETWEEN 5 AND 100000 AND validity_days BETWEEN 1 AND 3650)\n  "
+        },
+        "dena_institute_services_policy_ck": {
+          "name": "dena_institute_services_policy_ck",
+          "value": "char_length(cancellation_policy) BETWEEN 1 AND 1500"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.dena_institute_service_orders": {
+      "name": "dena_institute_service_orders",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "idempotency_key": {
+          "name": "idempotency_key",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "student_user_id": {
+          "name": "student_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "service_id": {
+          "name": "service_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "institute_id": {
+          "name": "institute_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "service_title_snapshot": {
+          "name": "service_title_snapshot",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category_snapshot": {
+          "name": "category_snapshot",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "price_toman": {
+          "name": "price_toman",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gross_rials": {
+          "name": "gross_rials",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dena_share_rials": {
+          "name": "dena_share_rials",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "institute_share_rials": {
+          "name": "institute_share_rials",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "commission_basis_points": {
+          "name": "commission_basis_points",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1000
+        },
+        "included_minutes": {
+          "name": "included_minutes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "validity_days": {
+          "name": "validity_days",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "guardian_consent_required": {
+          "name": "guardian_consent_required",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "guardian_consent_confirmed_at": {
+          "name": "guardian_consent_confirmed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "guardian_consent_confirmed_by_user_id": {
+          "name": "guardian_consent_confirmed_by_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "dena_institute_service_order_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "paid_at": {
+          "name": "paid_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "dena_institute_service_order_student_idempotency_uidx": {
+          "name": "dena_institute_service_order_student_idempotency_uidx",
+          "columns": [
+            {
+              "expression": "student_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "idempotency_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "dena_institute_service_order_student_created_idx": {
+          "name": "dena_institute_service_order_student_created_idx",
+          "columns": [
+            {
+              "expression": "student_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "dena_institute_service_order_institute_status_idx": {
+          "name": "dena_institute_service_order_institute_status_idx",
+          "columns": [
+            {
+              "expression": "institute_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "dena_institute_service_orders_student_user_id_user_id_fk": {
+          "name": "dena_institute_service_orders_student_user_id_user_id_fk",
+          "tableFrom": "dena_institute_service_orders",
+          "tableTo": "user",
+          "columnsFrom": [
+            "student_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "dena_institute_service_orders_guardian_consent_confirmed_by_user_id_user_id_fk": {
+          "name": "dena_institute_service_orders_guardian_consent_confirmed_by_user_id_user_id_fk",
+          "tableFrom": "dena_institute_service_orders",
+          "tableTo": "user",
+          "columnsFrom": [
+            "guardian_consent_confirmed_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "dena_institute_service_order_service_scope_fk": {
+          "name": "dena_institute_service_order_service_scope_fk",
+          "tableFrom": "dena_institute_service_orders",
+          "tableTo": "dena_institute_services",
+          "columnsFrom": [
+            "service_id",
+            "institute_id"
+          ],
+          "columnsTo": [
+            "id",
+            "institute_id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "dena_institute_service_order_snapshot_ck": {
+          "name": "dena_institute_service_order_snapshot_ck",
+          "value": "\n    char_length(service_title_snapshot) BETWEEN 3 AND 120\n    AND category_snapshot IN ('consultation', 'career_guidance', 'assessment', 'support', 'other')\n    AND price_toman BETWEEN 1 AND 1000000000000\n    AND gross_rials = price_toman * 10\n    AND commission_basis_points = 1000\n    AND dena_share_rials = gross_rials / 10\n    AND institute_share_rials = gross_rials - dena_share_rials\n  "
+        },
+        "dena_institute_service_order_quota_ck": {
+          "name": "dena_institute_service_order_quota_ck",
+          "value": "\n    (included_minutes IS NULL AND validity_days IS NULL)\n    OR (included_minutes BETWEEN 5 AND 100000 AND validity_days BETWEEN 1 AND 3650)\n  "
+        },
+        "dena_institute_service_order_consent_ck": {
+          "name": "dena_institute_service_order_consent_ck",
+          "value": "\n    (guardian_consent_required = false AND guardian_consent_confirmed_at IS NULL\n      AND guardian_consent_confirmed_by_user_id IS NULL)\n    OR (guardian_consent_required = true AND status IN ('awaiting_guardian_consent', 'cancelled')\n      AND guardian_consent_confirmed_at IS NULL AND guardian_consent_confirmed_by_user_id IS NULL)\n    OR (guardian_consent_required = true AND guardian_consent_confirmed_at IS NOT NULL\n      AND guardian_consent_confirmed_by_user_id IS NOT NULL)\n  "
+        },
+        "dena_institute_service_order_state_ck": {
+          "name": "dena_institute_service_order_state_ck",
+          "value": "\n    (status = 'awaiting_guardian_consent' AND guardian_consent_required = true\n      AND guardian_consent_confirmed_at IS NULL AND paid_at IS NULL)\n    OR (status = 'awaiting_payment' AND paid_at IS NULL\n      AND (guardian_consent_required = false OR guardian_consent_confirmed_at IS NOT NULL))\n    OR (status = 'paid' AND paid_at IS NOT NULL\n      AND (guardian_consent_required = false OR guardian_consent_confirmed_at IS NOT NULL))\n    OR (status = 'cancelled' AND paid_at IS NULL)\n  "
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.dena_media_cleanup_jobs": {
+      "name": "dena_media_cleanup_jobs",
+      "schema": "",
+      "columns": {
+        "upload_id": {
+          "name": "upload_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "attempts": {
+          "name": "attempts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "lease_token": {
+          "name": "lease_token",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lease_until": {
+          "name": "lease_until",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "next_attempt_at": {
+          "name": "next_attempt_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "completed_at": {
+          "name": "completed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_error": {
+          "name": "last_error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "dena_cleanup_claim_idx": {
+          "name": "dena_cleanup_claim_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "next_attempt_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "dena_media_cleanup_jobs_upload_id_dena_media_ingests_id_fk": {
+          "name": "dena_media_cleanup_jobs_upload_id_dena_media_ingests_id_fk",
+          "tableFrom": "dena_media_cleanup_jobs",
+          "tableTo": "dena_media_ingests",
+          "columnsFrom": [
+            "upload_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "dena_cleanup_attempts_ck": {
+          "name": "dena_cleanup_attempts_ck",
+          "value": "attempts >= 0 AND attempts <= 5"
+        },
+        "dena_cleanup_state_ck": {
+          "name": "dena_cleanup_state_ck",
+          "value": "\n    (status = 'leased' AND lease_token IS NOT NULL\n      AND lease_until IS NOT NULL AND completed_at IS NULL)\n    OR (status IN ('pending', 'dead') AND lease_token IS NULL\n      AND lease_until IS NULL AND completed_at IS NULL)\n    OR (status = 'done' AND lease_token IS NULL\n      AND lease_until IS NULL AND completed_at IS NOT NULL)\n  "
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.dena_media_ingests": {
+      "name": "dena_media_ingests",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "asset_id": {
+          "name": "asset_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "course_id": {
+          "name": "course_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "owner_type": {
+          "name": "owner_type",
+          "type": "dena_course_owner_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'verified_provider'"
+        },
+        "provider_id": {
+          "name": "provider_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "independent_educator_profile_id": {
+          "name": "independent_educator_profile_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by_user_id": {
+          "name": "created_by_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "request_id": {
+          "name": "request_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expected_bytes": {
+          "name": "expected_bytes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expected_sha256": {
+          "name": "expected_sha256",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "dena_media_ingest_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'reserved'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "uploaded_at": {
+          "name": "uploaded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "completed_at": {
+          "name": "completed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rejection_reason": {
+          "name": "rejection_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "dena_ingest_course_request_uidx": {
+          "name": "dena_ingest_course_request_uidx",
+          "columns": [
+            {
+              "expression": "course_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "request_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "dena_ingest_status_idx": {
+          "name": "dena_ingest_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "dena_media_ingests_course_id_dena_courses_id_fk": {
+          "name": "dena_media_ingests_course_id_dena_courses_id_fk",
+          "tableFrom": "dena_media_ingests",
+          "tableTo": "dena_courses",
+          "columnsFrom": [
+            "course_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "dena_media_ingests_independent_educator_profile_id_dena_independent_educator_profiles_id_fk": {
+          "name": "dena_media_ingests_independent_educator_profile_id_dena_independent_educator_profiles_id_fk",
+          "tableFrom": "dena_media_ingests",
+          "tableTo": "dena_independent_educator_profiles",
+          "columnsFrom": [
+            "independent_educator_profile_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "dena_media_ingests_created_by_user_id_user_id_fk": {
+          "name": "dena_media_ingests_created_by_user_id_user_id_fk",
+          "tableFrom": "dena_media_ingests",
+          "tableTo": "user",
+          "columnsFrom": [
+            "created_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "dena_media_ingests_asset_id_unique": {
+          "name": "dena_media_ingests_asset_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "asset_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "dena_media_ingest_owner_scope_ck": {
+          "name": "dena_media_ingest_owner_scope_ck",
+          "value": "\n    (owner_type = 'verified_provider' AND provider_id IS NOT NULL\n      AND independent_educator_profile_id IS NULL)\n    OR (owner_type = 'independent_educator' AND provider_id IS NULL\n      AND independent_educator_profile_id IS NOT NULL)\n  "
+        },
+        "dena_ingest_bytes_ck": {
+          "name": "dena_ingest_bytes_ck",
+          "value": "\n    expected_bytes >= 16 AND expected_bytes <= 8388608\n  "
+        },
+        "dena_ingest_sha_ck": {
+          "name": "dena_ingest_sha_ck",
+          "value": "\n    expected_sha256 ~ '^[0-9a-f]{64}$'\n  "
+        },
+        "dena_ingest_state_ck": {
+          "name": "dena_ingest_state_ck",
+          "value": "\n    (status IN ('reserved', 'uploading') AND uploaded_at IS NULL\n      AND completed_at IS NULL AND rejection_reason IS NULL)\n    OR (status = 'quarantined' AND uploaded_at IS NOT NULL\n      AND completed_at IS NULL AND rejection_reason IS NULL)\n    OR (status = 'ready' AND uploaded_at IS NOT NULL\n      AND completed_at IS NOT NULL AND rejection_reason IS NULL)\n    OR (status = 'rejected' AND completed_at IS NOT NULL\n      AND rejection_reason IS NOT NULL)\n  "
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.dena_media_multipart_plans": {
+      "name": "dena_media_multipart_plans",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "course_id": {
+          "name": "course_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provider_id": {
+          "name": "provider_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_by_user_id": {
+          "name": "created_by_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "request_id": {
+          "name": "request_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expected_bytes": {
+          "name": "expected_bytes",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expected_sha256": {
+          "name": "expected_sha256",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'planned'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cancelled_at": {
+          "name": "cancelled_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "dena_multipart_course_request_uidx": {
+          "name": "dena_multipart_course_request_uidx",
+          "columns": [
+            {
+              "expression": "course_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "request_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "dena_multipart_status_expiry_idx": {
+          "name": "dena_multipart_status_expiry_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "expires_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "dena_media_multipart_plans_course_id_dena_courses_id_fk": {
+          "name": "dena_media_multipart_plans_course_id_dena_courses_id_fk",
+          "tableFrom": "dena_media_multipart_plans",
+          "tableTo": "dena_courses",
+          "columnsFrom": [
+            "course_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "dena_media_multipart_plans_created_by_user_id_user_id_fk": {
+          "name": "dena_media_multipart_plans_created_by_user_id_user_id_fk",
+          "tableFrom": "dena_media_multipart_plans",
+          "tableTo": "user",
+          "columnsFrom": [
+            "created_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "dena_multipart_bytes_ck": {
+          "name": "dena_multipart_bytes_ck",
+          "value": "\n    expected_bytes > 16777216 AND expected_bytes <= 5368709120\n  "
+        },
+        "dena_multipart_sha_ck": {
+          "name": "dena_multipart_sha_ck",
+          "value": "\n    expected_sha256 ~ '^[0-9a-f]{64}$'\n  "
+        },
+        "dena_multipart_status_ck": {
+          "name": "dena_multipart_status_ck",
+          "value": "\n    status IN ('planned', 'expired', 'cancelled')\n  "
+        },
+        "dena_multipart_cancel_ck": {
+          "name": "dena_multipart_cancel_ck",
+          "value": "\n    (status = 'cancelled' AND cancelled_at IS NOT NULL)\n    OR (status <> 'cancelled' AND cancelled_at IS NULL)\n  "
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.dena_media_processing_jobs": {
+      "name": "dena_media_processing_jobs",
+      "schema": "",
+      "columns": {
+        "upload_id": {
+          "name": "upload_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "dena_processing_job_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'queued'"
+        },
+        "attempts": {
+          "name": "attempts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "lease_token": {
+          "name": "lease_token",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lease_until": {
+          "name": "lease_until",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "next_attempt_at": {
+          "name": "next_attempt_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "last_error": {
+          "name": "last_error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "dena_processing_claim_idx": {
+          "name": "dena_processing_claim_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "next_attempt_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "dena_media_processing_jobs_upload_id_dena_media_ingests_id_fk": {
+          "name": "dena_media_processing_jobs_upload_id_dena_media_ingests_id_fk",
+          "tableFrom": "dena_media_processing_jobs",
+          "tableTo": "dena_media_ingests",
+          "columnsFrom": [
+            "upload_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "dena_processing_attempts_ck": {
+          "name": "dena_processing_attempts_ck",
+          "value": "attempts >= 0 AND attempts <= 5"
+        },
+        "dena_processing_lease_ck": {
+          "name": "dena_processing_lease_ck",
+          "value": "\n    (status = 'leased' AND lease_token IS NOT NULL AND lease_until IS NOT NULL)\n    OR (status <> 'leased' AND lease_token IS NULL AND lease_until IS NULL)\n  "
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.dena_memberships": {
+      "name": "dena_memberships",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "dena_role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "institute_id": {
+          "name": "institute_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "provider_id": {
+          "name": "provider_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "benefactor_id": {
+          "name": "benefactor_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "can_handle_technical_support": {
+          "name": "can_handle_technical_support",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "status": {
+          "name": "status",
+          "type": "dena_membership_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'active'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "dena_memberships_active_user_idx": {
+          "name": "dena_memberships_active_user_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "dena_one_student_membership_per_user": {
+          "name": "dena_one_student_membership_per_user",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "role = 'student'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "dena_memberships_user_id_user_id_fk": {
+          "name": "dena_memberships_user_id_user_id_fk",
+          "tableFrom": "dena_memberships",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "dena_membership_role_scope_ck": {
+          "name": "dena_membership_role_scope_ck",
+          "value": "\n    (\n      role = 'student'\n      AND institute_id IS NULL AND provider_id IS NULL\n      AND organization_id IS NULL AND benefactor_id IS NULL\n      AND can_handle_technical_support = false\n    ) OR (\n      role = 'institute' AND institute_id IS NOT NULL\n      AND provider_id IS NULL AND organization_id IS NULL AND benefactor_id IS NULL\n      AND can_handle_technical_support = false\n    ) OR (\n      role = 'provider' AND provider_id IS NOT NULL\n      AND institute_id IS NULL AND organization_id IS NULL AND benefactor_id IS NULL\n      AND can_handle_technical_support = false\n    ) OR (\n      role = 'admin' AND institute_id IS NULL AND provider_id IS NULL\n      AND organization_id IS NULL AND benefactor_id IS NULL\n    ) OR (\n      role = 'organization' AND organization_id IS NOT NULL\n      AND institute_id IS NULL AND provider_id IS NULL AND benefactor_id IS NULL\n      AND can_handle_technical_support = false\n    ) OR (\n      role = 'benefactor' AND benefactor_id IS NOT NULL\n      AND institute_id IS NULL AND provider_id IS NULL AND organization_id IS NULL\n      AND can_handle_technical_support = false\n    )\n  "
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.dena_organization_api_keys": {
+      "name": "dena_organization_api_keys",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "secret_hash": {
+          "name": "secret_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prefix": {
+          "name": "prefix",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "label": {
+          "name": "label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_by_user_id": {
+          "name": "created_by_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_used_at": {
+          "name": "last_used_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "revoked_at": {
+          "name": "revoked_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rotated_from_key_id": {
+          "name": "rotated_from_key_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "dena_org_api_keys_scope_active_idx": {
+          "name": "dena_org_api_keys_scope_active_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "revoked_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "dena_organization_api_keys_organization_id_dena_verified_entities_id_fk": {
+          "name": "dena_organization_api_keys_organization_id_dena_verified_entities_id_fk",
+          "tableFrom": "dena_organization_api_keys",
+          "tableTo": "dena_verified_entities",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "dena_organization_api_keys_created_by_user_id_user_id_fk": {
+          "name": "dena_organization_api_keys_created_by_user_id_user_id_fk",
+          "tableFrom": "dena_organization_api_keys",
+          "tableTo": "user",
+          "columnsFrom": [
+            "created_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "dena_organization_api_keys_secret_hash_unique": {
+          "name": "dena_organization_api_keys_secret_hash_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "secret_hash"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "dena_org_api_key_label_ck": {
+          "name": "dena_org_api_key_label_ck",
+          "value": "char_length(label) BETWEEN 1 AND 80"
+        },
+        "dena_org_api_key_prefix_ck": {
+          "name": "dena_org_api_key_prefix_ck",
+          "value": "prefix ~ '^dena_org_[A-Za-z0-9_-]{8}$'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.dena_organization_students": {
+      "name": "dena_organization_students",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "first_name": {
+          "name": "first_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_name": {
+          "name": "last_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "national_code_ciphertext": {
+          "name": "national_code_ciphertext",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "national_code_hash": {
+          "name": "national_code_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "birth_date": {
+          "name": "birth_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "national_code_last4": {
+          "name": "national_code_last4",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gender": {
+          "name": "gender",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by_user_id": {
+          "name": "created_by_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "guardian_consent_confirmed_at": {
+          "name": "guardian_consent_confirmed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "guardian_consent_confirmed_by_user_id": {
+          "name": "guardian_consent_confirmed_by_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'manual'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "dena_org_student_scope_user_uidx": {
+          "name": "dena_org_student_scope_user_uidx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "dena_org_student_scope_national_code_uidx": {
+          "name": "dena_org_student_scope_national_code_uidx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "national_code_hash",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "dena_org_students_scope_created_idx": {
+          "name": "dena_org_students_scope_created_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "dena_organization_students_organization_id_dena_verified_entities_id_fk": {
+          "name": "dena_organization_students_organization_id_dena_verified_entities_id_fk",
+          "tableFrom": "dena_organization_students",
+          "tableTo": "dena_verified_entities",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "dena_organization_students_user_id_user_id_fk": {
+          "name": "dena_organization_students_user_id_user_id_fk",
+          "tableFrom": "dena_organization_students",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "dena_organization_students_created_by_user_id_user_id_fk": {
+          "name": "dena_organization_students_created_by_user_id_user_id_fk",
+          "tableFrom": "dena_organization_students",
+          "tableTo": "user",
+          "columnsFrom": [
+            "created_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "dena_organization_students_guardian_consent_confirmed_by_user_id_user_id_fk": {
+          "name": "dena_organization_students_guardian_consent_confirmed_by_user_id_user_id_fk",
+          "tableFrom": "dena_organization_students",
+          "tableTo": "user",
+          "columnsFrom": [
+            "guardian_consent_confirmed_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "dena_org_student_name_ck": {
+          "name": "dena_org_student_name_ck",
+          "value": "\n    char_length(first_name) BETWEEN 1 AND 80 AND char_length(last_name) BETWEEN 1 AND 100\n  "
+        },
+        "dena_org_student_national_code_last4_ck": {
+          "name": "dena_org_student_national_code_last4_ck",
+          "value": "national_code_last4 ~ '^\\d{4}$'"
+        },
+        "dena_org_student_gender_ck": {
+          "name": "dena_org_student_gender_ck",
+          "value": "gender IN ('female', 'male', 'prefer_not_to_say')"
+        },
+        "dena_org_student_source_ck": {
+          "name": "dena_org_student_source_ck",
+          "value": "source IN ('manual', 'bulk', 'api')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.dena_otp_dispatch_limits": {
+      "name": "dena_otp_dispatch_limits",
+      "schema": "",
+      "columns": {
+        "phone_hash": {
+          "name": "phone_hash",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "last_sent_at": {
+          "name": "last_sent_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "window_started_at": {
+          "name": "window_started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "count": {
+          "name": "count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.dena_private_media_assets": {
+      "name": "dena_private_media_assets",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "course_id": {
+          "name": "course_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "object_key": {
+          "name": "object_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "dena_media_asset_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ready'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "dena_private_media_course_idx": {
+          "name": "dena_private_media_course_idx",
+          "columns": [
+            {
+              "expression": "course_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "dena_private_media_id_course_uidx": {
+          "name": "dena_private_media_id_course_uidx",
+          "columns": [
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "course_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "dena_private_media_assets_course_id_dena_courses_id_fk": {
+          "name": "dena_private_media_assets_course_id_dena_courses_id_fk",
+          "tableFrom": "dena_private_media_assets",
+          "tableTo": "dena_courses",
+          "columnsFrom": [
+            "course_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "dena_private_media_assets_object_key_unique": {
+          "name": "dena_private_media_assets_object_key_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "object_key"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "dena_private_media_key_ck": {
+          "name": "dena_private_media_key_ck",
+          "value": "\n    object_key = course_id::text || '/' || id::text || '.mp4'\n  "
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.dena_problem_solving_requests": {
+      "name": "dena_problem_solving_requests",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "course_id": {
+          "name": "course_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "student_user_id": {
+          "name": "student_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "supporter_team_member_id": {
+          "name": "supporter_team_member_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subject": {
+          "name": "subject",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "dena_problem_solving_request_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'submitted'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "dena_problem_request_student_idx": {
+          "name": "dena_problem_request_student_idx",
+          "columns": [
+            {
+              "expression": "student_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "dena_problem_request_supporter_status_idx": {
+          "name": "dena_problem_request_supporter_status_idx",
+          "columns": [
+            {
+              "expression": "supporter_team_member_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "dena_problem_solving_requests_student_user_id_user_id_fk": {
+          "name": "dena_problem_solving_requests_student_user_id_user_id_fk",
+          "tableFrom": "dena_problem_solving_requests",
+          "tableTo": "user",
+          "columnsFrom": [
+            "student_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "dena_problem_request_supporter_scope_fk": {
+          "name": "dena_problem_request_supporter_scope_fk",
+          "tableFrom": "dena_problem_solving_requests",
+          "tableTo": "dena_course_team_members",
+          "columnsFrom": [
+            "supporter_team_member_id",
+            "course_id"
+          ],
+          "columnsTo": [
+            "id",
+            "course_id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "dena_problem_request_subject_ck": {
+          "name": "dena_problem_request_subject_ck",
+          "value": "\n      char_length(subject) BETWEEN 3 AND 160 AND btrim(subject) <> ''\n    "
+        },
+        "dena_problem_request_description_ck": {
+          "name": "dena_problem_request_description_ck",
+          "value": "\n      description IS NULL OR\n      (char_length(description) BETWEEN 1 AND 1000 AND btrim(description) <> '')\n    "
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.dena_problem_solving_sessions": {
+      "name": "dena_problem_solving_sessions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "request_id": {
+          "name": "request_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "course_id": {
+          "name": "course_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "student_user_id": {
+          "name": "student_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "supporter_team_member_id": {
+          "name": "supporter_team_member_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subject": {
+          "name": "subject",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "scheduled_at": {
+          "name": "scheduled_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "dena_problem_solving_session_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'scheduled'"
+        },
+        "created_by_user_id": {
+          "name": "created_by_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "dena_problem_session_student_time_idx": {
+          "name": "dena_problem_session_student_time_idx",
+          "columns": [
+            {
+              "expression": "student_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "scheduled_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "dena_problem_session_supporter_time_idx": {
+          "name": "dena_problem_session_supporter_time_idx",
+          "columns": [
+            {
+              "expression": "supporter_team_member_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "scheduled_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "dena_problem_solving_sessions_request_id_dena_problem_solving_requests_id_fk": {
+          "name": "dena_problem_solving_sessions_request_id_dena_problem_solving_requests_id_fk",
+          "tableFrom": "dena_problem_solving_sessions",
+          "tableTo": "dena_problem_solving_requests",
+          "columnsFrom": [
+            "request_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "dena_problem_solving_sessions_student_user_id_user_id_fk": {
+          "name": "dena_problem_solving_sessions_student_user_id_user_id_fk",
+          "tableFrom": "dena_problem_solving_sessions",
+          "tableTo": "user",
+          "columnsFrom": [
+            "student_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "dena_problem_solving_sessions_created_by_user_id_user_id_fk": {
+          "name": "dena_problem_solving_sessions_created_by_user_id_user_id_fk",
+          "tableFrom": "dena_problem_solving_sessions",
+          "tableTo": "user",
+          "columnsFrom": [
+            "created_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "dena_problem_session_supporter_scope_fk": {
+          "name": "dena_problem_session_supporter_scope_fk",
+          "tableFrom": "dena_problem_solving_sessions",
+          "tableTo": "dena_course_team_members",
+          "columnsFrom": [
+            "supporter_team_member_id",
+            "course_id"
+          ],
+          "columnsTo": [
+            "id",
+            "course_id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "dena_problem_solving_sessions_request_id_unique": {
+          "name": "dena_problem_solving_sessions_request_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "request_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "dena_problem_session_subject_ck": {
+          "name": "dena_problem_session_subject_ck",
+          "value": "\n      char_length(subject) BETWEEN 3 AND 160 AND btrim(subject) <> ''\n    "
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.dena_provider_institute_collaboration_events": {
+      "name": "dena_provider_institute_collaboration_events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "collaboration_id": {
+          "name": "collaboration_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actor_user_id": {
+          "name": "actor_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "dena_provider_institute_collaboration_event_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "dena_provider_institute_collab_events_idx": {
+          "name": "dena_provider_institute_collab_events_idx",
+          "columns": [
+            {
+              "expression": "collaboration_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "dena_provider_institute_collaboration_events_collaboration_id_dena_provider_institute_collaborations_id_fk": {
+          "name": "dena_provider_institute_collaboration_events_collaboration_id_dena_provider_institute_collaborations_id_fk",
+          "tableFrom": "dena_provider_institute_collaboration_events",
+          "tableTo": "dena_provider_institute_collaborations",
+          "columnsFrom": [
+            "collaboration_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "dena_provider_institute_collaboration_events_actor_user_id_user_id_fk": {
+          "name": "dena_provider_institute_collaboration_events_actor_user_id_user_id_fk",
+          "tableFrom": "dena_provider_institute_collaboration_events",
+          "tableTo": "user",
+          "columnsFrom": [
+            "actor_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "dena_provider_institute_collab_event_reason_ck": {
+          "name": "dena_provider_institute_collab_event_reason_ck",
+          "value": "\n      (kind = 'requested' AND reason IS NULL)\n      OR (kind <> 'requested' AND reason IS NOT NULL)\n    "
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.dena_provider_institute_collaborations": {
+      "name": "dena_provider_institute_collaborations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "provider_id": {
+          "name": "provider_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "institute_id": {
+          "name": "institute_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "requested_by_user_id": {
+          "name": "requested_by_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "client_request_id": {
+          "name": "client_request_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "dena_provider_institute_collaboration_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'requested'"
+        },
+        "withdrawn_at": {
+          "name": "withdrawn_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "institute_reviewed_by_user_id": {
+          "name": "institute_reviewed_by_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "institute_reviewed_at": {
+          "name": "institute_reviewed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "institute_decision_reason": {
+          "name": "institute_decision_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dena_reviewed_by_user_id": {
+          "name": "dena_reviewed_by_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dena_reviewed_at": {
+          "name": "dena_reviewed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dena_decision_reason": {
+          "name": "dena_decision_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "dena_provider_institute_collab_request_uidx": {
+          "name": "dena_provider_institute_collab_request_uidx",
+          "columns": [
+            {
+              "expression": "provider_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "client_request_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "dena_provider_institute_collab_active_uidx": {
+          "name": "dena_provider_institute_collab_active_uidx",
+          "columns": [
+            {
+              "expression": "provider_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "institute_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "status IN ('requested', 'awaiting_dena', 'approved') AND withdrawn_at IS NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "dena_provider_institute_collab_provider_idx": {
+          "name": "dena_provider_institute_collab_provider_idx",
+          "columns": [
+            {
+              "expression": "provider_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "dena_provider_institute_collab_institute_idx": {
+          "name": "dena_provider_institute_collab_institute_idx",
+          "columns": [
+            {
+              "expression": "institute_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "dena_provider_institute_collaborations_provider_id_dena_verified_entities_id_fk": {
+          "name": "dena_provider_institute_collaborations_provider_id_dena_verified_entities_id_fk",
+          "tableFrom": "dena_provider_institute_collaborations",
+          "tableTo": "dena_verified_entities",
+          "columnsFrom": [
+            "provider_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "dena_provider_institute_collaborations_institute_id_dena_verified_entities_id_fk": {
+          "name": "dena_provider_institute_collaborations_institute_id_dena_verified_entities_id_fk",
+          "tableFrom": "dena_provider_institute_collaborations",
+          "tableTo": "dena_verified_entities",
+          "columnsFrom": [
+            "institute_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "dena_provider_institute_collaborations_requested_by_user_id_user_id_fk": {
+          "name": "dena_provider_institute_collaborations_requested_by_user_id_user_id_fk",
+          "tableFrom": "dena_provider_institute_collaborations",
+          "tableTo": "user",
+          "columnsFrom": [
+            "requested_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "dena_provider_institute_collaborations_institute_reviewed_by_user_id_user_id_fk": {
+          "name": "dena_provider_institute_collaborations_institute_reviewed_by_user_id_user_id_fk",
+          "tableFrom": "dena_provider_institute_collaborations",
+          "tableTo": "user",
+          "columnsFrom": [
+            "institute_reviewed_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "dena_provider_institute_collaborations_dena_reviewed_by_user_id_user_id_fk": {
+          "name": "dena_provider_institute_collaborations_dena_reviewed_by_user_id_user_id_fk",
+          "tableFrom": "dena_provider_institute_collaborations",
           "tableTo": "user",
           "columnsFrom": [
             "dena_reviewed_by_user_id"
@@ -6324,6 +9628,7 @@ Total output lines: 9775
         "ASSESSMENT_EXAM",
         "INSTITUTE_SERVICE",
         "SERVICE_ORDER",
+        "SERVICE_CALL",
         "PROVIDER_COLLABORATION",
         "EDUCATOR_AFFILIATION"
       ]
@@ -6457,6 +9762,16 @@ Total output lines: 9775
         "quarantined",
         "ready",
         "rejected"
+      ]
+    },
+    "public.dena_institute_service_call_status": {
+      "name": "dena_institute_service_call_status",
+      "schema": "public",
+      "values": [
+        "scheduled",
+        "started",
+        "ended",
+        "cancelled"
       ]
     },
     "public.dena_institute_service_status": {

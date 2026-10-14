@@ -17,6 +17,12 @@ const statusLabel: Record<string, string> = {
   paid: "پرداخت‌شده",
   cancelled: "لغوشده",
 };
+const callStatusLabel = {
+  scheduled: "زمان‌بندی‌شده",
+  started: "شروع‌شده",
+  ended: "پایان‌یافته",
+  cancelled: "لغوشده",
+} as const;
 
 const dateFormatter = new Intl.DateTimeFormat("fa-IR", {
   dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Tehran",
@@ -78,6 +84,13 @@ export default async function StudentServiceOrdersPage() {
               <div><dt className="text-xs text-dena-muted">اعتبار خدمت</dt><dd className="mt-1 font-bold text-dena-deep">{order.validityDays === null ? "اعلام نشده" : `${order.validityDays.toLocaleString("fa-IR")} روز`}</dd></div>
               <div><dt className="text-xs text-dena-muted">زمان ثبت</dt><dd className="mt-1 font-bold text-dena-deep">{dateFormatter.format(order.createdAt)}</dd></div>
             </dl>
+
+            {order.calls.length > 0 && <section aria-label="زمان جلسه‌های خدمت" className="space-y-2 rounded-xl border border-dena-lavender p-4">
+              <h4 className="text-sm font-extrabold text-dena-deep">زمان جلسه</h4>
+              {order.calls.map((call) => <p key={call.id} className="text-sm text-dena-muted">
+                {dateFormatter.format(call.scheduledAt)} · {callStatusLabel[call.status]}
+              </p>)}
+            </section>}
 
             <ServiceOrderAction
               serviceId={order.serviceId}

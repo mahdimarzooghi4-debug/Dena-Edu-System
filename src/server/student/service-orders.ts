@@ -7,6 +7,7 @@ import {
 import { auditLogRecord } from "../admin/audit";
 import { calculateInstituteServiceGrossSplit } from "../institute/services";
 import { addRecordedServiceTimeBalances } from "../institute/service-time-quota";
+import { addInstituteServiceCallSchedules } from "../institute/service-calls";
 
 export const createServiceOrderInput = z.object({
   serviceId: z.uuid(),
@@ -42,7 +43,7 @@ export async function getStudentServiceOrders(studentUserId: string) {
     eq(verifiedEntities.role, "institute"),
   )).where(eq(instituteServiceOrders.studentUserId, studentUserId))
     .orderBy(desc(instituteServiceOrders.createdAt), desc(instituteServiceOrders.id)).limit(100);
-  return addRecordedServiceTimeBalances(orders);
+  return addInstituteServiceCallSchedules(await addRecordedServiceTimeBalances(orders));
 }
 
 export async function createStudentServiceOrder(

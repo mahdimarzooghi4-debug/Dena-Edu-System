@@ -21,6 +21,12 @@ const statusClass = {
   paid: "bg-emerald-100 text-emerald-900",
   cancelled: "bg-slate-100 text-slate-700",
 } as const;
+const callStatusLabel = {
+  scheduled: "زمان‌بندی‌شده",
+  started: "شروع‌شده",
+  ended: "پایان‌یافته",
+  cancelled: "لغوشده",
+} as const;
 
 export default async function InstituteServiceOrdersPage() {
   if (!process.env.DATABASE_URL || !process.env.BETTER_AUTH_SECRET || !process.env.BETTER_AUTH_URL) redirect("/login");
@@ -73,6 +79,12 @@ export default async function InstituteServiceOrdersPage() {
             </>}
             <div className="flex justify-between gap-3"><dt className="text-dena-muted">تاریخ ثبت</dt><dd className="font-bold text-dena-deep">{new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium", timeZone: "Asia/Tehran" }).format(order.createdAt)}</dd></div>
           </dl>
+          {order.calls.length > 0 && <section aria-label="جلسه‌های خدمت" className="space-y-2 rounded-xl border border-dena-lavender p-4">
+            <h4 className="text-sm font-extrabold text-dena-deep">جلسه‌های خدمت</h4>
+            {order.calls.map((call) => <p key={call.id} className="text-sm text-dena-muted">
+              {new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Tehran" }).format(call.scheduledAt)} · {callStatusLabel[call.status]}
+            </p>)}
+          </section>}
           {order.status === "awaiting_guardian_consent" && <ServiceOrderConsent orderId={order.id} />}
         </Card></li>)}
       </ul>

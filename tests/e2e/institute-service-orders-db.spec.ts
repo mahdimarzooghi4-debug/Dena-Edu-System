@@ -5,10 +5,11 @@ import { expect, request, test, type APIRequestContext } from "@playwright/test"
 import { getDb } from "../../src/db";
 import {
   auditLogs, financialEntries, financialJournals, instituteServiceCatalog,
-  instituteServiceOrders, memberships, serviceTimeLedger,
+  instituteServiceCalls, instituteServiceOrders, memberships, serviceTimeLedger,
   session, user, verifiedEntities,
 } from "../../src/db/schema";
 import { captureInstituteServiceOrderPayment } from "../../src/server/finance/service-order-payments";
+import { endInstituteServiceCall, startInstituteServiceCall } from "../../src/server/institute/service-calls";
 
 test.describe.configure({ mode: "serial" });
 
@@ -28,6 +29,7 @@ test.describe("institute service order guardian consent", () => {
   const orderId = randomUUID();
   const orderIdempotencyKey = randomUUID();
   let concurrentlyCreatedOrderId: string | undefined;
+  let createdServiceCallId: string | undefined;
   const consentPath = `/api/institute/service-orders/${orderId}/consent`;
 
   async function client(as?: keyof typeof tokens): Promise<APIRequestContext> {
@@ -87,6 +89,12 @@ test.describe("institute service order guardian consent", () => {
   });
 
   test.afterAll(async () => {
+    if (createdServiceCallId) {
+      await db.delete(auditLogs).where(and(
+        eq(auditLogs.entityType, "SERVICE_CALL"), eq(auditLogs.entityId, createdServiceCallId),
+      ));
+      await db.delete(instituteServiceCalls).where(eq(instituteServiceCalls.id, createdServiceCallId));
+    }
     await db.delete(serviceTimeLedger).where(eq(serviceTimeLedger.serviceOrderId, orderId));
     await db.delete(auditLogs).where(and(
       eq(auditLogs.entityType, "SERVICE_ORDER"), eq(auditLogs.entityId, orderId),
@@ -250,6 +258,69 @@ test.describe("institute service order guardian consent", () => {
     const institutePage = await institute.get("/institute/service-orders");
     expect(await institutePage.text()).toContain("مصرف ثبت‌شده");
     expect(await institutePage.text()).toContain("۶۰ دقیقه");
+    await institute.dispose();
+  });
+
+  test("scopes call scheduling to paid consented service quotas and audits its lifecycle", async () => {
+    const scheduledAt = new Date(Date.now() + 60_000).toISOString();
+    const idempotencyKey = randomUUID();
+    const path = `/api/institute/service-orders/${orderId}/calls`;
+    const anonymous = await client();
+    expect((await post(anonymous, path, { scheduledAt, idempotencyKey })).status()).toBe(401);
+    await anonymous.dispose();
+
+    const student = await client("student");
+    expect((await post(student, path, { scheduledAt, idempotencyKey })).status()).toBe(404);
+    await student.dispose();
+
+    const otherInstitute = await client("otherInstitute");
+    expect((await post(otherInstitute, path, { scheduledAt, idempotencyKey })).status()).toBe(404);
+    await otherInstitute.dispose();
+
+    const institute = await client("institute");
+    const created = await post(institute, path, { scheduledAt, idempotencyKey });
+    expect(created.status()).toBe(201);
+    const createdBody = await created.json();
+    const serviceCallId = createdBody.call.id as string;
+    createdServiceCallId = serviceCallId;
+    expect(createdBody.call).toMatchObject({ status: "scheduled", duplicate: false });
+
+    const replay = await post(institute, path, { scheduledAt, idempotencyKey });
+    expect(replay.status()).toBe(200);
+    expect(await replay.json()).toMatchObject({ call: {
+      id: serviceCallId, status: "scheduled", duplicate: true,
+    } });
+    expect((await post(institute, path, {
+      scheduledAt: new Date(Date.now() + 120_000).toISOString(), idempotencyKey,
+    })).status()).toBe(409);
+    expect((await post(institute, path, {
+      scheduledAt, idempotencyKey: randomUUID(),
+    })).status()).toBe(409);
+    const earlyStart = await post(institute,
+      `/api/institute/service-calls/${serviceCallId}`, { action: "start" });
+    expect(earlyStart.status()).toBe(409);
+    expect(await earlyStart.json()).toMatchObject({ error: "call_too_early" });
+
+    const started = await startInstituteServiceCall(
+      users.institute, serviceCallId, new Date(Date.parse(scheduledAt) + 1_000),
+    );
+    expect(started).toMatchObject({ status: "started", duplicate: false });
+    expect(await startInstituteServiceCall(
+      users.institute, serviceCallId, new Date(Date.parse(scheduledAt) + 2_000),
+    )).toMatchObject({ status: "started", duplicate: true });
+    expect(await endInstituteServiceCall(
+      users.institute, serviceCallId, new Date(Date.parse(scheduledAt) + 3_000),
+    )).toMatchObject({ status: "ended", duplicate: false });
+    expect(await endInstituteServiceCall(
+      users.institute, serviceCallId, new Date(Date.parse(scheduledAt) + 4_000),
+    )).toMatchObject({ status: "ended", duplicate: true });
+    expect(await db.select().from(auditLogs).where(and(
+      eq(auditLogs.entityType, "SERVICE_CALL"), eq(auditLogs.entityId, serviceCallId),
+    ))).toHaveLength(3);
+    const studentHistory = await client("student");
+    expect(await (await studentHistory.get("/student/services/orders")).text()).toContain("زمان جلسه");
+    await studentHistory.dispose();
+    expect(await (await institute.get("/institute/service-orders")).text()).toContain("جلسه‌های خدمت");
     await institute.dispose();
   });
 
