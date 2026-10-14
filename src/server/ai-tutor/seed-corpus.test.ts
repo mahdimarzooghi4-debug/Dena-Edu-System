@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getStudyPrompt, recommendNextStudyStep } from "./study-recommendation";
+import { getReviewPracticeTopic, getStudyPrompt, recommendNextStudyStep } from "./study-recommendation";
 import {
   answerFromSeedCorpus, applySeedPracticeGuidance, getSeedPractice,
   gradeSeedPractice, SEED_CORPUS_VERSION,
@@ -87,6 +87,19 @@ describe("personalized starter practice", () => {
   });
 });
 
+
+describe("focused lesson review practice", () => {
+  it("targets only a supported topic where the student asked for more help", () => {
+    expect(getReviewPracticeTopic([
+      { topicId: "math.percent.v1", lessonFeedback: "understood" },
+      { topicId: "science.light.v1", lessonFeedback: "needs_help" },
+    ])).toBe("science.light.v1");
+    expect(getReviewPracticeTopic([
+      { topicId: "unreviewed.topic", lessonFeedback: "needs_help" },
+      { topicId: "math.percent.v1", lessonFeedback: null },
+    ])).toBeNull();
+  });
+});
 
 describe("student next study recommendation", () => {
   it("recommends only an explicitly saved topic that needs guidance", () => {
