@@ -1,16 +1,33 @@
 import type { SeedTopicId } from "./seed-corpus";
 
-const prompts: Record<SeedTopicId, string> = {
-  "math.linear-equation.v1": "معادلهٔ یک‌مجهولی را مرحله‌به‌مرحله مرور کن.",
-  "math.fractions.add.v1": "جمع کسرها را با مثال مرور کن.",
-  "math.percent.v1": "درصد را با یک مثال ساده مرور کن.",
-  "science.light.v1": "نور و عدسی را با مثال مرور کن.",
-  "geography.climate.v1": "اقلیم و رطوبت را با مثال مرور کن.",
+type StudyCard = { prompt: string; explanation: string };
+
+const studyCards: Record<SeedTopicId, StudyCard> = {
+  "math.linear-equation.v1": {
+    prompt: "معادلهٔ یک‌مجهولی را مرحله‌به‌مرحله مرور کن.",
+    explanation: "برای تنهاکردن مجهول، یک عمل را روی هر دو طرف تساوی انجام بده. در ۳x + ۵ = ۱۷، ابتدا ۵ را کم می‌کنیم و به ۳x = ۱۲ می‌رسیم؛ سپس بر ۳ تقسیم می‌کنیم: x = ۴.",
+  },
+  "math.fractions.add.v1": {
+    prompt: "جمع کسرها را با مثال مرور کن.",
+    explanation: "برای جمع کسرها مخرج مشترک بگیر و بعد صورت‌ها را جمع کن. مثلاً ۱/۲ + ۱/۳ برابر ۳/۶ + ۲/۶، یعنی ۵/۶ است؛ مخرج‌ها را مستقیم جمع نمی‌کنیم.",
+  },
+  "math.percent.v1": {
+    prompt: "درصد را با یک مثال ساده مرور کن.",
+    explanation: "درصد یعنی از هر صد. برای محاسبهٔ p درصدِ یک عدد، عدد را در p ضرب و بر ۱۰۰ تقسیم کن؛ مثلاً ۲۰٪ از ۱۵۰ برابر ۳۰ است.",
+  },
+  "science.light.v1": {
+    prompt: "نور و عدسی را با مثال مرور کن.",
+    explanation: "نور در محیط یکنواخت معمولاً مستقیم حرکت می‌کند. عدسی محدب پرتوهای موازی را به هم نزدیک می‌کند و عدسی مقعر آن‌ها را از هم دور می‌کند؛ نقطهٔ همگراییِ عدسی محدب کانون نام دارد.",
+  },
+  "geography.climate.v1": {
+    prompt: "اقلیم و رطوبت را با مثال مرور کن.",
+    explanation: "وضع هوا شرایط کوتاه‌مدت جو مثل بارش امروز است؛ اقلیم الگوی معمول یک منطقه در سال‌های طولانی است. رطوبت مقدار بخار آب هواست و به‌تنهایی به معنی بارش نیست.",
+  },
 };
 
 export function getStudyPrompt(topicId: string): string | null {
-  return Object.prototype.hasOwnProperty.call(prompts, topicId)
-    ? prompts[topicId as SeedTopicId]
+  return Object.prototype.hasOwnProperty.call(studyCards, topicId)
+    ? studyCards[topicId as SeedTopicId].prompt
     : null;
 }
 
@@ -19,5 +36,6 @@ export function recommendNextStudyStep(
 ) {
   const topic = topics.find((item) => item.practiceNeedsGuidance && getStudyPrompt(item.topicId));
   if (!topic) return null;
-  return { topicId: topic.topicId, prompt: getStudyPrompt(topic.topicId)! };
+  const card = studyCards[topic.topicId as SeedTopicId];
+  return { topicId: topic.topicId, prompt: card.prompt, explanation: card.explanation };
 }

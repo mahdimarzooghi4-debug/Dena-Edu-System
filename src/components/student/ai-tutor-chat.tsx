@@ -220,11 +220,14 @@ export function AiTutorChat({ courses, initialTopics, initialGuidanceConceptIds,
             <div className="rounded-xl bg-dena-bg p-4 text-sm leading-7">
               <p className="font-bold text-dena-ink">پیشنهاد مرور بعدی</p>
               <p className="mt-1 text-dena-muted">
-                چون در تمرین ذخیره‌شدهٔ «{topicTitles[recommendation.topicId] ?? "این مبحث"}» به راهنمایی بیشتری نیاز داشتی، این مرور از محتوای آغازین دنا پیشنهاد شده است.
+                در تمرین ذخیره‌شدهٔ «{topicTitles[recommendation.topicId] ?? "این مبحث"}» به راهنمایی بیشتری نیاز داشتی؛ این کارت از مجموعهٔ آغازین دناست.
+              </p>
+              <p className="mt-2 rounded-lg border border-dena-line bg-white p-3 text-dena-ink">
+                {recommendation.explanation}
               </p>
               <button type="button" onClick={() => setMessage(recommendation.prompt)}
                 className="mt-2 font-bold text-dena-brand underline underline-offset-4">
-                طرح پرسش مرور
+                رفتن به تمرین این مبحث
               </button>
             </div>
           )}
