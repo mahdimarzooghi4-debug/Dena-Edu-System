@@ -2148,3 +2148,27 @@ export const instituteServiceOrders = pgTable("dena_institute_service_orders", {
     OR (status = 'cancelled' AND paid_at IS NULL)
   `),
 ]);
+
+export const serviceTimeLedgerEventType = pgEnum("dena_service_time_ledger_event_type", [
+  "grant", "consume",
+]);
+export const serviceTimeLedger = pgTable("dena_service_time_ledger", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  serviceOrderId: uuid("service_order_id").notNull()
+    .references(() => instituteServiceOrders.id, { onDelete: "restrict" }),
+  eventKey: text("event_key").notNull(),
+  eventType: serviceTimeLedgerEventType("event_type").notNull(),
+  minutes: integer("minutes").notNull(),
+  serviceSessionId: uuid("service_session_id"),
+  createdByUserId: uuid("created_by_user_id").references(() => user.id, { onDelete: "restrict" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("dena_service_time_ledger_event_key_uidx").on(table.eventKey),
+  index("dena_service_time_ledger_order_created_idx").on(table.serviceOrderId, table.createdAt),
+  check("dena_service_time_ledger_event_key_ck", sql`event_key ~ '^[a-zA-Z0-9_.:-]{8,180}$'`),
+  check("dena_service_time_ledger_minutes_ck", sql`minutes BETWEEN 1 AND 100000`),
+  check("dena_service_time_ledger_event_session_ck", sql`
+    (event_type = 'grant' AND service_session_id IS NULL)
+    OR (event_type = 'consume' AND service_session_id IS NOT NULL)
+  `),
+]);

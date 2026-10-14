@@ -351,6 +351,13 @@
       "when": 1791882000000,
       "tag": "0049_dena_student_ai_tutor_lesson_feedback",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1791978772467,
+      "tag": "0050_dena_service_time_quota",
+      "breakpoints": true
     }
   ]
 }

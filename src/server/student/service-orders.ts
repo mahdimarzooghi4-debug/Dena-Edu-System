@@ -6,6 +6,7 @@ import {
 } from "../../db/schema";
 import { auditLogRecord } from "../admin/audit";
 import { calculateInstituteServiceGrossSplit } from "../institute/services";
+import { addRecordedServiceTimeBalances } from "../institute/service-time-quota";
 
 export const createServiceOrderInput = z.object({
   serviceId: z.uuid(),
@@ -24,7 +25,7 @@ export async function getStudentServiceOrders(studentUserId: string) {
     .where(and(eq(memberships.userId, studentUserId), eq(memberships.role, "student"),
       eq(memberships.status, "active"))).limit(1);
   if (!activeStudent) return [];
-  return db.select({
+  const orders = await db.select({
     id: instituteServiceOrders.id,
     serviceId: instituteServiceOrders.serviceId,
     instituteName: verifiedEntities.name,
@@ -41,6 +42,7 @@ export async function getStudentServiceOrders(studentUserId: string) {
     eq(verifiedEntities.role, "institute"),
   )).where(eq(instituteServiceOrders.studentUserId, studentUserId))
     .orderBy(desc(instituteServiceOrders.createdAt), desc(instituteServiceOrders.id)).limit(100);
+  return addRecordedServiceTimeBalances(orders);
 }
 
 export async function createStudentServiceOrder(

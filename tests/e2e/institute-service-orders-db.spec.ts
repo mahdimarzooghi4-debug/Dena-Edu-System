@@ -5,7 +5,7 @@ import { expect, request, test, type APIRequestContext } from "@playwright/test"
 import { getDb } from "../../src/db";
 import {
   auditLogs, financialEntries, financialJournals, instituteServiceCatalog,
-  instituteServiceOrders, memberships,
+  instituteServiceOrders, memberships, serviceTimeLedger,
   session, user, verifiedEntities,
 } from "../../src/db/schema";
 import { captureInstituteServiceOrderPayment } from "../../src/server/finance/service-order-payments";
@@ -64,7 +64,7 @@ test.describe("institute service order guardian consent", () => {
       id: serviceId, instituteId, createdByUserId: users.institute,
       title: "مشاورهٔ آزمایشی", category: "consultation",
       description: "خدمت آزمایشی برای آزمون جریان رضایت سرپرست.",
-      priceToman: 200_000, includedMinutes: null, validityDays: null,
+      priceToman: 200_000, includedMinutes: 60, validityDays: 30,
       guardianConsentRequired: true, cancellationPolicy: "درخواست پرداخت‌نشده قابل لغو است.",
       status: "active",
     });
@@ -81,12 +81,13 @@ test.describe("institute service order guardian consent", () => {
       serviceId, instituteId, serviceTitleSnapshot: "مشاورهٔ آزمایشی",
       categorySnapshot: "consultation", priceToman: 200_000,
       grossRials: 2_000_000, denaShareRials: 200_000, instituteShareRials: 1_800_000,
-      commissionBasisPoints: 1_000, includedMinutes: null, validityDays: null,
+      commissionBasisPoints: 1_000, includedMinutes: 60, validityDays: 30,
       guardianConsentRequired: true, status: "awaiting_guardian_consent",
     });
   });
 
   test.afterAll(async () => {
+    await db.delete(serviceTimeLedger).where(eq(serviceTimeLedger.serviceOrderId, orderId));
     await db.delete(auditLogs).where(and(
       eq(auditLogs.entityType, "SERVICE_ORDER"), eq(auditLogs.entityId, orderId),
     ));
@@ -233,6 +234,23 @@ test.describe("institute service order guardian consent", () => {
     expect(entries).toHaveLength(3);
     expect(entries.reduce((sum, entry) => sum + entry.debitRials, 0)).toBe(2_000_000);
     expect(entries.reduce((sum, entry) => sum + entry.creditRials, 0)).toBe(2_000_000);
+    const quotaGrants = await db.select().from(serviceTimeLedger)
+      .where(eq(serviceTimeLedger.serviceOrderId, orderId));
+    expect(quotaGrants).toHaveLength(1);
+    expect(quotaGrants[0]).toMatchObject({
+      eventKey: `service-quota-grant:${orderId}`, eventType: "grant", minutes: 60,
+      serviceSessionId: null,
+    });
+    const student = await client("student");
+    const studentPage = await student.get("/student/services/orders");
+    expect(await studentPage.text()).toContain("ماندهٔ ثبت‌شده");
+    expect(await studentPage.text()).toContain("۶۰ دقیقه");
+    await student.dispose();
+    const institute = await client("institute");
+    const institutePage = await institute.get("/institute/service-orders");
+    expect(await institutePage.text()).toContain("مصرف ثبت‌شده");
+    expect(await institutePage.text()).toContain("۶۰ دقیقه");
+    await institute.dispose();
   });
 
   test("serializes concurrent idempotent requests and allows unpaid cancellation", async () => {

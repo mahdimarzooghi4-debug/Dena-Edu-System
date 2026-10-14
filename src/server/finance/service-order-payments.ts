@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "../../db";
-import { instituteServiceOrders } from "../../db/schema";
+import { instituteServiceOrders, serviceTimeLedger } from "../../db/schema";
 import {
   FinancialJournalTransaction,
   instituteServicePaymentCaptureJournal,
@@ -44,6 +44,7 @@ export async function captureInstituteServiceOrderPayment(
       paidAt: instituteServiceOrders.paidAt,
       guardianConsentRequired: instituteServiceOrders.guardianConsentRequired,
       guardianConsentConfirmedAt: instituteServiceOrders.guardianConsentConfirmedAt,
+      includedMinutes: instituteServiceOrders.includedMinutes,
     }).from(instituteServiceOrders)
       .where(eq(instituteServiceOrders.id, parsed.orderId)).limit(1).for("update");
     if (!order) throw new InstituteServicePaymentError("order_unavailable");
@@ -53,6 +54,7 @@ export async function captureInstituteServiceOrderPayment(
     if (order.status === "paid" && order.paidAt) {
       const journal = await postCaptureJournal(tx, parsed, order.priceToman);
       if (!journal.duplicate) throw new InstituteServicePaymentError("event_reused");
+      await grantPurchasedQuota(tx, order.id, order.includedMinutes);
       return { orderId: order.id, status: "paid" as const, duplicate: true };
     }
     if (order.status !== "awaiting_payment" ||
@@ -72,8 +74,23 @@ export async function captureInstituteServiceOrderPayment(
       paidAt,
       updatedAt: paidAt,
     }).where(eq(instituteServiceOrders.id, order.id));
+    await grantPurchasedQuota(tx, order.id, order.includedMinutes);
     return { orderId: order.id, status: "paid" as const, duplicate: false };
   });
+}
+
+async function grantPurchasedQuota(
+  tx: FinancialJournalTransaction,
+  orderId: string,
+  includedMinutes: number | null,
+) {
+  if (includedMinutes === null) return;
+  await tx.insert(serviceTimeLedger).values({
+    serviceOrderId: orderId,
+    eventKey: `service-quota-grant:${orderId}`,
+    eventType: "grant",
+    minutes: includedMinutes,
+  }).onConflictDoNothing({ target: serviceTimeLedger.eventKey });
 }
 
 async function postCaptureJournal(
