@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { inArray, eq } from "drizzle-orm";
+import { and, inArray, eq } from "drizzle-orm";
 import { serializeSignedCookie } from "better-call";
 import { expect, request, test, type APIRequestContext } from "@playwright/test";
 import { getDb } from "../../src/db";
@@ -561,6 +561,36 @@ test.describe("course team communication and problem-solving stay course-scoped"
     }).from(courseTeamMembers)
       .where(eq(courseTeamMembers.id, supporterTeamMemberId));
     expect(row.requestsEnabled).toBe(false);
+
+    const counselorConversation =
+      `/api/student/courses/${courseId}/team/${counselorTeamMemberId}/conversation`;
+    const [messageDuringCancellation, cancelled] = await Promise.all([
+      student.post(counselorConversation, {
+        data: { body: "پیام هم‌زمان با لغو ثبت‌نام" }, headers: origin,
+      }),
+      student.post(`/api/student/courses/${courseId}/cancel`, {
+        data: {}, headers: origin,
+      }),
+    ]);
+    expect([201, 404]).toContain(messageDuringCancellation.status());
+    expect(cancelled.status()).toBe(200);
+    const [enrollment] = await db.select({ cancelledAt: studentEnrollments.cancelledAt })
+      .from(studentEnrollments).where(and(
+        eq(studentEnrollments.studentUserId, users.student),
+        eq(studentEnrollments.courseId, courseId),
+      ));
+    expect(enrollment.cancelledAt).toBeInstanceOf(Date);
+    const messages = await db.select({ createdAt: courseConversationMessages.createdAt })
+      .from(courseConversationMessages).innerJoin(courseConversations,
+        eq(courseConversations.id, courseConversationMessages.conversationId))
+      .where(and(
+        eq(courseConversations.studentUserId, users.student),
+        eq(courseConversations.courseId, courseId),
+      ));
+    expect(messages.every((message) => message.createdAt <= enrollment.cancelledAt!)).toBe(true);
+    expect((await student.post(counselorConversation, {
+      data: { body: "پیام پس از لغو" }, headers: origin,
+    })).status()).toBe(404);
 
     await institute.dispose();
     await student.dispose();
