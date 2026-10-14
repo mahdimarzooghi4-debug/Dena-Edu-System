@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { AiTutorPractice } from "./ai-tutor-practice";
+import { StudentCoursePractice } from "./course-practice";
 import { DENA_LEARNING_CONCEPTS } from "../../server/ai-tutor/learning-concepts";
 
 type Course = { courseId: string; title: string };
@@ -14,6 +15,13 @@ type TutorResponse = {
   topicRecorded?: boolean;
   topicId?: string;
   guidedHint?: string;
+  coursePractice?: {
+    courseId: string;
+    learningConceptId: string | null;
+    prompt: string;
+    options: string[];
+    attempt: { selectedOption: number; correct: boolean; submittedAt: string } | null;
+  } | null;
 };
 type Topic = { topicId: string; questionCount: number; lastAskedAt: string; practiceAttemptCount: number; practiceCorrectCount: number; practiceNeedsGuidance: boolean };
 const topicTitles: Record<string, string> = {
@@ -216,6 +224,10 @@ export function AiTutorChat({ courses, initialTopics, initialGuidanceConceptIds,
                   </span>{" "}
                   {result.guidedHint}
                 </p>
+              )}
+              {result.coursePractice && (
+                <StudentCoursePractice courseId={result.coursePractice.courseId}
+                  question={result.coursePractice} />
               )}
               {result.topicRecorded && <p className="mt-2 text-xs text-dena-muted">موضوع در مسیر شخصی تو ثبت شد.</p>}
               {result.source?.kind === "video" && (

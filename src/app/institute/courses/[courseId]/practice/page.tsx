@@ -6,6 +6,7 @@ import { Card } from "../../../../../components/ui/card";
 import { InstitutePracticeReview } from "../../../../../components/institute/practice-review";
 import { getServerAccessContext } from "../../../../../server/access/actor";
 import { getInstitutePractice } from "../../../../../server/student/course-practice";
+import { DENA_LEARNING_CONCEPTS } from "../../../../../server/ai-tutor/learning-concepts";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -62,6 +63,10 @@ export default async function InstitutePracticePage({
             <div className="space-y-4 rounded-xl bg-dena-bg p-5">
               <p className="text-sm font-bold">
                 وضعیت: {statusLabel[state.question.reviewStatus]}
+              </p>
+              <p className="text-sm leading-7 text-dena-muted">
+                مبحث مرتبط: {DENA_LEARNING_CONCEPTS.find((concept) =>
+                  concept.id === state.question?.learningConceptId)?.label ?? "بدون پیوند به مبحث ویدئو"}
               </p>
               <h2 className="font-extrabold leading-8">
                 {state.question.prompt}

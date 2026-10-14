@@ -700,6 +700,7 @@ export const practiceReviewStatus = pgEnum("dena_practice_review_status", [
 export const coursePracticeQuestions = pgTable("dena_course_practice_questions", {
   courseId: uuid("course_id").primaryKey()
     .references(() => courses.id, { onDelete: "restrict" }),
+  learningConceptId: text("learning_concept_id"),
   prompt: text("prompt").notNull(),
   option0: text("option_0").notNull(),
   option1: text("option_1").notNull(),
@@ -723,6 +724,12 @@ export const coursePracticeQuestions = pgTable("dena_course_practice_questions",
     (review_status IN ('approved', 'rejected')
       AND reviewed_by_institute_user_id IS NOT NULL
       AND reviewed_at IS NOT NULL AND review_reason IS NOT NULL)
+  `),
+  check("dena_practice_learning_concept_ck", sql`
+    learning_concept_id IS NULL OR learning_concept_id IN (
+      'science.light.v1', 'geography.climate.v1',
+      'math.linear-equation.v1', 'math.fractions.add.v1', 'math.percent.v1'
+    )
   `),
   check("dena_practice_question_bounds_ck", sql`
     char_length(prompt) BETWEEN 10 AND 500 AND btrim(prompt) <> ''

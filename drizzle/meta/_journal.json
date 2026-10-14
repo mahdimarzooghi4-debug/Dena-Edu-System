@@ -337,6 +337,13 @@
       "when": 1791820000000,
       "tag": "0047_dena_ai_seed_science_geography",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1791878640000,
+      "tag": "0048_dena_course_practice_learning_concept",
+      "breakpoints": true
     }
   ]
 }

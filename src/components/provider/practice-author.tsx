@@ -2,11 +2,15 @@
 
 import { useState, type FormEvent } from "react";
 import { Button } from "../ui/button";
+import { DENA_LEARNING_CONCEPTS } from "../../server/ai-tutor/learning-concepts";
 
 export function PracticeAuthor({
   courseId,
 }: { courseId: string }) {
   const [prompt, setPrompt] = useState("");
+  const [learningConceptId, setLearningConceptId] = useState<string>(
+    DENA_LEARNING_CONCEPTS[0].id,
+  );
   const [options, setOptions] = useState(["", "", "", ""]);
   const [correctOption, setCorrectOption] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
@@ -22,7 +26,7 @@ export function PracticeAuthor({
         `/api/provider/courses/${courseId}/practice`, {
           method: "POST", credentials: "same-origin", cache: "no-store",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt, options, correctOption }),
+          body: JSON.stringify({ learningConceptId, prompt, options, correctOption }),
         },
       );
       if (!response.ok) {
@@ -50,6 +54,18 @@ export function PracticeAuthor({
   </p>;
   return (
     <form onSubmit={(event) => void submit(event)} className="space-y-5">
+      <div className="space-y-2">
+        <label htmlFor="practice-learning-concept" className="block font-bold">
+          مبحث آموزشی مرتبط با ویدئو
+        </label>
+        <select id="practice-learning-concept" required value={learningConceptId}
+          onChange={(event) => setLearningConceptId(event.target.value)}
+          className="w-full rounded-xl border border-dena-border bg-white p-3 text-sm">
+          {DENA_LEARNING_CONCEPTS.map((concept) => (
+            <option key={concept.id} value={concept.id}>{concept.label}</option>
+          ))}
+        </select>
+      </div>
       <div className="space-y-2">
         <label htmlFor="practice-question" className="block font-bold">
           متن پرسش کوتاه
@@ -83,7 +99,8 @@ export function PracticeAuthor({
       <p className="text-sm leading-8 text-dena-muted">
         در این فاز تنها یک سؤال چهارگزینه‌ای برای هر دوره ثبت می‌شود.
         بعد از ثبت، سؤال و کلید پاسخ تغییر نمی‌کند. این تمرین به‌صورت
-        مستقل توسط مؤسسه بازبینی نمی‌شود و آزمون رسمی نیست.
+        مؤسسه پیش از نمایش به دانش‌آموز مستقلاً سؤال و کلید پاسخ را بازبینی می‌کند.
+        این تمرین آزمون رسمی نیست.
       </p>
       <Button type="submit" disabled={busy || correctOption === null}
         className="disabled:opacity-50">

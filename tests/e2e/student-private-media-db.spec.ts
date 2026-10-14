@@ -204,6 +204,7 @@ test.describe("free enrollment and private video access must stay course-scoped"
     expect((await post(provider, `/api/provider/courses/${ids.live}/publication`,
       { action: "publish", status: "approved" })).status()).toBe(400);
     const author = {
+      learningConceptId: "geography.climate.v1",
       prompt: "کدام گزینه پاسخ این سؤال تمرینی در دوره دناست؟",
       options: ["پاسخ نادرست یک", "پاسخ نادرست دو",
         "پاسخ درست دوره", "پاسخ نادرست سه"],
@@ -228,6 +229,7 @@ test.describe("free enrollment and private video access must stay course-scoped"
       sameSite: "Lax",
     }]);
     await page.goto(`http://localhost:3000/provider/courses/${ids.draft}/practice`);
+    await page.getByLabel("مبحث آموزشی مرتبط با ویدئو").selectOption("geography.climate.v1");
     await expect(page.getByRole("heading", {
       name: "تمرین کوتاه: دوره تاییدشده اما منتشرنشده",
     })).toBeVisible();
