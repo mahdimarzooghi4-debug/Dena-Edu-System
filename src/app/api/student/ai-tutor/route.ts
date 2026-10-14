@@ -13,6 +13,7 @@ import {
   getStudentTutorPracticeStats, recordStudentTutorTopic,
 } from "@/server/student/ai-tutor-profile";
 import { retrieveStudentVideoTranscript } from "@/server/ai-tutor/video-transcript";
+import { getStudentPractice } from "@/server/student/course-practice";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -74,6 +75,9 @@ export async function POST(request: NextRequest) {
   );
   if (videoResult) {
     const conceptId = videoResult.source.conceptId;
+    const coursePractice = conceptId
+      ? await getStudentPractice(actor.userId, parsed.data.courseId, conceptId)
+      : null;
     const savedTopicId = conceptId && isSeedTopicId(conceptId) ? conceptId : null;
     const practiceStats = savedTopicId
       ? await getStudentTutorPracticeStats(actor.userId, savedTopicId)
@@ -85,6 +89,7 @@ export async function POST(request: NextRequest) {
     if (topicId) await recordStudentTutorTopic(actor.userId, topicId);
     return NextResponse.json({
       ...videoResult,
+      coursePractice,
       topicRecorded: Boolean(topicId),
       ...(topicId ? { topicId } : {}),
       ...(guidedHint ? { guidedHint } : {}),
@@ -100,6 +105,9 @@ export async function POST(request: NextRequest) {
     }, { status: 422, headers: noStore });
   }
 
+  const coursePractice = await getStudentPractice(
+    actor.userId, parsed.data.courseId, result.source.id,
+  );
   const practiceStats = await getStudentTutorPracticeStats(
     actor.userId, result.source.id,
   );
@@ -113,6 +121,7 @@ export async function POST(request: NextRequest) {
   }
   return NextResponse.json({
     ...personalizedResult,
+    coursePractice,
     topicRecorded,
     ...(topicRecorded ? { topicId: result.source.id } : {}),
   }, { headers: noStore });

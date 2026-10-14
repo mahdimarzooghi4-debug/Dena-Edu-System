@@ -2,6 +2,7 @@ import { and, eq, or } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "../../db";
 import { isVerifiedProviderCourse } from "../courses/ownership";
+import { learningConceptIdSchema } from "../ai-tutor/learning-concepts";
 import {
   auditLogs, coursePracticeQuestions, courses, memberships, studentPracticeAttempts,
   supervisionGrants,
@@ -12,6 +13,7 @@ const option = z.string().trim().min(1).max(160).refine((value) =>
   !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/u.test(value),
 );
 export const newPracticeQuestion = z.object({
+  learningConceptId: learningConceptIdSchema,
   prompt: z.string().trim().min(10).max(500).refine((value) =>
     !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/u.test(value),
   ),
@@ -38,11 +40,12 @@ export class PracticeUnavailable extends Error {
 }
 
 function toPublicQuestion(row: {
-  courseId: string; prompt: string; option0: string; option1: string;
-  option2: string; option3: string;
+  courseId: string; learningConceptId: string | null; prompt: string;
+  option0: string; option1: string; option2: string; option3: string;
 }) {
   return {
     courseId: row.courseId,
+    learningConceptId: row.learningConceptId,
     prompt: row.prompt,
     options: [row.option0, row.option1, row.option2, row.option3],
   };
@@ -140,7 +143,7 @@ export async function createProviderPractice(
       throw new PracticeUnavailable("not_available");
     }
     const [created] = await tx.insert(coursePracticeQuestions).values({
-      courseId, prompt: input.prompt,
+      courseId, learningConceptId: input.learningConceptId, prompt: input.prompt,
       option0: input.options[0], option1: input.options[1],
       option2: input.options[2], option3: input.options[3],
       correctOption: input.correctOption,
@@ -154,10 +157,13 @@ export async function createProviderPractice(
 /** Caller MUST check hasStudentEntitlement on every read. Correct answer is
  * not selected or serialized from this path, including after submission.
  */
-export async function getStudentPractice(studentUserId: string, courseId: string) {
+export async function getStudentPractice(
+  studentUserId: string, courseId: string, learningConceptId?: string,
+) {
   const db = getDb();
   const [question] = await db.select({
     courseId: coursePracticeQuestions.courseId,
+    learningConceptId: coursePracticeQuestions.learningConceptId,
     prompt: coursePracticeQuestions.prompt,
     option0: coursePracticeQuestions.option0,
     option1: coursePracticeQuestions.option1,
@@ -167,6 +173,9 @@ export async function getStudentPractice(studentUserId: string, courseId: string
     .where(and(
       eq(coursePracticeQuestions.courseId, courseId),
       eq(coursePracticeQuestions.reviewStatus, "approved"),
+      ...(learningConceptId
+        ? [eq(coursePracticeQuestions.learningConceptId, learningConceptId)]
+        : []),
     )).limit(1);
   if (!question) return null;
   const [attempt] = await db.select({
