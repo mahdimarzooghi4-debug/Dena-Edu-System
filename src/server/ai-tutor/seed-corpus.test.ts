@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { getStudyPrompt, recommendNextStudyStep } from "./study-recommendation";
 import {
   answerFromSeedCorpus, applySeedPracticeGuidance, getSeedPractice,
   gradeSeedPractice, SEED_CORPUS_VERSION,
@@ -86,6 +87,26 @@ describe("personalized starter practice", () => {
   });
 });
 
+
+describe("student next study recommendation", () => {
+  it("recommends only an explicitly saved topic that needs guidance", () => {
+    expect(recommendNextStudyStep([
+      { topicId: "math.percent.v1", practiceAttemptCount: 2, practiceNeedsGuidance: false },
+      { topicId: "math.linear-equation.v1", practiceAttemptCount: 1, practiceNeedsGuidance: true },
+    ])).toMatchObject({
+      topicId: "math.linear-equation.v1",
+      prompt: expect.stringContaining("معادله"),
+    });
+  });
+
+  it("does not recommend without a saved need for guidance or for unsupported topics", () => {
+    expect(recommendNextStudyStep([
+      { topicId: "science.light.v1", practiceAttemptCount: 1, practiceNeedsGuidance: false },
+      { topicId: "unreviewed.topic", practiceAttemptCount: 1, practiceNeedsGuidance: true },
+    ])).toBeNull();
+    expect(getStudyPrompt("unreviewed.topic")).toBeNull();
+  });
+});
 
 describe("consent-based tutor response guidance", () => {
   it("adds only reviewed topic guidance after a saved outcome requests help", () => {

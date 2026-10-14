@@ -12,8 +12,8 @@ type Question = {
 
 /** One optional formative attempt. Answer key never crosses student boundary. */
 export function StudentCoursePractice({
-  courseId, question,
-}: { courseId: string; question: Question }) {
+  courseId, question, onResultRecorded,
+}: { courseId: string; question: Question; onResultRecorded?: (conceptId: string, correct: boolean) => void }) {
   const [attempt, setAttempt] = useState(question.attempt);
   const [selected, setSelected] = useState<number | null>(
     question.attempt?.selectedOption ?? null,
@@ -50,6 +50,9 @@ export function StudentCoursePractice({
         submittedAt: data.submittedAt,
       });
       setSelected(data.selectedOption);
+      if (data.resultRecorded && question.learningConceptId) {
+        onResultRecorded?.(question.learningConceptId, data.correct);
+      }
       setMessage(data.resultRecorded
         ? "پاسخ ثبت شد و با اجازهٔ تو در مسیر یادگیری معلم دنا هم لحاظ شد."
         : "پاسخ تمرین در سابقهٔ دوره ثبت شد.");
