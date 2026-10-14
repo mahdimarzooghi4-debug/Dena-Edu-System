@@ -17,6 +17,16 @@ describe("Dena internal tutor starter corpus", () => {
       .toBe("math.fractions.add.v1");
   });
 
+
+  it.each([
+    ["نور و عدسی را توضیح بده", "science.light.v1", "عدسی محدب"],
+    ["اقلیم و رطوبت یعنی چه؟", "geography.climate.v1", "اقلیم"],
+  ])("retrieves reviewed starter content for %s", (question, topicId, answerText) => {
+    const result = answerFromSeedCorpus(question);
+    expect(result?.source.id).toBe(topicId);
+    expect(result?.answer).toContain(answerText);
+  });
+
   it("does not make up an answer outside the starter corpus", () => {
     expect(answerFromSeedCorpus("نظریه نسبیت را توضیح بده")).toBeNull();
   });
@@ -31,6 +41,19 @@ describe("personalized starter practice", () => {
     expect(practice.options).toHaveLength(4);
     expect(practice.guidedHint).toEqual(expect.any(String));
     expect(practice).not.toHaveProperty("correctOption");
+  });
+
+
+  it.each([
+    ["science.light.v1", "practice.science.light.v1"],
+    ["geography.climate.v1", "practice.geography.climate.v1"],
+  ] as const)("offers and grades authored practice for %s", (topicId, questionId) => {
+    const practice = getSeedPractice(topicId);
+    expect(practice.id).toBe(questionId);
+    expect(practice.options).toHaveLength(4);
+    expect(practice).not.toHaveProperty("correctOption");
+    expect(gradeSeedPractice(questionId, 0)?.correct).toBe(true);
+    expect(gradeSeedPractice(questionId, 1)?.correct).toBe(false);
   });
 
   it("grades on the server and teaches after either choice", () => {

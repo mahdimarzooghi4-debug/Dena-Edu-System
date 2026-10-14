@@ -66,18 +66,20 @@ export async function POST(request: NextRequest) {
     }, { status: 403, headers: noStore });
   }
 
-  // A small, Dena-authored starter corpus powers this first internal version.
+  // Prefer a relevant, permission-checked course transcript. The small
+  // Dena-authored starter corpus is the fallback when no course video matches.
   // No external model is called and unsupported questions are not generated.
+  const videoResult = await retrieveStudentVideoTranscript(
+    actor.userId, parsed.data.courseId, parsed.data.message,
+  );
+  if (videoResult) {
+    return NextResponse.json({ ...videoResult, topicRecorded: false }, {
+      headers: noStore,
+    });
+  }
+
   const result = answerFromSeedCorpus(parsed.data.message);
   if (!result) {
-    const videoResult = await retrieveStudentVideoTranscript(
-      actor.userId, parsed.data.courseId, parsed.data.message,
-    );
-    if (videoResult) {
-      return NextResponse.json({ ...videoResult, topicRecorded: false }, {
-        headers: noStore,
-      });
-    }
     return NextResponse.json({
       error: "برای این پرسش هنوز محتوای آموزشی آماده ندارم.",
       code: "STARTER_CONTENT_NOT_FOUND",
