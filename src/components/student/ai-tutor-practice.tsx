@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 
 type PracticeQuestion = {
   questionId: string;
@@ -27,6 +27,7 @@ export function AiTutorPractice({ courseId, topics, enabled, onOutcomeSaved, ini
   showTopicSelector?: boolean;
 }) {
   const [selectedTopicId, setSelectedTopicId] = useState(initialTopicId ?? topics[0]?.topicId ?? "");
+  const optionGroupName = "tutor-practice-option-" + useId();
   const [question, setQuestion] = useState<PracticeQuestion | null>(null);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [rememberResult, setRememberResult] = useState(false);
@@ -141,7 +142,7 @@ export function AiTutorPractice({ courseId, topics, enabled, onOutcomeSaved, ini
             <legend className="sr-only">گزینهٔ پاسخ</legend>
             {question.options.map((option, index) => (
               <label key={option} className="flex items-center gap-3 rounded-lg bg-white p-3 text-sm">
-                <input type="radio" name="tutor-practice-option" checked={selectedOption === index}
+                <input type="radio" name={optionGroupName} checked={selectedOption === index}
                   onChange={() => setSelectedOption(index)} />
                 {option}
               </label>
