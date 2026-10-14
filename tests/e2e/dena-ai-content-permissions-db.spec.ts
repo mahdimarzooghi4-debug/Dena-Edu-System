@@ -289,7 +289,24 @@ test.describe("Dena AI video permission authorization and revocation", () => {
     });
     const savedTutorProfile = await student.get("/api/student/ai-tutor/profile");
     expect((await savedTutorProfile.json()).topics).toContainEqual(
-      expect.objectContaining({ topicId: "science.light.v1", questionCount: 1 }),
+      expect.objectContaining({ topicId: "science.light.v1", questionCount: 1, lessonFeedback: null }),
+    );
+    const missingConsent = await post(student, "/api/student/ai-tutor/profile", {
+      topicId: "science.light.v1", lessonFeedback: "understood", consent: false,
+    });
+    expect(missingConsent.status()).toBe(400);
+    const notStudentFeedback = await post(institute, "/api/student/ai-tutor/profile", {
+      topicId: "science.light.v1", lessonFeedback: "understood", consent: true,
+    });
+    expect(notStudentFeedback.status()).toBe(404);
+    const lessonFeedback = await post(student, "/api/student/ai-tutor/profile", {
+      topicId: "science.light.v1", lessonFeedback: "needs_help", consent: true,
+    });
+    expect(lessonFeedback.status()).toBe(200);
+    expect(await lessonFeedback.json()).toEqual({ saved: true });
+    const updatedTutorProfile = await student.get("/api/student/ai-tutor/profile");
+    expect((await updatedTutorProfile.json()).topics).toContainEqual(
+      expect.objectContaining({ topicId: "science.light.v1", lessonFeedback: "needs_help" }),
     );
 
     const otherInstitute = await client("otherInstitute");

@@ -625,6 +625,7 @@ export const studentAiTutorTopics = pgTable("dena_student_ai_tutor_topics", {
   practiceAttemptCount: integer("practice_attempt_count").notNull().default(0),
   practiceCorrectCount: integer("practice_correct_count").notNull().default(0),
   practiceNeedsGuidance: boolean("practice_needs_guidance").notNull().default(false),
+  lessonFeedback: text("lesson_feedback"),
   firstAskedAt: timestamp("first_asked_at", { withTimezone: true })
     .notNull().defaultNow(),
   lastAskedAt: timestamp("last_asked_at", { withTimezone: true })
@@ -648,6 +649,9 @@ export const studentAiTutorTopics = pgTable("dena_student_ai_tutor_topics", {
   check("dena_student_ai_tutor_topics_practice_bounds_ck", sql`
     practice_attempt_count BETWEEN 0 AND 10000
     AND practice_correct_count BETWEEN 0 AND practice_attempt_count
+  `),
+  check("dena_student_ai_tutor_topics_lesson_feedback_ck", sql`
+    lesson_feedback IS NULL OR lesson_feedback IN ('understood', 'needs_help')
   `),
 ]);
 
