@@ -153,9 +153,13 @@ export default async function StudentProgressPage() {
         <h2 className="text-lg font-extrabold">تمرین و آزمون</h2>
         <p className="mt-3 text-sm leading-8 text-dena-muted">
           تمرین چهارگزینه‌ایِ یک‌سؤالی در صفحهٔ تماشای دوره‌های دارای سؤال
-          موجود است؛ آزمون رسمی، مدرک، سنجش زمان تماشا و گزارش رسمی
-          یادگیری هنوز عملیاتی نیستند.
+          موجود است. آزمون‌های برنامه‌ریزی‌شدهٔ مؤسسه و آزمون‌های هماهنگ دنا
+          در صفحهٔ تمرین‌ها و آزمون‌ها نمایش داده می‌شوند. این صفحه مدرک،
+          سنجش زمان تماشای ویدئو یا گزارش رسمی یادگیری ارائه نمی‌کند.
         </p>
+        <Link href="/student/assessments" className={`${buttonClassName()} mt-4`}>
+          رفتن به آزمون‌ها و ارزیابی‌ها
+        </Link>
       </Card>
       </div>
     </StudentShell>

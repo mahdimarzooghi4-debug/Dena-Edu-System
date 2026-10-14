@@ -339,6 +339,18 @@ test.describe("student learning assessment lifecycle", () => {
     await student.dispose();
   });
 
+  test("student home surfaces published institute and Dena exams", async () => {
+    const student = await client("student");
+    const home = await student.get("/student");
+    expect(home.status()).toBe(200);
+    const html = await home.text();
+    expect(html).toContain("آزمون‌های من");
+    expect(html).toContain("آزمون هماهنگ دنا");
+    expect(html).toContain("آزمون مؤسسه");
+    expect(html).toContain("/student/assessments");
+    await student.dispose();
+  });
+
   test("hides answer keys, serializes starts, and requires lesson review before retry", async () => {
     const student = await client("student");
     const other = await client("other");

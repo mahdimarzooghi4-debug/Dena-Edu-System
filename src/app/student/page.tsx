@@ -8,6 +8,8 @@ import { StudentShell } from "../../components/student/student-shell";
 import { getServerAccessContext } from "../../server/access/actor";
 import { getStudentProgressOverview } from "../../server/student/progress-overview";
 import { nextStudentCourseAction } from "../../server/student/next-action";
+import { getStudentExamCatalog } from "../../server/assessments/exam-management";
+import { StudentExamCard } from "../../components/student/student-exam-card";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,7 +31,11 @@ export default async function StudentHomePage() {
   if (!actor) redirect("/login");
   if (!actor.memberships.some((entry) => entry.role === "student")) notFound();
 
-  const { courses, hasMore } = await getStudentProgressOverview(actor.userId);
+  const [{ courses, hasMore }, examCatalog] = await Promise.all([
+    getStudentProgressOverview(actor.userId),
+    getStudentExamCatalog(actor.userId),
+  ]);
+  const exams = examCatalog?.exams ?? [];
   const countLabel = hasMore ? "۲۰+" : courses.length.toLocaleString("fa-IR");
 
   return (
@@ -59,8 +65,31 @@ export default async function StudentHomePage() {
             <Link href="/student/progress" className={buttonClassName("outline")}>
               پیگیری یادگیری
             </Link>
+            <Link href="/student/assessments" className={buttonClassName("outline")}>
+              آزمون‌ها و ارزیابی‌ها
+            </Link>
           </div>
         </section>
+
+        {exams.length > 0 && (
+          <section aria-labelledby="student-upcoming-exams" className="space-y-4">
+            <SectionHeading id="student-upcoming-exams"
+              note="فقط آزمون‌های منتشرشده و تلاش‌های خودت">
+              آزمون‌های من
+            </SectionHeading>
+            <div className="grid gap-4 md:grid-cols-2">
+              {exams.slice(0, 4).map((exam) => (
+                <StudentExamCard key={exam.id} exam={exam} />
+              ))}
+            </div>
+            {exams.length > 4 && (
+              <Link href="/student/assessments"
+                className="text-sm font-bold text-dena-brand underline-offset-4 hover:underline">
+                دیدن همهٔ آزمون‌ها
+              </Link>
+            )}
+          </section>
+        )}
 
         <section aria-labelledby="student-ai-tutor" className="rounded-[22px] border border-dena-border bg-white p-6 shadow-[0_8px_12px_rgba(91,76,226,0.08)] md:p-7">
           <div className="flex flex-wrap items-start justify-between gap-5">
