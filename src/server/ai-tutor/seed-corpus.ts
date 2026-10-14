@@ -1,7 +1,7 @@
 /** Small, reviewed Dena-owned starter corpus. This is retrieval over authored
  * examples, not a trained model. Unsupported questions must remain unanswered.
  */
-export const SEED_CORPUS_VERSION = "2026-10-12.2";
+export const SEED_CORPUS_VERSION = "2026-10-12.3";
 export type SeedTopicId =
   | "math.linear-equation.v1"
   | "math.fractions.add.v1"
@@ -33,6 +33,14 @@ const lessons = [
       explanation: "۳ را از دو طرف کم کن: ۲x = ۸. سپس دو طرف را بر ۲ تقسیم کن: x = ۴.",
       guidedHint: "اول عددی را که تنهاست از هر دو طرف کم کن؛ بعد ضریب کنار x را حذف کن.",
     },
+    alternates: [{
+      id: "practice.linear-equation.v2",
+      prompt: "اگر ۴x − ۶ = ۱۰ باشد، x چند است؟",
+      options: ["۲", "۳", "۴", "۵"],
+      correctOption: 2,
+      explanation: "۶ را به دو طرف اضافه کن: ۴x = ۱۶. سپس بر ۴ تقسیم کن: x = ۴.",
+      guidedHint: "اول ۶ را به دو طرف اضافه کن؛ بعد هر دو طرف را بر ۴ تقسیم کن.",
+    }],
   },
   {
     id: "math.fractions.add.v1",
@@ -47,6 +55,14 @@ const lessons = [
       explanation: "۱/۲ را به ۲/۴ تبدیل کن؛ سپس ۱/۴ + ۲/۴ = ۳/۴.",
       guidedHint: "مخرج مشترک ۴ است؛ کسر دوم را هم‌ارزِ چهارم بنویس و بعد صورت‌ها را جمع کن.",
     },
+    alternates: [{
+      id: "practice.fractions.add.v2",
+      prompt: "حاصل ۲/۳ + ۱/۶ کدام است؟",
+      options: ["۳/۹", "۴/۶", "۵/۶", "۱"],
+      correctOption: 2,
+      explanation: "۲/۳ را به ۴/۶ تبدیل کن؛ سپس ۴/۶ + ۱/۶ = ۵/۶.",
+      guidedHint: "مخرج مشترک ۶ بگیر و ۲/۳ را به کسری هم‌ارز با مخرج ۶ تبدیل کن.",
+    }],
   },
   {
     id: "math.percent.v1",
@@ -61,6 +77,14 @@ const lessons = [
       explanation: "(۲۰۰ × ۱۵) ÷ ۱۰۰ = ۳۰.",
       guidedHint: "عدد را در درصد ضرب کن و حاصل را بر ۱۰۰ تقسیم کن.",
     },
+    alternates: [{
+      id: "practice.percent.v2",
+      prompt: "۲۵٪ از ۸۰ چند است؟",
+      options: ["۱۵", "۲۰", "۲۵", "۳۰"],
+      correctOption: 1,
+      explanation: "(۸۰ × ۲۵) ÷ ۱۰۰ = ۲۰.",
+      guidedHint: "۲۵ درصد یعنی یک‌چهارم؛ ۸۰ را بر ۴ تقسیم کن.",
+    }],
   },
   {
     id: "science.light.v1",
@@ -75,6 +99,14 @@ const lessons = [
       explanation: "عدسی محدب پرتوهای موازی را پس از عبور به هم نزدیک می‌کند؛ در حالت آرمانی آن‌ها نزدیک کانون به هم می‌رسند.",
       guidedHint: "شکل عدسی محدب در وسط ضخیم‌تر است و پرتوهای موازی را همگرا می‌کند.",
     },
+    alternates: [{
+      id: "practice.science.light.v2",
+      prompt: "عدسی مقعر پرتوهای موازی نور را پس از عبور چگونه تغییر می‌دهد؟",
+      options: ["آن‌ها را به هم نزدیک می‌کند", "آن‌ها را از هم دور می‌کند", "همه را جذب می‌کند", "جهتشان را عوض نمی‌کند"],
+      correctOption: 1,
+      explanation: "عدسی مقعر واگراست و پرتوهای موازی را پس از عبور از هم دور می‌کند.",
+      guidedHint: "عدسی مقعر در وسط نازک‌تر است و پرتوها را واگرا می‌کند.",
+    }],
   },
   {
     id: "geography.climate.v1",
@@ -89,6 +121,14 @@ const lessons = [
       explanation: "وضع هوا تغییرهای کوتاه‌مدت جو را توصیف می‌کند؛ اقلیم از الگوی معمول این شرایط در دوره‌ای طولانی به دست می‌آید.",
       guidedHint: "به بازهٔ زمانی توجه کن: امروز در برابر الگوی چندسالهٔ یک منطقه.",
     },
+    alternates: [{
+      id: "practice.geography.climate.v2",
+      prompt: "کدام جمله نمونه‌ای از توصیف وضع هوای یک روز است؟",
+      options: ["میانگین بارش این منطقه در چند دهه", "امروز در این شهر باران می‌بارد", "تابستان‌های این ناحیه معمولاً خشک‌اند", "زمستان‌های منطقه در بیشتر سال‌ها سرد است"],
+      correctOption: 1,
+      explanation: "بارش امروز رویدادی کوتاه‌مدت است؛ سه گزینهٔ دیگر الگوهای معمول اقلیمی را توصیف می‌کنند.",
+      guidedHint: "به واژهٔ «امروز» توجه کن؛ وضع هوا کوتاه‌مدت است و اقلیم الگوی بلندمدت را نشان می‌دهد.",
+    }],
   },
 ] as const;
 
@@ -131,24 +171,36 @@ export function answerFromSeedCorpus(message: string): SeedAnswer | null {
   };
 }
 
-export function getSeedPractice(topicId: SeedTopicId): SeedPractice {
+export function getSeedPractice(
+  topicId: SeedTopicId,
+  excludeQuestionId?: string,
+): SeedPractice {
   const lesson = lessons.find((candidate) => candidate.id === topicId);
   if (!lesson) throw new Error("unknown tutor topic");
+  const practices = [lesson.practice, ...lesson.alternates];
+  const practice = practices.find((candidate) => candidate.id !== excludeQuestionId) ??
+    practices[0];
   return {
-    id: lesson.practice.id,
+    id: practice.id,
     topicId: lesson.id,
     topicTitle: lesson.title,
-    prompt: lesson.practice.prompt,
-    options: lesson.practice.options,
-    guidedHint: lesson.practice.guidedHint,
+    prompt: practice.prompt,
+    options: practice.options,
+    guidedHint: practice.guidedHint,
   };
 }
 
 export function gradeSeedPractice(
   questionId: string,
   selectedOption: number,
+  topicId?: SeedTopicId,
 ): SeedPracticeResult | null {
-  const practice = lessons.find((lesson) => lesson.practice.id === questionId)?.practice;
+  const lesson = lessons.find((candidate) => candidate.id === topicId &&
+    [candidate.practice, ...candidate.alternates].some((practice) => practice.id === questionId));
+  const practice = topicId
+    ? lesson && [lesson.practice, ...lesson.alternates].find((item) => item.id === questionId)
+    : lessons.flatMap((candidate) => [candidate.practice, ...candidate.alternates])
+      .find((item) => item.id === questionId);
   if (!practice) return null;
   return {
     correct: practice.correctOption === selectedOption,

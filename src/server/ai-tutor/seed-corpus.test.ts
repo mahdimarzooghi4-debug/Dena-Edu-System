@@ -56,6 +56,27 @@ describe("personalized starter practice", () => {
     expect(gradeSeedPractice(questionId, 1)?.correct).toBe(false);
   });
 
+  it.each([
+    ["math.linear-equation.v1", "practice.linear-equation.v2", 2],
+    ["math.fractions.add.v1", "practice.fractions.add.v2", 2],
+    ["math.percent.v1", "practice.percent.v2", 1],
+    ["science.light.v1", "practice.science.light.v2", 1],
+    ["geography.climate.v1", "practice.geography.climate.v2", 1],
+  ] as const)("provides a different reviewed follow-up for %s", (topicId, nextId, correctOption) => {
+    const first = getSeedPractice(topicId);
+    const next = getSeedPractice(topicId, first.id);
+    expect(next.id).toBe(nextId);
+    expect(next.topicId).toBe(topicId);
+    expect(next.id).not.toBe(first.id);
+    expect(next.options).toHaveLength(4);
+    expect(next).not.toHaveProperty("correctOption");
+    expect(gradeSeedPractice(next.id, correctOption, topicId)?.correct).toBe(true);
+    const otherTopicId = topicId === "math.percent.v1"
+      ? "science.light.v1"
+      : "math.percent.v1";
+    expect(gradeSeedPractice(next.id, correctOption, otherTopicId)).toBeNull();
+  });
+
   it("grades on the server and teaches after either choice", () => {
     expect(gradeSeedPractice("practice.linear-equation.v1", 1))
       .toMatchObject({ correct: true, explanation: expect.stringContaining("x = ۴") });
