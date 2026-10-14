@@ -247,6 +247,16 @@ export async function submitStudentLearningAssessment(
       )).limit(1).for("update");
     if (!assessment || !attempt) return null;
     if (attempt.status !== "in_progress") {
+      if (attempt.status === "submitted" && attempt.outcome &&
+          attempt.correctCount !== null && attempt.submittedAt) {
+        return {
+          attemptId, outcome: attempt.outcome,
+          correctCount: attempt.correctCount,
+          questionCount: assessment.questionCount,
+          submittedAt: attempt.submittedAt,
+          replayed: true,
+        };
+      }
       throw new LearningAssessmentUnavailable("attempt_closed");
     }
     const questions = await tx.select({
@@ -281,7 +291,7 @@ export async function submitStudentLearningAssessment(
       status: "submitted", outcome, correctCount, submittedAt,
     }).where(eq(studentLearningAssessmentAttempts.id, attemptId));
     return { attemptId, outcome, correctCount,
-      questionCount: assessment.questionCount, submittedAt };
+      questionCount: assessment.questionCount, submittedAt, replayed: false };
   });
 }
 

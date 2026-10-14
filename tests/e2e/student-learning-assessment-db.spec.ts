@@ -648,9 +648,19 @@ test.describe("student learning assessment lifecycle", () => {
 
     const answers = Object.fromEntries(attempt.questions.map((item: { questionId: string }) =>
       [item.questionId, 1]));
-    const submitted = await post(student, `${basePath}/attempts/${attemptId}`, { answers });
-    expect(submitted.status()).toBe(201);
-    const result = await submitted.json();
+    const submissions = await Promise.all([
+      post(student, `${basePath}/attempts/${attemptId}`, { answers }),
+      post(student, `${basePath}/attempts/${attemptId}`, { answers }),
+    ]);
+    expect(submissions.map((response) => response.status())).toEqual([201, 201]);
+    const results = await Promise.all(submissions.map((response) => response.json()));
+    expect(results.map((result) => result.replayed).sort()).toEqual([false, true]);
+    expect(results[0]).toMatchObject({ outcome: "needs_review", correctCount: 0, questionCount: 2 });
+    expect(results[1]).toMatchObject({
+      attemptId, outcome: results[0].outcome, correctCount: results[0].correctCount,
+      questionCount: results[0].questionCount, submittedAt: results[0].submittedAt,
+    });
+    const result = results[0];
     expect(result).toMatchObject({ outcome: "needs_review", correctCount: 0, questionCount: 2 });
     expect(JSON.stringify(result)).not.toContain("correctOption");
 
