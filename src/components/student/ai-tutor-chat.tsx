@@ -189,6 +189,10 @@ export function AiTutorChat({ courses, initialTopics, initialGuidanceConceptIds,
             {clearBusy ? "در حال پاک‌کردن…" : "پاک‌کردن داده‌های مسیر شخصی"}
           </button>
           {topics.length > 0 && <AiTutorPractice key={courseId} courseId={courseId}
+            topics={topics.map((topic) => ({
+              topicId: topic.topicId,
+              title: topicTitles[topic.topicId] ?? "موضوع آموزشی",
+            }))}
             enabled={Boolean(courseId && topics.length > 0)}
             onOutcomeSaved={(topicId, correct) => setTopics((current) => current.map((topic) =>
               topic.topicId === topicId ? {

@@ -16,11 +16,13 @@ type PracticeResult = {
   resultRecorded: boolean;
 };
 
-export function AiTutorPractice({ courseId, enabled, onOutcomeSaved }: {
+export function AiTutorPractice({ courseId, topics, enabled, onOutcomeSaved }: {
   courseId: string;
+  topics: Array<{ topicId: string; title: string }>;
   enabled: boolean;
   onOutcomeSaved: (topicId: string, correct: boolean) => void;
 }) {
+  const [selectedTopicId, setSelectedTopicId] = useState(topics[0]?.topicId ?? "");
   const [question, setQuestion] = useState<PracticeQuestion | null>(null);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [rememberResult, setRememberResult] = useState(false);
@@ -29,7 +31,7 @@ export function AiTutorPractice({ courseId, enabled, onOutcomeSaved }: {
   const [busy, setBusy] = useState(false);
 
   async function loadQuestion() {
-    if (!courseId || busy) return;
+    if (!courseId || !selectedTopicId || busy) return;
     setBusy(true);
     setError("");
     setQuestion(null);
@@ -37,7 +39,8 @@ export function AiTutorPractice({ courseId, enabled, onOutcomeSaved }: {
     setSelectedOption(null);
     try {
       const response = await fetch(
-        "/api/student/ai-tutor/practice?courseId=" + encodeURIComponent(courseId),
+        "/api/student/ai-tutor/practice?courseId=" + encodeURIComponent(courseId) +
+          "&topicId=" + encodeURIComponent(selectedTopicId),
         { credentials: "same-origin", cache: "no-store" },
       );
       const data = await response.json() as PracticeQuestion & { error?: string };
@@ -68,6 +71,7 @@ export function AiTutorPractice({ courseId, enabled, onOutcomeSaved }: {
         body: JSON.stringify({
           courseId,
           questionId: question.questionId,
+          topicId: question.topicId,
           selectedOption,
           rememberResult,
         }),
@@ -96,8 +100,22 @@ export function AiTutorPractice({ courseId, enabled, onOutcomeSaved }: {
           نتیجه فقط وقتی ذخیره می‌شود که خودت گزینهٔ جداگانهٔ ثبت را روشن کنی؛ این تمرین نمره نیست.
         </p>
       </div>
+      <label className="block text-sm font-semibold text-dena-ink">
+        مبحث
+        <select className="mt-2 block w-full rounded-xl border border-dena-line bg-white p-3"
+          value={selectedTopicId} disabled={busy}
+          onChange={(event) => {
+            setSelectedTopicId(event.target.value);
+            setQuestion(null);
+            setSelectedOption(null);
+            setResult(null);
+            setError("");
+          }}>
+          {topics.map((topic) => <option key={topic.topicId} value={topic.topicId}>{topic.title}</option>)}
+        </select>
+      </label>
       {!question && (
-        <button type="button" disabled={busy || !courseId}
+        <button type="button" disabled={busy || !courseId || !selectedTopicId}
           onClick={() => void loadQuestion()}
           className="rounded-xl border border-dena-line bg-white px-4 py-2 text-sm font-bold text-dena-brand disabled:opacity-50">
           {busy ? "در حال آماده‌سازی…" : "گرفتن یک تمرین کوتاه"}

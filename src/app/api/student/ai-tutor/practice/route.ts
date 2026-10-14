@@ -5,7 +5,7 @@ import { getDb } from "@/db";
 import { assessmentExamAttempts } from "@/db/schema";
 import { getServerAccessContext } from "@/server/access/actor";
 import { validSameOrigin } from "@/server/access/role-application-contracts";
-import { getSeedPractice, gradeSeedPractice } from "@/server/ai-tutor/seed-corpus";
+import { getSeedPractice, gradeSeedPractice, isSeedTopicId } from "@/server/ai-tutor/seed-corpus";
 import { hasStudentEntitlement } from "@/server/student/entitlement";
 import {
   getLatestStudentTutorTopic, getStudentTutorPracticeStats,
@@ -18,6 +18,7 @@ const noStore = { "Cache-Control": "private, no-store, max-age=0" };
 const answerSchema = z.object({
   courseId: z.uuid(),
   questionId: z.string().min(1).max(100),
+  topicId: z.string().optional(),
   selectedOption: z.number().int().min(0).max(3),
   rememberResult: z.boolean().optional(),
 }).strict();
@@ -52,12 +53,18 @@ export async function GET(request: NextRequest) {
       status: 403, headers: noStore,
     });
   }
-  const topicId = await getLatestStudentTutorTopic(actor.userId);
+  const requestedTopicId = request.nextUrl.searchParams.get("topicId");
+  const topicId = requestedTopicId
+    ? (isSeedTopicId(requestedTopicId) ? requestedTopicId : null)
+    : await getLatestStudentTutorTopic(actor.userId);
   if (!topicId) return NextResponse.json({ error: "No saved topic" }, {
     status: 404, headers: noStore,
   });
-  const practice = getSeedPractice(topicId);
   const stats = await getStudentTutorPracticeStats(actor.userId, topicId);
+  if (!stats) return NextResponse.json({ error: "Practice unavailable" }, {
+    status: 404, headers: noStore,
+  });
+  const practice = getSeedPractice(topicId);
   const guided = stats?.practiceNeedsGuidance ?? false;
   return NextResponse.json({
     questionId: practice.id,
@@ -94,8 +101,13 @@ export async function POST(request: NextRequest) {
       status: 403, headers: noStore,
     });
   }
-  const topicId = await getLatestStudentTutorTopic(actor.userId);
-  if (!topicId || getSeedPractice(topicId).id !== parsed.data.questionId) {
+  const topicId = parsed.data.topicId
+    ? (isSeedTopicId(parsed.data.topicId) ? parsed.data.topicId : null)
+    : await getLatestStudentTutorTopic(actor.userId);
+  const stats = topicId
+    ? await getStudentTutorPracticeStats(actor.userId, topicId)
+    : null;
+  if (!topicId || !stats || getSeedPractice(topicId).id !== parsed.data.questionId) {
     return NextResponse.json({ error: "Practice unavailable" }, {
       status: 404, headers: noStore,
     });
