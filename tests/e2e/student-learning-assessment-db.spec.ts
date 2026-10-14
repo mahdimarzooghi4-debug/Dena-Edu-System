@@ -1,12 +1,13 @@
 import { randomUUID } from "node:crypto";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { serializeSignedCookie } from "better-call";
 import { expect, request, test, type APIRequestContext } from "@playwright/test";
 import { getDb } from "../../src/db";
 import {
-  assessmentExamAttempts, assessmentExams, assessmentQuestionBanks,
+  assessmentExamAttempts, assessmentExams, assessmentQuestionBanks, auditLogs,
   courseLearningAssessmentQuestions, courseLearningAssessments,
   coursePracticeQuestions, courses,
+  educatorInstituteAffiliations, independentEducatorProfiles,
   memberships, privateMediaAssets, session, studentEnrollments,
   studentLearningAssessmentAttempts,
   studentLearningAssessmentAttemptQuestions,
@@ -349,6 +350,95 @@ test.describe("student learning assessment lifecycle", () => {
     expect(html).toContain("آزمون مؤسسه");
     expect(html).toContain("/student/assessments");
     await student.dispose();
+  });
+
+  test("independent educator can author a scoped learning assessment for institute review", async () => {
+    const independentCourseId = randomUUID();
+    const profileId = randomUUID();
+    const affiliationId = randomUUID();
+    const assetId = randomUUID();
+    let assessmentId: string | null = null;
+    await db.insert(independentEducatorProfiles).values({
+      id: profileId, userId: users.student, displayName: "همکار آزمون",
+    });
+    await db.insert(educatorInstituteAffiliations).values({
+      id: affiliationId, educatorProfileId: profileId, instituteId,
+      requestedByUserId: users.student, clientRequestId: randomUUID(),
+      displayNameSnapshot: "همکار آزمون",
+      statement: "همکاری آموزشی برای آزمون یک دورهٔ آزمایشی.",
+      status: "approved", reviewedByUserId: users.institute,
+      reviewedAt: new Date(), decisionReason: "همکاری برای آزمون پذیرفته شد.",
+    });
+    await db.insert(courses).values({
+      id: independentCourseId, ownerType: "independent_educator",
+      independentEducatorProfileId: profileId, providerId: null,
+      responsibleInstituteId: instituteId, title: "دورهٔ همکار مستقل",
+      createdByProviderUserId: users.student, clientRequestId: randomUUID(),
+    });
+    await db.insert(supervisionGrants).values({
+      courseId: independentCourseId, ownerType: "independent_educator",
+      independentEducatorProfileId: profileId, providerId: null, instituteId,
+      status: "approved", requestedByProviderUserId: users.student,
+      approvedByInstituteUserId: users.institute, approvedAt: new Date(),
+    });
+    await db.insert(privateMediaAssets).values({
+      id: assetId, courseId: independentCourseId, title: "درس آماده",
+      objectKey: `${independentCourseId}/${assetId}.mp4`,
+    });
+
+    try {
+      const educator = await client("student");
+      const instituteClient = await client("institute");
+      const other = await client("other");
+      const path = `/api/independent-educator/courses/${independentCourseId}/assessments`;
+      expect((await educator.get(path)).status()).toBe(200);
+      expect((await other.get(path)).status()).toBe(404);
+      const created = await post(educator, path, {
+        title: "ارزیابی همکار مستقل", instructions: "به پرسش پاسخ دهید.",
+        questionCount: 1, requiredCorrectCount: 1,
+        questions: [{
+          prompt: "کدام گزینه برای ارزیابی این درس درست است؟",
+          options: ["پاسخ درست", "گزینهٔ دوم", "گزینهٔ سوم", "گزینهٔ چهارم"],
+          correctOption: 0, lessonAssetId: assetId,
+        }],
+      });
+      expect(created.status()).toBe(201);
+      const createdBody = await created.json();
+      assessmentId = createdBody.assessmentId;
+      expect(createdBody).toMatchObject({ reviewStatus: "pending" });
+      expect((await instituteClient.get(
+        `/api/institute/courses/${independentCourseId}/assessments`,
+      )).status()).toBe(200);
+      const decision = await post(instituteClient,
+        `/api/institute/courses/${independentCourseId}/assessments/${assessmentId}`, {
+          action: "approve", reason: "متن، کلید و درس مرتبط بررسی شد.",
+        });
+      expect(decision.status()).toBe(200);
+      expect(await decision.json()).toMatchObject({ reviewStatus: "approved" });
+      const page = await educator.get(
+        `/account/independent-educator/courses/${independentCourseId}/assessments`,
+      );
+      expect(page.status()).toBe(200);
+      expect(await page.text()).toContain("ارزیابی همکار مستقل");
+      await educator.dispose();
+      await instituteClient.dispose();
+      await other.dispose();
+    } finally {
+      if (assessmentId) {
+        await db.delete(auditLogs).where(and(
+          eq(auditLogs.entityType, "PRACTICE"), eq(auditLogs.entityId, assessmentId),
+        ));
+        await db.delete(courseLearningAssessmentQuestions)
+          .where(eq(courseLearningAssessmentQuestions.assessmentId, assessmentId));
+        await db.delete(courseLearningAssessments)
+          .where(eq(courseLearningAssessments.id, assessmentId));
+      }
+      await db.delete(privateMediaAssets).where(eq(privateMediaAssets.id, assetId));
+      await db.delete(supervisionGrants).where(eq(supervisionGrants.courseId, independentCourseId));
+      await db.delete(courses).where(eq(courses.id, independentCourseId));
+      await db.delete(educatorInstituteAffiliations).where(eq(educatorInstituteAffiliations.id, affiliationId));
+      await db.delete(independentEducatorProfiles).where(eq(independentEducatorProfiles.id, profileId));
+    }
   });
 
   test("hides answer keys, serializes starts, and requires lesson review before retry", async () => {

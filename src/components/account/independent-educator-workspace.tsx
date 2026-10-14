@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import Link from "next/link";
 import { Button } from "../ui/button";
 
 type Institute = { id: string; name: string };
@@ -331,6 +332,13 @@ export function IndependentEducatorWorkspace({
                 {" · "}انتشار: {course.publicationStatus === "draft" ? "پیش‌نویس"
                   : course.publicationStatus === "published" ? "منتشرشده" : "بایگانی‌شده"}
               </p>
+              {course.publicationStatus === "draft" &&
+                course.supervisionStatus === "approved" && (
+                  <Link href={`/account/independent-educator/courses/${course.courseId}/assessments`}
+                    className="mt-3 inline-flex min-h-10 items-center rounded-lg bg-dena-lavender px-3 text-sm font-bold text-dena-brand">
+                    مدیریت ارزیابی‌های یادگیری
+                  </Link>
+                )}
             </li>
           ))}
         </ul>

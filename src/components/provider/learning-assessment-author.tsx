@@ -28,11 +28,13 @@ const emptyQuestion = (lessonAssetId: string): DraftQuestion => ({
   prompt: "", options: ["", "", "", ""], correctOption: 0, lessonAssetId,
 });
 
-export function LearningAssessmentAuthor({ courseId, lessons, assessments, canCreate }: {
+export function LearningAssessmentAuthor({ courseId, lessons, assessments, canCreate,
+  apiPath = `/api/provider/courses/${courseId}/assessments`, }: {
   courseId: string;
   lessons: Lesson[];
   assessments: Assessment[];
   canCreate: boolean;
+  apiPath?: string;
 }) {
   const [title, setTitle] = useState("");
   const [instructions, setInstructions] = useState("");
@@ -54,7 +56,7 @@ export function LearningAssessmentAuthor({ courseId, lessons, assessments, canCr
     if (busy || !canCreate) return;
     setBusy(true); setMessage("");
     try {
-      const response = await fetch(`/api/provider/courses/${courseId}/assessments`, {
+      const response = await fetch(apiPath, {
         method: "POST", credentials: "same-origin", cache: "no-store",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title, instructions, questionCount,
