@@ -1131,7 +1131,10 @@ export const mediaMultipartPlans = pgTable("dena_media_multipart_plans", {
   courseId: uuid("course_id").notNull().references(() => courses.id, {
     onDelete: "restrict",
   }),
-  providerId: uuid("provider_id").notNull(),
+  ownerType: courseOwnerType("owner_type").notNull().default("verified_provider"),
+  providerId: uuid("provider_id"),
+  independentEducatorProfileId: uuid("independent_educator_profile_id")
+    .references(() => independentEducatorProfiles.id, { onDelete: "restrict" }),
   createdByUserId: uuid("created_by_user_id").notNull().references(() => user.id, {
     onDelete: "restrict",
   }),
@@ -1154,6 +1157,12 @@ export const mediaMultipartPlans = pgTable("dena_media_multipart_plans", {
   `),
   check("dena_multipart_status_ck", sql`
     status IN ('planned', 'expired', 'cancelled')
+  `),
+  check("dena_multipart_owner_scope_ck", sql`
+    (owner_type = 'verified_provider' AND provider_id IS NOT NULL
+      AND independent_educator_profile_id IS NULL)
+    OR (owner_type = 'independent_educator' AND provider_id IS NULL
+      AND independent_educator_profile_id IS NOT NULL)
   `),
   check("dena_multipart_cancel_ck", sql`
     (status = 'cancelled' AND cancelled_at IS NOT NULL)

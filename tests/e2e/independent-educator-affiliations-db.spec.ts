@@ -6,7 +6,8 @@ import { getDb } from "../../src/db";
 import {
   auditLogs, courseOwnershipEvents, courses, educatorInstituteAffiliationEvents,
   educatorInstituteAffiliations, independentEducatorProfiles, memberships,
-  mediaIngests, mediaProcessingJobs, privateMediaAssets, session, studentEnrollments, supervisionEvents,
+  mediaIngests, mediaMultipartPlans, mediaProcessingJobs, privateMediaAssets, session,
+  studentEnrollments, supervisionEvents,
   supervisionGrants, user, verifiedEntities,
 } from "../../src/db/schema";
 import { hasStudentEntitlement } from "../../src/server/student/entitlement";
@@ -99,6 +100,7 @@ test.describe("independent educator institute affiliations", () => {
     await db.delete(supervisionEvents).where(eq(supervisionEvents.courseId, ownedCourseId));
     await db.delete(courseOwnershipEvents).where(eq(courseOwnershipEvents.courseId, ownedCourseId));
     await db.delete(studentEnrollments).where(eq(studentEnrollments.courseId, ownedCourseId));
+    await db.delete(mediaMultipartPlans).where(eq(mediaMultipartPlans.courseId, ownedCourseId));
     await db.delete(mediaProcessingJobs).where(inArray(
       mediaProcessingJobs.uploadId, db.select({ id: mediaIngests.id })
         .from(mediaIngests).where(eq(mediaIngests.courseId, ownedCourseId)),
@@ -226,6 +228,41 @@ test.describe("independent educator institute affiliations", () => {
       status: "approved", approvedByInstituteUserId: users.instituteA, approvedAt,
     }).where(eq(supervisionGrants.courseId, ownedCourseId));
 
+    const multipartPath = "/api/independent-educator/courses/" +
+      ownedCourseId + "/multipart-plans";
+    const multipartPayload = {
+      title: "برنامهٔ بی‌اثر ویدئوی حجیم",
+      clientRequestId: randomUUID(),
+      expectedBytes: 16 * 1024 * 1024 + 9,
+      sha256: mediaDigest,
+    };
+    const outsider = await client("outsider");
+    expect((await post(outsider, multipartPath, {
+      ...multipartPayload, clientRequestId: randomUUID(),
+    })).status()).toBe(403);
+    await outsider.dispose();
+    const plannedMultipart = await post(applicant, multipartPath, multipartPayload);
+    expect(plannedMultipart.status()).toBe(201);
+    const multipartBody = await plannedMultipart.json();
+    expect(multipartBody).toMatchObject({
+      status: "planned", replayed: false,
+      plan: { key: "quarantine/" + multipartBody.uploadId },
+    });
+    expect(JSON.stringify(multipartBody)).not.toMatch(
+      /presigned|signedUrl|uploadUrl|storageUploadId|bucket/i,
+    );
+    const [multipartRow] = await db.select().from(mediaMultipartPlans)
+      .where(eq(mediaMultipartPlans.id, multipartBody.uploadId));
+    expect(multipartRow).toMatchObject({
+      ownerType: "independent_educator", providerId: null,
+      independentEducatorProfileId: profile!.id, createdByUserId: users.applicant,
+      status: "planned",
+    });
+    expect((await applicant.get(multipartPath)).status()).toBe(200);
+    const multipartCancel = multipartPath + "/" + multipartBody.uploadId + "/cancel";
+    expect((await post(applicant, multipartCancel, {})).status()).toBe(200);
+    expect((await post(applicant, multipartCancel, {})).status()).toBe(200);
+
     const mediaPath = `/api/independent-educator/courses/${ownedCourseId}/ingest`;
     const reservation = await post(applicant, mediaPath, {
       title: "ویدئوی درس آزمایشی", clientRequestId: randomUUID(),
@@ -325,6 +362,8 @@ test.describe("independent educator institute affiliations", () => {
     expect((await post(instituteA, decisionPath(affiliationA), {
       action: "revoke", reason: "پایان همکاری به درخواست و تصمیم مؤسسه ثبت شد.",
     })).status()).toBe(200);
+    expect((await applicant.get(multipartPath)).status()).toBe(404);
+    expect((await post(applicant, multipartCancel, {})).status()).toBe(404);
     expect(Date.now() - revokeStarted).toBeLessThan(1500);
     expect((await pendingCallback).status()).toBe(409);
     const [racedIngest] = await db.select().from(mediaIngests)

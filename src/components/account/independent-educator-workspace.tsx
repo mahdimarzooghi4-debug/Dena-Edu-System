@@ -371,6 +371,10 @@ export function IndependentEducatorWorkspace({
                       className="inline-flex min-h-10 items-center rounded-lg border border-dena-border px-3 text-sm font-bold text-dena-brand">
                       تمرین کوتاه
                     </Link>
+                    <Link href={`/account/independent-educator/courses/${course.courseId}/media`}
+                      className="inline-flex min-h-10 items-center rounded-lg border border-dena-border px-3 text-sm font-bold text-dena-brand">
+                      برنامه‌ریزی ویدئوی حجیم
+                    </Link>
                     {course.hasReadyVideo && <Button type="button" variant="outline"
                       disabled={busy} onClick={() => void publishCourse(course.courseId)}>
                       انتشار دوره

@@ -11,7 +11,7 @@
 | نقش سراسری | `dena_memberships.provider_id` | scope عضویت تأییدشدهٔ `provider` به `dena_verified_entities`؛ همکار مستقل نباید این عضویت را بگیرد. |
 | مالک دوره | `dena_courses.owner_type`, `provider_id`, `independent_educator_profile_id` | مالک یکی از verified provider، پروفایل همکار مستقل یا مؤسسه است؛ `provider_id` برای دو نوع دیگر null می‌شود. `responsible_institute_id` scope مؤسسه را نگه می‌دارد. |
 | snapshot نظارت | `dena_supervision_grants` و `dena_supervision_events` | grant/event نوع مالک و شناسهٔ مربوط را ثبت می‌کنند. سه FK مستقل provider/profile/institute از اتصال grant به دوره و مؤسسهٔ درست محافظت می‌کنند. |
-| کارهای رسانه | `dena_media_ingests.provider_id` و `dena_media_multipart_plans.provider_id` | درخواست آپلود/پردازش، هویت ارائه‌دهنده و ایجادکننده را ثبت می‌کند؛ کارهای async باید پس از لغو affiliation نیز با scope زمان ایجاد و state فعلی بازبینی شوند. |
+| کارهای رسانه | `dena_media_ingests` و `dena_media_multipart_plans` | هر دو مالک نوع‌دار و شناسهٔ provider/profile را ثبت می‌کنند؛ درخواست‌های مستقل با قفل affiliation→course با لغو همکاری serialize می‌شوند. کارهای async باید پس از لغو affiliation نیز با scope زمان ایجاد و state فعلی بازبینی شوند. |
 | همکاری provider مجاز | `dena_provider_institute_collaborations.provider_id` | رابطهٔ دو `verifiedEntities` برای provider دارای مجوز است و گردش دو مرحله‌ای خودش را دارد؛ مدل همکار مستقل جایگزین یا ورودی این جدول نیست. |
 | تدارک هویت | `dena_verified_entities` و `dena_memberships` | مسیر role application برای provider entity و عضویت تأییدشده می‌سازد؛ استفاده از آن برای فرد فاقد مجوز تیک/اختیار نادرست ایجاد می‌کند. |
 
@@ -33,6 +33,8 @@
 انتشار از `/api/independent-educator/courses/:courseId/publication` و دکمهٔ «انتشار دوره» در فضای همکار انجام می‌شود. انتشار به affiliation پذیرفته‌شده، عضویت فعال مالک، supervision تأییدشده با تأییدکنندهٔ فعال، سرویس رسانهٔ خصوصی آماده، دست‌کم یک ویدئوی آماده و نبود تمرین در حال بازبینی نیاز دارد. انتشار با لغو affiliation در یک ترتیب قفل مشترک اجرا می‌شود. دورهٔ منتشرشده فقط در کاتالوگ رایگان دانش‌آموز می‌آید؛ entitlement و تحویل ویدئو دوباره supervision و affiliation جاری را بررسی می‌کنند.
 
 تمرین کوتاه از `/api/independent-educator/courses/:courseId/practice` و صفحهٔ `/account/independent-educator/courses/:courseId/practice` ثبت می‌شود. سؤال و کلید immutable هستند؛ مؤسسهٔ ناظر می‌تواند آن را تأیید یا رد کند و نویسنده حتی اگر عضو همان مؤسسه باشد قادر به بازبینی سؤال خودش نیست. صف بازبینی مؤسسه نیز grant نوع‌دارِ همکار مستقل را دنبال می‌کند. دانش‌آموز فقط سؤال تأییدشده را می‌بیند و API پاسخ، کلید را افشا نمی‌کند.
+
+طرح چندبخشی بی‌اثر و بدون ارسال فایل از `/api/independent-educator/courses/:courseId/multipart-plans` و صفحهٔ `/account/independent-educator/courses/:courseId/media` در دسترس است. ثبت طرح affiliation تأییدشده، grant و تأییدکنندهٔ فعال مؤسسه را بازبینی می‌کند و با لغو affiliation در ترتیب قفل مشترک قرار دارد. این قابلیت فقط metadata و برنامهٔ قطعه‌ها را نگه می‌دارد؛ نشست storage یا مجوز آپلود صادر نمی‌کند.
 
 ### مؤسسه، supervision و آزمون
 
@@ -79,7 +81,7 @@
 - پیاده‌سازی‌شده: انتشار رایگان دوره با کنترل‌های مالکیت/affiliation و نمایش در کاتالوگ دانش‌آموز؛ تست PostgreSQL/HTTP مسیر انتشار و کاتالوگ در CI.
 - پیاده‌سازی‌شده: تمرین کوتاه، صف و تصمیم مستقل مؤسسه، رد self-review و پوشاندن answer key برای دانش‌آموز؛ تست PostgreSQL/HTTP مسیر author/review/enrollment.
 - پیاده‌سازی‌شده: regression انتهابه‌انتها که callback رسانه را هنگام خواندن خروجی متوقف می‌کند، همکاری را revoke و دوره را منتقل می‌کند، سپس ثابت می‌کند callback دیررس asset آماده منتشر نمی‌کند.
-- باقی‌مانده: multipart در صورت گسترش سقف فایل و بازبینی مرحله‌ای باقی مسیرهای owner-aware.
+- باقی‌مانده: اتصال multipart به adapter واقعی storage و بازبینی مرحله‌ای باقی مسیرهای owner-aware.
 - رویداد انتقال و audit ثبت می‌شوند؛ دادهٔ مالی تاریخی دست‌کاری نمی‌شود و پرداخت جدید فعال نیست.
 
 ## اقدام بعد
