@@ -367,6 +367,10 @@ export function IndependentEducatorWorkspace({
                       className="inline-flex min-h-10 items-center rounded-lg bg-dena-lavender px-3 text-sm font-bold text-dena-brand">
                       مدیریت ارزیابی‌های یادگیری
                     </Link>
+                    <Link href={`/account/independent-educator/courses/${course.courseId}/practice`}
+                      className="inline-flex min-h-10 items-center rounded-lg border border-dena-border px-3 text-sm font-bold text-dena-brand">
+                      تمرین کوتاه
+                    </Link>
                     {course.hasReadyVideo && <Button type="button" variant="outline"
                       disabled={busy} onClick={() => void publishCourse(course.courseId)}>
                       انتشار دوره

@@ -48,24 +48,37 @@ export async function getInstituteAssessmentQueue(
     inArray(supervisionGrants.instituteId, [...instituteIds]),
     eq(supervisionGrants.status, "approved"),
     eq(courses.publicationStatus, "draft"),
+    or(
+      and(eq(courses.ownerType, "verified_provider"),
+        eq(supervisionGrants.ownerType, "verified_provider"),
+        eq(supervisionGrants.providerId, courses.providerId)),
+      and(eq(courses.ownerType, "independent_educator"),
+        eq(supervisionGrants.ownerType, "independent_educator"),
+        eq(supervisionGrants.independentEducatorProfileId,
+          courses.independentEducatorProfileId)),
+    ),
+  );
+  const matchingGrant = and(
+    eq(supervisionGrants.courseId, courses.id),
+    eq(supervisionGrants.ownerType, courses.ownerType),
+    eq(supervisionGrants.instituteId, courses.responsibleInstituteId),
+    or(
+      and(eq(courses.ownerType, "verified_provider"),
+        eq(supervisionGrants.providerId, courses.providerId)),
+      and(eq(courses.ownerType, "independent_educator"),
+        eq(supervisionGrants.independentEducatorProfileId,
+          courses.independentEducatorProfileId)),
+    ),
   );
   const [practiceCountRows, learningCountRows, practiceRows, learningRows] =
     await Promise.all([
       db.select({ total: count() }).from(coursePracticeQuestions)
         .innerJoin(courses, eq(courses.id, coursePracticeQuestions.courseId))
-        .innerJoin(supervisionGrants, and(
-          eq(supervisionGrants.courseId, courses.id),
-          eq(supervisionGrants.providerId, courses.providerId),
-          eq(supervisionGrants.instituteId, courses.responsibleInstituteId),
-        )).where(and(reviewableCourse,
+        .innerJoin(supervisionGrants, matchingGrant).where(and(reviewableCourse,
           eq(coursePracticeQuestions.reviewStatus, "pending"))),
       db.select({ total: count() }).from(courseLearningAssessments)
         .innerJoin(courses, eq(courses.id, courseLearningAssessments.courseId))
-        .innerJoin(supervisionGrants, and(
-          eq(supervisionGrants.courseId, courses.id),
-          eq(supervisionGrants.providerId, courses.providerId),
-          eq(supervisionGrants.instituteId, courses.responsibleInstituteId),
-        )).where(and(reviewableCourse,
+        .innerJoin(supervisionGrants, matchingGrant).where(and(reviewableCourse,
           eq(courseLearningAssessments.reviewStatus, "pending"))),
       db.select({
         id: coursePracticeQuestions.courseId,
@@ -74,11 +87,7 @@ export async function getInstituteAssessmentQueue(
         createdAt: coursePracticeQuestions.createdAt,
       }).from(coursePracticeQuestions)
         .innerJoin(courses, eq(courses.id, coursePracticeQuestions.courseId))
-        .innerJoin(supervisionGrants, and(
-          eq(supervisionGrants.courseId, courses.id),
-          eq(supervisionGrants.providerId, courses.providerId),
-          eq(supervisionGrants.instituteId, courses.responsibleInstituteId),
-        )).where(and(
+        .innerJoin(supervisionGrants, matchingGrant).where(and(
           reviewableCourse,
           eq(coursePracticeQuestions.reviewStatus, "pending"),
           ...(practiceCursor ? [or(
@@ -99,11 +108,7 @@ export async function getInstituteAssessmentQueue(
         createdAt: courseLearningAssessments.createdAt,
       }).from(courseLearningAssessments)
         .innerJoin(courses, eq(courses.id, courseLearningAssessments.courseId))
-        .innerJoin(supervisionGrants, and(
-          eq(supervisionGrants.courseId, courses.id),
-          eq(supervisionGrants.providerId, courses.providerId),
-          eq(supervisionGrants.instituteId, courses.responsibleInstituteId),
-        )).where(and(
+        .innerJoin(supervisionGrants, matchingGrant).where(and(
           reviewableCourse,
           eq(courseLearningAssessments.reviewStatus, "pending"),
           ...(learningCursor ? [or(

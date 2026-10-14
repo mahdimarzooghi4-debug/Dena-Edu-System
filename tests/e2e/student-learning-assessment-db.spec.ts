@@ -385,10 +385,16 @@ test.describe("student learning assessment lifecycle", () => {
       id: assetId, courseId: independentCourseId, title: "درس آماده",
       objectKey: `${independentCourseId}/${assetId}.mp4`,
     });
+    // Exercise the mixed-role case: course owner is also an institute member,
+    // and must still be unable to review their own practice question.
+    await db.insert(memberships).values({
+      userId: users.student, role: "institute", instituteId,
+    });
 
     try {
       const educator = await client("student");
       const instituteClient = await client("institute");
+      const selfReviewClient = await client("student");
       const other = await client("other");
       const path = `/api/independent-educator/courses/${independentCourseId}/assessments`;
       expect((await educator.get(path)).status()).toBe(200);
@@ -418,6 +424,35 @@ test.describe("student learning assessment lifecycle", () => {
         });
       expect(decision.status()).toBe(200);
       expect(await decision.json()).toMatchObject({ reviewStatus: "approved" });
+      const practicePath = `/api/independent-educator/courses/${independentCourseId}/practice`;
+      const practiceCreated = await post(educator, practicePath, {
+        learningConceptId: "math.percent.v1",
+        prompt: "کدام گزینه درصد یک‌چهارم را نشان می‌دهد؟",
+        options: ["۲۵ درصد", "۵۰ درصد", "۷۵ درصد", "۱۰۰ درصد"],
+        correctOption: 0,
+      });
+      expect(practiceCreated.status()).toBe(201);
+      expect((await educator.get(practicePath)).status()).toBe(200);
+      const practiceReviewPath = `/api/institute/courses/${independentCourseId}/practice`;
+      expect((await selfReviewClient.get(practiceReviewPath)).status()).toBe(404);
+      expect((await post(selfReviewClient, practiceReviewPath, {
+        action: "approve", reason: "نباید مالک خودش تصمیم بازبینی بگیرد.",
+      })).status()).toBe(404);
+      const pendingPractice = await instituteClient.get(practiceReviewPath);
+      expect(pendingPractice.status()).toBe(200);
+      expect((await pendingPractice.json()).question).toMatchObject({
+        reviewStatus: "pending", correctOption: 0,
+      });
+      const practiceDecision = await post(instituteClient, practiceReviewPath, {
+        action: "approve", reason: "پرسش و پاسخ درست برای این درس بررسی شد.",
+      });
+      expect(practiceDecision.status()).toBe(200);
+      expect(await practiceDecision.json()).toMatchObject({ reviewStatus: "approved" });
+      const practicePage = await educator.get(
+        `/account/independent-educator/courses/${independentCourseId}/practice`,
+      );
+      expect(practicePage.status()).toBe(200);
+      expect(await practicePage.text()).toContain("کدام گزینه درصد یک‌چهارم را نشان می‌دهد؟");
       const page = await educator.get(
         `/account/independent-educator/courses/${independentCourseId}/assessments`,
       );
@@ -440,9 +475,19 @@ test.describe("student learning assessment lifecycle", () => {
           ownerType: "independent_educator",
         }),
       ]));
+      expect((await post(other,
+        `/api/student/courses/${independentCourseId}/enroll`, {})).status()).toBe(201);
+      const studentPractice = await other.get(`/api/student/courses/${independentCourseId}/practice`);
+      expect(studentPractice.status()).toBe(200);
+      const studentPracticeBody = (await studentPractice.json()).practice;
+      expect(studentPracticeBody).toMatchObject({
+        prompt: "کدام گزینه درصد یک‌چهارم را نشان می‌دهد؟",
+      });
+      expect(studentPracticeBody).not.toHaveProperty("correctOption");
       await educator.dispose();
       await instituteClient.dispose();
       await other.dispose();
+      await selfReviewClient.dispose();
     } finally {
       if (assessmentId) {
         await db.delete(auditLogs).where(and(
@@ -454,6 +499,18 @@ test.describe("student learning assessment lifecycle", () => {
           .where(eq(courseLearningAssessments.id, assessmentId));
       }
       await db.delete(privateMediaAssets).where(eq(privateMediaAssets.id, assetId));
+      await db.delete(auditLogs).where(and(
+        eq(auditLogs.entityType, "PRACTICE"), eq(auditLogs.entityId, independentCourseId),
+      ));
+      await db.delete(coursePracticeQuestions)
+        .where(eq(coursePracticeQuestions.courseId, independentCourseId));
+      await db.delete(studentEnrollments)
+        .where(and(eq(studentEnrollments.courseId, independentCourseId),
+          eq(studentEnrollments.studentUserId, users.other)));
+      await db.delete(memberships).where(and(
+        eq(memberships.userId, users.student), eq(memberships.role, "institute"),
+        eq(memberships.instituteId, instituteId),
+      ));
       await db.delete(supervisionGrants).where(eq(supervisionGrants.courseId, independentCourseId));
       await db.delete(courses).where(eq(courses.id, independentCourseId));
       await db.delete(educatorInstituteAffiliations).where(eq(educatorInstituteAffiliations.id, affiliationId));
