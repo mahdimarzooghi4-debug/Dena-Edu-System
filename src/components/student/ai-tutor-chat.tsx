@@ -24,7 +24,7 @@ type TutorResponse = {
     attempt: { selectedOption: number; correct: boolean; submittedAt: string } | null;
   } | null;
 };
-type Topic = { topicId: string; questionCount: number; lastAskedAt: string; practiceAttemptCount: number; practiceCorrectCount: number; practiceNeedsGuidance: boolean };
+type Topic = { topicId: string; questionCount: number; lastAskedAt: string; practiceAttemptCount: number; practiceCorrectCount: number; practiceNeedsGuidance: boolean; lessonFeedback: "understood" | "needs_help" | null };
 const topicTitles: Record<string, string> = {
   "math.linear-equation.v1": "معادلهٔ یک‌مجهولی",
   "math.fractions.add.v1": "جمع کسرها",
@@ -52,6 +52,9 @@ export function AiTutorChat({ courses, initialTopics, initialGuidanceConceptIds,
   const [videoFeedbackBusy, setVideoFeedbackBusy] = useState(false);
   const [videoFeedbackResult, setVideoFeedbackResult] = useState<{ assetId: string; needsGuidance: boolean } | null>(null);
   const [videoFeedbackMessage, setVideoFeedbackMessage] = useState("");
+  const [lessonFeedbackConsent, setLessonFeedbackConsent] = useState(false);
+  const [lessonFeedbackBusy, setLessonFeedbackBusy] = useState(false);
+  const [lessonFeedbackMessage, setLessonFeedbackMessage] = useState("");
 
   async function ask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -76,7 +79,7 @@ export function AiTutorChat({ courses, initialTopics, initialGuidanceConceptIds,
           if (existing) return current.map((topic) => topic.topicId === topicId
             ? { ...topic, questionCount: Math.min(topic.questionCount + 1, 10000), lastAskedAt }
             : topic);
-          return [...current, { topicId, questionCount: 1, lastAskedAt, practiceAttemptCount: 0, practiceCorrectCount: 0, practiceNeedsGuidance: false }];
+          return [...current, { topicId, questionCount: 1, lastAskedAt, practiceAttemptCount: 0, practiceCorrectCount: 0, practiceNeedsGuidance: false, lessonFeedback: null }];
         });
       }
     } catch {
@@ -97,14 +100,43 @@ export function AiTutorChat({ courses, initialTopics, initialGuidanceConceptIds,
             practiceAttemptCount: Math.min(topic.practiceAttemptCount + 1, 10000),
             practiceCorrectCount: Math.min(topic.practiceCorrectCount + (correct ? 1 : 0), 10000),
             practiceNeedsGuidance: !correct,
+            lessonFeedback: null,
           }
         : topic);
       return [...current, {
         topicId: conceptId, questionCount: 1, lastAskedAt,
         practiceAttemptCount: 1, practiceCorrectCount: correct ? 1 : 0,
         practiceNeedsGuidance: !correct,
+        lessonFeedback: null,
       }];
     });
+  }
+
+  async function saveLessonFeedback(lessonFeedback: "understood" | "needs_help") {
+    if (!recommendation || !lessonFeedbackConsent || lessonFeedbackBusy) return;
+    setLessonFeedbackBusy(true);
+    setLessonFeedbackMessage("");
+    try {
+      const response = await fetch("/api/student/ai-tutor/profile", {
+        method: "POST", credentials: "same-origin", cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topicId: recommendation.topicId, lessonFeedback, consent: true }),
+      });
+      if (!response.ok) {
+        setLessonFeedbackMessage("ذخیرهٔ بازخورد انجام نشد؛ دوباره تلاش کن.");
+        return;
+      }
+      setTopics((current) => current.map((topic) => topic.topicId === recommendation.topicId
+        ? { ...topic, lessonFeedback } : topic));
+      setLessonFeedbackConsent(false);
+      setLessonFeedbackMessage(lessonFeedback === "understood"
+        ? "بازخوردت با اجازهٔ تو در مسیر شخصی ذخیره شد."
+        : "درخواست راهنمایی بیشتر با اجازهٔ تو در مسیر شخصی ذخیره شد.");
+    } catch {
+      setLessonFeedbackMessage("ارتباط با سرور برقرار نشد؛ دوباره تلاش کن.");
+    } finally {
+      setLessonFeedbackBusy(false);
+    }
   }
 
   async function saveVideoFeedback(needsGuidance: boolean) {
@@ -225,12 +257,32 @@ export function AiTutorChat({ courses, initialTopics, initialGuidanceConceptIds,
               <p className="mt-2 rounded-lg border border-dena-line bg-white p-3 text-dena-ink">
                 {recommendation.explanation}
               </p>
+              <label className="mt-3 flex items-start gap-2 text-dena-muted">
+                <input type="checkbox" checked={lessonFeedbackConsent}
+                  onChange={(event) => setLessonFeedbackConsent(event.target.checked)}
+                  className="mt-2 size-4 accent-dena-brand" />
+                <span>اجازه می‌دهم بازخورد این درس در مسیر یادگیری شخصی من ذخیره شود.</span>
+              </label>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button type="button" disabled={!lessonFeedbackConsent || lessonFeedbackBusy}
+                  onClick={() => void saveLessonFeedback("understood")}
+                  className="rounded-lg border border-dena-line px-3 py-2 font-bold disabled:opacity-50">
+                  فهمیدم
+                </button>
+                <button type="button" disabled={!lessonFeedbackConsent || lessonFeedbackBusy}
+                  onClick={() => void saveLessonFeedback("needs_help")}
+                  className="rounded-lg border border-dena-line px-3 py-2 font-bold disabled:opacity-50">
+                  هنوز کمک می‌خواهم
+                </button>
+              </div>
               <button type="button" onClick={() => setMessage(recommendation.prompt)}
                 className="mt-2 font-bold text-dena-brand underline underline-offset-4">
                 رفتن به تمرین این مبحث
               </button>
             </div>
           )}
+          {lessonFeedbackMessage && <p role="status" className="text-sm text-dena-muted">{lessonFeedbackMessage}</p>}
+          {topics.some((topic) => topic.lessonFeedback) && <p className="text-xs text-dena-muted">بازخورد ثبت‌شدهٔ درس در مسیر شخصی تو نگه‌داری می‌شود و با پاک‌کردن مسیر حذف می‌شود.</p>}
           <button type="button" className="text-sm font-bold text-dena-brand underline disabled:opacity-50"
             disabled={clearBusy} onClick={() => void clearTopics()}>
             {clearBusy ? "در حال پاک‌کردن…" : "پاک‌کردن داده‌های مسیر شخصی"}
@@ -247,6 +299,7 @@ export function AiTutorChat({ courses, initialTopics, initialGuidanceConceptIds,
                 practiceAttemptCount: Math.min(topic.practiceAttemptCount + 1, 10000),
                 practiceCorrectCount: Math.min(topic.practiceCorrectCount + (correct ? 1 : 0), 10000),
                 practiceNeedsGuidance: !correct,
+                lessonFeedback: null,
               } : topic))} />}
         </div>
       )}

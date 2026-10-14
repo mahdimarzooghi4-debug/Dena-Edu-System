@@ -92,7 +92,7 @@ describe("student next study recommendation", () => {
   it("recommends only an explicitly saved topic that needs guidance", () => {
     expect(recommendNextStudyStep([
       { topicId: "math.percent.v1", practiceAttemptCount: 2, practiceNeedsGuidance: false },
-      { topicId: "math.linear-equation.v1", practiceAttemptCount: 1, practiceNeedsGuidance: true },
+      { topicId: "math.linear-equation.v1", practiceAttemptCount: 1, practiceNeedsGuidance: true, lessonFeedback: null },
     ])).toMatchObject({
       topicId: "math.linear-equation.v1",
       prompt: expect.stringContaining("معادله"),
@@ -110,6 +110,13 @@ describe("student next study recommendation", () => {
     expect(recommendNextStudyStep([
       { topicId: "geography.climate.v1", practiceAttemptCount: 1, practiceNeedsGuidance: true },
     ])?.explanation).toContain("اقلیم");
+  });
+
+  it("stops recommending a lesson after the student records that they understood it", () => {
+    expect(recommendNextStudyStep([{
+      topicId: "math.linear-equation.v1", practiceAttemptCount: 1,
+      practiceNeedsGuidance: true, lessonFeedback: "understood",
+    }])).toBeNull();
   });
 
   it("does not recommend without a saved need for guidance or for unsupported topics", () => {

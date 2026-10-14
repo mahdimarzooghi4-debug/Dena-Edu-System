@@ -344,6 +344,13 @@
       "when": 1791878640000,
       "tag": "0048_dena_course_practice_learning_concept",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1791882000000,
+      "tag": "0049_dena_student_ai_tutor_lesson_feedback",
+      "breakpoints": true
     }
   ]
 }
