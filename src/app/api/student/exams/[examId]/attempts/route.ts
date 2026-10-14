@@ -21,8 +21,9 @@ export async function POST(request: NextRequest, params: Params) {
   const { examId } = await params.params;
   if (!z.uuid().safeParse(examId).success) return NextResponse.json({ error: "Not found" }, { status: 404, headers: noStore });
   try {
-    return NextResponse.json(await startStudentExam(actor.userId, examId), {
-      status: 201, headers: noStore,
+    const result = await startStudentExam(actor.userId, examId);
+    return NextResponse.json(result, {
+      status: result.resumed ? 200 : 201, headers: noStore,
     });
   } catch (error) {
     if (error instanceof ExamManagementError) {

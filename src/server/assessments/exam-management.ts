@@ -530,13 +530,20 @@ export async function startStudentExam(studentUserId: string, examId: string) {
     )).orderBy(desc(assessmentExamAttempts.attemptNumber)).for("update");
     const latest = attempts[0];
     const now = new Date();
+    let expiredLatest = false;
     if (latest?.status === "in_progress") {
-      return { attemptId: latest.id, resumed: true };
+      if (latest.deadlineAt > now) return { attemptId: latest.id, resumed: true };
+      await finalizeStudentExamAttempt(tx, latest, "expired");
+      expiredLatest = true;
     }
     if (now < exam.startsAt || now >= exam.endsAt) {
+      if (expiredLatest) return { attemptId: latest!.id, resumed: true };
       throw new ExamManagementError("outside_schedule");
     }
-    if (attempts.length >= exam.attemptLimit) throw new ExamManagementError("attempt_limit");
+    if (attempts.length >= exam.attemptLimit) {
+      if (expiredLatest) return { attemptId: latest!.id, resumed: true };
+      throw new ExamManagementError("attempt_limit");
+    }
     const questions = await tx.select({
       id: assessmentExamQuestions.id,
     }).from(assessmentExamQuestions).where(eq(assessmentExamQuestions.examId, examId))

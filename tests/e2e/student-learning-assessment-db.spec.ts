@@ -98,7 +98,7 @@ test.describe("student learning assessment lifecycle", () => {
         ownerType: "dena", ownerId: denaOwnerId, bankId: denaBankId,
         courseId: null, title: "آزمون هماهنگ دنا", instructions: "آزمون آزمایشی",
         startsAt: examStartsAt, endsAt: examEndsAt, durationMinutes: 30,
-        attemptLimit: 1, status: "published", createdByUserId: users.admin },
+        attemptLimit: 3, status: "published", createdByUserId: users.admin },
       { id: instituteExamId, examType: "institute_planned",
         ownerType: "institute", ownerId: instituteId, bankId: instituteBankId,
         courseId, title: "آزمون مؤسسه", instructions: "آزمون آزمایشی",
@@ -385,7 +385,7 @@ test.describe("student learning assessment lifecycle", () => {
     const starts = await Promise.all([
       post(student, startPath, {}), post(student, startPath, {}),
     ]);
-    expect(starts.map((response) => response.status())).toEqual([201, 201]);
+    expect(starts.every((response) => response.status() === 200 || response.status() === 201)).toBe(true);
     const startResults = await Promise.all(starts.map((response) => response.json()));
     expect(new Set(startResults.map((result) => result.attemptId)).size).toBe(1);
     const attemptId = startResults[0].attemptId as string;
@@ -420,9 +420,41 @@ test.describe("student learning assessment lifecycle", () => {
       id: attemptId, status: result.status, correctCount: result.correctCount,
       totalPoints: result.totalPoints, earnedPoints: result.earnedPoints,
     });
-    const nextStart = await post(student, startPath, {});
-    expect(nextStart.status()).toBe(409);
-    expect(await nextStart.json()).toMatchObject({ error: "attempt_limit" });
+    const secondStart = await post(student, startPath, {});
+    expect(secondStart.status()).toBe(201);
+    const secondAttemptId = (await secondStart.json()).attemptId as string;
+    await db.update(assessmentExamAttempts).set({ deadlineAt: new Date(Date.now() - 60_000) })
+      .where(eq(assessmentExamAttempts.id, secondAttemptId));
+    const thirdStart = await post(student, startPath, {});
+    expect(thirdStart.status()).toBe(201);
+    const thirdAttemptId = (await thirdStart.json()).attemptId as string;
+    expect(thirdAttemptId).not.toBe(secondAttemptId);
+    const expiredAttempt = await student.get(
+      `/api/student/exams/${denaExamId}/attempts/${secondAttemptId}`,
+    );
+    expect(expiredAttempt.status()).toBe(200);
+    expect(await expiredAttempt.json()).toMatchObject({ id: secondAttemptId, status: "expired" });
+    const replayStart = await post(student, startPath, {});
+    expect(replayStart.status()).toBe(200);
+    expect(await replayStart.json()).toMatchObject({ attemptId: thirdAttemptId, resumed: true });
+    const thirdAttempt = await student.get(
+      `/api/student/exams/${denaExamId}/attempts/${thirdAttemptId}`,
+    );
+    const thirdQuestions = (await thirdAttempt.json()).questions as Array<{ id: string }>;
+    const thirdSave = await student.patch(
+      `/api/student/exams/${denaExamId}/attempts/${thirdAttemptId}/answers`, {
+        data: { answers: thirdQuestions.map((question) => ({
+          questionId: question.id, selectedOption: 0,
+        })) },
+        headers: { Origin: "http://localhost:3000" },
+      },
+    );
+    expect(thirdSave.status()).toBe(200);
+    expect((await post(student,
+      `/api/student/exams/${denaExamId}/attempts/${thirdAttemptId}`, {})).status()).toBe(200);
+    const exhaustedStart = await post(student, startPath, {});
+    expect(exhaustedStart.status()).toBe(409);
+    expect(await exhaustedStart.json()).toMatchObject({ error: "attempt_limit" });
     await student.dispose();
     await other.dispose();
     await institute.dispose();
