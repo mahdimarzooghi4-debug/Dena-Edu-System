@@ -7,7 +7,7 @@ import { getDb } from "@/db";
 import { assessmentExamAttempts } from "@/db/schema";
 import { hasStudentEntitlement } from "@/server/student/entitlement";
 import {
-  answerFromSeedCorpus, applySeedPracticeGuidance, isSeedTopicId, SEED_CORPUS_VERSION,
+  answerFromSeedCorpus, applySeedPracticeGuidance, getSeedPractice, isSeedTopicId, SEED_CORPUS_VERSION,
 } from "@/server/ai-tutor/seed-corpus";
 import {
   getStudentTutorPracticeStats, recordStudentTutorTopic,
@@ -73,15 +73,21 @@ export async function POST(request: NextRequest) {
     actor.userId, parsed.data.courseId, parsed.data.message,
   );
   if (videoResult) {
-    const topicId = parsed.data.rememberTopic === true &&
-      videoResult.source.conceptId && isSeedTopicId(videoResult.source.conceptId)
-      ? videoResult.source.conceptId
+    const conceptId = videoResult.source.conceptId;
+    const savedTopicId = conceptId && isSeedTopicId(conceptId) ? conceptId : null;
+    const practiceStats = savedTopicId
+      ? await getStudentTutorPracticeStats(actor.userId, savedTopicId)
       : null;
+    const guidedHint = savedTopicId && practiceStats?.practiceNeedsGuidance
+      ? getSeedPractice(savedTopicId).guidedHint
+      : null;
+    const topicId = parsed.data.rememberTopic === true ? savedTopicId : null;
     if (topicId) await recordStudentTutorTopic(actor.userId, topicId);
     return NextResponse.json({
       ...videoResult,
       topicRecorded: Boolean(topicId),
       ...(topicId ? { topicId } : {}),
+      ...(guidedHint ? { guidedHint } : {}),
     }, { headers: noStore });
   }
 

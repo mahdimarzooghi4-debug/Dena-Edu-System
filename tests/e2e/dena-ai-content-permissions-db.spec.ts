@@ -404,6 +404,22 @@ test.describe("Dena AI video permission authorization and revocation", () => {
     expect(savedPracticeTopics).toContainEqual(expect.objectContaining({
       topicId: "geography.climate.v1", practiceAttemptCount: 0,
     }));
+    const geographyPracticeQuestion = await geographyPractice.json();
+    const recordedGeographyResult = await post(supervisedStudent,
+      "/api/student/ai-tutor/practice", {
+        courseId: educatorCourseId, questionId: geographyPracticeQuestion.questionId,
+        topicId: "geography.climate.v1", selectedOption: 1, rememberResult: true,
+      });
+    expect(await recordedGeographyResult.json()).toMatchObject({
+      correct: false, resultRecorded: true,
+    });
+    const afterGeographyPractice = (await (await supervisedStudent.get(
+      "/api/student/ai-tutor/profile",
+    )).json()).topics;
+    expect(afterGeographyPractice).toContainEqual(expect.objectContaining({
+      topicId: "geography.climate.v1", practiceAttemptCount: 1, practiceCorrectCount: 0,
+      practiceNeedsGuidance: true,
+    }));
     const followupTranscript = "در درس جغرافیا بررسی رطوبت و اقلیم به شناخت تغییرات آب‌وهوا کمک می‌کند. مقایسهٔ رطوبت در چند منطقه، الگوی بارش را روشن می‌کند.";
     expect((await post(supervisedInstitute, educatorTranscriptPath, {
       assetId: assetIds.educatorFollowup, conceptId: "geography.climate.v1", transcript: followupTranscript,
@@ -420,7 +436,9 @@ test.describe("Dena AI video permission authorization and revocation", () => {
       courseId: educatorCourseId,
       message: "چطور رطوبت و اقلیم را در درس جغرافیا مقایسه کنم؟",
     });
-    expect((await prioritizedAnswer.json()).source.id).toBe(selectedAssetId);
+    const prioritizedAnswerBody = await prioritizedAnswer.json();
+    expect(prioritizedAnswerBody.source.id).toBe(selectedAssetId);
+    expect(prioritizedAnswerBody.guidedHint).toContain("بازهٔ زمانی");
     const helpfulFeedback = await post(supervisedStudent,
       "/api/student/ai-tutor/video-feedback", {
         courseId: educatorCourseId, assetId: selectedAssetId,
