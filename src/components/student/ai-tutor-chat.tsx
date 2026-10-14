@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { AiTutorPractice } from "./ai-tutor-practice";
 import { DENA_LEARNING_CONCEPTS } from "../../server/ai-tutor/learning-concepts";
@@ -237,6 +238,14 @@ export function AiTutorChat({ courses, initialTopics, initialGuidanceConceptIds,
               <p className="mt-3 border-t border-dena-line pt-2 text-xs text-dena-muted">
                 منبع: {result.source?.title}{result.source?.corpusVersion && <> · نسخهٔ مجموعه: {result.source.corpusVersion}</>}
               </p>
+              {result.source?.kind === "video" && (
+                <Link
+                  href={`/student/courses/${courseId}/watch#video-${result.source.id}`}
+                  className="mt-2 inline-block text-sm font-bold text-dena-brand underline underline-offset-4"
+                >
+                  رفتن به ویدئوی منبع
+                </Link>
+              )}
             </>
           ) : <p>{result.error ?? "برای این پرسش هنوز محتوای آموزشی آماده ندارم."}</p>}
         </div>

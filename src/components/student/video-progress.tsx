@@ -71,11 +71,15 @@ export function VideoProgress({
       </div>
       {items.map((video) => (
         <section key={video.assetId} aria-label={video.title}
-          id={video.assetId === nextUnmarked?.assetId
-            ? "next-unmarked-video" : `video-${video.assetId}`}
+          id={`video-${video.assetId}`}
           tabIndex={-1}
           className="scroll-mt-6 space-y-3 rounded-xl border border-dena-border p-4">
-          <h2 className="text-lg font-bold">{video.title}</h2>
+          <h2
+            id={video.assetId === nextUnmarked?.assetId ? "next-unmarked-video" : undefined}
+            className="text-lg font-bold"
+          >
+            {video.title}
+          </h2>
           <video controls preload="none" playsInline
             controlsList="nodownload" className="aspect-video w-full rounded-xl bg-black"
             aria-label={video.title}
