@@ -30,7 +30,7 @@ test.describe("independent educator institute affiliations", () => {
   const institutes = { a: randomUUID(), b: randomUUID() };
   let ownedCourseId: string = randomUUID();
   const ownedAssetId = randomUUID();
-  const raceAssetId = randomUUID();
+  let raceAssetId = "";
   const mediaFixture = Buffer.from("00000018667479706d7034326d70343269736f6d00000000", "hex");
   const mediaDigest = createHash("sha256").update(mediaFixture).digest("hex");
   const requestIds = { a: randomUUID(), b: randomUUID(), self: randomUUID() };
@@ -261,6 +261,9 @@ test.describe("independent educator institute affiliations", () => {
     });
     expect(raceReservation.status()).toBe(201);
     const raceUploadId = (await raceReservation.json() as { uploadId: string }).uploadId;
+    const [raceIngest] = await db.select({ assetId: mediaIngests.assetId })
+      .from(mediaIngests).where(eq(mediaIngests.id, raceUploadId));
+    raceAssetId = raceIngest.assetId;
     expect((await applicant.put(`${mediaPath}/${raceUploadId}`, {
       data: mediaFixture,
       headers: { Origin: "http://localhost:3000", "Content-Type": "video/mp4" },
