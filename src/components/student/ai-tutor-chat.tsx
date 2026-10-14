@@ -5,7 +5,7 @@ import { useState, type FormEvent } from "react";
 import { AiTutorPractice } from "./ai-tutor-practice";
 import { StudentCoursePractice } from "./course-practice";
 import { DENA_LEARNING_CONCEPTS } from "../../server/ai-tutor/learning-concepts";
-import { getReviewPracticeTopic, getStudyPrompt, recommendNextStudyStep } from "../../server/ai-tutor/study-recommendation";
+import { applyFocusedReviewOutcome, getReviewPracticeTopic, getStudyPrompt, recommendNextStudyStep } from "../../server/ai-tutor/study-recommendation";
 
 type Course = { courseId: string; title: string };
 type TutorResponse = {
@@ -87,6 +87,10 @@ export function AiTutorChat({ courses, initialTopics, initialGuidanceConceptIds,
     } finally {
       setBusy(false);
     }
+  }
+
+  function recordFocusedReviewOutcome(topicId: string, correct: boolean) {
+    setTopics((current) => applyFocusedReviewOutcome(current, topicId, correct));
   }
 
   function recordCoursePracticeOutcome(conceptId: string, correct: boolean) {
@@ -289,7 +293,7 @@ export function AiTutorChat({ courses, initialTopics, initialGuidanceConceptIds,
                   headingId={"tutor-review-practice-" + reviewPracticeTopicId}
                   showTopicSelector={false}
                   enabled={Boolean(courseId)}
-                  onOutcomeSaved={recordCoursePracticeOutcome}
+                  onOutcomeSaved={recordFocusedReviewOutcome}
                 />
               )}
               <button type="button" onClick={() => setMessage(recommendation.prompt)}
