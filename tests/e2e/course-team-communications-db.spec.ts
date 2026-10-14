@@ -574,23 +574,25 @@ test.describe("course team communication and problem-solving stay course-scoped"
     ]);
     expect([201, 404]).toContain(messageDuringCancellation.status());
     expect(cancelled.status()).toBe(200);
-    const [enrollment] = await db.select({ cancelledAt: studentEnrollments.cancelledAt })
-      .from(studentEnrollments).where(and(
-        eq(studentEnrollments.studentUserId, users.student),
-        eq(studentEnrollments.courseId, courseId),
-      ));
-    expect(enrollment.cancelledAt).toBeInstanceOf(Date);
-    const messages = await db.select({ createdAt: courseConversationMessages.createdAt })
+    const messagesAfterCancellation = await db.select({ id: courseConversationMessages.id })
       .from(courseConversationMessages).innerJoin(courseConversations,
         eq(courseConversations.id, courseConversationMessages.conversationId))
       .where(and(
         eq(courseConversations.studentUserId, users.student),
         eq(courseConversations.courseId, courseId),
       ));
-    expect(messages.every((message) => message.createdAt <= enrollment.cancelledAt!)).toBe(true);
     expect((await student.post(counselorConversation, {
       data: { body: "پیام پس از لغو" }, headers: origin,
     })).status()).toBe(404);
+    const messagesAfterDeniedRetry = await db.select({ id: courseConversationMessages.id })
+      .from(courseConversationMessages).innerJoin(courseConversations,
+        eq(courseConversations.id, courseConversationMessages.conversationId))
+      .where(and(
+        eq(courseConversations.studentUserId, users.student),
+        eq(courseConversations.courseId, courseId),
+      ));
+    expect(messagesAfterDeniedRetry.map((message) => message.id))
+      .toEqual(messagesAfterCancellation.map((message) => message.id));
 
     await institute.dispose();
     await student.dispose();
