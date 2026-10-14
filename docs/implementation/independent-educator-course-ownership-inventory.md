@@ -36,6 +36,8 @@
 
 طرح چندبخشی بی‌اثر و بدون ارسال فایل از `/api/independent-educator/courses/:courseId/multipart-plans` و صفحهٔ `/account/independent-educator/courses/:courseId/media` در دسترس است. ثبت طرح affiliation تأییدشده، grant و تأییدکنندهٔ فعال مؤسسه را بازبینی می‌کند و با لغو affiliation در ترتیب قفل مشترک قرار دارد. این قابلیت فقط metadata و برنامهٔ قطعه‌ها را نگه می‌دارد؛ نشست storage یا مجوز آپلود صادر نمی‌کند.
 
+دریافت فایل و callback نهایی رسانه ترتیب قفل یکسان دارند: برای مالک مستقل ابتدا affiliation، سپس course و بعد ingest و job پردازش. callback قبل از قفل‌های دیتابیس بررسی‌های شبکه‌ای attestation و بایت‌ها را انجام می‌دهد؛ در تراکنش نهایی scope و lease دوباره اعتبارسنجی می‌شوند. این ترتیب مانع انتظار چرخه‌ای بین دریافت فایل و تکمیل callback می‌شود.
+
 ### مؤسسه، supervision و آزمون
 
 - `src/server/institute/course-detail.ts`, `dashboard.ts`, `assessment-queue.ts`, `question-bank.ts`
@@ -82,6 +84,7 @@
 - پیاده‌سازی‌شده: تمرین کوتاه، صف و تصمیم مستقل مؤسسه، رد self-review و پوشاندن answer key برای دانش‌آموز؛ تست PostgreSQL/HTTP مسیر author/review/enrollment.
 - پیاده‌سازی‌شده: regression انتهابه‌انتها که callback رسانه را هنگام خواندن خروجی متوقف می‌کند، همکاری را revoke و دوره را منتقل می‌کند، سپس ثابت می‌کند callback دیررس asset آماده منتشر نمی‌کند.
 - پیاده‌سازی‌شده: ثبت‌نام رایگان دانش‌آموز و لغو هم‌زمان affiliation با ترتیب قفل affiliation→course؛ CI نتیجهٔ موفق هر دو عملیات و انتقال دوره به مؤسسه را بررسی می‌کند.
+- پیاده‌سازی‌شده: callback نهایی ingest پس از affiliation و course، ingest و job را قفل می‌کند تا ترتیب آن با دریافت فایل یکسان بماند؛ تست callback دیررس هنگام revoke همچنان انتقال مالکیت و رد انتشار asset را پوشش می‌دهد.
 - باقی‌مانده: اتصال multipart به adapter واقعی storage و بازبینی مرحله‌ای باقی مسیرهای owner-aware.
 - رویداد انتقال و audit ثبت می‌شوند؛ دادهٔ مالی تاریخی دست‌کاری نمی‌شود و پرداخت جدید فعال نیست.
 
