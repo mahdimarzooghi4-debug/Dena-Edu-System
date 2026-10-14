@@ -1,661 +1,1 @@
-import { randomUUID } from "node:crypto";
-import { and, eq, inArray } from "drizzle-orm";
-import { serializeSignedCookie } from "better-call";
-import { expect, request, test, type APIRequestContext } from "@playwright/test";
-import { getDb } from "../../src/db";
-import {
-  assessmentExamAttempts, assessmentExams, assessmentQuestionBanks, auditLogs,
-  courseLearningAssessmentQuestions, courseLearningAssessments,
-  coursePracticeQuestions, courses,
-  educatorInstituteAffiliations, independentEducatorProfiles,
-  memberships, privateMediaAssets, session, studentEnrollments,
-  studentLearningAssessmentAttempts,
-  studentLearningAssessmentAttemptQuestions,
-  studentLearningAssessmentLessonReviews, supervisionGrants, user,
-  verifiedEntities,
-} from "../../src/db/schema";
-
-test.describe.configure({ mode: "serial" });
-
-test.describe("student learning assessment lifecycle", () => {
-  const db = getDb();
-  const users = { admin: randomUUID(), provider: randomUUID(), institute: randomUUID(),
-    student: randomUUID(), other: randomUUID() };
-  const tokens = {
-    student: randomUUID(), other: randomUUID(), institute: randomUUID(),
-    provider: randomUUID(),
-  };
-  const providerId = randomUUID();
-  const instituteId = randomUUID();
-  const courseId = randomUUID();
-  const assessmentId = randomUUID();
-  const pendingAssessmentId = randomUUID();
-  const pendingQuestionId = randomUUID();
-  const assetIds = [randomUUID(), randomUUID(), randomUUID()];
-  const questions = [randomUUID(), randomUUID(), randomUUID()];
-  const denaBankId = "00000000-0000-0000-0000-000000000002";
-  const instituteBankId = randomUUID();
-  const denaExamId = randomUUID();
-  const instituteExamId = randomUUID();
-  const denaOwnerId = "00000000-0000-0000-0000-000000000001";
-
-  async function client(as: keyof typeof tokens): Promise<APIRequestContext> {
-    const cookie = await serializeSignedCookie(
-      "better-auth.session_token", tokens[as], process.env.BETTER_AUTH_SECRET!,
-    );
-    return request.newContext({ baseURL: "http://localhost:3000",
-      extraHTTPHeaders: { Cookie: cookie.split(";")[0] } });
-  }
-  const post = (ctx: APIRequestContext, path: string, data: object) =>
-    ctx.post(path, { data, headers: { Origin: "http://localhost:3000" } });
-  const listPath = `/api/student/courses/${courseId}/assessments`;
-  const basePath = `${listPath}/${assessmentId}`;
-
-  test.beforeAll(async () => {
-    await db.insert(user).values(Object.entries(users).map(([name, id]) => ({
-      id, name, email: `${id}@assessment.example.test`,
-    })));
-    await db.insert(verifiedEntities).values([
-      { id: providerId, role: "provider", name: "assessment provider",
-        evidenceReference: "test/assessment-provider", verifiedByUserId: users.admin },
-      { id: instituteId, role: "institute", name: "assessment institute",
-        evidenceReference: "test/assessment-institute", verifiedByUserId: users.admin },
-    ]);
-    await db.insert(memberships).values([
-      { userId: users.admin, role: "admin" },
-      { userId: users.provider, role: "provider", providerId },
-      { userId: users.institute, role: "institute", instituteId },
-      { userId: users.student, role: "student" },
-      { userId: users.other, role: "student" },
-    ]);
-    const expiresAt = new Date(Date.now() + 3_600_000);
-    await db.insert(session).values([
-      { userId: users.student, token: tokens.student, expiresAt },
-      { userId: users.other, token: tokens.other, expiresAt },
-      { userId: users.institute, token: tokens.institute, expiresAt },
-      { userId: users.provider, token: tokens.provider, expiresAt },
-    ]);
-    await db.insert(courses).values({
-      id: courseId, providerId, responsibleInstituteId: instituteId,
-      publicationStatus: "published", title: "Ø¯ÙˆØ±Ù‡ Ø§Ø±Ø²ÛŒØ§Ø¨ÛŒ ÛŒØ§Ø¯Ú¯ÛŒØ±ÛŒ",
-      createdByProviderUserId: users.provider, clientRequestId: randomUUID(),
-    });
-    await db.insert(supervisionGrants).values({
-      courseId, providerId, instituteId, status: "approved",
-      requestedByProviderUserId: users.provider,
-      approvedByInstituteUserId: users.institute, approvedAt: new Date(),
-    });
-    await db.insert(assessmentQuestionBanks).values({
-      id: instituteBankId, ownerType: "institute", ownerId: instituteId,
-    });
-    const examStartsAt = new Date(Date.now() - 60_000);
-    const examEndsAt = new Date(Date.now() + 3_600_000);
-    await db.insert(assessmentExams).values([
-      { id: denaExamId, examType: "dena_coordinated",
-        ownerType: "dena", ownerId: denaOwnerId, bankId: denaBankId,
-        courseId: null, title: "Ø¢Ø²Ù…ÙˆÙ† Ù‡Ù…Ø§Ù‡Ù†Ú¯ Ø¯Ù†Ø§", instructions: "Ø¢Ø²Ù…ÙˆÙ† Ø¢Ø²Ù…Ø§ÛŒØ´ÛŒ",
-        startsAt: examStartsAt, endsAt: examEndsAt, durationMinutes: 30,
-        attemptLimit: 1, status: "published", createdByUserId: users.admin },
-      { id: instituteExamId, examType: "institute_planned",
-        ownerType: "institute", ownerId: instituteId, bankId: instituteBankId,
-        courseId, title: "Ø¢Ø²Ù…ÙˆÙ† Ù…Ø¤Ø³Ø³Ù‡", instructions: "Ø¢Ø²Ù…ÙˆÙ† Ø¢Ø²Ù…Ø§ÛŒØ´ÛŒ",
-        startsAt: examStartsAt, endsAt: examEndsAt, durationMinutes: 30,
-        attemptLimit: 1, status: "published", createdByUserId: users.admin },
-    ]);
-    await db.insert(privateMediaAssets).values(assetIds.map((id, index) => ({
-      id, courseId, title: `Ø¯Ø±Ø³ ${index + 1}`, objectKey: `${courseId}/${id}.mp4`,
-    })));
-    await db.insert(studentEnrollments).values({
-      studentUserId: users.student, courseId, status: "active",
-    });
-    await db.insert(courseLearningAssessments).values({
-      id: assessmentId, courseId, title: "Ø§Ø±Ø²ÛŒØ§Ø¨ÛŒ ÙØµÙ„",
-      instructions: "Ø¨Ù‡ Ù¾Ø±Ø³Ø´â€ŒÙ‡Ø§ Ù¾Ø§Ø³Ø® Ø¯Ù‡ÛŒØ¯.", questionCount: 2,
-      requiredCorrectCount: 2, authoredByProviderUserId: users.provider,
-      reviewStatus: "approved", reviewedByInstituteUserId: users.institute,
-      reviewedAt: new Date(), reviewReason: "Ù…ØªÙ† Ùˆ Ú©Ù„ÛŒØ¯Ù‡Ø§ Ø¨Ø±Ø±Ø³ÛŒ Ø´Ø¯Ù†Ø¯.",
-    });
-    await db.insert(courseLearningAssessmentQuestions).values(questions.map((id, index) => ({
-      id, assessmentId, courseId, lessonAssetId: assetIds[index],
-      prompt: `Ú©Ø¯Ø§Ù… Ú¯Ø²ÛŒÙ†Ù‡ Ù¾Ø§Ø³Ø® Ø¯Ø±Ø³Øª Ù¾Ø±Ø³Ø´ ${index + 1} Ø§Ø³ØªØŸ`,
-      option0: "Ù¾Ø§Ø³Ø® Ø¯Ø±Ø³Øª", option1: "Ú¯Ø²ÛŒÙ†Ù‡ Ø¯ÙˆÙ…", option2: "Ú¯Ø²ÛŒÙ†Ù‡ Ø³ÙˆÙ…",
-      option3: "Ú¯Ø²ÛŒÙ†Ù‡ Ú†Ù‡Ø§Ø±Ù…", correctOption: 0,
-    })));
-    await db.insert(courseLearningAssessments).values({
-      id: pendingAssessmentId, courseId, title: "Ø§Ø±Ø²ÛŒØ§Ø¨ÛŒ Ù…Ù†ØªØ¸Ø± Ø¨Ø§Ø²Ø¨ÛŒÙ†ÛŒ",
-      instructions: "Ø§ÛŒÙ† Ø§Ø±Ø²ÛŒØ§Ø¨ÛŒ Ù‡Ù†ÙˆØ² Ø¯Ø± Ø§Ù†ØªØ¸Ø§Ø± Ø¨Ø§Ø²Ø¨ÛŒÙ†ÛŒ Ø§Ø³Øª.", questionCount: 1,
-      requiredCorrectCount: 1, authoredByProviderUserId: users.provider,
-    });
-    await db.insert(courseLearningAssessmentQuestions).values({
-      id: pendingQuestionId, assessmentId: pendingAssessmentId, courseId,
-      lessonAssetId: assetIds[0], prompt: "Ù¾Ø±Ø³Ø´ Ø®ØµÙˆØµÛŒ Ø§Ø±Ø²ÛŒØ§Ø¨ÛŒ Ø¯Ø± Ø§Ù†ØªØ¸Ø§Ø± Ø¨Ø§Ø²Ø¨ÛŒÙ†ÛŒ Ú†ÛŒØ³ØªØŸ",
-      option0: "Ù¾Ø§Ø³Ø® ÛŒÚ©", option1: "Ù¾Ø§Ø³Ø® Ø¯Ùˆ", option2: "Ù¾Ø§Ø³Ø® Ø³Ù‡",
-      option3: "Ù¾Ø§Ø³Ø® Ú†Ù‡Ø§Ø±", correctOption: 0,
-    });
-    await db.insert(coursePracticeQuestions).values({
-      courseId, prompt: "Ù¾Ø±Ø³Ø´ ØªÙ…Ø±ÛŒÙ†ÛŒ Ø¯Ø± Ø§Ù†ØªØ¸Ø§Ø± Ø¨Ø§Ø²Ø¨ÛŒÙ†ÛŒ Ø¨Ø±Ø§ÛŒ Ø¢Ø²Ù…ÙˆÙ†ØŸ",
-      option0: "Ú¯Ø²ÛŒÙ†Ù‡ ÛŒÚ©", option1: "Ú¯Ø²ÛŒÙ†Ù‡ Ø¯Ùˆ", option2: "Ú¯Ø²ÛŒÙ†Ù‡ Ø³Ù‡",
-      option3: "Ú¯Ø²ÛŒÙ†Ù‡ Ú†Ù‡Ø§Ø±", correctOption: 0,
-      authoredByProviderUserId: users.provider,
-    });
-  });
-
-  test.afterAll(async () => {
-    await db.delete(assessmentExamAttempts).where(inArray(
-      assessmentExamAttempts.examId, [denaExamId, instituteExamId],
-    ));
-    await db.delete(assessmentExams).where(inArray(assessmentExams.id,
-      [denaExamId, instituteExamId]));
-    await db.delete(assessmentQuestionBanks)
-      .where(eq(assessmentQuestionBanks.id, instituteBankId));
-    await db.delete(studentLearningAssessmentLessonReviews)
-      .where(eq(studentLearningAssessmentLessonReviews.assessmentId, assessmentId));
-    await db.delete(studentLearningAssessmentAttemptQuestions)
-      .where(eq(studentLearningAssessmentAttemptQuestions.assessmentId, assessmentId));
-    await db.delete(studentLearningAssessmentAttempts)
-      .where(eq(studentLearningAssessmentAttempts.assessmentId, assessmentId));
-    await db.delete(courseLearningAssessmentQuestions)
-      .where(inArray(courseLearningAssessmentQuestions.assessmentId,
-        [assessmentId, pendingAssessmentId]));
-    await db.delete(courseLearningAssessments)
-      .where(inArray(courseLearningAssessments.id, [assessmentId, pendingAssessmentId]));
-    await db.delete(coursePracticeQuestions)
-      .where(eq(coursePracticeQuestions.courseId, courseId));
-    await db.delete(studentEnrollments).where(eq(studentEnrollments.courseId, courseId));
-    await db.delete(privateMediaAssets).where(eq(privateMediaAssets.courseId, courseId));
-    await db.delete(supervisionGrants).where(eq(supervisionGrants.courseId, courseId));
-    await db.delete(courses).where(eq(courses.id, courseId));
-    await db.delete(session).where(inArray(session.userId, Object.values(users)));
-    await db.delete(memberships).where(inArray(memberships.userId, Object.values(users)));
-    await db.delete(verifiedEntities).where(inArray(verifiedEntities.id, [providerId, instituteId]));
-    await db.delete(user).where(inArray(user.id, Object.values(users)));
-  });
-
-  test("AI tutor enforces student access, blocks both exam types, and uses its starter corpus", async () => {
-    const student = await client("student");
-    const otherStudent = await client("other");
-    const institute = await client("institute");
-    const anonymous = await request.newContext({ baseURL: "http://localhost:3000" });
-
-    const noOrigin = await student.post("/api/student/ai-tutor", {
-      data: { courseId, message: "Ø§ÛŒÙ† Ù…ÙÙ‡ÙˆÙ… Ø±Ø§ ØªÙˆØ¶ÛŒØ­ Ø¨Ø¯Ù‡." },
-      headers: { Origin: "https://attacker.example" },
-    });
-    expect(noOrigin.status()).toBe(403);
-    const unauthenticated = await anonymous.post("/api/student/ai-tutor", {
-      data: { courseId, message: "Ø§ÛŒÙ† Ù…ÙÙ‡ÙˆÙ… Ø±Ø§ ØªÙˆØ¶ÛŒØ­ Ø¨Ø¯Ù‡." },
-      headers: { Origin: "http://localhost:3000" },
-    });
-    expect(unauthenticated.status()).toBe(401);
-    const wrongRole = await post(institute, "/api/student/ai-tutor", {
-      courseId, message: "Ø§ÛŒÙ† Ù…ÙÙ‡ÙˆÙ… Ø±Ø§ ØªÙˆØ¶ÛŒØ­ Ø¨Ø¯Ù‡.",
-    });
-    expect(wrongRole.status()).toBe(404);
-    const invalidPayload = await post(student, "/api/student/ai-tutor", {
-      courseId, message: "", unexpected: true,
-    });
-    expect(invalidPayload.status()).toBe(400);
-    const noCourseEntitlement = await post(otherStudent, "/api/student/ai-tutor", {
-      courseId, message: "Ø§ÛŒÙ† Ù…ÙÙ‡ÙˆÙ… Ø±Ø§ ØªÙˆØ¶ÛŒØ­ Ø¨Ø¯Ù‡.",
-    });
-    expect(noCourseEntitlement.status()).toBe(404);
-
-    for (const examId of [denaExamId, instituteExamId]) {
-      const attemptId = randomUUID();
-      const now = new Date();
-      await db.insert(assessmentExamAttempts).values({
-        id: attemptId, examId, studentUserId: users.student, attemptNumber: 1,
-        status: "in_progress", questionCount: 1,
-        startedAt: now, deadlineAt: new Date(now.getTime() + 1_800_000),
-      });
-      const blocked = await post(student, "/api/student/ai-tutor", {
-        courseId, message: "Ø§ÛŒÙ† Ù…ÙÙ‡ÙˆÙ… Ø±Ø§ ØªÙˆØ¶ÛŒØ­ Ø¨Ø¯Ù‡.",
-      });
-      expect(blocked.status()).toBe(403);
-      expect(await blocked.json()).toMatchObject({ code: "ACTIVE_EXAM" });
-      expect(blocked.headers()["cache-control"]).toContain("no-store");
-      const practiceDuringExam = await student.get(
-        "/api/student/ai-tutor/practice?courseId=" + courseId,
-      );
-      expect(practiceDuringExam.status()).toBe(403);
-      await db.delete(assessmentExamAttempts)
-        .where(eq(assessmentExamAttempts.id, attemptId));
-    }
-
-    const noProfilePractice = await student.get(
-      "/api/student/ai-tutor/practice?courseId=" + courseId,
-    );
-    expect(noProfilePractice.status()).toBe(404);
-
-    const supported = await post(student, "/api/student/ai-tutor", {
-      courseId, message: "Ù…Ø¹Ø§Ø¯Ù„Ù‡Ù” ÛŒÚ©â€ŒÙ…Ø¬Ù‡ÙˆÙ„ÛŒ Ø±Ø§ Ú†Ø·ÙˆØ± Ø­Ù„ Ú©Ù†Ù…ØŸ",
-      rememberTopic: true,
-    });
-    expect(supported.status()).toBe(200);
-    expect(await supported.json()).toMatchObject({
-      source: { id: "math.linear-equation.v1", corpusVersion: expect.any(String) },
-      topicRecorded: true,
-    });
-    expect(supported.headers()["cache-control"]).toContain("no-store");
-
-    const ownProfile = await student.get("/api/student/ai-tutor/profile");
-    expect(ownProfile.status()).toBe(200);
-    expect(await ownProfile.json()).toMatchObject({
-      topics: [{ topicId: "math.linear-equation.v1", questionCount: 1 }],
-    });
-    const otherProfile = await otherStudent.get("/api/student/ai-tutor/profile");
-    expect(await otherProfile.json()).toMatchObject({ topics: [] });
-    const practiceResponse = await student.get(
-      "/api/student/ai-tutor/practice?courseId=" + courseId,
-    );
-    expect(practiceResponse.status()).toBe(200);
-    const practiceQuestion = await practiceResponse.json();
-    expect(practiceQuestion).toMatchObject({
-      questionId: "practice.linear-equation.v1",
-      topicTitle: "Ù…Ø¹Ø§Ø¯Ù„Ù‡Ù” ÛŒÚ©â€ŒÙ…Ø¬Ù‡ÙˆÙ„ÛŒ",
-      options: expect.any(Array),
-    });
-    expect(practiceQuestion).not.toHaveProperty("correctOption");
-    const correctPractice = await post(student, "/api/student/ai-tutor/practice", {
-      courseId, questionId: practiceQuestion.questionId, selectedOption: 1,
-      rememberResult: true,
-    });
-    expect(correctPractice.status()).toBe(200);
-    expect(await correctPractice.json()).toMatchObject({
-      correct: true, explanation: expect.stringContaining("x = Û´"), resultRecorded: true,
-    });
-    const wrongPractice = await post(student, "/api/student/ai-tutor/practice", {
-      courseId, questionId: practiceQuestion.questionId, selectedOption: 0,
-      rememberResult: true,
-    });
-    expect(await wrongPractice.json()).toMatchObject({ correct: false, resultRecorded: true });
-    const profileWithResults = await (await student.get("/api/student/ai-tutor/profile")).json();
-    expect(profileWithResults).toMatchObject({ topics: [{
-      topicId: "math.linear-equation.v1", practiceAttemptCount: 2, practiceCorrectCount: 1,
-      practiceNeedsGuidance: true,
-    }] });
-    const nextPractice = await (await student.get(
-      "/api/student/ai-tutor/practice?courseId=" + courseId,
-    )).json();
-    expect(nextPractice.guidedHint).toEqual(expect.any(String));
-    const unrecordedPractice = await post(student, "/api/student/ai-tutor/practice", {
-      courseId, questionId: practiceQuestion.questionId, selectedOption: 1,
-      rememberResult: false,
-    });
-    expect(await unrecordedPractice.json()).toMatchObject({ correct: true, resultRecorded: false });
-    const profileWithoutThirdResult = await (await student.get("/api/student/ai-tutor/profile")).json();
-    expect(profileWithoutThirdResult).toMatchObject({ topics: [{
-      topicId: "math.linear-equation.v1", practiceAttemptCount: 2, practiceCorrectCount: 1,
-      practiceNeedsGuidance: true,
-    }] });
-    const savedCorrectPractice = await post(student, "/api/student/ai-tutor/practice", {
-      courseId, questionId: practiceQuestion.questionId, selectedOption: 1,
-      rememberResult: true,
-    });
-    expect(await savedCorrectPractice.json()).toMatchObject({
-      correct: true, resultRecorded: true,
-    });
-    const recoveredPractice = await (await student.get(
-      "/api/student/ai-tutor/practice?courseId=" + courseId,
-    )).json();
-    expect(recoveredPractice.guidedHint).toBeNull();
-    const recoveredProfile = await (await student.get("/api/student/ai-tutor/profile")).json();
-    expect(recoveredProfile).toMatchObject({ topics: [{
-      topicId: "math.linear-equation.v1", practiceAttemptCount: 3, practiceCorrectCount: 2,
-      practiceNeedsGuidance: false,
-    }] });
-    const cleared = await student.delete("/api/student/ai-tutor/profile", {
-      headers: { Origin: "http://localhost:3000" },
-    });
-    expect(cleared.status()).toBe(200);
-    expect(await cleared.json()).toMatchObject({ deleted: 1 });
-    const stalePractice = await post(student, "/api/student/ai-tutor/practice", {
-      courseId, questionId: practiceQuestion.questionId, selectedOption: 1,
-    });
-    expect(stalePractice.status()).toBe(404);
-    expect(await (await student.get("/api/student/ai-tutor/profile")).json())
-      .toMatchObject({ topics: [] });
-    const noConsent = await post(student, "/api/student/ai-tutor", {
-      courseId, message: "Ø¬Ù…Ø¹ Ú©Ø³Ø±Ù‡Ø§ Ø±Ø§ ØªÙˆØ¶ÛŒØ­ Ø¨Ø¯Ù‡.",
-    });
-    expect(await noConsent.json()).toMatchObject({ topicRecorded: false });
-    expect(await (await student.get("/api/student/ai-tutor/profile")).json())
-      .toMatchObject({ topics: [] });
-    const crossOriginDelete = await student.delete("/api/student/ai-tutor/profile", {
-      headers: { Origin: "https://attacker.example" },
-    });
-    expect(crossOriginDelete.status()).toBe(403);
-
-    const unsupported = await post(student, "/api/student/ai-tutor", {
-      courseId, message: "Ù†Ø¸Ø±ÛŒÙ‡ Ù†Ø³Ø¨ÛŒØª Ø±Ø§ ØªÙˆØ¶ÛŒØ­ Ø¨Ø¯Ù‡.",
-    });
-    expect(unsupported.status()).toBe(422);
-    expect(await unsupported.json()).toMatchObject({
-      code: "STARTER_CONTENT_NOT_FOUND",
-    });
-    expect(unsupported.headers()["cache-control"]).toContain("no-store");
-    await anonymous.dispose();
-    await otherStudent.dispose();
-    await institute.dispose();
-    await student.dispose();
-  });
-
-  test("student home surfaces published institute and Dena exams", async () => {
-    const student = await client("student");
-    const home = await student.get("/student");
-    expect(home.status()).toBe(200);
-    const html = await home.text();
-    expect(html).toContain("Ø¢Ø²Ù…ÙˆÙ†â€ŒÙ‡Ø§ÛŒ Ù…Ù†");
-    expect(html).toContain("Ø¢Ø²Ù…ÙˆÙ† Ù‡Ù…Ø§Ù‡Ù†Ú¯ Ø¯Ù†Ø§");
-    expect(html).toContain("Ø¢Ø²Ù…ÙˆÙ† Ù…Ø¤Ø³Ø³Ù‡");
-    expect(html).toContain("/student/assessments");
-    await student.dispose();
-  });
-
-  test("independent educator can author a scoped learning assessment for institute review", async () => {
-    const independentCourseId = randomUUID();
-    const profileId = randomUUID();
-    const affiliationId = randomUUID();
-    const assetId = randomUUID();
-    let assessmentId: string | null = null;
-    await db.insert(independentEducatorProfiles).values({
-      id: profileId, userId: users.student, displayName: "Ù‡Ù…Ú©Ø§Ø± Ø¢Ø²Ù…ÙˆÙ†",
-    });
-    await db.insert(educatorInstituteAffiliations).values({
-      id: affiliationId, educatorProfileId: profileId, instituteId,
-      requestedByUserId: users.student, clientRequestId: randomUUID(),
-      displayNameSnapshot: "Ù‡Ù…Ú©Ø§Ø± Ø¢Ø²Ù…ÙˆÙ†",
-      statement: "Ù‡Ù…Ú©Ø§Ø±ÛŒ Ø¢Ù…ÙˆØ²Ø´ÛŒ Ø¨Ø±Ø§ÛŒ Ø¢Ø²Ù…ÙˆÙ† ÛŒÚ© Ø¯ÙˆØ±Ù‡Ù” Ø¢Ø²Ù…Ø§ÛŒØ´ÛŒ.",
-      status: "approved", reviewedByUserId: users.institute,
-      reviewedAt: new Date(), decisionReason: "Ù‡Ù…Ú©Ø§Ø±ÛŒ Ø¨Ø±Ø§ÛŒ Ø¢Ø²Ù…ÙˆÙ† Ù¾Ø°ÛŒØ±ÙØªÙ‡ Ø´Ø¯.",
-    });
-    await db.insert(courses).values({
-      id: independentCourseId, ownerType: "independent_educator",
-      independentEducatorProfileId: profileId, providerId: null,
-      responsibleInstituteId: instituteId, title: "Ø¯ÙˆØ±Ù‡Ù” Ù‡Ù…Ú©Ø§Ø± Ù…Ø³ØªÙ‚Ù„",
-      createdByProviderUserId: users.student, clientRequestId: randomUUID(),
-    });
-    await db.insert(supervisionGrants).values({
-      courseId: independentCourseId, ownerType: "independent_educator",
-      independentEducatorProfileId: profileId, providerId: null, instituteId,
-      status: "approved", requestedByProviderUserId: users.student,
-      approvedByInstituteUserId: users.institute, approvedAt: new Date(),
-    });
-    await db.insert(privateMediaAssets).values({
-      id: assetId, courseId: independentCourseId, title: "Ø¯Ø±Ø³ Ø¢Ù…Ø§Ø¯Ù‡",
-      objectKey: `${independentCourseId}/${assetId}.mp4`,
-    });
-    // Exercise the mixed-role case: course owner is also an institute member,
-    // and must still be unable to review their own practice question.
-    await db.insert(memberships).values({
-      userId: users.student, role: "institute", instituteId,
-    });
-
-    try {
-      const educator = await client("student");
-      const instituteClient = await client("institute");
-      const selfReviewClient = await client("student");
-      const other = await client("other");
-      const path = `/api/independent-educator/courses/${independentCourseId}/assessments`;
-      expect((await educator.get(path)).status()).toBe(200);
-      expect((await other.get(path)).status()).toBe(404);
-      expect((await post(other,
-        `/api/independent-educator/courses/${independentCourseId}/publication`,
-        { action: "publish" })).status()).toBe(404);
-      const created = await post(educator, path, {
-        title: "Ø§Ø±Ø²ÛŒØ§Ø¨ÛŒ Ù‡Ù…Ú©Ø§Ø± Ù…Ø³ØªÙ‚Ù„", instructions: "Ø¨Ù‡ Ù¾Ø±Ø³Ø´ Ù¾Ø§Ø³Ø® Ø¯Ù‡ÛŒØ¯.",
-        questionCount: 1, requiredCorrectCount: 1,
-        questions: [{
-          prompt: "Ú©Ø¯Ø§Ù… Ú¯Ø²ÛŒÙ†Ù‡ Ø¨Ø±Ø§ÛŒ Ø§Ø±Ø²ÛŒØ§Ø¨ÛŒ Ø§ÛŒÙ† Ø¯Ø±Ø³ Ø¯Ø±Ø³Øª Ø§Ø³ØªØŸ",
-          options: ["Ù¾Ø§Ø³Ø® Ø¯Ø±Ø³Øª", "Ú¯Ø²ÛŒÙ†Ù‡Ù” Ø¯ÙˆÙ…", "Ú¯Ø²ÛŒÙ†Ù‡Ù” Ø³ÙˆÙ…", "Ú¯Ø²ÛŒÙ†Ù‡Ù” Ú†Ù‡Ø§Ø±Ù…"],
-          correctOption: 0, lessonAssetId: assetId,
-        }],
-      });
-      expect(created.status()).toBe(201);
-      const createdBody = await created.json();
-      assessmentId = createdBody.assessmentId;
-      expect(createdBody).toMatchObject({ reviewStatus: "pending" });
-      expect((await instituteClient.get(
-        `/api/institute/courses/${independentCourseId}/assessments`,
-      )).status()).toBe(200);
-      const decision = await post(instituteClient,
-        `/api/institute/courses/${independentCourseId}/assessments/${assessmentId}`, {
-          action: "approve", reason: "Ù…ØªÙ†ØŒ Ú©Ù„ÛŒØ¯ Ùˆ Ø¯Ø±Ø³ Ù…Ø±ØªØ¨Ø· Ø¨Ø±Ø±Ø³ÛŒ Ø´Ø¯.",
-        });
-      expect(decision.status()).toBe(200);
-      expect(await decision.json()).toMatchObject({ reviewStatus: "approved" });
-      const practicePath = `/api/independent-educator/courses/${independentCourseId}/practice`;
-      const practiceCreated = await post(educator, practicePath, {
-        learningConceptId: "math.percent.v1",
-        prompt: "Ú©Ø¯Ø§Ù… Ú¯Ø²ÛŒÙ†Ù‡ Ø¯Ø±ØµØ¯ ÛŒÚ©â€ŒÚ†Ù‡Ø§Ø±Ù… Ø±Ø§ Ù†Ø´Ø§Ù† Ù…ÛŒâ€ŒØ¯Ù‡Ø¯ØŸ",
-        options: ["Û²Ûµ Ø¯Ø±ØµØ¯", "ÛµÛ° Ø¯Ø±ØµØ¯", "Û·Ûµ Ø¯Ø±ØµØ¯", "Û±Û°Û° Ø¯Ø±ØµØ¯"],
-        correctOption: 0,
-      });
-      expect(practiceCreated.status()).toBe(201);
-      expect((await educator.get(practicePath)).status()).toBe(200);
-      const practiceReviewPath = `/api/institute/courses/${independentCourseId}/practice`;
-      expect((await selfReviewClient.get(practiceReviewPath)).status()).toBe(404);
-      expect((await post(selfReviewClient, practiceReviewPath, {
-        action: "approve", reason: "Ù†Ø¨Ø§ÛŒØ¯ Ù…Ø§Ù„Ú© Ø®ÙˆØ¯Ø´ ØªØµÙ…ÛŒÙ… Ø¨Ø§Ø²Ø¨ÛŒÙ†ÛŒ Ø¨Ú¯ÛŒØ±Ø¯.",
-      })).status()).toBe(404);
-      const pendingPractice = await instituteClient.get(practiceReviewPath);
-      expect(pendingPractice.status()).toBe(200);
-      expect((await pendingPractice.json()).question).toMatchObject({
-        reviewStatus: "pending", correctOption: 0,
-      });
-      const practiceDecision = await post(instituteClient, practiceReviewPath, {
-        action: "approve", reason: "Ù¾Ø±Ø³Ø´ Ùˆ Ù¾Ø§Ø³Ø® Ø¯Ø±Ø³Øª Ø¨Ø±Ø§ÛŒ Ø§ÛŒÙ† Ø¯Ø±Ø³ Ø¨Ø±Ø±Ø³ÛŒ Ø´Ø¯.",
-      });
-      expect(practiceDecision.status()).toBe(200);
-      expect(await practiceDecision.json()).toMatchObject({ reviewStatus: "approved" });
-      const practicePage = await educator.get(
-        `/account/independent-educator/courses/${independentCourseId}/practice`,
-      );
-      expect(practicePage.status()).toBe(200);
-      expect(await practicePage.text()).toContain("Ú©Ø¯Ø§Ù… Ú¯Ø²ÛŒÙ†Ù‡ Ø¯Ø±ØµØ¯ ÛŒÚ©â€ŒÚ†Ù‡Ø§Ø±Ù… Ø±Ø§ Ù†Ø´Ø§Ù† Ù…ÛŒâ€ŒØ¯Ù‡Ø¯ØŸ");
-      const page = await educator.get(
-        `/account/independent-educator/courses/${independentCourseId}/assessments`,
-      );
-      expect(page.status()).toBe(200);
-      expect(await page.text()).toContain("Ø§Ø±Ø²ÛŒØ§Ø¨ÛŒ Ù‡Ù…Ú©Ø§Ø± Ù…Ø³ØªÙ‚Ù„");
-      const publication = await post(educator,
-        `/api/independent-educator/courses/${independentCourseId}/publication`,
-        { action: "publish" });
-      expect(publication.status()).toBe(200);
-      expect(await publication.json()).toMatchObject({
-        courseId: independentCourseId, publicationStatus: "published", replayed: false,
-      });
-      const catalog = await other.get(
-        `/api/student/courses?q=${encodeURIComponent("Ø¯ÙˆØ±Ù‡Ù” Ù‡Ù…Ú©Ø§Ø± Ù…Ø³ØªÙ‚Ù„")}`,
-      );
-      expect(catalog.status()).toBe(200);
-      expect((await catalog.json()).courses).toEqual(expect.arrayContaining([
-        expect.objectContaining({
-          courseId: independentCourseId, title: "Ø¯ÙˆØ±Ù‡Ù” Ù‡Ù…Ú©Ø§Ø± Ù…Ø³ØªÙ‚Ù„",
-          ownerType: "independent_educator",
-        }),
-      ]));
-      expect((await post(other,
-        `/api/student/courses/${independentCourseId}/enroll`, {})).status()).toBe(201);
-      const studentPractice = await other.get(`/api/student/courses/${independentCourseId}/practice`);
-      expect(studentPractice.status()).toBe(200);
-      const studentPracticeBody = (await studentPractice.json()).practice;
-      expect(studentPracticeBody).toMatchObject({
-        prompt: "Ú©Ø¯Ø§Ù… Ú¯Ø²ÛŒÙ†Ù‡ Ø¯Ø±ØµØ¯ ÛŒÚ©â€ŒÚ†Ù‡Ø§Ø±Ù… Ø±Ø§ Ù†Ø´Ø§Ù† Ù…ÛŒâ€ŒØ¯Ù‡Ø¯ØŸ",
-      });
-      expect(studentPracticeBody).not.toHaveProperty("correctOption");
-      await educator.dispose();
-      await instituteClient.dispose();
-      await other.dispose();
-      await selfReviewClient.dispose();
-    } finally {
-      if (assessmentId) {
-        await db.delete(auditLogs).where(and(
-          eq(auditLogs.entityType, "PRACTICE"), eq(auditLogs.entityId, assessmentId),
-        ));
-        await db.delete(courseLearningAssessmentQuestions)
-          .where(eq(courseLearningAssessmentQuestions.assessmentId, assessmentId));
-        await db.delete(courseLearningAssessments)
-          .where(eq(courseLearningAssessments.id, assessmentId));
-      }
-      await db.delete(privateMediaAssets).where(eq(privateMediaAssets.id, assetId));
-      await db.delete(auditLogs).where(and(
-        eq(auditLogs.entityType, "PRACTICE"), eq(auditLogs.entityId, independentCourseId),
-      ));
-      await db.delete(coursePracticeQuestions)
-        .where(eq(coursePracticeQuestions.courseId, independentCourseId));
-      await db.delete(studentEnrollments)
-        .where(and(eq(studentEnrollments.courseId, independentCourseId),
-          eq(studentEnrollments.studentUserId, users.other)));
-      await db.delete(memberships).where(and(
-        eq(memberships.userId, users.student), eq(memberships.role, "institute"),
-        eq(memberships.instituteId, instituteId),
-      ));
-      await db.delete(supervisionGrants).where(eq(supervisionGrants.courseId, independentCourseId));
-      await db.delete(courses).where(eq(courses.id, independentCourseId));
-      await db.delete(educatorInstituteAffiliations).where(eq(educatorInstituteAffiliations.id, affiliationId));
-      await db.delete(independentEducatorProfiles).where(eq(independentEducatorProfiles.id, profileId));
-    }
-  });
-
-  test("hides answer keys, serializes starts, and requires lesson review before retry", async () => {
-    const student = await client("student");
-    const other = await client("other");
-    const institute = await client("institute");
-    const provider = await client("provider");
-    const anonymous = await request.newContext({ baseURL: "http://localhost:3000" });
-    expect((await anonymous.get(listPath)).status()).toBe(401);
-    expect((await student.post(`${basePath}/attempts`, { data: {} })).status()).toBe(403);
-    const listed = await student.get(listPath);
-    expect(listed.status()).toBe(200);
-    expect((await listed.json()).assessments).toHaveLength(1);
-
-    const instituteHome = await institute.get("/institute");
-    expect(instituteHome.status()).toBe(200);
-    const instituteHomeHtml = await instituteHome.text();
-    expect(instituteHomeHtml).toMatch(/ØªØ£ÛŒÛŒØ¯Ø´Ø¯Ù‡:(?: <!-- -->)Û±/);
-    expect(instituteHomeHtml).toContain("Ù…Ø´Ø§Ù‡Ø¯Ù‡Ù” Ø§Ø±Ø²ÛŒØ§Ø¨ÛŒâ€ŒÙ‡Ø§ÛŒ ÛŒØ§Ø¯Ú¯ÛŒØ±ÛŒ");
-    const instituteCourses = await institute.get("/institute/courses");
-    expect(instituteCourses.status()).toBe(200);
-    const instituteCoursesHtml = await instituteCourses.text();
-    expect(instituteCoursesHtml).toContain("Ø¯ÙˆØ±Ù‡ Ø§Ø±Ø²ÛŒØ§Ø¨ÛŒ ÛŒØ§Ø¯Ú¯ÛŒØ±ÛŒ");
-    expect(instituteCoursesHtml).toContain(
-      `/institute/courses/${courseId}/assessments`,
-    );
-    expect((await student.get("/institute/courses")).status()).toBe(404);
-    const instituteAssessmentQueue = await institute.get("/institute/assessments");
-    expect(instituteAssessmentQueue.status()).toBe(200);
-    const queueHtml = await instituteAssessmentQueue.text();
-    expect(queueHtml).toContain("Ø³Ø¤Ø§Ù„â€ŒÙ‡Ø§ÛŒ ØªÙ…Ø±ÛŒÙ†ÛŒ");
-    expect(queueHtml).toContain("Ø³Ø¤Ø§Ù„ ØªÙ…Ø±ÛŒÙ†ÛŒ Ø¯Ø± Ø§Ù†ØªØ¸Ø§Ø± Ø¨Ø±Ø±Ø³ÛŒ Ù†ÛŒØ³Øª.");
-    expect(queueHtml).toContain("Ø§Ø±Ø²ÛŒØ§Ø¨ÛŒâ€ŒÙ‡Ø§ÛŒ ÛŒØ§Ø¯Ú¯ÛŒØ±ÛŒ");
-    expect(queueHtml).toContain("Ø§Ø±Ø²ÛŒØ§Ø¨ÛŒ ÛŒØ§Ø¯Ú¯ÛŒØ±ÛŒ Ø¯Ø± Ø§Ù†ØªØ¸Ø§Ø± Ø¨Ø±Ø±Ø³ÛŒ Ù†ÛŒØ³Øª.");
-    expect(queueHtml).not.toContain("Ù¾Ø±Ø³Ø´ Ø®ØµÙˆØµÛŒ Ø§Ø±Ø²ÛŒØ§Ø¨ÛŒ Ø¯Ø± Ø§Ù†ØªØ¸Ø§Ø± Ø¨Ø§Ø²Ø¨ÛŒÙ†ÛŒ Ú†ÛŒØ³ØªØŸ");
-    expect(queueHtml).not.toContain("Ù¾Ø±Ø³Ø´ ØªÙ…Ø±ÛŒÙ†ÛŒ Ø¯Ø± Ø§Ù†ØªØ¸Ø§Ø± Ø¨Ø§Ø²Ø¨ÛŒÙ†ÛŒ Ø¨Ø±Ø§ÛŒ Ø¢Ø²Ù…ÙˆÙ†ØŸ");
-    expect((await student.get("/institute/assessments")).status()).toBe(404);
-    const instituteProfile = await institute.get("/institute/profile");
-    expect(instituteProfile.status()).toBe(200);
-    const instituteProfileHtml = await instituteProfile.text();
-    expect(instituteProfileHtml).toContain("assessment institute");
-    expect(instituteProfileHtml).not.toContain("test/assessment-institute");
-    expect((await student.get("/institute/profile")).status()).toBe(404);
-    const instituteLearning = await institute.get("/institute/learning");
-    expect(instituteLearning.status()).toBe(200);
-    const instituteLearningHtml = await instituteLearning.text();
-    expect(instituteLearningHtml).toContain("Ø¢Ù…Ø§Ø¯Ú¯ÛŒ Ø¢Ù…ÙˆØ²Ø´ÛŒ Ø¯ÙˆØ±Ù‡â€ŒÙ‡Ø§");
-    expect(instituteLearningHtml).not.toContain("Ù¾Ø±Ø³Ø´ Ø®ØµÙˆØµÛŒ Ø§Ø±Ø²ÛŒØ§Ø¨ÛŒ Ø¯Ø± Ø§Ù†ØªØ¸Ø§Ø± Ø¨Ø§Ø²Ø¨ÛŒÙ†ÛŒ Ú†ÛŒØ³ØªØŸ");
-    expect((await student.get("/institute/learning")).status()).toBe(404);
-
-    const providerHome = await provider.get("/provider");
-    expect(providerHome.status()).toBe(200);
-    const providerHomeHtml = await providerHome.text();
-    expect(providerHomeHtml).toContain("Ø§Ø±Ø²ÛŒØ§Ø¨ÛŒâ€ŒÙ‡Ø§ÛŒ ÛŒØ§Ø¯Ú¯ÛŒØ±ÛŒ");
-    expect(providerHomeHtml).toContain("ØªØ£ÛŒÛŒØ¯Ø´Ø¯Ù‡");
-    expect(providerHomeHtml).toContain(`/provider/courses/${courseId}/assessments`);
-    expect(providerHomeHtml).toContain('href="/provider/courses"');
-    expect(providerHomeHtml).not.toContain("Ú©Ø¯Ø§Ù… Ú¯Ø²ÛŒÙ†Ù‡ Ù¾Ø§Ø³Ø® Ø¯Ø±Ø³Øª Ù¾Ø±Ø³Ø´ 1 Ø§Ø³ØªØŸ");
-    const providerCourses = await provider.get("/provider/courses");
-    expect(providerCourses.status()).toBe(200);
-    expect(await providerCourses.text()).toContain("Ø¯ÙˆØ±Ù‡ Ø§Ø±Ø²ÛŒØ§Ø¨ÛŒ ÛŒØ§Ø¯Ú¯ÛŒØ±ÛŒ");
-    const providerAssessments = await provider.get("/provider/assessments");
-    expect(providerAssessments.status()).toBe(200);
-    const providerAssessmentsHtml = await providerAssessments.text();
-    expect(providerAssessmentsHtml).toContain("Ø§Ø±Ø²ÛŒØ§Ø¨ÛŒ ÙØµÙ„");
-    expect(providerAssessmentsHtml).toContain("ØªØ£ÛŒÛŒØ¯Ø´Ø¯Ù‡");
-    expect(providerAssessmentsHtml).not.toContain("Ú©Ø¯Ø§Ù… Ú¯Ø²ÛŒÙ†Ù‡ Ù¾Ø§Ø³Ø® Ø¯Ø±Ø³Øª Ù¾Ø±Ø³Ø´ 1 Ø§Ø³ØªØŸ");
-    const providerProfile = await provider.get("/provider/profile");
-    expect(providerProfile.status()).toBe(200);
-    const providerProfileHtml = await providerProfile.text();
-    expect(providerProfileHtml).toContain("assessment provider");
-    expect(providerProfileHtml).not.toContain("test/assessment-provider");
-    const providerLearning = await provider.get("/provider/learning");
-    expect(providerLearning.status()).toBe(200);
-    const providerLearningHtml = await providerLearning.text();
-    expect(providerLearningHtml).toContain("Ø¢Ù…Ø§Ø¯Ú¯ÛŒ Ø¢Ù…ÙˆØ²Ø´ÛŒ Ø¯ÙˆØ±Ù‡â€ŒÙ‡Ø§");
-    expect(providerLearningHtml).not.toContain("Ù¾Ø±Ø³Ø´ Ø®ØµÙˆØµÛŒ Ø§Ø±Ø²ÛŒØ§Ø¨ÛŒ Ø¯Ø± Ø§Ù†ØªØ¸Ø§Ø± Ø¨Ø§Ø²Ø¨ÛŒÙ†ÛŒ Ú†ÛŒØ³ØªØŸ");
-    expect((await student.get("/provider/courses")).status()).toBe(404);
-    expect((await student.get("/provider/assessments")).status()).toBe(404);
-    expect((await student.get("/provider/profile")).status()).toBe(404);
-    expect((await student.get("/provider/learning")).status()).toBe(404);
-    const providerAccount = await provider.get("/account");
-    const providerAccountHtml = await providerAccount.text();
-    expect(providerAccountHtml).toContain('href="/provider/profile"');
-    expect(providerAccountHtml).toContain('href="/provider/learning"');
-    expect(providerAccountHtml).not.toContain('href="/institute"');
-
-    const starts = await Promise.all([
-      post(student, `${basePath}/attempts`, {}),
-      post(student, `${basePath}/attempts`, {}),
-    ]);
-    expect(starts.every((response) => response.status() === 200 || response.status() === 201)).toBe(true);
-    const startBodies = await Promise.all(starts.map((response) => response.json()));
-    expect(new Set(startBodies.map((body) => body.attemptId)).size).toBe(1);
-    const attemptId = startBodies[0].attemptId as string;
-
-    const attemptResponse = await student.get(`${basePath}/attempts/${attemptId}`);
-    expect(attemptResponse.status()).toBe(200);
-    const attempt = (await attemptResponse.json()).attempt;
-    expect(attempt.questions).toHaveLength(2);
-    expect(JSON.stringify(attempt)).not.toContain("correctOption");
-    expect(JSON.stringify(attempt)).not.toContain('"correct"');
-    expect((await other.get(`${basePath}/attempts/${attemptId}`)).status()).toBe(404);
-
-    const answers = Object.fromEntries(attempt.questions.map((item: { questionId: string }) =>
-      [item.questionId, 1]));
-    const submitted = await post(student, `${basePath}/attempts/${attemptId}`, { answers });
-    expect(submitted.status()).toBe(201);
-    const result = await submitted.json();
-    expect(result).toMatchObject({ outcome: "needs_review", correctCount: 0, questionCount: 2 });
-    expect(JSON.stringify(result)).not.toContain("correctOption");
-
-    const growth = await student.get("/student/growth");
-    expect(growth.status()).toBe(200);
-    const growthHtml = await growth.text();
-    expect(growthHtml).toContain("Ø§Ø±Ø²ÛŒØ§Ø¨ÛŒ ÙØµÙ„");
-    expect(growthHtml).toContain("Û°Ùª");
-    const otherGrowth = await other.get("/student/growth");
-    expect(otherGrowth.status()).toBe(200);
-    expect(await otherGrowth.text()).not.toContain("Ø§Ø±Ø²ÛŒØ§Ø¨ÛŒ ÙØµÙ„");
-
-    const submittedAttempt = (await (await student.get(
-      `${basePath}/attempts/${attemptId}`)).json()).attempt;
-    expect(submittedAttempt.missedLessonAssetIds).toHaveLength(2);
-    const blocked = await post(student, `${basePath}/attempts`, {});
-    expect(blocked.status()).toBe(200);
-    const blockedBody = await blocked.json();
-    expect(blockedBody.reviewRequired).toBe(true);
-    for (const lessonAssetId of blockedBody.outstandingLessonAssetIds as string[]) {
-      const response = await post(student,
-        `${basePath}/attempts/${attemptId}/lesson-reviews`, { lessonAssetId });
-      expect(response.status()).toBe(201);
-    }
-    const retried = await post(student, `${basePath}/attempts`, {});
-    expect(retried.status()).toBe(201);
-    expect((await retried.json()).attemptNumber).toBe(2);
-    await anonymous.dispose();
-    await other.dispose();
-    await institute.dispose();
-    await provider.dispose();
-    await student.dispose();
-  });
-});
+YªçŠx-®éÜj×¢ëiºÚ+Š§j[h‘éÜ¢éí×müá:-jZ.¶›­–)Þ³V–×÷'B²&æFöÕUT”BÒg&öÒ&æöFS¦7'—Fò#°¦–×÷'B²æBÂWÂ–ä'&’Òg&öÒ&G&—§¦ÆRÖ÷&Ò#°¦–×÷'B²6W&–Æ—¦U6–væVD6öö¶–RÒg&öÒ&&WGFW"Ö6ÆÂ#°¦–×÷'B²W‡V7BÂ&WVW7BÂFW7BÂG—R•&WVW7D6öçFW‡BÒg&öÒ$Æ—w&–v‡B÷FW7B#°¦–×÷'B²vWDF"Òg&öÒ"ââòââ÷7&2öF"#°¦–×÷'B°¢76W76ÖVçDW†ÔGFV×G2Â76W76ÖVçDW†×2Â76W76ÖVçEVW7F–öä&æ·2ÂVF—DÆöw2À¢6÷W'6TÆV&æ–æt76W76ÖVçEVW7F–öç2Â6÷W'6TÆV&æ–æt76W76ÖVçG2Â6÷W'6T÷væW'6†—WfVçG2À¢6÷W'6U&7F–6UVW7F–öç2Â6÷W'6W2À¢VGV6F÷$–ç7F—GWFTff–Æ–F–öäWfVçG2ÂVGV6F÷$–ç7F—GWFTff–Æ–F–öç2À¢–æFWVæFVçDVGV6F÷%&öf–ÆW2À¢ÖVÖ&W'6†—2Â&—fFTÖVF–76WG2Â6W76–öâÂ7GVFVçDVç&öÆÆÖVçG2À¢7GVFVçDÆV&æ–æt76W76ÖVçDGFV×G2À¢7GVFVçDÆV&æ–æt76W76ÖVçDGFV×EVW7F–öç2À¢7GVFVçDÆV&æ–æt76W76ÖVçDÆW76öå&Wf–Ww2Â7WW'f—6–öäw&çG2ÂW6W"À¢fW&–f–VDVçF—F–W2À§Òg&öÒ"ââòââ÷7&2öF"÷66†VÖ#° §FW7BæFW67&–&Ræ6öæf–wW&R‡²ÖöFS¢'6W&–Â"Ò“° §FW7BæFW67&–&R‚'7GVFVçBÆV&æ–ær76W76ÖVçBÆ–fV7–6ÆR"Â‚’Óâ°¢6öç7BF"ÒvWDF"‚“°¢6öç7BW6W'2Ò²FÖ–ã¢&æFöÕUT”B‚’Â&÷f–FW#¢&æFöÕUT”B‚’Â–ç7F—GWFS¢&æFöÕUT”B‚’À¢7GVFVçC¢&æFöÕUT”B‚’Â÷F†W#¢&æFöÕUT”B‚’Ó°¢6öç7BFö¶Vç2Ò°¢7GVFVçC¢&æFöÕUT”B‚’Â÷F†W#¢&æFöÕUT”B‚’Â–ç7F—GWFS¢&æFöÕUT”B‚’À¢&÷f–FW#¢&æFöÕUT”B‚’À¢Ó°¢6öç7B&÷f–FW$–BÒ&æFöÕUT”B‚“°¢6öç7B–ç7F—GWFT–BÒ&æFöÕUT”B‚“°¢6öç7B6÷W'6T–BÒ&æFöÕUT”B‚“°¢6öç7B76W76ÖVçD–BÒ&æFöÕUT”B‚“°¢6öç7BVæF–æt76W76ÖVçD–BÒ&æFöÕUT”B‚“°¢6öç7BVæF–æuVW7F–öä–BÒ&æFöÕUT”B‚“°¢6öç7B76WD–G2Ò·&æFöÕUT”B‚’Â&æFöÕUT”B‚’Â&æFöÕUT”B‚•Ó°¢6öç7BVW7F–öç2Ò·&æFöÕUT”B‚’Â&æFöÕUT”B‚’Â&æFöÕUT”B‚•Ó°¢6öç7BFVæ&æ´–BÒ#ÓÓÓÓ"#°¢6öç7B–ç7F—GWFT&æ´–BÒ&æFöÕUT”B‚“°¢6öç7BFVæW†Ô–BÒ&æFöÕUT”B‚“°¢6öç7B–ç7F—GWFTW†Ô–BÒ&æFöÕUT”B‚“°¢6öç7BFVæ÷væW$–BÒ#ÓÓÓÓ#° ¢7–æ2gVæ7F–öâ6Æ–VçB†3¢¶W–öbG—VöbFö¶Vç2“¢&öÖ—6SÄ•&WVW7D6öçFW‡Câ°¢6öç7B6öö¶–RÒv—B6W&–Æ—¦U6–væVD6öö¶–R€¢&&WGFW"ÖWF‚ç6W76–öå÷Fö¶Vâ"ÂFö¶Vç5¶5ÒÂ&ö6W72æVçbä$UEDU%ôUD…õ4T5$UBÀ¢“°¢&WGW&â&WVW7BææWt6öçFW‡B‡²&6UU$Ã¢&‡GG¢òöÆö6Æ†÷7C£3"À¢W‡G&…EE†VFW'3¢²6öö¶–S¢6öö¶–Rç7Æ—B‚#²"•³ÒÒÒ“°¢Ð¢6öç7B÷7BÒ†7Gƒ¢•&WVW7D6öçFW‡BÂFƒ¢7G&–ærÂFF¢ö&¦V7B’Óà¢7G‚ç÷7B‡F‚Â²FFÂ†VFW'3¢²÷&–v–ã¢&‡GG¢òöÆö6Æ†÷7C£3"ÒÒ“°¢6öç7BÆ—7EF‚Òö’÷7GVFVçBö6÷W'6W2òG¶6÷W'6T–GÒö76W76ÖVçG6°¢6öç7B&6UF‚ÒG¶Æ—7EF‡ÒòG¶76W76ÖVçD–GÖ° ¢FW7Bæ&Vf÷&TÆÂ†7–æ2‚’Óâ°¢v—BF"æ–ç6W'B‡W6W"’çfÇVW2„ö&¦V7BæVçG&–W2‡W6W'2’æÖ‚…¶æÖRÂ–EÒ’Óâ‡°¢–BÂæÖRÂVÖ–Ã¢G¶–GÔ76W76ÖVçBæW†×ÆRçFW7FÀ¢Ò’’“°¢v—BF"æ–ç6W'B‡fW&–f–VDVçF—F–W2’çfÇVW2…°¢²–C¢&÷f–FW$–BÂ&öÆS¢'&÷f–FW""ÂæÖS¢&76W76ÖVçB&÷f–FW""À¢Wf–FVæ6U&VfW&Væ6S¢'FW7Bö76W76ÖVçB×&÷f–FW""ÂfW&–f–VD'•W6W$–C¢W6W'2æFÖ–âÒÀ¢²–C¢–ç7F—GWFT–BÂ&öÆS¢&–ç7F—GWFR"ÂæÖS¢&76W76ÖVçB–ç7F—GWFR"À¢Wf–FVæ6U&VfW&Væ6S¢'FW7Bö76W76ÖVçBÖ–ç7F—GWFR"ÂfW&–f–VD'•W6W$–C¢W6W'2æFÖ–âÒÀ¢Ò“°¢v—BF"æ–ç6W'B†ÖVÖ&W'6†—2’çfÇVW2…°¢²W6W$–C¢W6W'2æFÖ–âÂ&öÆS¢&FÖ–â"ÒÀ¢²W6W$–C¢W6W'2ç&÷f–FW"Â&öÆS¢'&÷f–FW""Â&÷f–FW$–BÒÀ¢²W6W$–C¢W6W'2æ–ç7F—GWFRÂ&öÆS¢&–ç7F—GWFR"Â–ç7F—GWFT–BÒÀ¢²W6W$–C¢W6W'2ç7GVFVçBÂ&öÆS¢'7GVFVçB"ÒÀ¢²W6W$–C¢W6W'2æ÷F†W"Â&öÆS¢'7GVFVçB"ÒÀ¢Ò“°¢6öç7BW‡—&W4BÒæWrFFR„FFRææ÷r‚’²5ócó“°¢v—BF"æ–ç6W'B‡6W76–öâ’çfÇVW2…°¢²W6W$–C¢W6W'2ç7GVFVçBÂFö¶Vã¢Fö¶Vç2ç7GVFVçBÂW‡—&W4BÒÀ¢²W6W$–C¢W6W'2æ÷F†W"ÂFö¶Vã¢Fö¶Vç2æ÷F†W"ÂW‡—&W4BÒÀ¢²W6W$–C¢W6W'2æ–ç7F—GWFRÂFö¶Vã¢Fö¶Vç2æ–ç7F—GWFRÂW‡—&W4BÒÀ¢²W6W$–C¢W6W'2ç&÷f–FW"ÂFö¶Vã¢Fö¶Vç2ç&÷f–FW"ÂW‡—&W4BÒÀ¢Ò“°¢v—BF"æ–ç6W'B†6÷W'6W2’çfÇVW2‡°¢–C¢6÷W'6T–BÂ&÷f–FW$–BÂ&W7öç6–&ÆT–ç7F—GWFT–C¢–ç7F—GWFT–BÀ¢V&Æ–6F–öå7FGW3¢'V&Æ—6†VB"ÂF—FÆS¢-Šý˜‹˜rŠ}‹‹-¸ÍŠ}Š¸Â¸ÍŠ}Šýªý¸Í‹¸Â"À¢7&VFVD'•&÷f–FW%W6W$–C¢W6W'2ç&÷f–FW"Â6Æ–VçE&WVW7D–C¢&æFöÕUT”B‚’À¢Ò“°¢v—BF"æ–ç6W'B‡7WW'f—6–öäw&çG2’çfÇVW2‡°¢6÷W'6T–BÂ&÷f–FW$–BÂ–ç7F—GWFT–BÂ7FGW3¢&&÷fVB"À¢&WVW7FVD'•&÷f–FW%W6W$–C¢W6W'2ç&÷f–FW"À¢&÷fVD'”–ç7F—GWFUW6W$–C¢W6W'2æ–ç7F—GWFRÂ&÷fVDC¢æWrFFR‚’À¢Ò“°¢v—BF"æ–ç6W'B†76W76ÖVçEVW7F–öä&æ·2’çfÇVW2‡°¢–C¢–ç7F—GWFT&æ´–BÂ÷væW%G—S¢&–ç7F—GWFR"Â÷væW$–C¢–ç7F—GWFT–BÀ¢Ò“°¢6öç7BW†Õ7F'G4BÒæWrFFR„FFRææ÷r‚’Òcó“°¢6öç7BW†ÔVæG4BÒæWrFFR„FFRææ÷r‚’²5ócó“°¢v—BF"æ–ç6W'B†76W76ÖVçDW†×2’çfÇVW2…°¢²–C¢FVæW†Ô–BÂW†ÕG—S¢&FVæö6ö÷&F–æFVB"À¢÷væW%G—S¢&FVæ"Â÷væW$–C¢FVæ÷væW$–BÂ&æ´–C¢FVæ&æ´–BÀ¢6÷W'6T–C¢çVÆÂÂF—FÆS¢-Š-‹-˜]˜˜b˜}˜]Š}˜}˜mªòŠý˜mŠr"Â–ç7G'V7F–öç3¢-Š-‹-˜]˜˜bŠ-‹-˜]Š}¸Í‹M¸Â"À¢7F'G4C¢W†Õ7F'G4BÂVæG4C¢W†ÔVæG4BÂGW&F–öäÖ–çWFW3¢3À¢GFV×DÆ–Ö—C¢Â7FGW3¢'V&Æ—6†VB"Â7&VFVD'•W6W$–C¢W6W'2æFÖ–âÒÀ¢²–C¢–ç7F—GWFTW†Ô–BÂW†ÕG—S¢&–ç7F—GWFU÷ÆææVB"À¢÷væW%G—S¢&–ç7F—GWFR"Â÷væW$–C¢–ç7F—GWFT–BÂ&æ´–C¢–ç7F—GWFT&æ´–BÀ¢6÷W'6T–BÂF—FÆS¢-Š-‹-˜]˜˜b˜]ŠM‹=‹=˜r"Â–ç7G'V7F–öç3¢-Š-‹-˜]˜˜bŠ-‹-˜]Š}¸Í‹M¸Â"À¢7F'G4C¢W†Õ7F'G4BÂVæG4C¢W†ÔVæG4BÂGW&F–öäÖ–çWFW3¢3À¢GFV×DÆ–Ö—C¢Â7FGW3¢'V&Æ—6†VB"Â7&VFVD'•W6W$–C¢W6W'2æFÖ–âÒÀ¢Ò“°¢v—BF"æ–ç6W'B‡&—fFTÖVF–76WG2’çfÇVW2†76WD–G2æÖ‚†–BÂ–æFW‚’Óâ‡°¢–BÂ6÷W'6T–BÂF—FÆS¢Šý‹‹2G¶–æFW‚²ÖÂö&¦V7D¶W“¢G¶6÷W'6T–GÒòG¶–GÒæ×FÀ¢Ò’’“°¢v—BF"æ–ç6W'B‡7GVFVçDVç&öÆÆÖVçG2’çfÇVW2‡°¢7GVFVçEW6W$–C¢W6W'2ç7GVFVçBÂ6÷W'6T–BÂ7FGW3¢&7F—fR"À¢Ò“°¢v—BF"æ–ç6W'B†6÷W'6TÆV&æ–æt76W76ÖVçG2’çfÇVW2‡°¢–C¢76W76ÖVçD–BÂ6÷W'6T–BÂF—FÆS¢-Š}‹‹-¸ÍŠ}Š¸Â˜‹]˜B"À¢–ç7G'V7F–öç3¢-Š˜r›í‹‹=‹N(Í˜}Šr›íŠ}‹=ŠâŠý˜}¸ÍŠòâ"ÂVW7F–öä6÷VçC¢"À¢&WV—&VD6÷'&V7D6÷VçC¢"ÂWF†÷&VD'•&÷f–FW%W6W$–C¢W6W'2ç&÷f–FW"À¢&Wf–Wu7FGW3¢&&÷fVB"Â&Wf–WvVD'”–ç7F—GWFUW6W$–C¢W6W'2æ–ç7F—GWFRÀ¢&Wf–WvVDC¢æWrFFR‚’Â&Wf–Wu&V6öã¢-˜]Š­˜b˜‚ª˜M¸ÍŠý˜}ŠrŠ‹‹‹=¸Â‹MŠý˜mŠòâ"À¢Ò“°¢v—BF"æ–ç6W'B†6÷W'6TÆV&æ–æt76W76ÖVçEVW7F–öç2’çfÇVW2‡VW7F–öç2æÖ‚†–BÂ–æFW‚’Óâ‡°¢–BÂ76W76ÖVçD–BÂ6÷W'6T–BÂÆW76öä76WD–C¢76WD–G5¶–æFW…ÒÀ¢&ö×C¢ªŠýŠ}˜Rªý‹-¸Í˜m˜r›íŠ}‹=ŠâŠý‹‹=Š¢›í‹‹=‹BG¶–æFW‚²ÒŠ}‹=Š­‰öÀ¢÷F–öã¢-›íŠ}‹=ŠâŠý‹‹=Š¢"Â÷F–öã¢-ªý‹-¸Í˜m˜rŠý˜˜R"Â÷F–öã#¢-ªý‹-¸Í˜m˜r‹=˜˜R"À¢÷F–öã3¢-ªý‹-¸Í˜m˜r¨m˜}Š}‹˜R"Â6÷'&V7D÷F–öã¢À¢Ò’’“°¢v—BF"æ–ç6W'B†6÷W'6TÆV&æ–æt76W76ÖVçG2’çfÇVW2‡°¢–C¢VæF–æt76W76ÖVçD–BÂ6÷W'6T–BÂF—FÆS¢-Š}‹‹-¸ÍŠ}Š¸Â˜]˜mŠ­‹‹ŠŠ}‹-Š¸Í˜m¸Â"À¢–ç7G'V7F–öç3¢-Š}¸Í˜bŠ}‹‹-¸ÍŠ}Š¸Â˜}˜m˜‹"Šý‹Š}˜mŠ­‹Š}‹ŠŠ}‹-Š¸Í˜m¸ÂŠ}‹=Š¢â"ÂVW7F–öä6÷VçC¢À¢&WV—&VD6÷'&V7D6÷VçC¢ÂWF†÷&VD'•&÷f–FW%W6W$–C¢W6W'2ç&÷f–FW"À¢Ò“°¢v—BF"æ–ç6W'B†6÷W'6TÆV&æ–æt76W76ÖVçEVW7F–öç2’çfÇVW2‡°¢–C¢VæF–æuVW7F–öä–BÂ76W76ÖVçD–C¢VæF–æt76W76ÖVçD–BÂ6÷W'6T–BÀ¢ÆW76öä76WD–C¢76WD–G5³ÒÂ&ö×C¢-›í‹‹=‹BŠí‹]˜‹]¸ÂŠ}‹‹-¸ÍŠ}Š¸ÂŠý‹Š}˜mŠ­‹Š}‹ŠŠ}‹-Š¸Í˜m¸Â¨m¸Í‹=Š­‰ò"À¢÷F–öã¢-›íŠ}‹=Šâ¸Íª’"Â÷F–öã¢-›íŠ}‹=ŠâŠý˜‚"Â÷F–öã#¢-›íŠ}‹=Šâ‹=˜r"À¢÷F–öã3¢-›íŠ}‹=Šâ¨m˜}Š}‹"Â6÷'&V7D÷F–öã¢À¢Ò“°¢v—BF"æ–ç6W'B†6÷W'6U&7F–6UVW7F–öç2’çfÇVW2‡°¢6÷W'6T–BÂ&ö×C¢-›í‹‹=‹BŠ­˜]‹¸Í˜m¸ÂŠý‹Š}˜mŠ­‹Š}‹ŠŠ}‹-Š¸Í˜m¸ÂŠ‹Š}¸ÂŠ-‹-˜]˜˜m‰ò"À¢÷F–öã¢-ªý‹-¸Í˜m˜r¸Íª’"Â÷F–öã¢-ªý‹-¸Í˜m˜rŠý˜‚"Â÷F–öã#¢-ªý‹-¸Í˜m˜r‹=˜r"À¢÷F–öã3¢-ªý‹-¸Í˜m˜r¨m˜}Š}‹"Â6÷'&V7D÷F–öã¢À¢WF†÷&VD'•&÷f–FW%W6W$–C¢W6W'2ç&÷f–FW"À¢Ò“°¢Ò“° ¢FW7BægFW$ÆÂ†7–æ2‚’Óâ°¢v—BF"æFVÆWFR†76W76ÖVçDW†ÔGFV×G2’çv†W&R†–ä'&’€¢76W76ÖVçDW†ÔGFV×G2æW†Ô–BÂ¶FVæW†Ô–BÂ–ç7F—GWFTW†Ô–EÒÀ¢’“°¢v—BF"æFVÆWFR†76W76ÖVçDW†×2’çv†W&R†–ä'&’†76W76ÖVçDW†×2æ–BÀ¢¶FVæW†Ô–BÂ–ç7F—GWFTW†Ô–EÒ’“°¢v—BF"æFVÆWFR†76W76ÖVçEVW7F–öä&æ·2¢çv†W&R†W†76W76ÖVçEVW7F–öä&æ·2æ–BÂ–ç7F—GWFT&æ´–B’“°¢v—BF"æFVÆWFR‡7GVFVçDÆV&æ–æt76W76ÖVçDÆW76öå&Wf–Ww2¢çv†W&R†W‡7GVFVçDÆV&æ–æt76W76ÖVçDÆW76öå&Wf–Ww2æ76W76ÖVçD–BÂ76W76ÖVçD–B’“°¢v—BF"æFVÆWFR‡7GVFVçDÆV&æ–æt76W76ÖVçDGFV×EVW7F–öç2¢çv†W&R†W‡7GVFVçDÆV&æ–æt76W76ÖVçDGFV×EVW7F–öç2æ76W76ÖVçD–BÂ76W76ÖVçD–B’“°¢v—BF"æFVÆWFR‡7GVFVçDÆV&æ–æt76W76ÖVçDGFV×G2¢çv†W&R†W‡7GVFVçDÆV&æ–æt76W76ÖVçDGFV×G2æ76W76ÖVçD–BÂ76W76ÖVçD–B’“°¢v—BF"æFVÆWFR†6÷W'6TÆV&æ–æt76W76ÖVçEVW7F–öç2¢çv†W&R†–ä'&’†6÷W'6TÆV&æ–æt76W76ÖVçEVW7F–öç2æ76W76ÖVçD–BÀ¢¶76W76ÖVçD–BÂVæF–æt76W76ÖVçD–EÒ’“°¢v—BF"æFVÆWFR†6÷W'6TÆV&æ–æt76W76ÖVçG2¢çv†W&R†–ä'&’†6÷W'6TÆV&æ–æt76W76ÖVçG2æ–BÂ¶76W76ÖVçD–BÂVæF–æt76W76ÖVçD–EÒ’“°¢v—BF"æFVÆWFR†6÷W'6U&7F–6UVW7F–öç2¢çv†W&R†W†6÷W'6U&7F–6UVW7F–öç2æ6÷W'6T–BÂ6÷W'6T–B’“°¢v—BF"æFVÆWFR‡7GVFVçDVç&öÆÆÖVçG2’çv†W&R†W‡7GVFVçDVç&öÆÆÖVçG2æ6÷W'6T–BÂ6÷W'6T–B’“°¢v—BF"æFVÆWFR‡&—fFTÖVF–76WG2’çv†W&R†W‡&—fFTÖVF–76WG2æ6÷W'6T–BÂ6÷W'6T–B’“°¢v—BF"æFVÆWFR‡7WW'f—6–öäw&çG2’çv†W&R†W‡7WW'f—6–öäw&çG2æ6÷W'6T–BÂ6÷W'6T–B’“°¢v—BF"æFVÆWFR†6÷W'6W2’çv†W&R†W†6÷W'6W2æ–BÂ6÷W'6T–B’“°¢v—BF"æFVÆWFR‡6W76–öâ’çv†W&R†–ä'&’‡6W76–öâçW6W$–BÂö&¦V7BçfÇVW2‡W6W'2’’“°¢v—BF"æFVÆWFR†ÖVÖ&W'6†—2’çv†W&R†–ä'&’†ÖVÖ&W'6†—2çW6W$–BÂö&¦V7BçfÇVW2‡W6W'2’’“°¢v—BF"æFVÆWFR‡fW&–f–VDVçF—F–W2’çv†W&R†–ä'&’‡fW&–f–VDVçF—F–W2æ–BÂ·&÷f–FW$–BÂ–ç7F—GWFT–EÒ’“°¢v—BF"æFVÆWFR‡W6W"’çv†W&R†–ä'&’‡W6W"æ–BÂö&¦V7BçfÇVW2‡W6W'2’’“°¢Ò“° ¢FW7B‚$’GWF÷"Væf÷&6W27GVFVçB66W72Â&Æö6·2&÷F‚W†ÒG—W2ÂæBW6W2—G27F'FW"6÷'W2"Â7–æ2‚’Óâ°¢6öç7B7GVFVçBÒv—B6Æ–VçB‚'7GVFVçB"“°¢6öç7B÷F†W%7GVFVçBÒv—B6Æ–VçB‚&÷F†W""“°¢6öç7B–ç7F—GWFRÒv—B6Æ–VçB‚&–ç7F—GWFR"“°¢6öç7Bæöç–Ö÷W2Òv—B&WVW7BææWt6öçFW‡B‡²&6UU$Ã¢&‡GG¢òöÆö6Æ†÷7C£3"Ò“° ¢6öç7Bæô÷&–v–âÒv—B7GVFVçBç÷7B‚"ö’÷7GVFVçBö’×GWF÷""Â°¢FF¢²6÷W'6T–BÂÖW76vS¢-Š}¸Í˜b˜]˜˜}˜˜R‹ŠrŠ­˜‹m¸ÍŠÒŠŠý˜râ"ÒÀ¢†VFW'3¢²÷&–v–ã¢&‡GG3¢òöGF6¶W"æW†×ÆR"ÒÀ¢Ò“°¢W‡V7B†æô÷&–v–âç7FGW2‚’’çFô&RƒC2“°¢6öç7BVæWF†VçF–6FVBÒv—Bæöç–Ö÷W2ç÷7B‚"ö’÷7GVFVçBö’×GWF÷""Â°¢FF¢²6÷W'6T–BÂÖW76vS¢-Š}¸Í˜b˜]˜˜}˜˜R‹ŠrŠ­˜‹m¸ÍŠÒŠŠý˜râ"ÒÀ¢†VFW'3¢²÷&–v–ã¢&‡GG¢òöÆö6Æ†÷7C£3"ÒÀ¢Ò“°¢W‡V7B‡VæWF†VçF–6FVBç7FGW2‚’’çFô&RƒC“°¢6öç7Bw&öæu&öÆRÒv—B÷7B†–ç7F—GWFRÂ"ö’÷7GVFVçBö’×GWF÷""Â°¢6÷W'6T–BÂÖW76vS¢-Š}¸Í˜b˜]˜˜}˜˜R‹ŠrŠ­˜‹m¸ÍŠÒŠŠý˜râ"À¢Ò“°¢W‡V7B‡w&öæu&öÆRç7FGW2‚’’çFô&RƒCB“°¢6öç7B–çfÆ–E–ÆöBÒv—B÷7B‡7GVFVçBÂ"ö’÷7GVFVçBö’×GWF÷""Â°¢6÷W'6T–BÂÖW76vS¢""ÂVæW‡V7FVC¢G'VRÀ¢Ò“°¢W‡V7B†–çfÆ–E–ÆöBç7FGW2‚’’çFô&RƒC“°¢6öç7Bæô6÷W'6TVçF—FÆVÖVçBÒv—B÷7B†÷F†W%7GVFVçBÂ"ö’÷7GVFVçBö’×GWF÷""Â°¢6÷W'6T–BÂÖW76vS¢-Š}¸Í˜b˜]˜˜}˜˜R‹ŠrŠ­˜‹m¸ÍŠÒŠŠý˜râ"À¢Ò“°¢W‡V7B†æô6÷W'6TVçF—FÆVÖVçBç7FGW2‚’’çFô&RƒCB“° ¢f÷"†6öç7BW†Ô–Böb¶FVæW†Ô–BÂ–ç7F—GWFTW†Ô–EÒ’°¢6öç7BGFV×D–BÒ&æFöÕUT”B‚“°¢6öç7Bæ÷rÒæWrFFR‚“°¢v—BF"æ–ç6W'B†76W76ÖVçDW†ÔGFV×G2’çfÇVW2‡°¢–C¢GFV×D–BÂW†Ô–BÂ7GVFVçEW6W$–C¢W6W'2ç7GVFVçBÂGFV×DçVÖ&W#¢À¢7FGW3¢&–å÷&öw&W72"ÂVW7F–öä6÷VçC¢À¢7F'FVDC¢æ÷rÂFVFÆ–æTC¢æWrFFR†æ÷rævWEF–ÖR‚’²óƒó’À¢Ò“°¢6öç7B&Æö6¶VBÒv—B÷7B‡7GVFVçBÂ"ö’÷7GVFVçBö’×GWF÷""Â°¢6÷W'6T–BÂÖW76vS¢-Š}¸Í˜b˜]˜˜}˜˜R‹ŠrŠ­˜‹m¸ÍŠÒŠŠý˜râ"À¢Ò“°¢W‡V7B†&Æö6¶VBç7FGW2‚’’çFô&RƒC2“°¢W‡V7B†v—B&Æö6¶VBæ§6öâ‚’’çFôÖF6„ö&¦V7B‡²6öFS¢$5D•dUôU„Ò"Ò“°¢W‡V7B†&Æö6¶VBæ†VFW'2‚•²&66†RÖ6öçG&öÂ%Ò’çFô6öçF–â‚&æò×7F÷&R"“°¢6öç7B&7F–6TGW&–ætW†ÒÒv—B7GVFVçBævWB€¢"ö’÷7GVFVçBö’×GWF÷"÷&7F–6Sö6÷W'6T–CÒ"²6÷W'6T–BÀ¢“°¢W‡V7B‡&7F–6TGW&–ætW†Òç7FGW2‚’’çFô&RƒC2“°¢v—BF"æFVÆWFR†76W76ÖVçDW†ÔGFV×G2¢çv†W&R†W†76W76ÖVçDW†ÔGFV×G2æ–BÂGFV×D–B’“°¢Ð ¢6öç7Bæõ&öf–ÆU&7F–6RÒv—B7GVFVçBævWB€¢"ö’÷7GVFVçBö’×GWF÷"÷&7F–6Sö6÷W'6T–CÒ"²6÷W'6T–BÀ¢“°¢W‡V7B†æõ&öf–ÆU&7F–6Rç7FGW2‚’’çFô&RƒCB“° ¢6öç7B7W÷'FVBÒv—B÷7B‡7GVFVçBÂ"ö’÷7GVFVçBö’×GWF÷""Â°¢6÷W'6T–BÂÖW76vS¢-˜]‹Š}Šý˜M˜}™B¸Íªž(Í˜]ŠÍ˜}˜˜M¸Â‹Šr¨m‹}˜‹ŠÝ˜Bª˜m˜]‰ò"À¢&VÖVÖ&W%F÷–3¢G'VRÀ¢Ò“°¢W‡V7B‡7W÷'FVBç7FGW2‚’’çFô&Rƒ#“°¢W‡V7B†v—B7W÷'FVBæ§6öâ‚’’çFôÖF6„ö&¦V7B‡°¢6÷W&6S¢²–C¢&ÖF‚æÆ–æV"ÖWVF–öâçc"Â6÷'W5fW'6–öã¢W‡V7Bæç’…7G&–ær’ÒÀ¢F÷–5&V6÷&FVC¢G'VRÀ¢Ò“°¢W‡V7B‡7W÷'FVBæ†VFW'2‚•²&66†RÖ6öçG&öÂ%Ò’çFô6öçF–â‚&æò×7F÷&R"“° ¢6öç7B÷vå&öf–ÆRÒv—B7GVFVçBævWB‚"ö’÷7GVFVçBö’×GWF÷"÷&öf–ÆR"“°¢W‡V7B†÷vå&öf–ÆRç7FGW2‚’’çFô&Rƒ#“°¢W‡V7B†v—B÷vå&öf–ÆRæ§6öâ‚’’çFôÖF6„ö&¦V7B‡°¢F÷–73¢·²F÷–4–C¢&ÖF‚æÆ–æV"ÖWVF–öâçc"ÂVW7F–öä6÷VçC¢ÕÒÀ¢Ò“°¢6öç7B÷F†W%&öf–ÆRÒv—B÷F†W%7GVFVçBævWB‚"ö’÷7GVFVçBö’×GWF÷"÷&öf–ÆR"“°¢W‡V7B†v—B÷F†W%&öf–ÆRæ§6öâ‚’’çFôÖF6„ö&¦V7B‡²F÷–73¢µÒÒ“°¢6öç7B&7F–6U&W7öç6RÒv—B7GVFVçBævWB€¢"ö’÷7GVFVçBö’×GWF÷"÷&7F–6Sö6÷W'6T–CÒ"²6÷W'6T–BÀ¢“°¢W‡V7B‡&7F–6U&W7öç6Rç7FGW2‚’’çFô&Rƒ#“°¢6öç7B&7F–6UVW7F–öâÒv—B&7F–6U&W7öç6Ræ§6öâ‚“°¢W‡V7B‡&7F–6UVW7F–öâ’çFôÖF6„ö&¦V7B‡°¢VW7F–öä–C¢'&7F–6RæÆ–æV"ÖWVF–öâçc"À¢F÷–5F—FÆS¢-˜]‹Š}Šý˜M˜}™B¸Íªž(Í˜]ŠÍ˜}˜˜M¸Â"À¢÷F–öç3¢W‡V7Bæç’„'&’’À¢Ò“°¢W‡V7B‡&7F–6UVW7F–öâ’ææ÷BçFô†fU&÷W'G’‚&6÷'&V7D÷F–öâ"“°¢6öç7B6÷'&V7E&7F–6RÒv—B÷7B‡7GVFVçBÂ"ö’÷7GVFVçBö’×GWF÷"÷&7F–6R"Â°¢6÷W'6T–BÂVW7F–öä–C¢&7F–6UVW7F–öâçVW7F–öä–BÂ6VÆV7FVD÷F–öã¢À¢&VÖVÖ&W%&W7VÇC¢G'VRÀ¢Ò“°¢W‡V7B†6÷'&V7E&7F–6Rç7FGW2‚’’çFô&Rƒ#“°¢W‡V7B†v—B6÷'&V7E&7F–6Ræ§6öâ‚’’çFôÖF6„ö&¦V7B‡°¢6÷'&V7C¢G'VRÂW‡ÆæF–öã¢W‡V7Bç7G&–æt6öçF–æ–ær‚'‚Ò»B"’Â&W7VÇE&V6÷&FVC¢G'VRÀ¢Ò“°¢6öç7Bw&öæu&7F–6RÒv—B÷7B‡7GVFVçBÂ"ö’÷7GVFVçBö’×GWF÷"÷&7F–6R"Â°¢6÷W'6T–BÂVW7F–öä–C¢&7F–6UVW7F–öâçVW7F–öä–BÂ6VÆV7FVD÷F–öã¢À¢&VÖVÖ&W%&W7VÇC¢G'VRÀ¢Ò“°¢W‡V7B†v—Bw&öæu&7F–6Ræ§6öâ‚’’çFôÖF6„ö&¦V7B‡²6÷'&V7C¢fÇ6RÂ&W7VÇE&V6÷&FVC¢G'VRÒ“°¢6öç7B&öf–ÆUv—F…&W7VÇG2Òv—B†v—B7GVFVçBævWB‚"ö’÷7GVFVçBö’×GWF÷"÷&öf–ÆR"’’æ§6öâ‚“°¢W‡V7B‡&öf–ÆUv—F…&W7VÇG2’çFôÖF6„ö&¦V7B‡²F÷–73¢·°¢F÷–4–C¢&ÖF‚æÆ–æV"ÖWVF–öâçc"Â&7F–6TGFV×D6÷VçC¢"Â&7F–6T6÷'&V7D6÷VçC¢À¢&7F–6TæVVG4wV–Fæ6S¢G'VRÀ¢ÕÒÒ“°¢6öç7BæW‡E&7F–6RÒv—B†v—B7GVFVçBævWB€¢"ö’÷7GVFVçBö’×GWF÷"÷&7F–6Sö6÷W'6T–CÒ"²6÷W'6T–BÀ¢’’æ§6öâ‚“°¢W‡V7B†æW‡E&7F–6RæwV–FVD†–çB’çFôWVÂ†W‡V7Bæç’…7G&–ær’“°¢6öç7BVç&V6÷&FVE&7F–6RÒv—B÷7B‡7GVFVçBÂ"ö’÷7GVFVçBö’×GWF÷"÷&7F–6R"Â°¢6÷W'6T–BÂVW7F–öä–C¢&7F–6UVW7F–öâçVW7F–öä–BÂ6VÆV7FVD÷F–öã¢À¢&VÖVÖ&W%&W7VÇC¢fÇ6RÀ¢Ò“°¢W‡V7B†v—BVç&V6÷&FVE&7F–6Ræ§6öâ‚’’çFôÖF6„ö&¦V7B‡²6÷'&V7C¢G'VRÂ&W7VÇE&V6÷&FVC¢fÇ6RÒ“°¢6öç7B&öf–ÆUv—F†÷WEF†—&E&W7VÇBÒv—B†v—B7GVFVçBævWB‚"ö’÷7GVF]·ó‹h‘éì¶»§q«^t¼‘í¥¹‘•Á•¹‘•¹Ñ½ÕÉÍ•%‘ô½ÁÉ…Ñ¥•€ì(€€€€€½¹ÍÐÁÉ…Ñ¥•É•…Ñ•€ô…Ý…¥ÐÁ½ÍÐ¡•‘Õ…Ñ½È°ÁÉ…Ñ¥•A…Ñ °ì(€€€€€€€±•…É¹¥¹½¹•ÁÑ%è€‰µ…Ñ ¹Á•É•¹Ð¹ØÄˆ°(€€€€€€€ÁÉ½µÁÐè€‹j§b¿bŸfƒj¿bËn3ffƒb¿bÇb×b¼ƒn3j§Š3jfbŸbÇfƒbÇbœƒfbÓbŸfƒfn3Š3b¿fb¿b|ˆ°(€€€€€€€½ÁÑ¥½¹Ìèl‹nËnÔƒb¿bÇb×b¼ˆ°€‹n×nÀƒb¿bÇb×b¼ˆ°€‹nßnÔƒb¿bÇb×b¼ˆ°€‹nÇnÃnÀƒb¿bÇb×b¼‰t°(€€€€€€€½ÉÉ•Ñ=ÁÑ¥½¸è€À°(€€€€€ô¤ì(€€€€€•áÁ•Ð¡ÁÉ…Ñ¥•É•…Ñ•¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÈÀÄ¤ì(€€€€€•áÁ•Ð ¡…Ý…¥Ð•‘Õ…Ñ½È¹•Ð¡ÁÉ…Ñ¥•A…Ñ ¤¤¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÈÀÀ¤ì(€€€€€½¹ÍÐÁÉ…Ñ¥•I•Ù¥•ÝA…Ñ €ô€½…Á¤½¥¹ÍÑ¥ÑÕÑ”½½ÕÉÍ•Ì¼‘í¥¹‘•Á•¹‘•¹Ñ½ÕÉÍ•%‘ô½ÁÉ…Ñ¥•€ì(€€€€€•áÁ•Ð ¡…Ý…¥ÐÍ•±™I•Ù¥•Ý±¥•¹Ð¹•Ð¡ÁÉ…Ñ¥•I•Ù¥•ÝA…Ñ ¤¤¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÐÀÐ¤ì(€€€€€•áÁ•Ð ¡…Ý…¥ÐÁ½ÍÐ¡Í•±™I•Ù¥•Ý±¥•¹Ð°ÁÉ…Ñ¥•I•Ù¥•ÝA…Ñ °ì(€€€€€€€…Ñ¥½¸è€‰…ÁÁÉ½Ù”ˆ°É•…Í½¸è€‹fb£bŸn3b¼ƒfbŸfj¤ƒb»f#b¿bÐƒb«b×fn3fƒb£bŸbËb£n3fn0ƒb£j¿n3bÇb¼¸ˆ°(€€€€€ô¤¤¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÐÀÐ¤ì(€€€€€½¹ÍÐÁ•¹‘¥¹AÉ…Ñ¥”€ô…Ý…¥Ð¥¹ÍÑ¥ÑÕÑ•±¥•¹Ð¹•Ð¡ÁÉ…Ñ¥•I•Ù¥•ÝA…Ñ ¤ì(€€€€€•áÁ•Ð¡Á•¹‘¥¹AÉ…Ñ¥”¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÈÀÀ¤ì(€€€€€•áÁ•Ð ¡…Ý…¥ÐÁ•¹‘¥¹AÉ…Ñ¥”¹©Í½¸ ¤¤¹ÅÕ•ÍÑ¥½¸¤¹Ñ½5…Ñ¡=‰©•Ð¡ì(€€€€€€€É•Ù¥•ÝMÑ…ÑÕÌè€‰Á•¹‘¥¹œˆ°½ÉÉ•Ñ=ÁÑ¥½¸è€À°(€€€€€ô¤ì(€€€€€½¹ÍÐÁÉ…Ñ¥••¥Í¥½¸€ô…Ý…¥ÐÁ½ÍÐ¡¥¹ÍÑ¥ÑÕÑ•±¥•¹Ð°ÁÉ…Ñ¥•I•Ù¥•ÝA…Ñ °ì(€€€€€€€…Ñ¥½¸è€‰…ÁÁÉ½Ù”ˆ°É•…Í½¸è€‹fûbÇbÏbÐƒf ƒfûbŸbÏb¸ƒb¿bÇbÏb¨ƒb£bÇbŸn0ƒbŸn3fƒb¿bÇbÌƒb£bÇbÇbÏn0ƒbÓb¼¸ˆ°(€€€€€ô¤ì(€€€€€•áÁ•Ð¡ÁÉ…Ñ¥••¥Í¥½¸¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÈÀÀ¤ì(€€€€€•áÁ•Ð¡…Ý…¥ÐÁÉ…Ñ¥••¥Í¥½¸¹©Í½¸ ¤¤¹Ñ½5…Ñ¡=‰©•Ð¡ìÉ•Ù¥•ÝMÑ…ÑÕÌè€‰…ÁÁÉ½Ù•ˆô¤ì(€€€€€½¹ÍÐÁÉ…Ñ¥•A…”€ô…Ý…¥Ð•‘Õ…Ñ½È¹•Ð (€€€€€€€€½…½Õ¹Ð½¥¹‘•Á•¹‘•¹Ðµ•‘Õ…Ñ½È½½ÕÉÍ•Ì¼‘í¥¹‘•Á•¹‘•¹Ñ½ÕÉÍ•%‘ô½ÁÉ…Ñ¥•€°(€€€€€€¤ì(€€€€€•áÁ•Ð¡ÁÉ…Ñ¥•A…”¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÈÀÀ¤ì(€€€€€•áÁ•Ð¡…Ý…¥ÐÁÉ…Ñ¥•A…”¹Ñ•áÐ ¤¤¹Ñ½½¹Ñ…¥¸ ‹j§b¿bŸfƒj¿bËn3ffƒb¿bÇb×b¼ƒn3j§Š3jfbŸbÇfƒbÇbœƒfbÓbŸfƒfn3Š3b¿fb¿b|ˆ¤ì(€€€€€½¹ÍÐÁ…”€ô…Ý…¥Ð•‘Õ…Ñ½È¹•Ð (€€€€€€€€½…½Õ¹Ð½¥¹‘•Á•¹‘•¹Ðµ•‘Õ…Ñ½È½½ÕÉÍ•Ì¼‘í¥¹‘•Á•¹‘•¹Ñ½ÕÉÍ•%‘ô½…ÍÍ•ÍÍµ•¹ÑÍ€°(€€€€€€¤ì(€€€€€•áÁ•Ð¡Á…”¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÈÀÀ¤ì(€€€€€•áÁ•Ð¡…Ý…¥ÐÁ…”¹Ñ•áÐ ¤¤¹Ñ½½¹Ñ…¥¸ ‹bŸbÇbËn3bŸb£n0ƒffj§bŸbÄƒfbÏb«ffˆ¤ì(€€€€€½¹ÍÐÁÕ‰±¥…Ñ¥½¸€ô…Ý…¥ÐÁ½ÍÐ¡•‘Õ…Ñ½È°(€€€€€€€€½…Á¤½¥¹‘•Á•¹‘•¹Ðµ•‘Õ…Ñ½È½½ÕÉÍ•Ì¼‘í¥¹‘•Á•¹‘•¹Ñ½ÕÉÍ•%‘ô½ÁÕ‰±¥…Ñ¥½¹€°(€€€€€€€ì…Ñ¥½¸è€‰ÁÕ‰±¥Í ˆô¤ì(€€€€€•áÁ•Ð¡ÁÕ‰±¥…Ñ¥½¸¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÈÀÀ¤ì(€€€€€•áÁ•Ð¡…Ý…¥ÐÁÕ‰±¥…Ñ¥½¸¹©Í½¸ ¤¤¹Ñ½5…Ñ¡=‰©•Ð¡ì(€€€€€€€½ÕÉÍ•%è¥¹‘•Á•¹‘•¹Ñ½ÕÉÍ•%°ÁÕ‰±¥…Ñ¥½¹MÑ…ÑÕÌè€‰ÁÕ‰±¥Í¡•ˆ°É•Á±…å•è™…±Í”°(€€€€€ô¤ì(€€€€€½¹ÍÐ…Ñ…±½œ€ô…Ý…¥Ð½Ñ¡•È¹•Ð (€€€€€€€€½…Á¤½ÍÑÕ‘•¹Ð½½ÕÉÍ•ÌýÄô‘í•¹½‘•UI%½µÁ½¹•¹Ð ‹b¿f#bÇffPƒffj§bŸbÄƒfbÏb«ffˆ¥õ€°(€€€€€€¤ì(€€€€€•áÁ•Ð¡…Ñ…±½œ¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÈÀÀ¤ì(€€€€€•áÁ•Ð ¡…Ý…¥Ð…Ñ…±½œ¹©Í½¸ ¤¤¹½ÕÉÍ•Ì¤¹Ñ½ÅÕ…°¡•áÁ•Ð¹…ÉÉ…å½¹Ñ…¥¹¥¹œ¡l(€€€€€€€•áÁ•Ð¹½‰©•Ñ½¹Ñ…¥¹¥¹œ¡ì(€€€€€€€€€½ÕÉÍ•%è¥¹‘•Á•¹‘•¹Ñ½ÕÉÍ•%°Ñ¥Ñ±”è€‹b¿f#bÇffPƒffj§bŸbÄƒfbÏb«ffˆ°(€€€€€€€€€½Ý¹•ÉQåÁ”è€‰¥¹‘•Á•¹‘•¹Ñ}•‘Õ…Ñ½Èˆ°(€€€€€€€ô¤°(€€€€€t¤¤ì(€€€€€½¹ÍÐ•¹É½±±A…Ñ €ô€½…Á¤½ÍÑÕ‘•¹Ð½½ÕÉÍ•Ì¼‘í¥¹‘•Á•¹‘•¹Ñ½ÕÉÍ•%‘ô½•¹É½±±€ì(€€€€€½¹ÍÐm•¹É½±±µ•¹Ð°…™™¥±¥…Ñ¥½¹I•Ù½…Ñ¥½¹t€ô…Ý…¥ÐAÉ½µ¥Í”¹…±°¡l(€€€€€€€Á½ÍÐ¡½Ñ¡•È°•¹É½±±A…Ñ °íô¤°(€€€€€€€Á½ÍÐ¡¥¹ÍÑ¥ÑÕÑ•±¥•¹Ð°€½…Á¤½¥¹ÍÑ¥ÑÕÑ”½•‘Õ…Ñ½ÉÌ¼‘í…™™¥±¥…Ñ¥½¹%‘ô½‘•¥Í¥½¹€°ì(€€€€€€€€€…Ñ¥½¸è€‰É•Ù½­”ˆ°É•…Í½¸è€‹fûbŸn3bŸfƒffj§bŸbÇn0ƒb£bÇbŸn0ƒb‹bËff#fƒffŠ3bËfbŸfƒb¯b£b¨ƒbÓb¼¸ˆ°(€€€€€€€ô¤°(€€€€€t¤ì(€€€€€•áÁ•Ð¡•¹É½±±µ•¹Ð¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÈÀÄ¤ì(€€€€€•áÁ•Ð¡…Ý…¥Ð•¹É½±±µ•¹Ð¹©Í½¸ ¤¤¹Ñ½5…Ñ¡=‰©•Ð¡ì(€€€€€€€½ÕÉÍ•%è¥¹‘•Á•¹‘•¹Ñ½ÕÉÍ•%°•¹É½±±•èÑÉÕ”°É•Á±…å•è™…±Í”°™É•”èÑÉÕ”°(€€€€€ô¤ì(€€€€€•áÁ•Ð¡…™™¥±¥…Ñ¥½¹I•Ù½…Ñ¥½¸¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÈÀÀ¤ì(€€€€€½¹ÍÐmÑÉ…¹Í™•ÉÉ•‘½ÕÉÍ•t€ô…Ý…¥Ð‘ˆ¹Í•±•Ð ¤¹™É½´¡½ÕÉÍ•Ì¤(€€€€€€€€¹Ý¡•É”¡•Ä¡½ÕÉÍ•Ì¹¥°¥¹‘•Á•¹‘•¹Ñ½ÕÉÍ•%¤¤ì(€€€€€•áÁ•Ð¡ÑÉ…¹Í™•ÉÉ•‘½ÕÉÍ”ü¹½Ý¹•ÉQåÁ”¤¹Ñ½	” ‰¥¹ÍÑ¥ÑÕÑ”ˆ¤ì(€€€€€½¹ÍÐÍÑÕ‘•¹ÑAÉ…Ñ¥”€ô…Ý…¥Ð½Ñ¡•È¹•Ð¡€½…Á¤½ÍÑÕ‘•¹Ð½½ÕÉÍ•Ì¼‘í¥¹‘•Á•¹‘•¹Ñ½ÕÉÍ•%‘ô½ÁÉ…Ñ¥•€¤ì(€€€€€•áÁ•Ð¡ÍÑÕ‘•¹ÑAÉ…Ñ¥”¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÈÀÀ¤ì(€€€€€½¹ÍÐÍÑÕ‘•¹ÑAÉ…Ñ¥•	½‘ä€ô€¡…Ý…¥ÐÍÑÕ‘•¹ÑAÉ…Ñ¥”¹©Í½¸ ¤¤¹ÁÉ…Ñ¥”ì(€€€€€•áÁ•Ð¡ÍÑÕ‘•¹ÑAÉ…Ñ¥•	½‘ä¤¹Ñ½5…Ñ¡=‰©•Ð¡ì(€€€€€€€ÁÉ½µÁÐè€‹j§b¿bŸfƒj¿bËn3ffƒb¿bÇb×b¼ƒn3j§Š3jfbŸbÇfƒbÇbœƒfbÓbŸfƒfn3Š3b¿fb¿b|ˆ°(€€€€€ô¤ì(€€€€€•áÁ•Ð¡ÍÑÕ‘•¹ÑAÉ…Ñ¥•	½‘ä¤¹¹½Ð¹Ñ½!…Ù•AÉ½Á•ÉÑä ‰½ÉÉ•Ñ=ÁÑ¥½¸ˆ¤ì(€€€€€…Ý…¥Ð•‘Õ…Ñ½È¹‘¥ÍÁ½Í” ¤ì(€€€€€…Ý…¥Ð¥¹ÍÑ¥ÑÕÑ•±¥•¹Ð¹‘¥ÍÁ½Í” ¤ì(€€€€€…Ý…¥Ð½Ñ¡•È¹‘¥ÍÁ½Í” ¤ì(€€€€€…Ý…¥ÐÍ•±™I•Ù¥•Ý±¥•¹Ð¹‘¥ÍÁ½Í” ¤ì(€€€ô™¥¹…±±äì(€€€€€¥˜€¡…ÍÍ•ÍÍµ•¹Ñ%¤ì(€€€€€€€…Ý…¥Ð‘ˆ¹‘•±•Ñ”¡…Õ‘¥Ñ1½Ì¤¹Ý¡•É”¡…¹ (€€€€€€€€€•Ä¡…Õ‘¥Ñ1½Ì¹•¹Ñ¥ÑåQåÁ”°€‰AIQ%ˆ¤°•Ä¡…Õ‘¥Ñ1½Ì¹•¹Ñ¥Ñå%°…ÍÍ•ÍÍµ•¹Ñ%¤°(€€€€€€€€¤¤ì(€€€€€€€…Ý…¥Ð‘ˆ¹‘•±•Ñ”¡½ÕÉÍ•1•…É¹¥¹ÍÍ•ÍÍµ•¹ÑEÕ•ÍÑ¥½¹Ì¤(€€€€€€€€€€¹Ý¡•É”¡•Ä¡½ÕÉÍ•1•…É¹¥¹ÍÍ•ÍÍµ•¹ÑEÕ•ÍÑ¥½¹Ì¹…ÍÍ•ÍÍµ•¹Ñ%°…ÍÍ•ÍÍµ•¹Ñ%¤¤ì(€€€€€€€…Ý…¥Ð‘ˆ¹‘•±•Ñ”¡½ÕÉÍ•1•…É¹¥¹ÍÍ•ÍÍµ•¹ÑÌ¤(€€€€€€€€€€¹Ý¡•É”¡•Ä¡½ÕÉÍ•1•…É¹¥¹ÍÍ•ÍÍµ•¹ÑÌ¹¥°…ÍÍ•ÍÍµ•¹Ñ%¤¤ì(€€€€€ô(€€€€€…Ý…¥Ð‘ˆ¹‘•±•Ñ”¡ÁÉ¥Ù…Ñ•5•‘¥…ÍÍ•ÑÌ¤¹Ý¡•É”¡•Ä¡ÁÉ¥Ù…Ñ•5•‘¥…ÍÍ•ÑÌ¹¥°…ÍÍ•Ñ%¤¤ì(€€€€€…Ý…¥Ð‘ˆ¹‘•±•Ñ”¡…Õ‘¥Ñ1½Ì¤¹Ý¡•É”¡…¹ (€€€€€€€•Ä¡…Õ‘¥Ñ1½Ì¹•¹Ñ¥ÑåQåÁ”°€‰AIQ%ˆ¤°•Ä¡…Õ‘¥Ñ1½Ì¹•¹Ñ¥Ñå%°¥¹‘•Á•¹‘•¹Ñ½ÕÉÍ•%¤°(€€€€€€¤¤ì(€€€€€…Ý…¥Ð‘ˆ¹‘•±•Ñ”¡½ÕÉÍ•AÉ…Ñ¥•EÕ•ÍÑ¥½¹Ì¤(€€€€€€€€¹Ý¡•É”¡•Ä¡½ÕÉÍ•AÉ…Ñ¥•EÕ•ÍÑ¥½¹Ì¹½ÕÉÍ•%°¥¹‘•Á•¹‘•¹Ñ½ÕÉÍ•%¤¤ì(€€€€€…Ý…¥Ð‘ˆ¹‘•±•Ñ”¡ÍÑÕ‘•¹Ñ¹É½±±µ•¹ÑÌ¤(€€€€€€€€¹Ý¡•É”¡…¹¡•Ä¡ÍÑÕ‘•¹Ñ¹É½±±µ•¹ÑÌ¹½ÕÉÍ•%°¥¹‘•Á•¹‘•¹Ñ½ÕÉÍ•%¤°(€€€€€€€€€•Ä¡ÍÑÕ‘•¹Ñ¹É½±±µ•¹ÑÌ¹ÍÑÕ‘•¹ÑUÍ•É%°ÕÍ•ÉÌ¹½Ñ¡•È¤¤¤ì(€€€€€…Ý…¥Ð‘ˆ¹‘•±•Ñ”¡½ÕÉÍ•=Ý¹•ÉÍ¡¥ÁÙ•¹ÑÌ¤(€€€€€€€€¹Ý¡•É”¡•Ä¡½ÕÉÍ•=Ý¹•ÉÍ¡¥ÁÙ•¹ÑÌ¹½ÕÉÍ•%°¥¹‘•Á•¹‘•¹Ñ½ÕÉÍ•%¤¤ì(€€€€€…Ý…¥Ð‘ˆ¹‘•±•Ñ”¡…Õ‘¥Ñ1½Ì¤¹Ý¡•É”¡…¹ (€€€€€€€•Ä¡…Õ‘¥Ñ1½Ì¹•¹Ñ¥ÑåQåÁ”°€‰=UIMˆ¤°(€€€€€€€•Ä¡…Õ‘¥Ñ1½Ì¹•¹Ñ¥Ñå%°¥¹‘•Á•¹‘•¹Ñ½ÕÉÍ•%¤°(€€€€€€¤¤ì(€€€€€…Ý…¥Ð‘ˆ¹‘•±•Ñ”¡µ•µ‰•ÉÍ¡¥ÁÌ¤¹Ý¡•É”¡…¹ (€€€€€€€•Ä¡µ•µ‰•ÉÍ¡¥ÁÌ¹ÕÍ•É%°ÕÍ•ÉÌ¹ÍÑÕ‘•¹Ð¤°•Ä¡µ•µ‰•ÉÍ¡¥ÁÌ¹É½±”°€‰¥¹ÍÑ¥ÑÕÑ”ˆ¤°(€€€€€€€•Ä¡µ•µ‰•ÉÍ¡¥ÁÌ¹¥¹ÍÑ¥ÑÕÑ•%°¥¹ÍÑ¥ÑÕÑ•%¤°(€€€€€€¤¤ì(€€€€€…Ý…¥Ð‘ˆ¹‘•±•Ñ”¡ÍÕÁ•ÉÙ¥Í¥½¹É…¹ÑÌ¤¹Ý¡•É”¡•Ä¡ÍÕÁ•ÉÙ¥Í¥½¹É…¹ÑÌ¹½ÕÉÍ•%°¥¹‘•Á•¹‘•¹Ñ½ÕÉÍ•%¤¤ì(€€€€€…Ý…¥Ð‘ˆ¹‘•±•Ñ”¡½ÕÉÍ•Ì¤¹Ý¡•É”¡•Ä¡½ÕÉÍ•Ì¹¥°¥¹‘•Á•¹‘•¹Ñ½ÕÉÍ•%¤¤ì(€€€€€…Ý…¥Ð‘ˆ¹‘•±•Ñ”¡•‘Õ…Ñ½É%¹ÍÑ¥ÑÕÑ•™™¥±¥…Ñ¥½¹Ù•¹ÑÌ¤(€€€€€€€€¹Ý¡•É”¡•Ä¡•‘Õ…Ñ½É%¹ÍÑ¥ÑÕÑ•™™¥±¥…Ñ¥½¹Ù•¹ÑÌ¹…™™¥±¥…Ñ¥½¹%°…™™¥±¥…Ñ¥½¹%¤¤ì(€€€€€…Ý…¥Ð‘ˆ¹‘•±•Ñ”¡…Õ‘¥Ñ1½Ì¤¹Ý¡•É”¡…¹ (€€€€€€€•Ä¡…Õ‘¥Ñ1½Ì¹•¹Ñ¥ÑåQåÁ”°€‰UQ=I}%1%Q%=8ˆ¤°(€€€€€€€•Ä¡…Õ‘¥Ñ1½Ì¹•¹Ñ¥Ñå%°…™™¥±¥…Ñ¥½¹%¤°(€€€€€€¤¤ì(€€€€€…Ý…¥Ð‘ˆ¹‘•±•Ñ”¡•‘Õ…Ñ½É%¹ÍÑ¥ÑÕÑ•™™¥±¥…Ñ¥½¹Ì¤¹Ý¡•É”¡•Ä¡•‘Õ…Ñ½É%¹ÍÑ¥ÑÕÑ•™™¥±¥…Ñ¥½¹Ì¹¥°…™™¥±¥…Ñ¥½¹%¤¤ì(€€€€€…Ý…¥Ð‘ˆ¹‘•±•Ñ”¡¥¹‘•Á•¹‘•¹Ñ‘Õ…Ñ½ÉAÉ½™¥±•Ì¤¹Ý¡•É”¡•Ä¡¥¹‘•Á•¹‘•¹Ñ‘Õ…Ñ½ÉAÉ½™¥±•Ì¹¥°ÁÉ½™¥±•%¤¤ì(€€€ô(€ô¤ì((€Ñ•ÍÐ ‰¡¥‘•Ì…¹ÍÝ•È­•åÌ°Í•É¥…±¥é•ÌÍÑ…ÉÑÌ°…¹É•ÅÕ¥É•Ì±•ÍÍ½¸É•Ù¥•Ü‰•™½É”É•ÑÉäˆ°…Íå¹Œ€ ¤€ôøì(€€€½¹ÍÐÍÑÕ‘•¹Ð€ô…Ý…¥Ð±¥•¹Ð ‰ÍÑÕ‘•¹Ðˆ¤ì(€€€½¹ÍÐ½Ñ¡•È€ô…Ý…¥Ð±¥•¹Ð ‰½Ñ¡•Èˆ¤ì(€€€½¹ÍÐ¥¹ÍÑ¥ÑÕÑ”€ô…Ý…¥Ð±¥•¹Ð ‰¥¹ÍÑ¥ÑÕÑ”ˆ¤ì(€€€½¹ÍÐÁÉ½Ù¥‘•È€ô…Ý…¥Ð±¥•¹Ð ‰ÁÉ½Ù¥‘•Èˆ¤ì(€€€½¹ÍÐ…¹½¹åµ½ÕÌ€ô…Ý…¥ÐÉ•ÅÕ•ÍÐ¹¹•Ý½¹Ñ•áÐ¡ì‰…Í•UI0è€‰¡ÑÑÀè¼½±½…±¡½ÍÐèÌÀÀÀˆô¤ì(€€€•áÁ•Ð ¡…Ý…¥Ð…¹½¹åµ½ÕÌ¹•Ð¡±¥ÍÑA…Ñ ¤¤¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÐÀÄ¤ì(€€€•áÁ•Ð ¡…Ý…¥ÐÍÑÕ‘•¹Ð¹Á½ÍÐ¡€‘í‰…Í•A…Ñ¡ô½…ÑÑ•µÁÑÍ€°ì‘…Ñ„èíôô¤¤¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÐÀÌ¤ì(€€€½¹ÍÐ±¥ÍÑ•€ô…Ý…¥ÐÍÑÕ‘•¹Ð¹•Ð¡±¥ÍÑA…Ñ ¤ì(€€€•áÁ•Ð¡±¥ÍÑ•¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÈÀÀ¤ì(€€€•áÁ•Ð ¡…Ý…¥Ð±¥ÍÑ•¹©Í½¸ ¤¤¹…ÍÍ•ÍÍµ•¹ÑÌ¤¹Ñ½!…Ù•1•¹Ñ  Ä¤ì((€€€½¹ÍÐ¥¹ÍÑ¥ÑÕÑ•!½µ”€ô…Ý…¥Ð¥¹ÍÑ¥ÑÕÑ”¹•Ð ˆ½¥¹ÍÑ¥ÑÕÑ”ˆ¤ì(€€€•áÁ•Ð¡¥¹ÍÑ¥ÑÕÑ•!½µ”¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÈÀÀ¤ì(€€€½¹ÍÐ¥¹ÍÑ¥ÑÕÑ•!½µ•!Ñµ°€ô…Ý…¥Ð¥¹ÍÑ¥ÑÕÑ•!½µ”¹Ñ•áÐ ¤ì(€€€•áÁ•Ð¡¥¹ÍÑ¥ÑÕÑ•!½µ•!Ñµ°¤¹Ñ½5…Ñ  ¿b«bn3n3b¿bÓb¿fè üè€ð„´´€´´ø§nÄ¼¤ì(€€€•áÁ•Ð¡¥¹ÍÑ¥ÑÕÑ•!½µ•!Ñµ°¤¹Ñ½½¹Ñ…¥¸ ‹fbÓbŸfb¿ffPƒbŸbÇbËn3bŸb£n3Š3fbŸn0ƒn3bŸb¿j¿n3bÇn0ˆ¤ì(€€€½¹ÍÐ¥¹ÍÑ¥ÑÕÑ•½ÕÉÍ•Ì€ô…Ý…¥Ð¥¹ÍÑ¥ÑÕÑ”¹•Ð ˆ½¥¹ÍÑ¥ÑÕÑ”½½ÕÉÍ•Ìˆ¤ì(€€€•áÁ•Ð¡¥¹ÍÑ¥ÑÕÑ•½ÕÉÍ•Ì¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÈÀÀ¤ì(€€€½¹ÍÐ¥¹ÍÑ¥ÑÕÑ•½ÕÉÍ•Í!Ñµ°€ô…Ý…¥Ð¥¹ÍÑ¥ÑÕÑ•½ÕÉÍ•Ì¹Ñ•áÐ ¤ì(€€€•áÁ•Ð¡¥¹ÍÑ¥ÑÕÑ•½ÕÉÍ•Í!Ñµ°¤¹Ñ½½¹Ñ…¥¸ ‹b¿f#bÇfƒbŸbÇbËn3bŸb£n0ƒn3bŸb¿j¿n3bÇn0ˆ¤ì(€€€•áÁ•Ð¡¥¹ÍÑ¥ÑÕÑ•½ÕÉÍ•Í!Ñµ°¤¹Ñ½½¹Ñ…¥¸ (€€€€€€½¥¹ÍÑ¥ÑÕÑ”½½ÕÉÍ•Ì¼‘í½ÕÉÍ•%‘ô½…ÍÍ•ÍÍµ•¹ÑÍ€°(€€€€¤ì(€€€•áÁ•Ð ¡…Ý…¥ÐÍÑÕ‘•¹Ð¹•Ð ˆ½¥¹ÍÑ¥ÑÕÑ”½½ÕÉÍ•Ìˆ¤¤¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÐÀÐ¤ì(€€€½¹ÍÐ¥¹ÍÑ¥ÑÕÑ•ÍÍ•ÍÍµ•¹ÑEÕ•Õ”€ô…Ý…¥Ð¥¹ÍÑ¥ÑÕÑ”¹•Ð ˆ½¥¹ÍÑ¥ÑÕÑ”½…ÍÍ•ÍÍµ•¹ÑÌˆ¤ì(€€€•áÁ•Ð¡¥¹ÍÑ¥ÑÕÑ•ÍÍ•ÍÍµ•¹ÑEÕ•Õ”¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÈÀÀ¤ì(€€€½¹ÍÐÅÕ•Õ•!Ñµ°€ô…Ý…¥Ð¥¹ÍÑ¥ÑÕÑ•ÍÍ•ÍÍµ•¹ÑEÕ•Õ”¹Ñ•áÐ ¤ì(€€€•áÁ•Ð¡ÅÕ•Õ•!Ñµ°¤¹Ñ½½¹Ñ…¥¸ ‹bÏb“bŸfŠ3fbŸn0ƒb«fbÇn3fn0ˆ¤ì(€€€•áÁ•Ð¡ÅÕ•Õ•!Ñµ°¤¹Ñ½½¹Ñ…¥¸ ‹bÏb“bŸfƒb«fbÇn3fn0ƒb¿bÄƒbŸfb«bãbŸbÄƒb£bÇbÇbÏn0ƒfn3bÏb¨¸ˆ¤ì(€€€•áÁ•Ð¡ÅÕ•Õ•!Ñµ°¤¹Ñ½½¹Ñ…¥¸ ‹bŸbÇbËn3bŸb£n3Š3fbŸn0ƒn3bŸb¿j¿n3bÇn0ˆ¤ì(€€€•áÁ•Ð¡ÅÕ•Õ•!Ñµ°¤¹Ñ½½¹Ñ…¥¸ ‹bŸbÇbËn3bŸb£n0ƒn3bŸb¿j¿n3bÇn0ƒb¿bÄƒbŸfb«bãbŸbÄƒb£bÇbÇbÏn0ƒfn3bÏb¨¸ˆ¤ì(€€€•áÁ•Ð¡ÅÕ•Õ•!Ñµ°¤¹¹½Ð¹Ñ½½¹Ñ…¥¸ ‹fûbÇbÏbÐƒb»b×f#b×n0ƒbŸbÇbËn3bŸb£n0ƒb¿bÄƒbŸfb«bãbŸbÄƒb£bŸbËb£n3fn0ƒjn3bÏb«b|ˆ¤ì(€€€•áÁ•Ð¡ÅÕ•Õ•!Ñµ°¤¹¹½Ð¹Ñ½½¹Ñ…¥¸ ‹fûbÇbÏbÐƒb«fbÇn3fn0ƒb¿bÄƒbŸfb«bãbŸbÄƒb£bŸbËb£n3fn0ƒb£bÇbŸn0ƒb‹bËff#fb|ˆ¤ì(€€€•áÁ•Ð ¡…Ý…¥ÐÍÑÕ‘•¹Ð¹•Ð ˆ½¥¹ÍÑ¥ÑÕÑ”½…ÍÍ•ÍÍµ•¹ÑÌˆ¤¤¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÐÀÐ¤ì(€€€½¹ÍÐ¥¹ÍÑ¥ÑÕÑ•AÉ½™¥±”€ô…Ý…¥Ð¥¹ÍÑ¥ÑÕÑ”¹•Ð ˆ½¥¹ÍÑ¥ÑÕÑ”½ÁÉ½™¥±”ˆ¤ì(€€€•áÁ•Ð¡¥¹ÍÑ¥ÑÕÑ•AÉ½™¥±”¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÈÀÀ¤ì(€€€½¹ÍÐ¥¹ÍÑ¥ÑÕÑ•AÉ½™¥±•!Ñµ°€ô…Ý…¥Ð¥¹ÍÑ¥ÑÕÑ•AÉ½™¥±”¹Ñ•áÐ ¤ì(€€€•áÁ•Ð¡¥¹ÍÑ¥ÑÕÑ•AÉ½™¥±•!Ñµ°¤¹Ñ½½¹Ñ…¥¸ ‰…ÍÍ•ÍÍµ•¹Ð¥¹ÍÑ¥ÑÕÑ”ˆ¤ì(€€€•áÁ•Ð¡¥¹ÍÑ¥ÑÕÑ•AÉ½™¥±•!Ñµ°¤¹¹½Ð¹Ñ½½¹Ñ…¥¸ ‰Ñ•ÍÐ½…ÍÍ•ÍÍµ•¹Ðµ¥¹ÍÑ¥ÑÕÑ”ˆ¤ì(€€€•áÁ•Ð ¡…Ý…¥ÐÍÑÕ‘•¹Ð¹•Ð ˆ½¥¹ÍÑ¥ÑÕÑ”½ÁÉ½™¥±”ˆ¤¤¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÐÀÐ¤ì(€€€½¹ÍÐ¥¹ÍÑ¥ÑÕÑ•1•…É¹¥¹œ€ô…Ý…¥Ð¥¹ÍÑ¥ÑÕÑ”¹•Ð ˆ½¥¹ÍÑ¥ÑÕÑ”½±•…É¹¥¹œˆ¤ì(€€€•áÁ•Ð¡¥¹ÍÑ¥ÑÕÑ•1•…É¹¥¹œ¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÈÀÀ¤ì(€€€½¹ÍÐ¥¹ÍÑ¥ÑÕÑ•1•…É¹¥¹!Ñµ°€ô…Ý…¥Ð¥¹ÍÑ¥ÑÕÑ•1•…É¹¥¹œ¹Ñ•áÐ ¤ì(€€€•áÁ•Ð¡¥¹ÍÑ¥ÑÕÑ•1•…É¹¥¹!Ñµ°¤¹Ñ½½¹Ñ…¥¸ ‹b‹fbŸb¿j¿n0ƒb‹ff#bËbÓn0ƒb¿f#bÇfŠ3fbœˆ¤ì(€€€•áÁ•Ð¡¥¹ÍÑ¥ÑÕÑ•1•…É¹¥¹!Ñµ°¤¹¹½Ð¹Ñ½½¹Ñ…¥¸ ‹fûbÇbÏbÐƒb»b×f#b×n0ƒbŸbÇbËn3bŸb£n0ƒb¿bÄƒbŸfb«bãbŸbÄƒb£bŸbËb£n3fn0ƒjn3bÏb«b|ˆ¤ì(€€€•áÁ•Ð ¡…Ý…¥ÐÍÑÕ‘•¹Ð¹•Ð ˆ½¥¹ÍÑ¥ÑÕÑ”½±•…É¹¥¹œˆ¤¤¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÐÀÐ¤ì((€€€½¹ÍÐÁÉ½Ù¥‘•É!½µ”€ô…Ý…¥ÐÁÉ½Ù¥‘•È¹•Ð ˆ½ÁÉ½Ù¥‘•Èˆ¤ì(€€€•áÁ•Ð¡ÁÉ½Ù¥‘•É!½µ”¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÈÀÀ¤ì(€€€½¹ÍÐÁÉ½Ù¥‘•É!½µ•!Ñµ°€ô…Ý…¥ÐÁÉ½Ù¥‘•É!½µ”¹Ñ•áÐ ¤ì(€€€•áÁ•Ð¡ÁÉ½Ù¥‘•É!½µ•!Ñµ°¤¹Ñ½½¹Ñ…¥¸ ‹bŸbÇbËn3bŸb£n3Š3fbŸn0ƒn3bŸb¿j¿n3bÇn0ˆ¤ì(€€€•áÁ•Ð¡ÁÉ½Ù¥‘•É!½µ•!Ñµ°¤¹Ñ½½¹Ñ…¥¸ ‹b«bn3n3b¿bÓb¿fˆ¤ì(€€€•áÁ•Ð¡ÁÉ½Ù¥‘•É!½µ•!Ñµ°¤¹Ñ½½¹Ñ…¥¸¡€½ÁÉ½Ù¥‘•È½½ÕÉÍ•Ì¼‘í½ÕÉÍ•%‘ô½…ÍÍ•ÍÍµ•¹ÑÍ€¤ì(€€€•áÁ•Ð¡ÁÉ½Ù¥‘•É!½µ•!Ñµ°¤¹Ñ½½¹Ñ…¥¸ ¡É•˜ôˆ½ÁÉ½Ù¥‘•È½½ÕÉÍ•Ìˆœ¤ì(€€€•áÁ•Ð¡ÁÉ½Ù¥‘•É!½µ•!Ñµ°¤¹¹½Ð¹Ñ½½¹Ñ…¥¸ ‹j§b¿bŸfƒj¿bËn3ffƒfûbŸbÏb¸ƒb¿bÇbÏb¨ƒfûbÇbÏbÐ€ÄƒbŸbÏb«b|ˆ¤ì(€€€½¹ÍÐÁÉ½Ù¥‘•É½ÕÉÍ•Ì€ô…Ý…¥ÐÁÉ½Ù¥‘•È¹•Ð ˆ½ÁÉ½Ù¥‘•È½½ÕÉÍ•Ìˆ¤ì(€€€•áÁ•Ð¡ÁÉ½Ù¥‘•É½ÕÉÍ•Ì¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÈÀÀ¤ì(€€€•áÁ•Ð¡…Ý…¥ÐÁÉ½Ù¥‘•É½ÕÉÍ•Ì¹Ñ•áÐ ¤¤¹Ñ½½¹Ñ…¥¸ ‹b¿f#bÇfƒbŸbÇbËn3bŸb£n0ƒn3bŸb¿j¿n3bÇn0ˆ¤ì(€€€½¹ÍÐÁÉ½Ù¥‘•ÉÍÍ•ÍÍµ•¹ÑÌ€ô…Ý…¥ÐÁÉ½Ù¥‘•È¹•Ð ˆ½ÁÉ½Ù¥‘•È½…ÍÍ•ÍÍµ•¹ÑÌˆ¤ì(€€€•áÁ•Ð¡ÁÉ½Ù¥‘•ÉÍÍ•ÍÍµ•¹ÑÌ¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÈÀÀ¤ì(€€€½¹ÍÐÁÉ½Ù¥‘•ÉÍÍ•ÍÍµ•¹ÑÍ!Ñµ°€ô…Ý…¥ÐÁÉ½Ù¥‘•ÉÍÍ•ÍÍµ•¹ÑÌ¹Ñ•áÐ ¤ì(€€€•áÁ•Ð¡ÁÉ½Ù¥‘•ÉÍÍ•ÍÍµ•¹ÑÍ!Ñµ°¤¹Ñ½½¹Ñ…¥¸ ‹bŸbÇbËn3bŸb£n0ƒfb×fˆ¤ì(€€€•áÁ•Ð¡ÁÉ½Ù¥‘•ÉÍÍ•ÍÍµ•¹ÑÍ!Ñµ°¤¹Ñ½½¹Ñ…¥¸ ‹b«bn3n3b¿bÓb¿fˆ¤ì(€€€•áÁ•Ð¡ÁÉ½Ù¥‘•ÉÍÍ•ÍÍµ•¹ÑÍ!Ñµ°¤¹¹½Ð¹Ñ½½¹Ñ…¥¸ ‹j§b¿bŸfƒj¿bËn3ffƒfûbŸbÏb¸ƒb¿bÇbÏb¨ƒfûbÇbÏbÐ€ÄƒbŸbÏb«b|ˆ¤ì(€€€½¹ÍÐÁÉ½Ù¥‘•ÉAÉ½™¥±”€ô…Ý…¥ÐÁÉ½Ù¥‘•È¹•Ð ˆ½ÁÉ½Ù¥‘•È½ÁÉ½™¥±”ˆ¤ì(€€€•áÁ•Ð¡ÁÉ½Ù¥‘•ÉAÉ½™¥±”¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÈÀÀ¤ì(€€€½¹ÍÐÁÉ½Ù¥‘•ÉAÉ½™¥±•!Ñµ°€ô…Ý…¥ÐÁÉ½Ù¥‘•ÉAÉ½™¥±”¹Ñ•áÐ ¤ì(€€€•áÁ•Ð¡ÁÉ½Ù¥‘•ÉAÉ½™¥±•!Ñµ°¤¹Ñ½½¹Ñ…¥¸ ‰…ÍÍ•ÍÍµ•¹ÐÁÉ½Ù¥‘•Èˆ¤ì(€€€•áÁ•Ð¡ÁÉ½Ù¥‘•ÉAÉ½™¥±•!Ñµ°¤¹¹½Ð¹Ñ½½¹Ñ…¥¸ ‰Ñ•ÍÐ½…ÍÍ•ÍÍµ•¹ÐµÁÉ½Ù¥‘•Èˆ¤ì(€€€½¹ÍÐÁÉ½Ù¥‘•É1•…É¹¥¹œ€ô…Ý…¥ÐÁÉ½Ù¥‘•È¹•Ð ˆ½ÁÉ½Ù¥‘•È½±•…É¹¥¹œˆ¤ì(€€€•áÁ•Ð¡ÁÉ½Ù¥‘•É1•…É¹¥¹œ¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÈÀÀ¤ì(€€€½¹ÍÐÁÉ½Ù¥‘•É1•…É¹¥¹!Ñµ°€ô…Ý…¥ÐÁÉ½Ù¥‘•É1•…É¹¥¹œ¹Ñ•áÐ ¤ì(€€€•áÁ•Ð¡ÁÉ½Ù¥‘•É1•…É¹¥¹!Ñµ°¤¹Ñ½½¹Ñ…¥¸ ‹b‹fbŸb¿j¿n0ƒb‹ff#bËbÓn0ƒb¿f#bÇfŠ3fbœˆ¤ì(€€€•áÁ•Ð¡ÁÉ½Ù¥‘•É1•…É¹¥¹!Ñµ°¤¹¹½Ð¹Ñ½½¹Ñ…¥¸ ‹fûbÇbÏbÐƒb»b×f#b×n0ƒbŸbÇbËn3bŸb£n0ƒb¿bÄƒbŸfb«bãbŸbÄƒb£bŸbËb£n3fn0ƒjn3bÏb«b|ˆ¤ì(€€€•áÁ•Ð ¡…Ý…¥ÐÍÑÕ‘•¹Ð¹•Ð ˆ½ÁÉ½Ù¥‘•È½½ÕÉÍ•Ìˆ¤¤¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÐÀÐ¤ì(€€€•áÁ•Ð ¡…Ý…¥ÐÍÑÕ‘•¹Ð¹•Ð ˆ½ÁÉ½Ù¥‘•È½…ÍÍ•ÍÍµ•¹ÑÌˆ¤¤¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÐÀÐ¤ì(€€€•áÁ•Ð ¡…Ý…¥ÐÍÑÕ‘•¹Ð¹•Ð ˆ½ÁÉ½Ù¥‘•È½ÁÉ½™¥±”ˆ¤¤¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÐÀÐ¤ì(€€€•áÁ•Ð ¡…Ý…¥ÐÍÑÕ‘•¹Ð¹•Ð ˆ½ÁÉ½Ù¥‘•È½±•…É¹¥¹œˆ¤¤¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÐÀÐ¤ì(€€€½¹ÍÐÁÉ½Ù¥‘•É½Õ¹Ð€ô…Ý…¥ÐÁÉ½Ù¥‘•È¹•Ð ˆ½…½Õ¹Ðˆ¤ì(€€€½¹ÍÐÁÉ½Ù¥‘•É½Õ¹Ñ!Ñµ°€ô…Ý…¥ÐÁÉ½Ù¥‘•É½Õ¹Ð¹Ñ•áÐ ¤ì(€€€•áÁ•Ð¡ÁÉ½Ù¥‘•É½Õ¹Ñ!Ñµ°¤¹Ñ½½¹Ñ…¥¸ ¡É•˜ôˆ½ÁÉ½Ù¥‘•È½ÁÉ½™¥±”ˆœ¤ì(€€€•áÁ•Ð¡ÁÉ½Ù¥‘•É½Õ¹Ñ!Ñµ°¤¹Ñ½½¹Ñ…¥¸ ¡É•˜ôˆ½ÁÉ½Ù¥‘•È½±•…É¹¥¹œˆœ¤ì(€€€•áÁ•Ð¡ÁÉ½Ù¥‘•É½Õ¹Ñ!Ñµ°¤¹¹½Ð¹Ñ½½¹Ñ…¥¸ ¡É•˜ôˆ½¥¹ÍÑ¥ÑÕÑ”ˆœ¤ì((€€€½¹ÍÐÍÑ…ÉÑÌ€ô…Ý…¥ÐAÉ½µ¥Í”¹…±°¡l(€€€€€Á½ÍÐ¡ÍÑÕ‘•¹Ð°€‘í‰…Í•A…Ñ¡ô½…ÑÑ•µÁÑÍ€°íô¤°(€€€€€Á½ÍÐ¡ÍÑÕ‘•¹Ð°€‘í‰…Í•A…Ñ¡ô½…ÑÑ•µÁÑÍ€°íô¤°(€€€t¤ì(€€€•áÁ•Ð¡ÍÑ…ÉÑÌ¹•Ù•Éä ¡É•ÍÁ½¹Í”¤€ôøÉ•ÍÁ½¹Í”¹ÍÑ…ÑÕÌ ¤€ôôô€ÈÀÀñðÉ•ÍÁ½¹Í”¹ÍÑ…ÑÕÌ ¤€ôôô€ÈÀÄ¤¤¹Ñ½	”¡ÑÉÕ”¤ì(€€€½¹ÍÐÍÑ…ÉÑ	½‘¥•Ì€ô…Ý…¥ÐAÉ½µ¥Í”¹…±°¡ÍÑ…ÉÑÌ¹µ…À ¡É•ÍÁ½¹Í”¤€ôøÉ•ÍÁ½¹Í”¹©Í½¸ ¤¤¤ì(€€€•áÁ•Ð¡¹•ÜM•Ð¡ÍÑ…ÉÑ	½‘¥•Ì¹µ…À ¡‰½‘ä¤€ôø‰½‘ä¹…ÑÑ•µÁÑ%¤¤¹Í¥é”¤¹Ñ½	” Ä¤ì(€€€½¹ÍÐ…ÑÑ•µÁÑ%€ôÍÑ…ÉÑ	½‘¥•ÍlÁt¹…ÑÑ•µÁÑ%…ÌÍÑÉ¥¹œì((€€€½¹ÍÐ…ÑÑ•µÁÑI•ÍÁ½¹Í”€ô…Ý…¥ÐÍÑÕ‘•¹Ð¹•Ð¡€‘í‰…Í•A…Ñ¡ô½…ÑÑ•µÁÑÌ¼‘í…ÑÑ•µÁÑ%‘õ€¤ì(€€€•áÁ•Ð¡…ÑÑ•µÁÑI•ÍÁ½¹Í”¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÈÀÀ¤ì(€€€½¹ÍÐ…ÑÑ•µÁÐ€ô€¡…Ý…¥Ð…ÑÑ•µÁÑI•ÍÁ½¹Í”¹©Í½¸ ¤¤¹…ÑÑ•µÁÐì(€€€•áÁ•Ð¡…ÑÑ•µÁÐ¹ÅÕ•ÍÑ¥½¹Ì¤¹Ñ½!…Ù•1•¹Ñ  È¤ì(€€€•áÁ•Ð¡)M=8¹ÍÑÉ¥¹¥™ä¡…ÑÑ•µÁÐ¤¤¹¹½Ð¹Ñ½½¹Ñ…¥¸ ‰½ÉÉ•Ñ=ÁÑ¥½¸ˆ¤ì(€€€•áÁ•Ð¡)M=8¹ÍÑÉ¥¹¥™ä¡…ÑÑ•µÁÐ¤¤¹¹½Ð¹Ñ½½¹Ñ…¥¸ œ‰½ÉÉ•Ðˆœ¤ì(€€€•áÁ•Ð ¡…Ý…¥Ð½Ñ¡•È¹•Ð¡€‘í‰…Í•A…Ñ¡ô½…ÑÑ•µÁÑÌ¼‘í…ÑÑ•µÁÑ%‘õ€¤¤¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÐÀÐ¤ì((€€€½¹ÍÐ…¹ÍÝ•ÉÌ€ô=‰©•Ð¹™É½µ¹ÑÉ¥•Ì¡…ÑÑ•µÁÐ¹ÅÕ•ÍÑ¥½¹Ì¹µ…À ¡¥Ñ•´èìÅÕ•ÍÑ¥½¹%èÍÑÉ¥¹œô¤€ôø(€€€€€m¥Ñ•´¹ÅÕ•ÍÑ¥½¹%°€Åt¤¤ì(€€€½¹ÍÐÍÕ‰µ¥ÑÑ•€ô…Ý…¥ÐÁ½ÍÐ¡ÍÑÕ‘•¹Ð°€‘í‰…Í•A…Ñ¡ô½…ÑÑ•µÁÑÌ¼‘í…ÑÑ•µÁÑ%‘õ€°ì…¹ÍÝ•ÉÌô¤ì(€€€•áÁ•Ð¡ÍÕ‰µ¥ÑÑ•¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÈÀÄ¤ì(€€€½¹ÍÐÉ•ÍÕ±Ð€ô…Ý…¥ÐÍÕ‰µ¥ÑÑ•¹©Í½¸ ¤ì(€€€•áÁ•Ð¡É•ÍÕ±Ð¤¹Ñ½5…Ñ¡=‰©•Ð¡ì½ÕÑ½µ”è€‰¹••‘Í}É•Ù¥•Üˆ°½ÉÉ•Ñ½Õ¹Ðè€À°ÅÕ•ÍÑ¥½¹½Õ¹Ðè€Èô¤ì(€€€•áÁ•Ð¡)M=8¹ÍÑÉ¥¹¥™ä¡É•ÍÕ±Ð¤¤¹¹½Ð¹Ñ½½¹Ñ…¥¸ ‰½ÉÉ•Ñ=ÁÑ¥½¸ˆ¤ì((€€€½¹ÍÐÉ½ÝÑ €ô…Ý…¥ÐÍÑÕ‘•¹Ð¹•Ð ˆ½ÍÑÕ‘•¹Ð½É½ÝÑ ˆ¤ì(€€€•áÁ•Ð¡É½ÝÑ ¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÈÀÀ¤ì(€€€½¹ÍÐÉ½ÝÑ¡!Ñµ°€ô…Ý…¥ÐÉ½ÝÑ ¹Ñ•áÐ ¤ì(€€€•áÁ•Ð¡É½ÝÑ¡!Ñµ°¤¹Ñ½½¹Ñ…¥¸ ‹bŸbÇbËn3bŸb£n0ƒfb×fˆ¤ì(€€€•áÁ•Ð¡É½ÝÑ¡!Ñµ°¤¹Ñ½½¹Ñ…¥¸ ‹nÃf¨ˆ¤ì(€€€½¹ÍÐ½Ñ¡•ÉÉ½ÝÑ €ô…Ý…¥Ð½Ñ¡•È¹•Ð ˆ½ÍÑÕ‘•¹Ð½É½ÝÑ ˆ¤ì(€€€•áÁ•Ð¡½Ñ¡•ÉÉ½ÝÑ ¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÈÀÀ¤ì(€€€•áÁ•Ð¡…Ý…¥Ð½Ñ¡•ÉÉ½ÝÑ ¹Ñ•áÐ ¤¤¹¹½Ð¹Ñ½½¹Ñ…¥¸ ‹bŸbÇbËn3bŸb£n0ƒfb×fˆ¤ì((€€€½¹ÍÐÍÕ‰µ¥ÑÑ•‘ÑÑ•µÁÐ€ô€¡…Ý…¥Ð€¡…Ý…¥ÐÍÑÕ‘•¹Ð¹•Ð (€€€€€€‘í‰…Í•A…Ñ¡ô½…ÑÑ•µÁÑÌ¼‘í…ÑÑ•µÁÑ%‘õ€¤¤¹©Í½¸ ¤¤¹…ÑÑ•µÁÐì(€€€•áÁ•Ð¡ÍÕ‰µ¥ÑÑ•‘ÑÑ•µÁÐ¹µ¥ÍÍ•‘1•ÍÍ½¹ÍÍ•Ñ%‘Ì¤¹Ñ½!…Ù•1•¹Ñ  È¤ì(€€€½¹ÍÐ‰±½­•€ô…Ý…¥ÐÁ½ÍÐ¡ÍÑÕ‘•¹Ð°€‘í‰…Í•A…Ñ¡ô½…ÑÑ•µÁÑÍ€°íô¤ì(€€€•áÁ•Ð¡‰±½­•¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÈÀÀ¤ì(€€€½¹ÍÐ‰±½­•‘	½‘ä€ô…Ý…¥Ð‰±½­•¹©Í½¸ ¤ì(€€€•áÁ•Ð¡‰±½­•‘	½‘ä¹É•Ù¥•ÝI•ÅÕ¥É•¤¹Ñ½	”¡ÑÉÕ”¤ì(€€€™½È€¡½¹ÍÐ±•ÍÍ½¹ÍÍ•Ñ%½˜‰±½­•‘	½‘ä¹½ÕÑÍÑ…¹‘¥¹1•ÍÍ½¹ÍÍ•Ñ%‘Ì…ÌÍÑÉ¥¹mt¤ì(€€€€€½¹ÍÐÉ•ÍÁ½¹Í”€ô…Ý…¥ÐÁ½ÍÐ¡ÍÑÕ‘•¹Ð°(€€€€€€€€‘í‰…Í•A…Ñ¡ô½…ÑÑ•µÁÑÌ¼‘í…ÑÑ•µÁÑ%‘ô½±•ÍÍ½¸µÉ•Ù¥•ÝÍ€°ì±•ÍÍ½¹ÍÍ•Ñ%ô¤ì(€€€€€•áÁ•Ð¡É•ÍÁ½¹Í”¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÈÀÄ¤ì(€€€ô(€€€½¹ÍÐÉ•ÑÉ¥•€ô…Ý…¥ÐÁ½ÍÐ¡ÍÑÕ‘•¹Ð°€‘í‰…Í•A…Ñ¡ô½…ÑÑ•µÁÑÍ€°íô¤ì(€€€•áÁ•Ð¡É•ÑÉ¥•¹ÍÑ…ÑÕÌ ¤¤¹Ñ½	” ÈÀÄ¤ì(€€€•áÁ•Ð ¡…Ý…¥ÐÉ•ÑÉ¥•¹©Í½¸ ¤¤¹…ÑÑ•µÁÑ9Õµ‰•È¤¹Ñ½	” È¤ì(€€€…Ý…¥Ð…¹½¹åµ½ÕÌ¹‘¥ÍÁ½Í” ¤ì(€€€…Ý…¥Ð½Ñ¡•È¹‘¥ÍÁ½Í” ¤ì(€€€…Ý…¥Ð¥¹ÍÑ¥ÑÕÑ”¹‘¥ÍÁ½Í” ¤ì(€€€…Ý…¥ÐÁÉ½Ù¥‘•È¹‘¥ÍÁ½Í” ¤ì(€€€…Ý…¥ÐÍÑÕ‘•¹Ð¹‘¥ÍÁ½Í” ¤ì(€ô¤ì)ô¤ì(
