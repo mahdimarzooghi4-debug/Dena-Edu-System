@@ -519,75 +519,6 @@ test.describe("course team communication and problem-solving stay course-scoped"
     await counselor.dispose();
   });
 
-  test("student messages and session requests serialize with enrollment cancellation", async () => {
-    const student = await client("otherStudent");
-    const institute = await client("institute");
-    const enabled = await institute.patch(
-      `/api/institute/courses/${courseId}/team/${supporterTeamMemberId}`,
-      { data: { enabled: true }, headers: origin },
-    );
-    expect(enabled.status()).toBe(200);
-
-    const conversationPath =
-      `/api/student/courses/${courseId}/team/${counselorTeamMemberId}/conversation`;
-    const requestPath =
-      `/api/student/courses/${courseId}/team/${supporterTeamMemberId}/problem-solving`;
-    const [message, requestResult, cancellation] = await Promise.all([
-      student.post(conversationPath, {
-        data: { body: "پیام هم‌زمان با لغو ثبت‌نام" }, headers: origin,
-      }),
-      student.post(requestPath, {
-        data: {
-          subject: "درخواست هم‌زمان با لغو ثبت‌نام",
-          description: "برای حل تمرین به راهنمایی نیاز دارم.",
-        }, headers: origin,
-      }),
-      student.post(`/api/student/courses/${courseId}/cancel`, {
-        data: {}, headers: origin,
-      }),
-    ]);
-    expect([201, 404]).toContain(message.status());
-    expect([201, 404]).toContain(requestResult.status());
-    expect(cancellation.status()).toBe(200);
-
-    const messagesBeforeRetry = await db.select({ id: courseConversationMessages.id })
-      .from(courseConversationMessages).innerJoin(courseConversations,
-        eq(courseConversations.id, courseConversationMessages.conversationId))
-      .where(and(
-        eq(courseConversations.studentUserId, users.otherStudent),
-        eq(courseConversations.courseId, courseId),
-      ));
-    const requestsBeforeRetry = await db.select({ id: problemSolvingRequests.id })
-      .from(problemSolvingRequests).where(and(
-        eq(problemSolvingRequests.studentUserId, users.otherStudent),
-        eq(problemSolvingRequests.courseId, courseId),
-      ));
-    expect((await student.post(conversationPath, {
-      data: { body: "پیام پس از لغو" }, headers: origin,
-    })).status()).toBe(404);
-    expect((await student.post(requestPath, {
-      data: { subject: "درخواست پس از لغو" }, headers: origin,
-    })).status()).toBe(404);
-    const messagesAfterRetry = await db.select({ id: courseConversationMessages.id })
-      .from(courseConversationMessages).innerJoin(courseConversations,
-        eq(courseConversations.id, courseConversationMessages.conversationId))
-      .where(and(
-        eq(courseConversations.studentUserId, users.otherStudent),
-        eq(courseConversations.courseId, courseId),
-      ));
-    const requestsAfterRetry = await db.select({ id: problemSolvingRequests.id })
-      .from(problemSolvingRequests).where(and(
-        eq(problemSolvingRequests.studentUserId, users.otherStudent),
-        eq(problemSolvingRequests.courseId, courseId),
-      ));
-    expect(messagesAfterRetry.map((row) => row.id))
-      .toEqual(messagesBeforeRetry.map((row) => row.id));
-    expect(requestsAfterRetry.map((row) => row.id))
-      .toEqual(requestsBeforeRetry.map((row) => row.id));
-    await student.dispose();
-    await institute.dispose();
-  });
-
   test("deactivation immediately closes both messaging and session capability", async () => {
     const institute = await client("institute");
     const student = await client("student");
@@ -631,17 +562,40 @@ test.describe("course team communication and problem-solving stay course-scoped"
       .where(eq(courseTeamMembers.id, supporterTeamMemberId));
     expect(row.requestsEnabled).toBe(false);
 
+    const reactivated = await institute.post(
+      `/api/institute/courses/${courseId}/team`, {
+        data: { memberUserId: users.supporter, role: "academic_supporter" },
+        headers: origin,
+      },
+    );
+    expect(reactivated.status()).toBe(201);
+    expect((await reactivated.json()).teamMemberId).toBe(supporterTeamMemberId);
+    const enabled = await institute.patch(
+      `/api/institute/courses/${courseId}/team/${supporterTeamMemberId}`,
+      { data: { enabled: true }, headers: origin },
+    );
+    expect(enabled.status()).toBe(200);
+
     const counselorConversation =
       `/api/student/courses/${courseId}/team/${counselorTeamMemberId}/conversation`;
-    const [messageDuringCancellation, cancelled] = await Promise.all([
+    const problemSolvingPath =
+      `/api/student/courses/${courseId}/team/${supporterTeamMemberId}/problem-solving`;
+    const [messageDuringCancellation, requestDuringCancellation, cancelled] = await Promise.all([
       student.post(counselorConversation, {
         data: { body: "پیام هم‌زمان با لغو ثبت‌نام" }, headers: origin,
+      }),
+      student.post(problemSolvingPath, {
+        data: {
+          subject: "درخواست هم‌زمان با لغو ثبت‌نام",
+          description: "برای حل تمرین به راهنمایی نیاز دارم.",
+        }, headers: origin,
       }),
       student.post(`/api/student/courses/${courseId}/cancel`, {
         data: {}, headers: origin,
       }),
     ]);
     expect([201, 404]).toContain(messageDuringCancellation.status());
+    expect([201, 404]).toContain(requestDuringCancellation.status());
     expect(cancelled.status()).toBe(200);
     const messagesAfterCancellation = await db.select({ id: courseConversationMessages.id })
       .from(courseConversationMessages).innerJoin(courseConversations,
@@ -649,6 +603,11 @@ test.describe("course team communication and problem-solving stay course-scoped"
       .where(and(
         eq(courseConversations.studentUserId, users.student),
         eq(courseConversations.courseId, courseId),
+      ));
+    const requestsAfterCancellation = await db.select({ id: problemSolvingRequests.id })
+      .from(problemSolvingRequests).where(and(
+        eq(problemSolvingRequests.studentUserId, users.student),
+        eq(problemSolvingRequests.courseId, courseId),
       ));
     expect((await student.post(counselorConversation, {
       data: { body: "پیام پس از لغو" }, headers: origin,
@@ -660,8 +619,18 @@ test.describe("course team communication and problem-solving stay course-scoped"
         eq(courseConversations.studentUserId, users.student),
         eq(courseConversations.courseId, courseId),
       ));
+    expect((await student.post(problemSolvingPath, {
+      data: { subject: "درخواست پس از لغو" }, headers: origin,
+    })).status()).toBe(404);
+    const requestsAfterDeniedRetry = await db.select({ id: problemSolvingRequests.id })
+      .from(problemSolvingRequests).where(and(
+        eq(problemSolvingRequests.studentUserId, users.student),
+        eq(problemSolvingRequests.courseId, courseId),
+      ));
     expect(messagesAfterDeniedRetry.map((message) => message.id))
       .toEqual(messagesAfterCancellation.map((message) => message.id));
+    expect(requestsAfterDeniedRetry.map((request) => request.id))
+      .toEqual(requestsAfterCancellation.map((request) => request.id));
 
     await institute.dispose();
     await student.dispose();
