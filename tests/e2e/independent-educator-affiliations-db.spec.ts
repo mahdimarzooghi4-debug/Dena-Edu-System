@@ -30,6 +30,7 @@ test.describe("independent educator institute affiliations", () => {
   const institutes = { a: randomUUID(), b: randomUUID() };
   let ownedCourseId: string = randomUUID();
   const ownedAssetId = randomUUID();
+  const raceAssetId = randomUUID();
   const mediaFixture = Buffer.from("00000018667479706d7034326d70343269736f6d00000000", "hex");
   const mediaDigest = createHash("sha256").update(mediaFixture).digest("hex");
   const requestIds = { a: randomUUID(), b: randomUUID(), self: randomUUID() };
@@ -52,6 +53,20 @@ test.describe("independent educator institute affiliations", () => {
     statement: "برای همکاری آموزشی مستقل با نام خودم درخواست بررسی دارم.",
   });
   const decisionPath = (id: string) => `/api/institute/educators/${id}/decision`;
+
+  async function processMock(uploadId: string, assetId: string) {
+    const response = await fetch(
+      `http://127.0.0.1:4318/__test__/process/${uploadId}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.DENA_PRIVATE_MEDIA_ORIGIN_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ courseId: ownedCourseId, assetId }),
+      },
+    );
+    return response.status;
+  }
 
   test.beforeAll(async () => {
     await db.insert(user).values(Object.entries(users).map(([name, id], index) => ({
@@ -240,30 +255,43 @@ test.describe("independent educator institute affiliations", () => {
     });
     expect(staleReservation.status()).toBe(201);
     const staleUploadId = (await staleReservation.json() as { uploadId: string }).uploadId;
-    await db.update(courses).set({
-      publicationStatus: "published", publishedAt: approvedAt,
-    }).where(eq(courses.id, ownedCourseId));
-    await db.insert(privateMediaAssets).values({
-      id: ownedAssetId,
-      courseId: ownedCourseId,
-      title: "درس آزمایشی",
-      objectKey: `${ownedCourseId}/${ownedAssetId}.mp4`,
-      status: "ready",
+    const raceReservation = await post(applicant, mediaPath, {
+      title: "ویدئوی هم‌زمان با لغو همکاری", clientRequestId: randomUUID(),
+      expectedBytes: mediaFixture.length, sha256: mediaDigest,
     });
-    await db.insert(studentEnrollments).values({
-      courseId: ownedCourseId, studentUserId: users.outsider,
+    expect(raceReservation.status()).toBe(201);
+    const raceUploadId = (await raceReservation.json() as { uploadId: string }).uploadId;
+    expect((await applicant.put(`${mediaPath}/${raceUploadId}`, {
+      data: mediaFixture,
+      headers: { Origin: "http://localhost:3000", "Content-Type": "video/mp4" },
+    })).status()).toBe(202);
+    const workerClient = await client();
+    const processorAuth = {
+      Authorization: `Bearer ${process.env.DENA_MEDIA_PROCESSOR_TOKEN}`,
+    };
+    const claimed = await workerClient.post("/api/internal/media-jobs/claim", {
+      data: { limit: 10 }, headers: processorAuth,
     });
-    expect(await hasStudentEntitlement(users.outsider, ownedCourseId)).toBe(true);
-    const preTransferCatalog = await listStudentCatalog(
-      users.outsider, readCatalogQuery(new URLSearchParams("mine=1")),
+    expect(claimed.status()).toBe(200);
+    const raceJob = (await claimed.json()).jobs.find(
+      (job: { uploadId: string }) => job.uploadId === raceUploadId,
+    ) as { leaseToken: string } | undefined;
+    expect(raceJob?.leaseToken).toBeTruthy();
+    expect(await processMock(raceUploadId, raceAssetId)).toBe(200);
+    const originAuth = {
+      Authorization: `Bearer ${process.env.DENA_PRIVATE_MEDIA_ORIGIN_TOKEN}`,
+    };
+    const privateDelay = `http://127.0.0.1:4318/__test__/delay-output-get/${raceUploadId}`;
+    const privateStatus = `http://127.0.0.1:4318/__test__/delay-output-status/${raceUploadId}`;
+    expect((await fetch(privateDelay, { method: "POST", headers: originAuth })).status).toBe(200);
+    const pendingCallback = workerClient.post(
+      `/api/internal/media-ingest/${raceUploadId}/complete`, {
+        data: { leaseToken: raceJob!.leaseToken }, headers: processorAuth,
+      },
     );
-    expect(preTransferCatalog.courses.some((course) =>
-      course.courseId === ownedCourseId && course.ownerType === "independent_educator" &&
-      course.independentEducatorName === "برند مستقل آوا")).toBe(true);
-    expect(await getStudentCourseDetail(users.outsider, ownedCourseId)).toMatchObject({
-      courseId: ownedCourseId, ownerType: "independent_educator",
-      independentEducatorName: "برند مستقل آوا",
-    });
+    await expect.poll(async () => (await (await fetch(privateStatus, {
+      headers: originAuth,
+    })).json()).active as boolean, { timeout: 5000 }).toBe(true);
     const providerMemberships = await db.select().from(memberships).where(and(
       eq(memberships.userId, users.applicant), eq(memberships.role, "provider"),
     ));
@@ -290,9 +318,41 @@ test.describe("independent educator institute affiliations", () => {
     await expect(page.getByRole("heading", {
       name: "دورهٔ آزمایشی همکار مستقل",
     })).toBeVisible();
+    const revokeStarted = Date.now();
     expect((await post(instituteA, decisionPath(affiliationA), {
       action: "revoke", reason: "پایان همکاری به درخواست و تصمیم مؤسسه ثبت شد.",
     })).status()).toBe(200);
+    expect(Date.now() - revokeStarted).toBeLessThan(1500);
+    expect((await pendingCallback).status()).toBe(409);
+    const [racedIngest] = await db.select().from(mediaIngests)
+      .where(eq(mediaIngests.id, raceUploadId));
+    expect(racedIngest.status).toBe("quarantined");
+    expect(await db.select().from(privateMediaAssets)
+      .where(eq(privateMediaAssets.id, raceAssetId))).toEqual([]);
+    await db.update(courses).set({
+      publicationStatus: "published", publishedAt: approvedAt,
+    }).where(eq(courses.id, ownedCourseId));
+    await db.insert(privateMediaAssets).values({
+      id: ownedAssetId,
+      courseId: ownedCourseId,
+      title: "درس آزمایشی",
+      objectKey: `${ownedCourseId}/${ownedAssetId}.mp4`,
+      status: "ready",
+    });
+    await db.insert(studentEnrollments).values({
+      courseId: ownedCourseId, studentUserId: users.outsider,
+    });
+    expect(await hasStudentEntitlement(users.outsider, ownedCourseId)).toBe(true);
+    const transferredCatalog = await listStudentCatalog(
+      users.outsider, readCatalogQuery(new URLSearchParams("mine=1")),
+    );
+    expect(transferredCatalog.courses.some((course) =>
+      course.courseId === ownedCourseId && course.ownerType === "institute" &&
+      course.independentEducatorName === null)).toBe(true);
+    expect(await getStudentCourseDetail(users.outsider, ownedCourseId)).toMatchObject({
+      courseId: ownedCourseId, ownerType: "institute",
+      independentEducatorName: null,
+    });
     const rejectedLateUpload = await applicant.put(
       `${mediaPath}/${staleUploadId}`, {
         data: mediaFixture,
@@ -371,5 +431,6 @@ test.describe("independent educator institute affiliations", () => {
     await page.context().clearCookies();
     await applicant.dispose(); await instituteA.dispose(); await instituteB.dispose();
     await selfApplicant.dispose();
+    await workerClient.dispose();
   });
 });
