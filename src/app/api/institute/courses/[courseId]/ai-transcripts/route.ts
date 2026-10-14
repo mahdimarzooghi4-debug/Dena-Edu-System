@@ -5,7 +5,7 @@ import { z } from "zod";
 import { getDb } from "@/db";
 import {
   courses, denaAiContentPermissionEvents, denaAiVideoTranscriptChunks,
-  memberships, privateMediaAssets,
+  memberships, privateMediaAssets, studentAiTutorVideoFeedback,
 } from "@/db/schema";
 import { getServerAccessContext } from "@/server/access/actor";
 import { learningConceptIdSchema } from "@/server/ai-tutor/learning-concepts";
@@ -81,10 +81,46 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       !await instituteCourse(actor.userId, courseId)) {
     return NextResponse.json({ error: "Not found" }, { status: 404, headers: noStore });
   }
+  const feedbackCount = sql<number>`(
+    SELECT count(*)::int
+    FROM ${studentAiTutorVideoFeedback}
+    WHERE ${studentAiTutorVideoFeedback.assetId} = ${privateMediaAssets.id}
+      AND ${studentAiTutorVideoFeedback.courseId} = ${courseId}
+  )`;
+  const guidanceCount = sql<number>`(
+    SELECT count(*)::int
+    FROM ${studentAiTutorVideoFeedback}
+    WHERE ${studentAiTutorVideoFeedback.assetId} = ${privateMediaAssets.id}
+      AND ${studentAiTutorVideoFeedback.courseId} = ${courseId}
+      AND ${studentAiTutorVideoFeedback.needsGuidance} = true
+  )`;
+  const permissionGranted = sql<boolean>`(
+    SELECT ${denaAiContentPermissionEvents.decision} = 'granted'
+    FROM ${denaAiContentPermissionEvents}
+    WHERE ${denaAiContentPermissionEvents.assetId} = ${privateMediaAssets.id}
+      AND ${denaAiContentPermissionEvents.courseId} = ${courseId}
+    ORDER BY ${denaAiContentPermissionEvents.createdAt} DESC,
+      ${denaAiContentPermissionEvents.id} DESC
+    LIMIT 1
+  )`;
   const assets = await getDb().select({
     assetId: privateMediaAssets.id,
     chunkCount: sql<number>`count(${denaAiVideoTranscriptChunks.id})::int`,
     conceptId: sql<string | null>`max(${denaAiVideoTranscriptChunks.learningConceptId})`,
+    feedbackResponses: sql<number | null>`CASE
+      WHEN ${privateMediaAssets.status} = 'ready'
+        AND ${permissionGranted} IS TRUE
+        AND ${feedbackCount} >= 5
+      THEN ${feedbackCount}
+      ELSE NULL
+    END`,
+    needsGuidanceResponses: sql<number | null>`CASE
+      WHEN ${privateMediaAssets.status} = 'ready'
+        AND ${permissionGranted} IS TRUE
+        AND ${feedbackCount} >= 5
+      THEN ${guidanceCount}
+      ELSE NULL
+    END`,
   }).from(privateMediaAssets)
     .leftJoin(denaAiVideoTranscriptChunks, and(
       eq(denaAiVideoTranscriptChunks.assetId, privateMediaAssets.id),
