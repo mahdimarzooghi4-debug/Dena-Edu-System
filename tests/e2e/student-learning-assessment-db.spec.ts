@@ -423,7 +423,10 @@ test.describe("student learning assessment lifecycle", () => {
     const secondStart = await post(student, startPath, {});
     expect(secondStart.status()).toBe(201);
     const secondAttemptId = (await secondStart.json()).attemptId as string;
-    await db.update(assessmentExamAttempts).set({ deadlineAt: new Date(Date.now() - 60_000) })
+    const expiredAt = new Date(Date.now() - 60_000);
+    await db.update(assessmentExamAttempts).set({
+      startedAt: new Date(expiredAt.getTime() - 60_000), deadlineAt: expiredAt,
+    })
       .where(eq(assessmentExamAttempts.id, secondAttemptId));
     const thirdStart = await post(student, startPath, {});
     expect(thirdStart.status()).toBe(201);
