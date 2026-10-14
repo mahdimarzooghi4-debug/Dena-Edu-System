@@ -5,6 +5,7 @@ import { expect, request, test, type APIRequestContext } from "@playwright/test"
 import { getDb } from "../../src/db";
 import {
   assessmentExamAttempts, assessmentExams, assessmentQuestionBanks, auditLogs,
+  assessmentExamQuestions, assessmentQuestionBankQuestions,
   courseLearningAssessmentQuestions, courseLearningAssessments, courseOwnershipEvents,
   coursePracticeQuestions, courses,
   educatorInstituteAffiliationEvents, educatorInstituteAffiliations,
@@ -38,6 +39,7 @@ test.describe("student learning assessment lifecycle", () => {
   const instituteBankId = randomUUID();
   const denaExamId = randomUUID();
   const instituteExamId = randomUUID();
+  const denaExamQuestionIds = [randomUUID(), randomUUID()];
   const denaOwnerId = "00000000-0000-0000-0000-000000000001";
 
   async function client(as: keyof typeof tokens): Promise<APIRequestContext> {
@@ -103,6 +105,24 @@ test.describe("student learning assessment lifecycle", () => {
         startsAt: examStartsAt, endsAt: examEndsAt, durationMinutes: 30,
         attemptLimit: 1, status: "published", createdByUserId: users.admin },
     ]);
+    await db.insert(assessmentQuestionBankQuestions).values(denaExamQuestionIds.map(
+      (id, index) => ({
+        id, bankId: denaBankId, ownerType: "dena" as const, ownerId: denaOwnerId,
+        courseId: null, lessonAssetId: null,
+        prompt: `پرسش آزمون دنا ${index + 1} چیست؟`,
+        option0: "پاسخ درست", option1: "گزینه دوم", option2: "گزینه سوم",
+        option3: "گزینه چهارم", correctOption: 0, createdByUserId: users.admin,
+      }),
+    ));
+    await db.insert(assessmentExamQuestions).values(denaExamQuestionIds.map(
+      (bankQuestionId, position) => ({
+        examId: denaExamId, bankId: denaBankId, ownerType: "dena" as const,
+        ownerId: denaOwnerId, bankQuestionId, position,
+        prompt: `پرسش آزمون دنا ${position + 1} چیست؟`,
+        option0: "پاسخ درست", option1: "گزینه دوم", option2: "گزینه سوم",
+        option3: "گزینه چهارم", correctOption: 0, points: 1,
+      }),
+    ));
     await db.insert(privateMediaAssets).values(assetIds.map((id, index) => ({
       id, courseId, title: `درس ${index + 1}`, objectKey: `${courseId}/${id}.mp4`,
     })));
@@ -147,6 +167,8 @@ test.describe("student learning assessment lifecycle", () => {
     ));
     await db.delete(assessmentExams).where(inArray(assessmentExams.id,
       [denaExamId, instituteExamId]));
+    await db.delete(assessmentQuestionBankQuestions)
+      .where(inArray(assessmentQuestionBankQuestions.id, denaExamQuestionIds));
     await db.delete(assessmentQuestionBanks)
       .where(eq(assessmentQuestionBanks.id, instituteBankId));
     await db.delete(studentLearningAssessmentLessonReviews)
@@ -351,6 +373,59 @@ test.describe("student learning assessment lifecycle", () => {
     expect(html).toContain("آزمون مؤسسه");
     expect(html).toContain("/student/assessments");
     await student.dispose();
+  });
+
+  test("exam attempts serialize starts, protect answer keys, and replay final results", async () => {
+    const student = await client("student");
+    const other = await client("other");
+    const institute = await client("institute");
+    const startPath = `/api/student/exams/${denaExamId}/attempts`;
+    expect((await post(institute, startPath, {})).status()).toBe(404);
+
+    const starts = await Promise.all([
+      post(student, startPath, {}), post(student, startPath, {}),
+    ]);
+    expect(starts.map((response) => response.status())).toEqual([201, 201]);
+    const startResults = await Promise.all(starts.map((response) => response.json()));
+    expect(new Set(startResults.map((result) => result.attemptId)).size).toBe(1);
+    const attemptId = startResults[0].attemptId as string;
+    const attemptPath = `/api/student/exams/${denaExamId}/attempts/${attemptId}`;
+    const attemptResponse = await student.get(attemptPath);
+    expect(attemptResponse.status()).toBe(200);
+    const attempt = await attemptResponse.json();
+    expect(attempt.questions).toHaveLength(2);
+    expect(JSON.stringify(attempt)).not.toContain("correctOption");
+    expect(JSON.stringify(attempt)).not.toContain('"correct"');
+    expect((await other.get(attemptPath)).status()).toBe(404);
+
+    const saved = await student.patch(`${attemptPath}/answers`, {
+      data: { answers: attempt.questions.map((question: { id: string }, index: number) => ({
+        questionId: question.id, selectedOption: index === 0 ? 0 : 2,
+      })) },
+      headers: { Origin: "http://localhost:3000" },
+    });
+    expect(saved.status()).toBe(200);
+    expect(await saved.json()).toEqual({ saved: 2 });
+
+    const submitted = await post(student, attemptPath, {});
+    expect(submitted.status()).toBe(200);
+    const result = await submitted.json();
+    expect(result).toMatchObject({
+      id: attemptId, status: "submitted", correctCount: 1,
+      totalPoints: 2, earnedPoints: 1,
+    });
+    const replay = await post(student, attemptPath, {});
+    expect(replay.status()).toBe(200);
+    expect(await replay.json()).toMatchObject({
+      id: attemptId, status: result.status, correctCount: result.correctCount,
+      totalPoints: result.totalPoints, earnedPoints: result.earnedPoints,
+    });
+    const nextStart = await post(student, startPath, {});
+    expect(nextStart.status()).toBe(409);
+    expect(await nextStart.json()).toMatchObject({ error: "attempt_limit" });
+    await student.dispose();
+    await other.dispose();
+    await institute.dispose();
   });
 
   test("independent educator assessment lifecycle serializes enrollment with affiliation revocation", async () => {
