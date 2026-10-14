@@ -50,7 +50,7 @@ export async function createStudentServiceOrder(
   return getDb().transaction(async (tx) => {
     const [activeStudent] = await tx.select({ id: memberships.id }).from(memberships)
       .where(and(eq(memberships.userId, studentUserId), eq(memberships.role, "student"),
-        eq(memberships.status, "active"))).limit(1).for("share");
+        eq(memberships.status, "active"))).limit(1).for("update");
     if (!activeStudent) throw new StudentServiceOrderError("student_unavailable");
 
     const [existingByKey] = await tx.select({ id: instituteServiceOrders.id,

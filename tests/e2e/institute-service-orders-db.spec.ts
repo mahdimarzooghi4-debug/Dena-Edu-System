@@ -22,7 +22,10 @@ test.describe("institute service order guardian consent", () => {
   const instituteId = randomUUID();
   const otherInstituteId = randomUUID();
   const serviceId = randomUUID();
+  const noConsentServiceId = randomUUID();
   const orderId = randomUUID();
+  const orderIdempotencyKey = randomUUID();
+  let concurrentlyCreatedOrderId: string | undefined;
   const consentPath = `/api/institute/service-orders/${orderId}/consent`;
 
   async function client(as?: keyof typeof tokens): Promise<APIRequestContext> {
@@ -63,6 +66,14 @@ test.describe("institute service order guardian consent", () => {
       guardianConsentRequired: true, cancellationPolicy: "درخواست پرداخت‌نشده قابل لغو است.",
       status: "active",
     });
+    await db.insert(instituteServiceCatalog).values({
+      id: noConsentServiceId, instituteId, createdByUserId: users.institute,
+      title: "خدمت آزمایشی بدون سهمیه", category: "support",
+      description: "برای آزمون درخواست تکراری و لغو قبل از پرداخت.",
+      priceToman: 50_000, includedMinutes: null, validityDays: null,
+      guardianConsentRequired: false, cancellationPolicy: "درخواست پرداخت‌نشده قابل لغو است.",
+      status: "active",
+    });
     await db.insert(instituteServiceOrders).values({
       id: orderId, idempotencyKey: randomUUID(), studentUserId: users.student,
       serviceId, instituteId, serviceTitleSnapshot: "مشاورهٔ آزمایشی",
@@ -78,7 +89,18 @@ test.describe("institute service order guardian consent", () => {
       eq(auditLogs.entityType, "SERVICE_ORDER"), eq(auditLogs.entityId, orderId),
     ));
     await db.delete(instituteServiceOrders).where(eq(instituteServiceOrders.id, orderId));
-    await db.delete(instituteServiceCatalog).where(eq(instituteServiceCatalog.id, serviceId));
+    if (concurrentlyCreatedOrderId) {
+      await db.delete(auditLogs).where(and(
+        eq(auditLogs.entityType, "SERVICE_ORDER"),
+        eq(auditLogs.entityId, concurrentlyCreatedOrderId),
+      ));
+      await db.delete(instituteServiceOrders).where(
+        eq(instituteServiceOrders.id, concurrentlyCreatedOrderId),
+      );
+    }
+    await db.delete(instituteServiceCatalog).where(inArray(
+      instituteServiceCatalog.id, [serviceId, noConsentServiceId],
+    ));
     await db.delete(session).where(inArray(session.userId, Object.values(users)));
     await db.delete(memberships).where(inArray(memberships.userId, Object.values(users)));
     await db.delete(verifiedEntities).where(inArray(
@@ -167,5 +189,38 @@ test.describe("institute service order guardian consent", () => {
     expect(await studentHistory.text()).toContain("هیچ مبلغی دریافت نشده است.");
     await studentAfter.dispose();
     await institute.dispose();
+  });
+
+  test("serializes concurrent idempotent requests and allows unpaid cancellation", async () => {
+    const student = await client("student");
+    const path = `/api/student/services/${noConsentServiceId}/orders`;
+    const [first, retry] = await Promise.all([
+      post(student, path, { idempotencyKey: orderIdempotencyKey }),
+      post(student, path, { idempotencyKey: orderIdempotencyKey }),
+    ]);
+    expect([first.status(), retry.status()].sort()).toEqual([200, 201]);
+    const firstBody = await first.json();
+    const retryBody = await retry.json();
+    expect(firstBody.order.id).toBe(retryBody.order.id);
+    const createdOrderId: string = firstBody.order.id;
+    concurrentlyCreatedOrderId = createdOrderId;
+    expect([firstBody.order.duplicate, retryBody.order.duplicate].sort()).toEqual([false, true]);
+    expect(firstBody.order.status).toBe("awaiting_payment");
+
+    const cancelPath = `/api/student/services/orders/${createdOrderId}/cancel`;
+    const cancelled = await post(student, cancelPath, {});
+    expect(cancelled.status()).toBe(200);
+    expect(await cancelled.json()).toMatchObject({
+      order: { id: createdOrderId, status: "cancelled", duplicate: false },
+    });
+    const replayedCancel = await post(student, cancelPath, {});
+    expect(await replayedCancel.json()).toMatchObject({
+      order: { id: createdOrderId, status: "cancelled", duplicate: true },
+    });
+    const [storedOrder] = await db.select().from(instituteServiceOrders)
+      .where(eq(instituteServiceOrders.id, createdOrderId));
+    expect(storedOrder?.paidAt).toBeNull();
+    expect(storedOrder?.status).toBe("cancelled");
+    await student.dispose();
   });
 });
