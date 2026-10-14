@@ -393,6 +393,9 @@ test.describe("student learning assessment lifecycle", () => {
       const path = `/api/independent-educator/courses/${independentCourseId}/assessments`;
       expect((await educator.get(path)).status()).toBe(200);
       expect((await other.get(path)).status()).toBe(404);
+      expect((await post(other,
+        `/api/independent-educator/courses/${independentCourseId}/publication`,
+        { action: "publish" })).status()).toBe(404);
       const created = await post(educator, path, {
         title: "ارزیابی همکار مستقل", instructions: "به پرسش پاسخ دهید.",
         questionCount: 1, requiredCorrectCount: 1,
@@ -420,6 +423,23 @@ test.describe("student learning assessment lifecycle", () => {
       );
       expect(page.status()).toBe(200);
       expect(await page.text()).toContain("ارزیابی همکار مستقل");
+      const publication = await post(educator,
+        `/api/independent-educator/courses/${independentCourseId}/publication`,
+        { action: "publish" });
+      expect(publication.status()).toBe(200);
+      expect(await publication.json()).toMatchObject({
+        courseId: independentCourseId, publicationStatus: "published", replayed: false,
+      });
+      const catalog = await other.get(
+        `/api/student/courses?q=${encodeURIComponent("دورهٔ همکار مستقل")}`,
+      );
+      expect(catalog.status()).toBe(200);
+      expect((await catalog.json()).courses).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          courseId: independentCourseId, title: "دورهٔ همکار مستقل",
+          ownerType: "independent_educator",
+        }),
+      ]));
       await educator.dispose();
       await instituteClient.dispose();
       await other.dispose();
