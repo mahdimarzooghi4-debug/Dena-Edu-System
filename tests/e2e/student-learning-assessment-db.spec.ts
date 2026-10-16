@@ -1303,6 +1303,11 @@ test.describe("student learning assessment lifecycle", () => {
       eq(studentLearningAssessmentAttempts.studentUserId, users.other),
     ));
     expect(afterRetry).toEqual(afterRace);
+    expect((await other.get(listPath)).status()).toBe(404);
+    expect((await other.get(`${basePath}/attempts/${attemptId}`)).status()).toBe(404);
+    const growthAfterCancellation = await other.get("/student/growth");
+    expect(growthAfterCancellation.status()).toBe(200);
+    expect(await growthAfterCancellation.text()).not.toContain("ارزیابی فصل");
     await other.dispose();
   });
 });
