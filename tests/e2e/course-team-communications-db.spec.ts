@@ -406,9 +406,15 @@ test.describe("course team communication and problem-solving stay course-scoped"
   });
 
   test("student can message the course supporter through the browser", async ({ page }) => {
+    const cookie = await serializeSignedCookie(
+      "better-auth.session_token", tokens.student,
+      process.env.BETTER_AUTH_SECRET!,
+    );
+    const cookiePair = cookie.split(";")[0];
+    const cookieSeparator = cookiePair.indexOf("=");
     await page.context().addCookies([{
-      name: "better-auth.session_token",
-      value: await signed("student"),
+      name: cookiePair.slice(0, cookieSeparator),
+      value: cookiePair.slice(cookieSeparator + 1),
       url: "http://localhost:3000",
       httpOnly: true,
       sameSite: "Lax",
