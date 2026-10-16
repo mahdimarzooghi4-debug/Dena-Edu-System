@@ -658,8 +658,8 @@ test.describe("student learning assessment lifecycle", () => {
       await expect(page.getByRole("heading", { name: "ساخت ارزیابی تازه" })).toBeVisible();
       await page.getByLabel("عنوان ارزیابی").fill(title);
       await page.getByLabel("دستورالعمل").fill("پرسش را با توجه به محتوای دوره پاسخ دهید.");
-      await page.getByLabel("تعداد پرسش در هر تلاش").fill("1");
-      await page.getByLabel("حداقل پاسخ درست برای تکمیل").fill("1");
+      await page.getByLabel("تعداد پرسش در هر تلاش").fill("2");
+      await page.getByLabel("حداقل پاسخ درست برای تکمیل").fill("2");
       await page.getByLabel("متن پرسش").fill("کدام گزینه محتوای این دوره را بیان می‌کند؟");
       await page.getByLabel("گزینهٔ ۱").fill("پاسخ درست دوره");
       await page.getByLabel("گزینهٔ ۲").fill("گزینهٔ جایگزین دوم");
@@ -667,6 +667,24 @@ test.describe("student learning assessment lifecycle", () => {
       await page.getByLabel("گزینهٔ ۴").fill("گزینهٔ جایگزین چهارم");
       await page.getByLabel("گزینهٔ 1 پاسخ درست است").check();
       await page.getByLabel("ویدئوی درس برای بازبینی در صورت پاسخ نادرست").selectOption(uiAssetId);
+      await page.getByRole("button", { name: "افزودن سؤال" }).click();
+      await page.getByRole("button", { name: "افزودن سؤال" }).click();
+      const secondQuestion = page.locator("form fieldset").nth(1);
+      await secondQuestion.getByLabel("متن پرسش").fill("کدام گزینه مفهوم درس دوم را نشان می‌دهد؟");
+      await secondQuestion.getByLabel("گزینهٔ ۱").fill("پاسخ درست پرسش دوم");
+      await secondQuestion.getByLabel("گزینهٔ ۲").fill("گزینهٔ دوم پرسش دوم");
+      await secondQuestion.getByLabel("گزینهٔ ۳").fill("گزینهٔ سوم پرسش دوم");
+      await secondQuestion.getByLabel("گزینهٔ ۴").fill("گزینهٔ چهارم پرسش دوم");
+      await secondQuestion.getByLabel("گزینهٔ 1 پاسخ درست است").check();
+      await secondQuestion.getByLabel("ویدئوی درس برای بازبینی در صورت پاسخ نادرست").selectOption(uiAssetId);
+      const thirdQuestion = page.locator("form fieldset").nth(2);
+      await thirdQuestion.getByLabel("متن پرسش").fill("کدام گزینه نتیجهٔ درس سوم را بیان می‌کند؟");
+      await thirdQuestion.getByLabel("گزینهٔ ۱").fill("پاسخ درست پرسش سوم");
+      await thirdQuestion.getByLabel("گزینهٔ ۲").fill("گزینهٔ دوم پرسش سوم");
+      await thirdQuestion.getByLabel("گزینهٔ ۳").fill("گزینهٔ سوم پرسش سوم");
+      await thirdQuestion.getByLabel("گزینهٔ ۴").fill("گزینهٔ چهارم پرسش سوم");
+      await thirdQuestion.getByLabel("گزینهٔ 1 پاسخ درست است").check();
+      await thirdQuestion.getByLabel("ویدئوی درس برای بازبینی در صورت پاسخ نادرست").selectOption(uiAssetId);
       const createResponse = page.waitForResponse((response) =>
         response.url().endsWith(`/api/provider/courses/${uiCourseId}/assessments`) &&
         response.request().method() === "POST",
@@ -738,14 +756,14 @@ test.describe("student learning assessment lifecycle", () => {
       await expect(studentCard.getByRole("button", { name: "شروع / تلاش تازه" })).toBeVisible();
       await expect(studentCard).not.toContainText("پاسخ درست دوره");
 
-      const [authoredQuestion] = await db.select({
+      const authoredQuestions = await db.select({
         id: courseLearningAssessmentQuestions.id,
         prompt: courseLearningAssessmentQuestions.prompt,
         correctOption: courseLearningAssessmentQuestions.correctOption,
       }).from(courseLearningAssessmentQuestions).where(
         eq(courseLearningAssessmentQuestions.assessmentId, assessmentId),
       );
-      expect(authoredQuestion).toBeDefined();
+      expect(authoredQuestions).toHaveLength(3);
       const startedResponse = page.waitForResponse((response) =>
         response.url().endsWith(`/api/student/courses/${uiCourseId}/assessments/${assessmentId}/attempts`) &&
         response.request().method() === "POST",
@@ -761,13 +779,22 @@ test.describe("student learning assessment lifecycle", () => {
       const attemptDetails = await detailsResponse;
       expect(attemptDetails.status()).toBe(200);
       const attemptBody = await attemptDetails.json();
-      expect(attemptBody.attempt.questions).toHaveLength(1);
-      expect(attemptBody.attempt.questions[0].prompt).toBe(authoredQuestion!.prompt);
+      expect(attemptBody.attempt.questions).toHaveLength(2);
+      const selectedIds = attemptBody.attempt.questions.map((question: { questionId: string }) =>
+        question.questionId,
+      );
+      expect(new Set(selectedIds).size).toBe(2);
+      const authoredById = new Map(authoredQuestions.map((question) => [question.id, question]));
+      for (const question of attemptBody.attempt.questions as Array<{
+        questionId: string; prompt: string;
+      }>) {
+        const authored = authoredById.get(question.questionId);
+        expect(authored).toBeDefined();
+        expect(question.prompt).toBe(authored!.prompt);
+        const questionField = studentCard.locator("fieldset").filter({ hasText: question.prompt });
+        await questionField.getByRole("radio").nth(authored!.correctOption).check();
+      }
       expect(JSON.stringify(attemptBody)).not.toContain("correctOption");
-      const questionField = studentCard.locator("fieldset").filter({
-        hasText: authoredQuestion!.prompt,
-      });
-      await questionField.getByRole("radio").nth(authoredQuestion!.correctOption).check();
       const submissionResponse = page.waitForResponse((response) =>
         response.url().endsWith(`/api/student/courses/${uiCourseId}/assessments/${assessmentId}/attempts/${attemptId}`) &&
         response.request().method() === "POST",
@@ -775,7 +802,7 @@ test.describe("student learning assessment lifecycle", () => {
       await studentCard.getByRole("button", { name: "ثبت نهایی پاسخ‌ها" }).click();
       expect((await submissionResponse).status()).toBe(201);
       await expect(studentCard.getByText("ارزیابی تکمیل شد.")).toBeVisible();
-      await expect(studentCard.getByText("1 از 1 پاسخ درست.")).toBeVisible();
+      await expect(studentCard.getByText("2 از 2 پاسخ درست.")).toBeVisible();
       await expect(studentCard).not.toContainText("پاسخ درست دوره");
       await page.reload();
       const persistedCard = page.locator("article").filter({ hasText: title });
@@ -787,12 +814,12 @@ test.describe("student learning assessment lifecycle", () => {
       const growthSeries = page.locator('section[aria-label="روندهای ارزیابی"]')
         .filter({ hasText: title });
       await expect(growthSeries.getByRole("heading", { name: title })).toBeVisible();
-      await expect(growthSeries.getByText("۱ از ۱ پاسخ درست · ۱۰۰٪")).toBeVisible();
+      await expect(growthSeries.getByText("۲ از ۲ پاسخ درست · ۱۰۰٪")).toBeVisible();
       await expect(growthSeries.getByText("ارزیابی تکمیل شد")).toBeVisible();
       await expect(page.locator("body")).not.toContainText("پاسخ درست دوره");
       await page.reload();
       await expect(page.locator('section[aria-label="روندهای ارزیابی"]')
-        .filter({ hasText: title }).getByText("۱ از ۱ پاسخ درست · ۱۰۰٪")).toBeVisible();
+        .filter({ hasText: title }).getByText("۲ از ۲ پاسخ درست · ۱۰۰٪")).toBeVisible();
 
       const nonEnrolledStudent = await client("browserStudent");
       try {
