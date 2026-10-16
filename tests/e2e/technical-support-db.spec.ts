@@ -278,7 +278,7 @@ test.describe("shared technical support tickets", () => {
     await page.getByRole("button", { name: "ذخیرهٔ وضعیت و اولویت" }).click();
     await expect(page.getByRole("status")).toHaveText("وضعیت و اولویت ذخیره شد.");
     const operatorReply = "درخواست شما بررسی شد؛ لطفاً دوباره تلاش کنید.";
-    await page.getByLabel("پاسخ").fill(operatorReply);
+    await page.getByRole("textbox", { name: "پاسخ" }).fill(operatorReply);
     await page.getByRole("button", { name: "ارسال پیام" }).click();
     await expect(page.getByText(operatorReply)).toBeVisible();
 
