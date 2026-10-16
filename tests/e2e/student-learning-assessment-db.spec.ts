@@ -425,7 +425,7 @@ test.describe("student learning assessment lifecycle", () => {
     await expect(page.getByText("زمان باقی‌مانده:")).toBeVisible();
     await expect(page.getByText("پرسش آزمون رابط کاربری 1 چیست؟")).toBeVisible();
 
-    await page.getByRole("radio").first().check();
+    await page.getByRole("radio").first().click();
     await expect(page.getByText("1 از 2 پاسخ ذخیره شد")).toBeVisible();
     await page.getByRole("button", { name: "ثبت نهایی پاسخ‌ها" }).click();
     await expect(page.getByRole("heading", { name: "نتیجهٔ شما" })).toBeVisible();
