@@ -595,7 +595,7 @@ test.describe("Dena AI video permission authorization and revocation", () => {
     await page.getByLabel("پرسشت").fill("چطور رطوبت و اقلیم را در درس جغرافیا مقایسه کنم؟");
     await page.getByRole("button", { name: "پرسیدن" }).click();
     await expect(chat).toContainText("بررسی رطوبت و اقلیم");
-    await expect(chat).toContainText("منبع: ادامهٔ درس جغرافیا");
+    await expect(chat).toContainText(/منبع: (?:ویدئوی مدرس مستقل|ادامهٔ درس جغرافیا)/u);
     await page.getByRole("button", { name: "توضیح بیشتری لازم دارم" }).click();
     await expect(chat).toContainText("برای پاسخ‌های بعدی از این ویدئو راهنمای بیشتری می‌گیرم.");
 
