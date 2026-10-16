@@ -282,8 +282,13 @@ test.describe("institute service order guardian consent", () => {
     await orderCard.getByRole("button", { name: "زمان‌بندی جلسه" }).click();
     const scheduleResponse = await scheduleResponsePromise;
     expect(scheduleResponse.status()).toBe(201);
-    const browserCallId = (await scheduleResponse.json()).call.id as string;
-    createdServiceCallIds.push(browserCallId);
+    const [browserCall] = await db.select({ id: instituteServiceCalls.id })
+      .from(instituteServiceCalls).where(and(
+        eq(instituteServiceCalls.serviceOrderId, orderId),
+        eq(instituteServiceCalls.status, "scheduled"),
+      )).limit(1);
+    if (!browserCall) throw new Error("UI did not create a scheduled service call");
+    createdServiceCallIds.push(browserCall.id);
     await expect(orderCard.getByText("زمان‌بندی‌شده")).toBeVisible();
     await orderCard.getByRole("button", { name: "لغو جلسه" }).last().click();
     await expect(orderCard.getByText("لغوشده")).toBeVisible();
