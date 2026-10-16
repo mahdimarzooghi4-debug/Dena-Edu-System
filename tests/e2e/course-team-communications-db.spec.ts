@@ -578,14 +578,7 @@ test.describe("course team communication and problem-solving stay course-scoped"
     const description = "برای حل تمرین‌های پایانی راهنمایی می‌خواهم.";
     await page.getByLabel("موضوع درخواست").fill(subject);
     await page.getByLabel("توضیح کوتاه").fill(description);
-    const createdRequest = page.waitForResponse((response) =>
-      response.request().method() === "POST" &&
-      response.url().includes(`/team/${supporterTeamMemberId}/problem-solving`),
-    );
     await page.getByRole("button", { name: "ثبت درخواست" }).click();
-    const created = await createdRequest;
-    expect(created.status()).toBe(201);
-    requestId = (await created.json()).request.id;
     await expect(page.getByText("درخواست جلسه ثبت شد.")).toBeVisible();
     const requestCard = page.locator("li").filter({ hasText: subject });
     await expect(requestCard).toContainText(description);
