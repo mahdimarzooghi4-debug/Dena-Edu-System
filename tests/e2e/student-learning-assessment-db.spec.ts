@@ -615,12 +615,13 @@ test.describe("student learning assessment lifecycle", () => {
     await other.dispose();
   });
 
-  test("independent educator assessment lifecycle serializes enrollment with affiliation revocation", async () => {
+  test("independent educator assessment lifecycle serializes enrollment with affiliation revocation", async ({ page }) => {
     const independentCourseId = randomUUID();
     const profileId = randomUUID();
     const affiliationId = randomUUID();
     const assetId = randomUUID();
     let assessmentId: string | null = null;
+    let browserAssessmentId: string | null = null;
     await db.insert(independentEducatorProfiles).values({
       id: profileId, userId: users.student, displayName: "همکار آزمون",
     });
@@ -687,6 +688,62 @@ test.describe("student learning assessment lifecycle", () => {
         });
       expect(decision.status()).toBe(200);
       expect(await decision.json()).toMatchObject({ reviewStatus: "approved" });
+
+      const educatorCookie = await serializeSignedCookie(
+        "better-auth.session_token", tokens.student, process.env.BETTER_AUTH_SECRET!,
+      );
+      await page.context().addCookies([{
+        name: "better-auth.session_token",
+        value: educatorCookie.split(";")[0].split("=").slice(1).join("="),
+        domain: "localhost", path: "/", httpOnly: true, secure: false, sameSite: "Lax",
+      }]);
+      await page.goto(`http://localhost:3000/account/independent-educator/courses/${independentCourseId}/assessments`);
+      await expect(page.getByRole("heading", { name: "ساخت ارزیابی تازه" })).toBeVisible();
+      await page.getByLabel("عنوان ارزیابی").fill("ارزیابی مرورگر همکار مستقل");
+      await page.getByLabel("دستورالعمل").fill("پرسش را با توجه به محتوای درس پاسخ دهید.");
+      await page.getByLabel("تعداد پرسش در هر تلاش").fill("1");
+      await page.getByLabel("حداقل پاسخ درست برای تکمیل").fill("1");
+      await page.getByLabel("متن پرسش").fill("کدام گزینه محتوای درس را درست بیان می‌کند؟");
+      await page.getByLabel("گزینهٔ ۱").fill("پاسخ معتبر درس");
+      await page.getByLabel("گزینهٔ ۲").fill("پاسخ جایگزین دوم");
+      await page.getByLabel("گزینهٔ ۳").fill("پاسخ جایگزین سوم");
+      await page.getByLabel("گزینهٔ ۴").fill("پاسخ جایگزین چهارم");
+      await page.getByLabel("گزینهٔ 1 پاسخ درست است").check();
+      await page.getByLabel("ویدئوی درس برای بازبینی در صورت پاسخ نادرست").selectOption(assetId);
+      const browserCreate = page.waitForResponse((response) =>
+        response.url().endsWith(`/api/independent-educator/courses/${independentCourseId}/assessments`) &&
+        response.request().method() === "POST",
+      );
+      await page.getByRole("button", { name: "ثبت و ارسال برای بازبینی مؤسسه" }).click();
+      const browserCreateResponse = await browserCreate;
+      expect(browserCreateResponse.status()).toBe(201);
+      browserAssessmentId = (await browserCreateResponse.json()).assessmentId as string;
+      await expect(page.getByText("ارزیابی مرورگر همکار مستقل")).toBeVisible();
+      await expect(page.getByText("در انتظار بازبینی مؤسسه")).toBeVisible();
+
+      await page.context().clearCookies();
+      const browserInstituteCookie = await serializeSignedCookie(
+        "better-auth.session_token", tokens.institute, process.env.BETTER_AUTH_SECRET!,
+      );
+      await page.context().addCookies([{
+        name: "better-auth.session_token",
+        value: browserInstituteCookie.split(";")[0].split("=").slice(1).join("="),
+        domain: "localhost", path: "/", httpOnly: true, secure: false, sameSite: "Lax",
+      }]);
+      await page.goto(`http://localhost:3000/institute/courses/${independentCourseId}/assessments`);
+      const reviewCard = page.locator(`#assessment-${browserAssessmentId}`);
+      await expect(reviewCard.getByRole("heading", { name: "ارزیابی مرورگر همکار مستقل" })).toBeVisible();
+      await expect(reviewCard.getByText("پاسخ معتبر درس — پاسخ درست اعلام‌شده")).toBeVisible();
+      await reviewCard.getByLabel("دلیل تصمیم مستقل مؤسسه (حداقل ۱۵ نویسه)")
+        .fill("متن و کلید پاسخ با محتوای درس بررسی شد.");
+      const browserDecision = page.waitForResponse((response) =>
+        response.url().endsWith(`/api/institute/courses/${independentCourseId}/assessments/${browserAssessmentId}`) &&
+        response.request().method() === "POST",
+      );
+      await reviewCard.getByRole("button", { name: "تأیید ارزیابی" }).click();
+      expect((await browserDecision).status()).toBe(200);
+      await expect(reviewCard.getByText("تأییدشده")).toBeVisible();
+
       const practicePath = `/api/independent-educator/courses/${independentCourseId}/practice`;
       const practiceCreated = await post(educator, practicePath, {
         learningConceptId: "math.percent.v1",
@@ -716,11 +773,11 @@ test.describe("student learning assessment lifecycle", () => {
       );
       expect(practicePage.status()).toBe(200);
       expect(await practicePage.text()).toContain("کدام گزینه درصد یک‌چهارم را نشان می‌دهد؟");
-      const page = await educator.get(
+      const educatorAssessmentPage = await educator.get(
         `/account/independent-educator/courses/${independentCourseId}/assessments`,
       );
-      expect(page.status()).toBe(200);
-      expect(await page.text()).toContain("ارزیابی همکار مستقل");
+      expect(educatorAssessmentPage.status()).toBe(200);
+      expect(await educatorAssessmentPage.text()).toContain("ارزیابی همکار مستقل");
       const publication = await post(educator,
         `/api/independent-educator/courses/${independentCourseId}/publication`,
         { action: "publish" });
@@ -765,14 +822,13 @@ test.describe("student learning assessment lifecycle", () => {
       await other.dispose();
       await selfReviewClient.dispose();
     } finally {
-      if (assessmentId) {
-        await db.delete(auditLogs).where(and(
-          eq(auditLogs.entityType, "PRACTICE"), eq(auditLogs.entityId, assessmentId),
-        ));
+      for (const cleanupAssessmentId of [assessmentId, browserAssessmentId]) {
+        if (!cleanupAssessmentId) continue;
+        await db.delete(auditLogs).where(eq(auditLogs.entityId, cleanupAssessmentId));
         await db.delete(courseLearningAssessmentQuestions)
-          .where(eq(courseLearningAssessmentQuestions.assessmentId, assessmentId));
+          .where(eq(courseLearningAssessmentQuestions.assessmentId, cleanupAssessmentId));
         await db.delete(courseLearningAssessments)
-          .where(eq(courseLearningAssessments.id, assessmentId));
+          .where(eq(courseLearningAssessments.id, cleanupAssessmentId));
       }
       await db.delete(privateMediaAssets).where(eq(privateMediaAssets.id, assetId));
       await db.delete(auditLogs).where(and(
