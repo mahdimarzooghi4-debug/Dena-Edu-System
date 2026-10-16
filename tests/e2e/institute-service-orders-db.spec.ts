@@ -10,6 +10,7 @@ import {
 } from "../../src/db/schema";
 import { captureInstituteServiceOrderPayment } from "../../src/server/finance/service-order-payments";
 import { endInstituteServiceCall, startInstituteServiceCall } from "../../src/server/institute/service-calls";
+import { recordInstituteServiceCallUsage } from "../../src/server/institute/service-call-usage";
 
 test.describe.configure({ mode: "serial" });
 
@@ -29,7 +30,7 @@ test.describe("institute service order guardian consent", () => {
   const orderId = randomUUID();
   const orderIdempotencyKey = randomUUID();
   let concurrentlyCreatedOrderId: string | undefined;
-  let createdServiceCallId: string | undefined;
+  const createdServiceCallIds: string[] = [];
   const consentPath = `/api/institute/service-orders/${orderId}/consent`;
 
   async function client(as?: keyof typeof tokens): Promise<APIRequestContext> {
@@ -89,11 +90,11 @@ test.describe("institute service order guardian consent", () => {
   });
 
   test.afterAll(async () => {
-    if (createdServiceCallId) {
+    if (createdServiceCallIds.length) {
       await db.delete(auditLogs).where(and(
-        eq(auditLogs.entityType, "SERVICE_CALL"), eq(auditLogs.entityId, createdServiceCallId),
+        eq(auditLogs.entityType, "SERVICE_CALL"), inArray(auditLogs.entityId, createdServiceCallIds),
       ));
-      await db.delete(instituteServiceCalls).where(eq(instituteServiceCalls.id, createdServiceCallId));
+      await db.delete(instituteServiceCalls).where(inArray(instituteServiceCalls.id, createdServiceCallIds));
     }
     await db.delete(serviceTimeLedger).where(eq(serviceTimeLedger.serviceOrderId, orderId));
     await db.delete(auditLogs).where(and(
@@ -282,7 +283,7 @@ test.describe("institute service order guardian consent", () => {
     expect(created.status()).toBe(201);
     const createdBody = await created.json();
     const serviceCallId = createdBody.call.id as string;
-    createdServiceCallId = serviceCallId;
+    createdServiceCallIds.push(serviceCallId);
     expect(createdBody.call).toMatchObject({ status: "scheduled", duplicate: false });
 
     const replay = await post(institute, path, { scheduledAt, idempotencyKey });
@@ -308,6 +309,10 @@ test.describe("institute service order guardian consent", () => {
     expect(await startInstituteServiceCall(
       users.institute, serviceCallId, new Date(Date.parse(scheduledAt) + 2_000),
     )).toMatchObject({ status: "started", duplicate: true });
+    await expect(recordInstituteServiceCallUsage({ providerId: "livekit", event: {
+      callId: serviceCallId, eventId: `usage-event-${randomUUID()}`,
+      state: "ended", billableMinutes: 17,
+    } })).rejects.toMatchObject({ kind: "call_not_ended" });
     expect(await endInstituteServiceCall(
       users.institute, serviceCallId, new Date(Date.parse(scheduledAt) + 3_000),
     )).toMatchObject({ status: "ended", duplicate: false });
@@ -317,10 +322,63 @@ test.describe("institute service order guardian consent", () => {
     expect(await db.select().from(auditLogs).where(and(
       eq(auditLogs.entityType, "SERVICE_CALL"), eq(auditLogs.entityId, serviceCallId),
     ))).toHaveLength(3);
+    const usageEventId = `usage-event-${randomUUID()}`;
+    const usageInput = { providerId: "livekit", event: {
+      callId: serviceCallId, eventId: usageEventId, state: "ended" as const, billableMinutes: 17,
+    } };
+    const [usageFirst, usageReplay] = await Promise.all([
+      recordInstituteServiceCallUsage(usageInput),
+      recordInstituteServiceCallUsage(usageInput),
+    ]);
+    expect([usageFirst.duplicate, usageReplay.duplicate].sort()).toEqual([false, true]);
+    expect(usageFirst).toMatchObject({
+      serviceOrderId: orderId, callId: serviceCallId,
+      consumedMinutes: 17, remainingMinutes: 43,
+    });
+    expect(await db.select().from(serviceTimeLedger).where(and(
+      eq(serviceTimeLedger.serviceOrderId, orderId),
+      eq(serviceTimeLedger.serviceSessionId, serviceCallId),
+      eq(serviceTimeLedger.eventType, "consume"),
+    ))).toHaveLength(1);
+    await expect(recordInstituteServiceCallUsage({
+      providerId: "livekit",
+      event: { ...usageInput.event, billableMinutes: 18 },
+    })).rejects.toMatchObject({ kind: "event_reused" });
+    await expect(recordInstituteServiceCallUsage({
+      providerId: "livekit",
+      event: { ...usageInput.event, eventId: `other-event-${randomUUID()}` },
+    })).rejects.toMatchObject({ kind: "event_reused" });
+
+    const secondSchedule = new Date(Date.now() + 120_000).toISOString();
+    const secondCreated = await post(institute, path, {
+      scheduledAt: secondSchedule, idempotencyKey: randomUUID(),
+    });
+    expect(secondCreated.status()).toBe(201);
+    const secondCallId = (await secondCreated.json()).call.id as string;
+    createdServiceCallIds.push(secondCallId);
+    await startInstituteServiceCall(
+      users.institute, secondCallId, new Date(Date.parse(secondSchedule) + 1_000),
+    );
+    await endInstituteServiceCall(
+      users.institute, secondCallId, new Date(Date.parse(secondSchedule) + 3_000),
+    );
+    await expect(recordInstituteServiceCallUsage({
+      providerId: "livekit",
+      event: {
+        callId: secondCallId, eventId: `overage-event-${randomUUID()}`,
+        state: "ended", billableMinutes: 44,
+      },
+    })).rejects.toMatchObject({ kind: "quota_exceeded" });
     const studentHistory = await client("student");
-    expect(await (await studentHistory.get("/student/services/orders")).text()).toContain("زمان جلسه");
+    const studentHistoryBody = await (await studentHistory.get("/student/services/orders")).text();
+    expect(studentHistoryBody).toContain("زمان جلسه");
+    expect(studentHistoryBody).toContain("مصرف ثبت‌شده");
+    expect(studentHistoryBody).toContain("۴۳ دقیقه");
     await studentHistory.dispose();
-    expect(await (await institute.get("/institute/service-orders")).text()).toContain("جلسه‌های خدمت");
+    const institutePage = await (await institute.get("/institute/service-orders")).text();
+    expect(institutePage).toContain("جلسه‌های خدمت");
+    expect(institutePage).toContain("مصرف ثبت‌شده");
+    expect(institutePage).toContain("۴۳ دقیقه");
     await institute.dispose();
   });
 

@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "dena_service_time_ledger_consume_session_uidx" ON "dena_service_time_ledger" USING btree ("service_session_id") WHERE "dena_service_time_ledger"."event_type" = 'consume';

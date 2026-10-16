@@ -2173,6 +2173,8 @@ export const serviceTimeLedger = pgTable("dena_service_time_ledger", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
   uniqueIndex("dena_service_time_ledger_event_key_uidx").on(table.eventKey),
+  uniqueIndex("dena_service_time_ledger_consume_session_uidx").on(table.serviceSessionId)
+    .where(sql`${table.eventType} = 'consume'`),
   index("dena_service_time_ledger_order_created_idx").on(table.serviceOrderId, table.createdAt),
   check("dena_service_time_ledger_event_key_ck", sql`event_key ~ '^[a-zA-Z0-9_.:-]{8,180}$'`),
   check("dena_service_time_ledger_minutes_ck", sql`minutes BETWEEN 1 AND 100000`),
