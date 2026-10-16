@@ -286,6 +286,6 @@ test.describe("shared technical support tickets", () => {
     await page.reload();
     await expect(page.getByRole("heading", { name: subject })).toBeVisible();
     await expect(page.getByText(operatorReply)).toBeVisible();
-    await expect(page.getByText(/وضعیت: منتظر پاسخ شما/)).toBeVisible();
+    await expect(page.getByText(/وضعیت: در حال رسیدگی/)).toBeVisible();
   });
 });
