@@ -590,6 +590,19 @@ test.describe("Dena AI video permission authorization and revocation", () => {
     await page.getByLabel("پرسشت").fill("یک موضوع ناشناخته دربارهٔ سیاره‌ای ساختگی");
     await page.getByRole("button", { name: "پرسیدن" }).click();
     await expect(chat).toContainText("برای این پرسش هنوز محتوای آموزشی آماده ندارم.");
+
+    await page.getByLabel("دوره").selectOption(educatorCourseId);
+    await page.getByLabel("پرسشت").fill("چطور رطوبت و اقلیم را در درس جغرافیا مقایسه کنم؟");
+    await page.getByRole("button", { name: "پرسیدن" }).click();
+    await expect(chat).toContainText("بررسی رطوبت و اقلیم");
+    await expect(chat).toContainText("منبع: ویدئوی مدرس مستقل");
+    await page.getByRole("button", { name: "توضیح بیشتری لازم دارم" }).click();
+    await expect(chat).toContainText("برای پاسخ‌های بعدی از این ویدئو راهنمای بیشتری می‌گیرم.");
+
+    await page.reload();
+    await expect(page.getByText("مباحثی که برایشان راهنمایی بیشتری خواستی:"))
+      .toBeVisible();
+    await expect(page.getByText("اقلیم و رطوبت")).toBeVisible();
   });
 
   test("withdrawn videos cannot be granted and provider-owned videos stay blocked", async () => {
