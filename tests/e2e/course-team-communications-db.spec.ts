@@ -578,7 +578,14 @@ test.describe("course team communication and problem-solving stay course-scoped"
     const description = "برای حل تمرین‌های پایانی راهنمایی می‌خواهم.";
     await page.getByLabel("موضوع درخواست").fill(subject);
     await page.getByLabel("توضیح کوتاه").fill(description);
+    const createdRequest = page.waitForResponse((response) =>
+      response.request().method() === "POST" &&
+      response.url().includes(`/team/${supporterTeamMemberId}/problem-solving`),
+    );
     await page.getByRole("button", { name: "ثبت درخواست" }).click();
+    const created = await createdRequest;
+    expect(created.status()).toBe(201);
+    requestId = (await created.json()).request.id;
     await expect(page.getByText("درخواست جلسه ثبت شد.")).toBeVisible();
     const requestCard = page.locator("li").filter({ hasText: subject });
     await expect(requestCard).toContainText(description);
@@ -586,6 +593,47 @@ test.describe("course team communication and problem-solving stay course-scoped"
 
     await page.reload();
     await expect(page.locator("li").filter({ hasText: subject })).toContainText(description);
+  });
+
+  test("supporter reviews and completes a student request through the browser", async ({ page }) => {
+    const setIdentity = async (as: keyof typeof users) => {
+      await page.context().clearCookies();
+      const cookie = await signed(as);
+      const cookieSeparator = cookie.indexOf("=");
+      await page.context().addCookies([{
+        name: cookie.slice(0, cookieSeparator),
+        value: cookie.slice(cookieSeparator + 1),
+        url: "http://localhost:3000",
+        httpOnly: true,
+        sameSite: "Lax",
+      }]);
+    };
+
+    const subject = "پیگیری رفع اشکال از رابط دانش‌آموز";
+    await setIdentity("supporter");
+    await page.goto(`http://localhost:3000/course-team/${supporterTeamMemberId}/problem-solving`);
+    const requestCard = page.locator("li").filter({ hasText: subject });
+    await expect(requestCard).toContainText("ثبت‌شده");
+    await requestCard.getByRole("button", { name: "در حال بررسی" }).click();
+    await expect(requestCard).toContainText("در حال بررسی");
+
+    await requestCard.getByLabel("تاریخ و زمان جلسه").fill("2031-06-15T10:30");
+    await requestCard.getByRole("button", { name: "تعیین جلسه" }).click();
+    await expect(requestCard).toContainText("تعیین جلسه");
+
+    const sessionCard = page.locator("li").filter({ hasText: subject }).nth(1);
+    await expect(sessionCard).toContainText("برنامه‌ریزی‌شده");
+    await sessionCard.getByRole("button", { name: "جلسه برگزار شد" }).click();
+    await expect(sessionCard).toContainText("برگزارشده");
+    await page.reload();
+    await expect(page.locator("li").filter({ hasText: subject })
+      .filter({ hasText: "برگزارشده" })).toBeVisible();
+
+    await setIdentity("student");
+    await page.goto(`http://localhost:3000/student/courses/${courseId}`);
+    await page.getByRole("link", { name: /پشتیبان آزمون/ }).click();
+    await expect(page.locator("li").filter({ hasText: subject }))
+      .toContainText("تعیین جلسه");
   });
 
   test("deactivation immediately closes both messaging and session capability", async () => {
