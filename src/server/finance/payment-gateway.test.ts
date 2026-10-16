@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
-  handleServicePaymentWebhook, PaymentGatewayBoundaryError,
+  createServicePaymentIntent, handleServicePaymentWebhook, PaymentGatewayBoundaryError,
+  PaymentIntentBoundaryError,
   type ServicePaymentGatewayAdapter, type VerifiedPaymentCapture,
 } from "./payment-gateway";
 
@@ -24,6 +25,71 @@ function adapter(result: unknown): ServicePaymentGatewayAdapter {
     }),
   };
 }
+
+const intentRequest = {
+  orderId: captureEvent.orderId,
+  grossRials: captureEvent.grossRials,
+  currency: "IRR" as const,
+  idempotencyKey: "99dd70b1-3c4e-4f11-a622-a702958c37c7",
+};
+const allowedCheckoutOrigins = new Set(["https://checkout.example.test"]);
+const intentResponse = {
+  providerIntentId: "intent_20261016_001",
+  orderId: captureEvent.orderId,
+  grossRials: captureEvent.grossRials,
+  currency: "IRR" as const,
+  checkoutUrl: "https://checkout.example.test/session/token",
+  expiresAt: new Date(Date.now() + 15 * 60_000).toISOString(),
+};
+function intentAdapter(createPaymentIntent: (input: typeof intentRequest) => Promise<unknown>) {
+  return {
+    providerId: "selected-gateway",
+    allowedCheckoutOrigins,
+    createPaymentIntent: vi.fn(createPaymentIntent),
+  };
+}
+
+describe("vendor-neutral payment intent boundary", () => {
+  it("forwards a server-derived amount and idempotency key and returns only a verified checkout", async () => {
+    const adapter = intentAdapter(async (input) => {
+      expect(input).toEqual(intentRequest);
+      return intentResponse;
+    });
+    await expect(createServicePaymentIntent(intentRequest, adapter)).resolves.toEqual({
+      ...intentResponse, providerId: "selected-gateway",
+    });
+    expect(adapter.createPaymentIntent).toHaveBeenCalledOnce();
+  });
+
+  it("rejects mismatched order totals, expired intents, and unapproved checkout origins", async () => {
+    for (const response of [
+      { ...intentResponse, grossRials: intentResponse.grossRials + 1 },
+      { ...intentResponse, orderId: "c3f45b03-1758-4f8c-b590-b128a4a8feca" },
+      { ...intentResponse, expiresAt: new Date(Date.now() - 1_000).toISOString() },
+      { ...intentResponse, checkoutUrl: "https://attacker.example.test/session/token" },
+      { ...intentResponse, checkoutUrl: "http://checkout.example.test/session/token" },
+      { ...intentResponse, extra: "unexpected" },
+    ]) {
+      await expect(createServicePaymentIntent(intentRequest,
+        intentAdapter(async () => response))).rejects
+        .toBeInstanceOf(PaymentIntentBoundaryError);
+    }
+  });
+
+  it("sanitizes provider errors and validates input before contacting the provider", async () => {
+    const failing = intentAdapter(async () => { throw new Error("secret checkout token"); });
+    await expect(createServicePaymentIntent(intentRequest, failing)).rejects
+      .toMatchObject({ kind: "gateway_unavailable", message: "gateway_unavailable" });
+    const create = vi.fn(async () => intentResponse);
+    await expect(createServicePaymentIntent({ ...intentRequest, grossRials: 0 },
+      intentAdapter(create))).rejects.toMatchObject({ kind: "request_invalid" });
+    await expect(createServicePaymentIntent(intentRequest, {
+      providerId: "Selected Gateway", allowedCheckoutOrigins,
+      createPaymentIntent: create,
+    })).rejects.toMatchObject({ kind: "request_invalid" });
+    expect(create).not.toHaveBeenCalled();
+  });
+});
 
 describe("vendor-neutral payment webhook boundary", () => {
   it("passes only verified captures to the atomic ledger transition", async () => {
