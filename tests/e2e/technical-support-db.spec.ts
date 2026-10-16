@@ -240,4 +240,52 @@ test.describe("shared technical support tickets", () => {
       ]);
     }
   });
+
+  test("requester and support operator complete a ticket lifecycle in the browser", async ({ page }) => {
+    async function signInAs(name: "requester" | "operator") {
+      const signed = await serializeSignedCookie(
+        "better-auth.session_token", tokens[name], process.env.BETTER_AUTH_SECRET!,
+      );
+      const cookiePair = signed.split(";")[0];
+      const separator = cookiePair.indexOf("=");
+      await page.context().clearCookies();
+      await page.context().addCookies([{
+        name: cookiePair.slice(0, separator),
+        value: cookiePair.slice(separator + 1),
+        url: "http://localhost:3000",
+        httpOnly: true,
+        sameSite: "Lax",
+      }]);
+    }
+
+    await signInAs("requester");
+    await page.goto("http://localhost:3000/support");
+    const subject = `رابط پشتیبانی ${randomUUID().slice(0, 8)}`;
+    const initialMessage = "در رابط کاربری برای ورود به حساب با مشکل روبه‌رو شدم.";
+    await page.getByLabel("موضوع").fill(subject);
+    await page.getByLabel("شرح درخواست").fill(initialMessage);
+    await page.getByRole("button", { name: "ثبت درخواست" }).click();
+    await expect(page).toHaveURL(/\/support\/[0-9a-f-]+$/);
+    await expect(page.getByRole("heading", { name: subject })).toBeVisible();
+    await expect(page.getByText(initialMessage)).toBeVisible();
+
+    await signInAs("operator");
+    await page.goto("http://localhost:3000/admin/support");
+    await page.getByRole("link", { name: subject }).click();
+    await expect(page.getByRole("heading", { name: "رسیدگی به تیکت" })).toBeVisible();
+    await page.getByLabel("وضعیت").selectOption("waiting_requester");
+    await page.getByLabel("اولویت").selectOption("high");
+    await page.getByRole("button", { name: "ذخیرهٔ وضعیت و اولویت" }).click();
+    await expect(page.getByRole("status")).toHaveText("وضعیت و اولویت ذخیره شد.");
+    const operatorReply = "درخواست شما بررسی شد؛ لطفاً دوباره تلاش کنید.";
+    await page.getByLabel("پاسخ").fill(operatorReply);
+    await page.getByRole("button", { name: "ارسال پیام" }).click();
+    await expect(page.getByText(operatorReply)).toBeVisible();
+
+    await signInAs("requester");
+    await page.reload();
+    await expect(page.getByRole("heading", { name: subject })).toBeVisible();
+    await expect(page.getByText(operatorReply)).toBeVisible();
+    await expect(page.getByText(/وضعیت: منتظر پاسخ شما/)).toBeVisible();
+  });
 });
