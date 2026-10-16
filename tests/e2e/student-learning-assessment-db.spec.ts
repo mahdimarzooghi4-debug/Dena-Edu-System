@@ -22,9 +22,9 @@ test.describe.configure({ mode: "serial" });
 test.describe("student learning assessment lifecycle", () => {
   const db = getDb();
   const users = { admin: randomUUID(), provider: randomUUID(), institute: randomUUID(),
-    student: randomUUID(), other: randomUUID() };
+    student: randomUUID(), other: randomUUID(), browserStudent: randomUUID() };
   const tokens = {
-    student: randomUUID(), other: randomUUID(), institute: randomUUID(),
+    student: randomUUID(), other: randomUUID(), browserStudent: randomUUID(), institute: randomUUID(),
     provider: randomUUID(),
   };
   const providerId = randomUUID();
@@ -72,11 +72,13 @@ test.describe("student learning assessment lifecycle", () => {
       { userId: users.institute, role: "institute", instituteId },
       { userId: users.student, role: "student" },
       { userId: users.other, role: "student" },
+      { userId: users.browserStudent, role: "student" },
     ]);
     const expiresAt = new Date(Date.now() + 3_600_000);
     await db.insert(session).values([
       { userId: users.student, token: tokens.student, expiresAt },
       { userId: users.other, token: tokens.other, expiresAt },
+      { userId: users.browserStudent, token: tokens.browserStudent, expiresAt },
       { userId: users.institute, token: tokens.institute, expiresAt },
       { userId: users.provider, token: tokens.provider, expiresAt },
     ]);
@@ -158,6 +160,9 @@ test.describe("student learning assessment lifecycle", () => {
     });
     await db.insert(studentEnrollments).values({
       studentUserId: users.student, courseId, status: "active",
+    });
+    await db.insert(studentEnrollments).values({
+      studentUserId: users.browserStudent, courseId, status: "active",
     });
     await db.insert(courseLearningAssessments).values({
       id: assessmentId, courseId, title: "ارزیابی فصل",
@@ -430,6 +435,48 @@ test.describe("student learning assessment lifecycle", () => {
     await page.getByRole("button", { name: "ثبت نهایی پاسخ‌ها" }).click();
     await expect(page.getByRole("heading", { name: "نتیجهٔ شما" })).toBeVisible();
     await expect(page.getByText("1 از 2 امتیاز")).toBeVisible();
+  });
+
+  test("student completes a learning assessment and lesson review through the browser", async ({ page }) => {
+    const cookie = await serializeSignedCookie(
+      "better-auth.session_token", tokens.browserStudent, process.env.BETTER_AUTH_SECRET!,
+    );
+    const pair = cookie.split(";")[0];
+    const separator = pair.indexOf("=");
+    await page.context().addCookies([{
+      name: pair.slice(0, separator), value: pair.slice(separator + 1),
+      url: "http://localhost:3000",
+    }]);
+
+    await page.goto("http://localhost:3000/student/assessments");
+    const card = page.locator("article").filter({ hasText: "ارزیابی فصل" });
+    await expect(card).toBeVisible();
+    await card.getByRole("button", { name: "شروع / تلاش تازه" }).click();
+    await expect(card.getByText("کدام گزینه پاسخ درست پرسش 1 است؟")).toBeVisible();
+    await expect(card.getByText("پاسخ هر پرسش نمایش داده نمی‌شود.")).toHaveCount(0);
+
+    await card.getByRole("radio").nth(1).check();
+    await card.getByRole("radio").nth(5).check();
+    await card.getByRole("button", { name: "ثبت نهایی پاسخ‌ها" }).click();
+    await expect(card.getByText(/نتیجه نیازمند مرور درس است/)).toBeVisible();
+    await expect(card.getByRole("link", { name: "رفتن به ویدئوی درس" })).toHaveCount(2);
+
+    await card.getByRole("button", { name: "بازبینی کردم" }).first().click();
+    await card.getByRole("button", { name: "بازبینی کردم" }).click();
+    await expect(card.getByText("همه بازبینی‌ها ثبت شدند؛ اکنون می‌توانید تلاش تازه را شروع کنید.")).toBeVisible();
+    await card.getByRole("button", { name: "شروع / تلاش تازه" }).click();
+    await expect(card.getByText("کدام گزینه پاسخ درست پرسش 1 است؟")).toBeVisible();
+
+    await card.getByRole("radio").nth(0).check();
+    await card.getByRole("radio").nth(4).check();
+    await card.getByRole("button", { name: "ثبت نهایی پاسخ‌ها" }).click();
+    await expect(card.getByText(/ارزیابی تکمیل شد/)).toBeVisible();
+    await expect(card.getByText(/2 از 2 پاسخ درست/)).toBeVisible();
+
+    await page.reload();
+    const completedCard = page.locator("article").filter({ hasText: "ارزیابی فصل" });
+    await expect(completedCard.getByText("این ارزیابی را با موفقیت تکمیل کرده‌اید.")).toBeVisible();
+    await expect(completedCard.getByText("پاسخ درست")).toHaveCount(0);
   });
 
   test("exam attempts serialize starts, protect answer keys, and replay final results", async () => {
