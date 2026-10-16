@@ -7,9 +7,10 @@ import {
   educatorInstituteAffiliations, independentEducatorProfiles,
   memberships, privateMediaAssets, studentLearningAssessmentAttempts,
   studentLearningAssessmentAttemptQuestions,
-  studentLearningAssessmentLessonReviews, supervisionGrants,
+  studentLearningAssessmentLessonReviews, studentEnrollments, supervisionGrants,
 } from "../../db/schema";
 import { auditLogRecord } from "../admin/audit";
+import { hasStudentEntitlement } from "../student/entitlement";
 
 const controlChars = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/u;
 const option = z.string().trim().min(1).max(160).refine((v) => !controlChars.test(v));
@@ -100,6 +101,14 @@ export async function startStudentLearningAssessment(
   studentUserId: string, courseId: string, assessmentId: string,
 ) {
   return getDb().transaction(async (tx) => {
+    const [enrollment] = await tx.select({ id: studentEnrollments.id })
+      .from(studentEnrollments).where(and(
+        eq(studentEnrollments.studentUserId, studentUserId),
+        eq(studentEnrollments.courseId, courseId),
+        eq(studentEnrollments.status, "active"),
+      )).limit(1).for("share");
+    if (!enrollment || !await hasStudentEntitlement(studentUserId, courseId)) return null;
+
     const [assessment] = await tx.select().from(courseLearningAssessments)
       .where(and(
         eq(courseLearningAssessments.id, assessmentId),
@@ -232,6 +241,14 @@ export async function submitStudentLearningAssessment(
   answers: Record<string, number>,
 ) {
   return getDb().transaction(async (tx) => {
+    const [enrollment] = await tx.select({ id: studentEnrollments.id })
+      .from(studentEnrollments).where(and(
+        eq(studentEnrollments.studentUserId, studentUserId),
+        eq(studentEnrollments.courseId, courseId),
+        eq(studentEnrollments.status, "active"),
+      )).limit(1).for("share");
+    if (!enrollment || !await hasStudentEntitlement(studentUserId, courseId)) return null;
+
     const [assessment] = await tx.select().from(courseLearningAssessments)
       .where(and(
         eq(courseLearningAssessments.id, assessmentId),
@@ -301,7 +318,15 @@ export async function acknowledgeStudentLearningAssessmentLessonReview(
   lessonAssetId: string,
 ) {
   const db = getDb();
-  const [attempt] = await db.select({ outcome: studentLearningAssessmentAttempts.outcome })
+  return db.transaction(async (tx) => {
+  const [enrollment] = await tx.select({ id: studentEnrollments.id })
+    .from(studentEnrollments).where(and(
+      eq(studentEnrollments.studentUserId, studentUserId),
+      eq(studentEnrollments.courseId, courseId),
+      eq(studentEnrollments.status, "active"),
+    )).limit(1).for("share");
+  if (!enrollment || !await hasStudentEntitlement(studentUserId, courseId)) return null;
+  const [attempt] = await tx.select({ outcome: studentLearningAssessmentAttempts.outcome })
     .from(studentLearningAssessmentAttempts).where(and(
       eq(studentLearningAssessmentAttempts.id, attemptId),
       eq(studentLearningAssessmentAttempts.assessmentId, assessmentId),
@@ -311,7 +336,7 @@ export async function acknowledgeStudentLearningAssessmentLessonReview(
       eq(studentLearningAssessmentAttempts.outcome, "needs_review"),
     )).limit(1);
   if (!attempt) return null;
-  const [missedLesson] = await db.select({ id: privateMediaAssets.id })
+  const [missedLesson] = await tx.select({ id: privateMediaAssets.id })
     .from(studentLearningAssessmentAttemptQuestions)
     .innerJoin(courseLearningAssessmentQuestions, eq(
       courseLearningAssessmentQuestions.id,
@@ -326,12 +351,13 @@ export async function acknowledgeStudentLearningAssessmentLessonReview(
       eq(courseLearningAssessmentQuestions.lessonAssetId, lessonAssetId),
     )).limit(1);
   if (!missedLesson) return null;
-  const [created] = await db.insert(studentLearningAssessmentLessonReviews).values({
+  const [created] = await tx.insert(studentLearningAssessmentLessonReviews).values({
     attemptId, assessmentId, courseId, studentUserId, lessonAssetId,
   }).onConflictDoNothing().returning({
     attemptId: studentLearningAssessmentLessonReviews.attemptId,
   });
   return { attemptId, lessonAssetId, acknowledged: true, replayed: !created };
+  });
 }
 
 async function courseContext(courseId: string) {

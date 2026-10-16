@@ -804,4 +804,46 @@ test.describe("student learning assessment lifecycle", () => {
     await provider.dispose();
     await student.dispose();
   });
+
+  test("learning assessment submission serializes with enrollment cancellation", async () => {
+    const other = await client("other");
+    await db.insert(studentEnrollments).values({
+      studentUserId: users.other, courseId, status: "active",
+    });
+    const started = await post(other, `${basePath}/attempts`, {});
+    expect(started.status()).toBe(201);
+    const attemptId = (await started.json()).attemptId as string;
+    const attemptResponse = await other.get(`${basePath}/attempts/${attemptId}`);
+    expect(attemptResponse.status()).toBe(200);
+    const questions = (await attemptResponse.json()).attempt.questions as Array<{
+      questionId: string;
+    }>;
+    const answers = Object.fromEntries(questions.map((question) => [question.questionId, 0]));
+
+    const [submitted, cancelled] = await Promise.all([
+      post(other, `${basePath}/attempts/${attemptId}`, { answers }),
+      post(other, `/api/student/courses/${courseId}/cancel`, {}),
+    ]);
+    expect([201, 404]).toContain(submitted.status());
+    expect(cancelled.status()).toBe(200);
+    const [afterRace] = await db.select({
+      status: studentLearningAssessmentAttempts.status,
+      outcome: studentLearningAssessmentAttempts.outcome,
+    }).from(studentLearningAssessmentAttempts).where(and(
+      eq(studentLearningAssessmentAttempts.id, attemptId),
+      eq(studentLearningAssessmentAttempts.studentUserId, users.other),
+    ));
+    expect(submitted.status() === 201).toBe(afterRace?.status === "submitted");
+    expect((await post(other, `${basePath}/attempts/${attemptId}`, { answers }))
+      .status()).toBe(404);
+    const [afterRetry] = await db.select({
+      status: studentLearningAssessmentAttempts.status,
+      outcome: studentLearningAssessmentAttempts.outcome,
+    }).from(studentLearningAssessmentAttempts).where(and(
+      eq(studentLearningAssessmentAttempts.id, attemptId),
+      eq(studentLearningAssessmentAttempts.studentUserId, users.other),
+    ));
+    expect(afterRetry).toEqual(afterRace);
+    await other.dispose();
+  });
 });
