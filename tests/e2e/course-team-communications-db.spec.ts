@@ -634,6 +634,8 @@ test.describe("course team communication and problem-solving stay course-scoped"
     await page.getByRole("link", { name: /پشتیبان آزمون/ }).click();
     await expect(page.locator("li").filter({ hasText: subject }))
       .toContainText("تعیین جلسه");
+    await expect(page.locator("li").filter({ hasText: subject }))
+      .toContainText("برگزارشده");
   });
 
   test("deactivation immediately closes both messaging and session capability", async () => {
