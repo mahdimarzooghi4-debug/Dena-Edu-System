@@ -118,19 +118,42 @@ export async function createGrantedMultipartUpload(
     if (typeof storageUploadId !== "string" || !uploadIdPattern.test(storageUploadId)) {
       throw new MultipartStorageError("storage_unavailable");
     }
-    const parts = await Promise.all(plan.parts.map(async (part): Promise<GrantedPart> => {
-      const grant = await adapter.createPartGrant({
-        key: plan.key,
-        storageUploadId: storageUploadId!,
-        partNumber: part.partNumber,
-        expectedBytes: part.bytes,
-        ttlSeconds: MULTIPART_GRANT_TTL_SECONDS,
-      });
-      if (!validateSignedPartGrant(grant, adapter, now)) {
-        throw new MultipartStorageError("grant_invalid");
+    // Storage signing APIs commonly enforce per-account rate limits. Keep a
+    // bounded number of requests in flight, and drain those requests before the
+    // catch block aborts the session if any grant fails.
+    const parts: GrantedPart[] = new Array(plan.parts.length);
+    let nextPart = 0;
+    let grantFailed = false;
+    let grantFailure: unknown;
+    const grantWorker = async () => {
+      while (!grantFailed) {
+        const index = nextPart++;
+        if (index >= plan.parts.length) return;
+        const part = plan.parts[index];
+        try {
+          const grant = await adapter.createPartGrant({
+            key: plan.key,
+            storageUploadId: storageUploadId!,
+            partNumber: part.partNumber,
+            expectedBytes: part.bytes,
+            ttlSeconds: MULTIPART_GRANT_TTL_SECONDS,
+          });
+          if (!validateSignedPartGrant(grant, adapter, now)) {
+            throw new MultipartStorageError("grant_invalid");
+          }
+          parts[index] = { ...part, url: grant.url, expiresAt: grant.expiresAt };
+        } catch (error) {
+          if (!grantFailed) {
+            grantFailed = true;
+            grantFailure = error;
+          }
+        }
       }
-      return { ...part, url: grant.url, expiresAt: grant.expiresAt };
-    }));
+    };
+    await Promise.all(Array.from(
+      { length: Math.min(8, plan.parts.length) }, () => grantWorker(),
+    ));
+    if (grantFailed) throw grantFailure;
     return { storageUploadId, key: plan.key, parts };
   } catch (error) {
     if (storageUploadId) {
