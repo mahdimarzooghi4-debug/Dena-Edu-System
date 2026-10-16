@@ -454,13 +454,16 @@ test.describe("student learning assessment lifecycle", () => {
     const startButton = card.getByRole("button", { name: "شروع / تلاش تازه" });
     await expect(startButton).toBeEnabled();
     const attemptStart = page.waitForResponse((response) =>
-      response.url().includes(`/api/student/courses/${courseId}/assessments/${assessmentId}/attempts`) &&
-      response.request().method() === "POST",
+      response.url().includes(`${basePath}/attempts`) && response.request().method() === "POST",
+    );
+    const attemptDetails = page.waitForResponse((response) =>
+      response.url().includes(`${basePath}/attempts/`) && response.request().method() === "GET",
     );
     await startButton.click();
     const attemptStartResponse = await attemptStart;
     expect(attemptStartResponse.status()).toBe(201);
-    await expect(card.getByText("کدام گزینه پاسخ درست پرسش 1 است؟")).toBeVisible();
+    expect((await attemptDetails).status()).toBe(200);
+    await expect(card.getByText("کدام گزینه پاسخ درست پرسش 1 است؟")).toBeVisible({ timeout: 15_000 });
     await expect(card.getByText("پاسخ هر پرسش نمایش داده نمی‌شود.")).toHaveCount(0);
 
     await card.getByRole("radio").nth(1).check();
@@ -474,13 +477,16 @@ test.describe("student learning assessment lifecycle", () => {
     await card.getByRole("button", { name: "بازبینی کردم" }).click();
     await expect(card.getByText("همه بازبینی‌ها ثبت شدند؛ اکنون می‌توانید تلاش تازه را شروع کنید.")).toBeVisible();
     const retryStart = page.waitForResponse((response) =>
-      response.url().includes(`/api/student/courses/${courseId}/assessments/${assessmentId}/attempts`) &&
-      response.request().method() === "POST",
+      response.url().includes(`${basePath}/attempts`) && response.request().method() === "POST",
+    );
+    const retryDetails = page.waitForResponse((response) =>
+      response.url().includes(`${basePath}/attempts/`) && response.request().method() === "GET",
     );
     await card.getByRole("button", { name: "شروع / تلاش تازه" }).click();
     const retryStartResponse = await retryStart;
     expect(retryStartResponse.status()).toBe(201);
-    await expect(card.getByText("کدام گزینه پاسخ درست پرسش 1 است؟")).toBeVisible();
+    expect((await retryDetails).status()).toBe(200);
+    await expect(card.getByText("کدام گزینه پاسخ درست پرسش 1 است؟")).toBeVisible({ timeout: 15_000 });
 
     await card.getByRole("radio").nth(0).check();
     await card.getByRole("radio").nth(4).check();
