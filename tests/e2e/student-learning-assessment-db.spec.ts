@@ -124,9 +124,12 @@ test.describe("student learning assessment lifecycle", () => {
         option3: "گزینه چهارم", correctOption: 0, points: 1,
       }),
     ));
+    await db.insert(privateMediaAssets).values(assetIds.map((id, index) => ({
+      id, courseId, title: `درس ${index + 1}`, objectKey: `${courseId}/${id}.mp4`,
+    })));
     await db.insert(assessmentQuestionBankQuestions).values({
       id: instituteExamQuestionId, bankId: instituteBankId, ownerType: "institute",
-      ownerId: instituteId, courseId, lessonAssetId: null,
+      ownerId: instituteId, courseId, lessonAssetId: assetIds[0],
       prompt: "پرسش آزمون مؤسسه چیست؟", option0: "پاسخ درست", option1: "گزینه دوم",
       option2: "گزینه سوم", option3: "گزینه چهارم", correctOption: 0,
       createdByUserId: users.institute,
@@ -137,9 +140,6 @@ test.describe("student learning assessment lifecycle", () => {
       prompt: "پرسش آزمون مؤسسه چیست؟", option0: "پاسخ درست", option1: "گزینه دوم",
       option2: "گزینه سوم", option3: "گزینه چهارم", correctOption: 0, points: 1,
     });
-    await db.insert(privateMediaAssets).values(assetIds.map((id, index) => ({
-      id, courseId, title: `درس ${index + 1}`, objectKey: `${courseId}/${id}.mp4`,
-    })));
     await db.insert(studentEnrollments).values({
       studentUserId: users.student, courseId, status: "active",
     });
