@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
-import type { ReceivedPart } from "./multipart";
+import { MULTIPART_PART_BYTES, type ReceivedPart } from "./multipart";
 import {
   completeVerifiedMultipartUpload, createGrantedMultipartUpload,
   MultipartStorageError, validateSignedPartGrant,
@@ -84,6 +84,70 @@ describe("vendor-neutral private multipart storage adapter", () => {
       url: "http://uploads.example.test/upload",
       expiresAt: new Date(Date.now() + 5 * 60_000),
     }, adapter)).toBe(false);
+  });
+
+  it("bounds concurrent part-grant calls for large uploads", async () => {
+    const expectedBytes = MULTIPART_PART_BYTES * 17 + 1;
+    let active = 0;
+    let maximumActive = 0;
+    const adapter = makeAdapter({
+      createPartGrant: vi.fn(async () => {
+        active += 1;
+        maximumActive = Math.max(maximumActive, active);
+        try {
+          await new Promise((resolve) => setTimeout(resolve, 2));
+          return {
+            url: "https://uploads.example.test/upload/signed?signature=secret",
+            expiresAt: new Date(Date.now() + 10 * 60_000),
+          };
+        } finally {
+          active -= 1;
+        }
+      }),
+    });
+
+    const created = await createGrantedMultipartUpload(adapter, {
+      uploadId, expectedBytes, expectedSha256: sha256,
+    });
+
+    expect(created.parts).toHaveLength(18);
+    expect(adapter.createPartGrant).toHaveBeenCalledTimes(18);
+    expect(maximumActive).toBe(8);
+  });
+
+  it("waits for in-flight grants before aborting a partially signed upload", async () => {
+    const expectedBytes = MULTIPART_PART_BYTES * 17 + 1;
+    let active = 0;
+    let maximumActive = 0;
+    let activeAtAbort = -1;
+    const adapter = makeAdapter({
+      createPartGrant: vi.fn(async ({ partNumber }) => {
+        active += 1;
+        maximumActive = Math.max(maximumActive, active);
+        try {
+          if (partNumber === 1) {
+            await new Promise((resolve) => setTimeout(resolve, 5));
+            throw new Error("provider signing failed");
+          }
+          await new Promise((resolve) => setTimeout(resolve, 20));
+          return {
+            url: "https://uploads.example.test/upload/signed?signature=secret",
+            expiresAt: new Date(Date.now() + 10 * 60_000),
+          };
+        } finally {
+          active -= 1;
+        }
+      }),
+      abortMultipartUpload: vi.fn(async () => { activeAtAbort = active; }),
+    });
+
+    await expect(createGrantedMultipartUpload(adapter, {
+      uploadId, expectedBytes, expectedSha256: sha256,
+    })).rejects.toMatchObject({ kind: "storage_unavailable" });
+
+    expect(maximumActive).toBeLessThanOrEqual(8);
+    expect(adapter.createPartGrant).toHaveBeenCalledTimes(8);
+    expect(activeAtAbort).toBe(0);
   });
 
   it("lists and validates server-side parts before complete, then hashes the private object", async () => {
