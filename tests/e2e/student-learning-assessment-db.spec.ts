@@ -414,10 +414,10 @@ test.describe("student learning assessment lifecycle", () => {
     const separator = pair.indexOf("=");
     await page.context().addCookies([{
       name: pair.slice(0, separator), value: pair.slice(separator + 1),
-      url: "http://127.0.0.1:3000",
+      url: "http://localhost:3000",
     }]);
 
-    await page.goto("http://127.0.0.1:3000/student/assessments");
+    await page.goto("http://localhost:3000/student/assessments");
     const card = page.locator("article").filter({ hasText: "آزمون رابط کاربری" });
     await expect(card).toBeVisible();
     await card.getByRole("button", { name: "شروع آزمون" }).click();
