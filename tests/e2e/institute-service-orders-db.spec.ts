@@ -209,7 +209,7 @@ test.describe("institute service order guardian consent", () => {
     await institute.dispose();
   });
 
-  test("captures a verified payment once with an atomic balanced journal", async () => {
+  test("captures a verified payment once with an atomic balanced journal", async ({ page }) => {
     const gatewayEventId = `gateway-test-${randomUUID()}`;
     const captured = await captureInstituteServiceOrderPayment({
       orderId, gatewayEventId, grossRials: 2_000_000,
@@ -290,7 +290,7 @@ test.describe("institute service order guardian consent", () => {
     await institute.dispose();
   });
 
-  test("scopes call scheduling to paid consented service quotas and audits its lifecycle", async ({ page }) => {
+  test("scopes call scheduling to paid consented service quotas and audits its lifecycle", async () => {
     const scheduledAt = new Date(Date.now() + 60_000).toISOString();
     const idempotencyKey = randomUUID();
     const path = `/api/institute/service-orders/${orderId}/calls`;
