@@ -603,6 +603,15 @@ test.describe("Dena AI video permission authorization and revocation", () => {
     await expect(page.getByText("مباحثی که برایشان راهنمایی بیشتری خواستی:"))
       .toBeVisible();
     await expect(page.getByText("اقلیم و رطوبت")).toBeVisible();
+
+    page.once("dialog", (dialog) => dialog.accept());
+    await page.getByRole("button", { name: "پاک‌کردن داده‌های مسیر شخصی" }).click();
+    await expect(page.getByText("داده‌های ثبت‌شده پاک شدند.")).toBeVisible();
+    await expect(page.getByText("مسیر آموزشی ثبت‌شدهٔ تو")).toHaveCount(0);
+    await page.reload();
+    await expect(page.getByText("مباحثی که برایشان راهنمایی بیشتری خواستی:"))
+      .toHaveCount(0);
+    await expect(page.getByText("۱ پرسش")).toHaveCount(0);
   });
 
   test("withdrawn videos cannot be granted and provider-owned videos stay blocked", async () => {
