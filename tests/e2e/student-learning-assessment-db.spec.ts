@@ -705,6 +705,38 @@ test.describe("student learning assessment lifecycle", () => {
       await reviewCard.getByRole("button", { name: "تأیید ارزیابی" }).click();
       expect((await decisionResponse).status()).toBe(200);
       await expect(reviewCard.getByText("تأییدشده")).toBeVisible();
+
+      const providerApi = await client("provider");
+      const studentApi = await client("other");
+      try {
+        const publication = await post(providerApi,
+          `/api/provider/courses/${uiCourseId}/publication`, { action: "publish" });
+        expect(publication.status()).toBe(200);
+        expect(await publication.json()).toMatchObject({
+          courseId: uiCourseId, publicationStatus: "published", replayed: false,
+        });
+        const enrollment = await post(studentApi, `/api/student/courses/${uiCourseId}/enroll`, {});
+        expect(enrollment.status()).toBe(201);
+        expect(await enrollment.json()).toMatchObject({ courseId: uiCourseId, enrolled: true });
+      } finally {
+        await providerApi.dispose();
+        await studentApi.dispose();
+      }
+
+      await page.context().clearCookies();
+      const studentCookie = await serializeSignedCookie(
+        "better-auth.session_token", tokens.other, process.env.BETTER_AUTH_SECRET!,
+      );
+      await page.context().addCookies([{
+        name: "better-auth.session_token",
+        value: studentCookie.split(";")[0].split("=").slice(1).join("="),
+        domain: "localhost", path: "/", httpOnly: true, secure: false, sameSite: "Lax",
+      }]);
+      await page.goto("http://localhost:3000/student/assessments");
+      const studentCard = page.locator("article").filter({ hasText: title });
+      await expect(studentCard.getByText(title)).toBeVisible();
+      await expect(studentCard.getByRole("button", { name: "شروع / تلاش تازه" })).toBeVisible();
+      await expect(studentCard).not.toContainText("پاسخ درست دوره");
     } finally {
       const stored = await db.select({ id: courseLearningAssessments.id })
         .from(courseLearningAssessments).where(eq(courseLearningAssessments.courseId, uiCourseId));
@@ -717,6 +749,10 @@ test.describe("student learning assessment lifecycle", () => {
           .where(inArray(courseLearningAssessments.id, ids));
       }
       await db.delete(privateMediaAssets).where(eq(privateMediaAssets.id, uiAssetId));
+      await db.delete(studentEnrollments).where(and(
+        eq(studentEnrollments.studentUserId, users.other),
+        eq(studentEnrollments.courseId, uiCourseId),
+      ));
       await db.delete(auditLogs).where(and(
         eq(auditLogs.entityType, "COURSE"), eq(auditLogs.entityId, uiCourseId),
       ));
