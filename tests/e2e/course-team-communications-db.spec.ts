@@ -405,6 +405,37 @@ test.describe("course team communication and problem-solving stay course-scoped"
     await otherSupporter.dispose();
   });
 
+  test("student can message the course supporter through the browser", async ({ page }) => {
+    await page.context().addCookies([{
+      name: "better-auth.session_token",
+      value: await signed("student"),
+      url: "http://localhost:3000",
+      httpOnly: true,
+      sameSite: "Lax",
+    }]);
+
+    await page.goto(`http://localhost:3000/student/courses/${courseId}`);
+    await page.getByRole("link", { name: /پشتیبان آزمون/ }).click();
+    await page.getByRole("link", { name: "مشاهده گفت‌وگو" }).click();
+
+    const message = "برای ادامهٔ درس از رابط دانش‌آموز پیام می‌فرستم.";
+    await page.getByLabel("پیام خود را بنویسید").fill(message);
+    await page.getByRole("button", { name: "ارسال" }).click();
+    await expect(page.getByText(message)).toBeVisible();
+
+    const supporter = await client("supporter");
+    const reply = "پیامت را از مسیر گفت‌وگوی دوره دریافت کردم.";
+    const response = await supporter.post(
+      `/api/course-team/assignments/${supporterTeamMemberId}/conversations/${conversationId}`,
+      { data: { body: reply }, headers: origin },
+    );
+    expect(response.status()).toBe(201);
+    await supporter.dispose();
+
+    await page.reload();
+    await expect(page.getByText(reply)).toBeVisible();
+  });
+
   test("problem-solving is supporter-only and institute-enabled", async () => {
     const student = await client("student");
     const otherStudent = await client("otherStudent");
