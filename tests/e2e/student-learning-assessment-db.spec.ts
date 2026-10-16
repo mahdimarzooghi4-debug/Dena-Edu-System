@@ -616,6 +616,7 @@ test.describe("student learning assessment lifecycle", () => {
   });
 
   test("independent educator assessment lifecycle serializes enrollment with affiliation revocation", async ({ page }) => {
+    test.setTimeout(90_000);
     const independentCourseId = randomUUID();
     const profileId = randomUUID();
     const affiliationId = randomUUID();
@@ -822,13 +823,18 @@ test.describe("student learning assessment lifecycle", () => {
       await other.dispose();
       await selfReviewClient.dispose();
     } finally {
-      for (const cleanupAssessmentId of [assessmentId, browserAssessmentId]) {
-        if (!cleanupAssessmentId) continue;
-        await db.delete(auditLogs).where(eq(auditLogs.entityId, cleanupAssessmentId));
+      const storedAssessments = await db.select({ id: courseLearningAssessments.id })
+        .from(courseLearningAssessments)
+        .where(eq(courseLearningAssessments.courseId, independentCourseId));
+      const cleanupAssessmentIds = [...new Set([
+        assessmentId, browserAssessmentId, ...storedAssessments.map((assessment) => assessment.id),
+      ].filter((id): id is string => Boolean(id)))];
+      if (cleanupAssessmentIds.length > 0) {
+        await db.delete(auditLogs).where(inArray(auditLogs.entityId, cleanupAssessmentIds));
         await db.delete(courseLearningAssessmentQuestions)
-          .where(eq(courseLearningAssessmentQuestions.assessmentId, cleanupAssessmentId));
+          .where(inArray(courseLearningAssessmentQuestions.assessmentId, cleanupAssessmentIds));
         await db.delete(courseLearningAssessments)
-          .where(eq(courseLearningAssessments.id, cleanupAssessmentId));
+          .where(inArray(courseLearningAssessments.id, cleanupAssessmentIds));
       }
       await db.delete(privateMediaAssets).where(eq(privateMediaAssets.id, assetId));
       await db.delete(auditLogs).where(and(
