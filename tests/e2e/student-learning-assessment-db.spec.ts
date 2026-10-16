@@ -724,6 +724,79 @@ test.describe("student learning assessment lifecycle", () => {
       expect((await decisionResponse).status()).toBe(200);
       await expect(reviewCard.getByText("تأییدشده")).toBeVisible();
 
+      // Verify the author can read a final rejection and its reason, and gets
+      // clear guidance that a correction must be submitted as a new immutable assessment.
+      await page.context().clearCookies();
+      const providerCookieAgain = await serializeSignedCookie(
+        "better-auth.session_token", tokens.provider, process.env.BETTER_AUTH_SECRET!,
+      );
+      await page.context().addCookies([{
+        name: "better-auth.session_token",
+        value: providerCookieAgain.split(";")[0].split("=").slice(1).join("="),
+        domain: "localhost", path: "/", httpOnly: true, secure: false, sameSite: "Lax",
+      }]);
+      await page.goto(`http://localhost:3000/provider/courses/${uiCourseId}/assessments`);
+      const rejectedTitle = "ارزیابی برای مرور اصلاحی";
+      const rejectionReason = "پیوند پرسش با محتوای درس نیازمند اصلاح است.";
+      await page.getByLabel("عنوان ارزیابی").fill(rejectedTitle);
+      await page.getByLabel("دستورالعمل").fill("این نسخه برای بررسی جداگانه ثبت می‌شود.");
+      await page.getByLabel("تعداد پرسش در هر تلاش").fill("1");
+      await page.getByLabel("حداقل پاسخ درست برای تکمیل").fill("1");
+      const rejectedQuestion = page.locator("form fieldset").first();
+      await rejectedQuestion.getByLabel("متن پرسش").fill("پرسش نسخهٔ اصلاحی برای ارزیابی چیست؟");
+      await rejectedQuestion.getByLabel("گزینهٔ ۱").fill("پاسخ اول");
+      await rejectedQuestion.getByLabel("گزینهٔ ۲").fill("پاسخ دوم");
+      await rejectedQuestion.getByLabel("گزینهٔ ۳").fill("پاسخ سوم");
+      await rejectedQuestion.getByLabel("گزینهٔ ۴").fill("پاسخ چهارم");
+      await rejectedQuestion.getByLabel("ویدئوی درس برای بازبینی در صورت پاسخ نادرست").selectOption(uiAssetId);
+      const rejectedCreate = page.waitForResponse((response) =>
+        response.url().endsWith(`/api/provider/courses/${uiCourseId}/assessments`) &&
+        response.request().method() === "POST",
+      );
+      await page.getByRole("button", { name: "ثبت و ارسال برای بازبینی مؤسسه" }).click();
+      expect((await rejectedCreate).status()).toBe(201);
+      const [rejectedAssessment] = await db.select({ id: courseLearningAssessments.id })
+        .from(courseLearningAssessments).where(and(
+          eq(courseLearningAssessments.courseId, uiCourseId),
+          eq(courseLearningAssessments.title, rejectedTitle),
+        ));
+      expect(rejectedAssessment).toBeDefined();
+
+      await page.context().clearCookies();
+      const instituteCookieAgain = await serializeSignedCookie(
+        "better-auth.session_token", tokens.institute, process.env.BETTER_AUTH_SECRET!,
+      );
+      await page.context().addCookies([{
+        name: "better-auth.session_token",
+        value: instituteCookieAgain.split(";")[0].split("=").slice(1).join("="),
+        domain: "localhost", path: "/", httpOnly: true, secure: false, sameSite: "Lax",
+      }]);
+      await page.goto(`http://localhost:3000/institute/courses/${uiCourseId}/assessments`);
+      const rejectedReviewCard = page.locator(`#assessment-${rejectedAssessment!.id}`);
+      await rejectedReviewCard.getByLabel("دلیل تصمیم مستقل مؤسسه (حداقل ۱۵ نویسه)")
+        .fill(rejectionReason);
+      const rejectionResponse = page.waitForResponse((response) =>
+        response.url().endsWith(`/api/institute/courses/${uiCourseId}/assessments/${rejectedAssessment!.id}`) &&
+        response.request().method() === "POST",
+      );
+      await rejectedReviewCard.getByRole("button", { name: "رد ارزیابی" }).click();
+      expect((await rejectionResponse).status()).toBe(200);
+      await expect(rejectedReviewCard.getByText("ردشده")).toBeVisible();
+
+      await page.context().clearCookies();
+      await page.context().addCookies([{
+        name: "better-auth.session_token",
+        value: providerCookieAgain.split(";")[0].split("=").slice(1).join("="),
+        domain: "localhost", path: "/", httpOnly: true, secure: false, sameSite: "Lax",
+      }]);
+      await page.goto(`http://localhost:3000/provider/courses/${uiCourseId}/assessments`);
+      const rejectedProviderCard = page.locator("section").filter({ hasText: rejectedTitle }).last();
+      await expect(rejectedProviderCard.getByText("ردشده")).toBeVisible();
+      await expect(rejectedProviderCard.getByText(`دلیل بازبینی: ${rejectionReason}`)).toBeVisible();
+      await expect(rejectedProviderCard.getByRole("note")).toContainText(
+        "برای ارسال محتوای اصلاح‌شده، یک ارزیابی تازه بسازید.",
+      );
+
       const providerApi = await client("provider");
       const studentApi = await client("other");
       try {
