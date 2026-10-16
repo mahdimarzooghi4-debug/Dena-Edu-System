@@ -783,6 +783,16 @@ test.describe("student learning assessment lifecycle", () => {
         "این ارزیابی را با موفقیت تکمیل کرده‌اید. کلید پاسخ نمایش داده نمی‌شود.",
       )).toBeVisible();
       await expect(persistedCard.getByRole("radio")).toHaveCount(0);
+      await page.goto("http://localhost:3000/student/growth");
+      const growthSeries = page.locator('section[aria-label="روندهای ارزیابی"]')
+        .filter({ hasText: title });
+      await expect(growthSeries.getByRole("heading", { name: title })).toBeVisible();
+      await expect(growthSeries.getByText("۱ از ۱ پاسخ درست · ۱۰۰٪")).toBeVisible();
+      await expect(growthSeries.getByText("ارزیابی تکمیل شد")).toBeVisible();
+      await expect(page.locator("body")).not.toContainText("پاسخ درست دوره");
+      await page.reload();
+      await expect(page.locator('section[aria-label="روندهای ارزیابی"]')
+        .filter({ hasText: title }).getByText("۱ از ۱ پاسخ درست · ۱۰۰٪")).toBeVisible();
     } finally {
       const stored = await db.select({ id: courseLearningAssessments.id })
         .from(courseLearningAssessments).where(eq(courseLearningAssessments.courseId, uiCourseId));
