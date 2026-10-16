@@ -1,7 +1,7 @@
 # وضعیت آماده‌سازی تست — ردیف‌های ۲ تا ۸
 
 **تاریخ بررسی:** ۱۴۰۵/۰۷/۲۴ (۱۶ اکتبر ۲۰۲۶)
-**مبنای بررسی:** PR #42، شاخهٔ `feat/test-readiness-service-lifecycle`؛ commit `aa00f0a1db217e6f2b8ceb0e815c9a4b33718f3b` با [run 38878991253](https://github.com/mahdimarzooghi4-debug/Dena-Edu-System/actions/runs/38878991253) روی هر چهار job موفق شد. علاوه بر چرخهٔ خدمات و مرزهای vendor-neutral، این commit تست responsive پوسته‌های شش نقش را در پنج عرض صفحه اضافه می‌کند.
+**مبنای بررسی:** PR #42، شاخهٔ `feat/test-readiness-service-lifecycle`؛ commit `209d777b56414b4905700fb38bdfb8b6307714b8` با [run 38879898717](https://github.com/mahdimarzooghi4-debug/Dena-Edu-System/actions/runs/38879898717) روی هر چهار job موفق شد. علاوه بر چرخهٔ خدمات و مرزهای vendor-neutral، این commit تست responsive و ناوبری صفحه‌کلید پوسته‌های شش نقش را اضافه می‌کند.
 **محدوده:** آماده‌سازی مهندسی برای تست؛ این سند مجوز Stage یا Production نیست.
 
 CI این شاخه آزمون‌های build و PostgreSQL/HTTP را روی محیط موقت اجرا می‌کند. سبز بودن CI، اتصال ارائه‌دهندهٔ واقعی، staging، آزمون بصری یا آمادگی انتشار را ثابت نمی‌کند. آزمون محلی release preflight در این محیط به‌دلیل نبود تنظیمات production، پایگاه داده، URL و کلیدهای سرویس مسدود است؛ این مقادیر باید در محیط امن staging تنظیم شوند.
