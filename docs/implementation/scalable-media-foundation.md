@@ -1,6 +1,6 @@
 # پایهٔ مستقل از فروشنده برای خط لولهٔ ویدئوی مقیاس‌پذیر
 
-**وضعیت: کد قرارداد و صف پایدار پیاده شده؛ هیچ storage، signing gateway، scanner، transcoder، CDN یا edge عملیاتی به پروژه متصل نشده است.** مسیر فعال موجود همچنان پایلوت حداکثر ۸ MiB با عبور بایت‌ها از Next.js است. این تغییر نه آن سقف را برمی‌دارد و نه قابلیت direct-upload تولیدی را فعال می‌کند.
+**وضعیت: قراردادهای vendor-neutral و صف پایدار پیاده شده؛ هیچ storage، signing gateway، scanner، transcoder، CDN یا edge عملیاتی به پروژه متصل نشده است.** مسیر فعال موجود همچنان پایلوت حداکثر ۸ MiB با عبور بایت‌ها از Next.js است. این تغییر نه آن سقف را برمی‌دارد و نه قابلیت direct-upload تولیدی را فعال می‌کند.
 
 ## direct-to-quarantine multipart: قرارداد قابل اتصال، نه endpoint فعال
 
@@ -9,6 +9,8 @@
 - امضای هر part را به upload UUID، کلید قرنطینه، part number، اندازه، checksum و TTL محدود کند؛ CORS صرفاً origin اپ را مجاز کند؛ مجوز list/read/delete عمومی ندهد. expiry و quota سراسری با PostgreSQL و rate limiter توزیع‌شده enforce شوند.
 - قبل از complete، بخش‌ها را مستقل از اظهارات کلاینت از storage list کند، manifest را بررسی کند، object کامل را سروری از storage verify کند و سپس durable processing job را enqueue کند. اگر storage امکان whole-object SHA ندارد، به digest multipart/ETag اتکا نکند؛ یک stream verifier مستقل لازم است.
 - در خطا multipart را abort کند و پس از TTL فایل/part رهاشده را از bucket واقعی حذف کند. سرویس cleanup فعلی تنها برای **ingest پایلوت** و `quarantine/<UUID>` قرارداد DELETE و صف retry دارد؛ نه abortِ multipart و نه cron عملیاتی و نه bucket واقعی متصل شده‌اند.
+
+`src/server/media/storage-adapter.ts` اکنون port قابل‌تعویضی برای ساخت session، صدور grant، فهرست‌کردن partها، complete/abort، خواندن/حذف شیء خصوصی دارد. helperهای آن URL و expiry هر grant را به originهای HTTPS مجاز محدود می‌کنند، بعد از شکست grant session را abort می‌کنند، manifest را فقط از پاسخ `listParts` خود storage می‌سازند و پس از complete بایت‌های کامل شیء خصوصی را stream/hash می‌کنند. اگر شیء نهایی نامعتبر باشد حذف می‌شود؛ در صورت شکست حذف، cleanup پایدار باید آن را جمع کند. تست‌ها با fake adapter شکست جزئی و مسیر تکمیل را بررسی می‌کنند. این port هنوز به DB، route، durable worker یا صف cleanup multipart متصل نشده و هیچ endpointی از آن grant صادر نمی‌کند؛ API واقعی storage باید انتخاب و سپس آداپتور vendor نوشته/آزموده شود.
 
 ## صف PostgreSQL (هم‌اکنون در ingest پایلوت متصل)
 
