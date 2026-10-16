@@ -785,14 +785,17 @@ test.describe("student learning assessment lifecycle", () => {
       );
       expect(new Set(selectedIds).size).toBe(2);
       const authoredById = new Map(authoredQuestions.map((question) => [question.id, question]));
-      for (const question of attemptBody.attempt.questions as Array<{
+      for (const [index, question] of (attemptBody.attempt.questions as Array<{
         questionId: string; prompt: string;
-      }>) {
+      }>).entries()) {
         const authored = authoredById.get(question.questionId);
         expect(authored).toBeDefined();
         expect(question.prompt).toBe(authored!.prompt);
+        const selectedOption = index === 0
+          ? (authored!.correctOption + 1) % 4
+          : authored!.correctOption;
         const questionField = studentCard.locator("fieldset").filter({ hasText: question.prompt });
-        await questionField.getByRole("radio").nth(authored!.correctOption).check();
+        await questionField.getByRole("radio").nth(selectedOption).check();
       }
       expect(JSON.stringify(attemptBody)).not.toContain("correctOption");
       const submissionResponse = page.waitForResponse((response) =>
@@ -801,6 +804,51 @@ test.describe("student learning assessment lifecycle", () => {
       );
       await studentCard.getByRole("button", { name: "ثبت نهایی پاسخ‌ها" }).click();
       expect((await submissionResponse).status()).toBe(201);
+      await expect(studentCard.getByText("نتیجه نیازمند مرور درس است.")).toBeVisible();
+      await expect(studentCard.getByText("1 از 2 پاسخ درست.")).toBeVisible();
+      const reviewPanel = studentCard.getByRole("region", { name: "بازبینی درس‌های مرتبط" });
+      await expect(reviewPanel).toBeVisible();
+      const reviewButton = reviewPanel.getByRole("button", { name: "بازبینی کردم" });
+      await reviewButton.click();
+      await expect(reviewPanel.getByText("بازبینی ثبت شد")).toBeVisible();
+      await expect(reviewPanel.getByText(
+        "همه بازبینی‌ها ثبت شدند؛ اکنون می‌توانید تلاش تازه را شروع کنید.",
+      )).toBeVisible();
+
+      const retryStartResponse = page.waitForResponse((response) =>
+        response.url().endsWith(`/api/student/courses/${uiCourseId}/assessments/${assessmentId}/attempts`) &&
+        response.request().method() === "POST",
+      );
+      const retryDetailsResponse = page.waitForResponse((response) =>
+        response.url().includes(`/api/student/courses/${uiCourseId}/assessments/${assessmentId}/attempts/`) &&
+        response.request().method() === "GET",
+      );
+      await studentCard.getByRole("button", { name: "شروع / تلاش تازه" }).click();
+      const retryStart = await retryStartResponse;
+      expect(retryStart.status()).toBe(201);
+      const retry = await retryStart.json() as { attemptId: string; attemptNumber: number };
+      expect(retry.attemptNumber).toBe(2);
+      const retryDetails = await retryDetailsResponse;
+      expect(retryDetails.status()).toBe(200);
+      const retryBody = await retryDetails.json();
+      expect(retryBody.attempt.questions).toHaveLength(2);
+      for (const question of retryBody.attempt.questions as Array<{
+        questionId: string; prompt: string;
+      }>) {
+        const authored = authoredById.get(question.questionId);
+        expect(authored).toBeDefined();
+        const questionField = studentCard.locator("fieldset").filter({ hasText: question.prompt });
+        await questionField.getByRole("radio").nth(authored!.correctOption).check();
+      }
+      expect(JSON.stringify(retryBody)).not.toContain("correctOption");
+      await expect(studentCard.getByRole("region", { name: "بازبینی درس‌های مرتبط" }))
+        .toHaveCount(0);
+      const retrySubmission = page.waitForResponse((response) =>
+        response.url().endsWith(`/api/student/courses/${uiCourseId}/assessments/${assessmentId}/attempts/${retry.attemptId}`) &&
+        response.request().method() === "POST",
+      );
+      await studentCard.getByRole("button", { name: "ثبت نهایی پاسخ‌ها" }).click();
+      expect((await retrySubmission).status()).toBe(201);
       await expect(studentCard.getByText("ارزیابی تکمیل شد.")).toBeVisible();
       await expect(studentCard.getByText("2 از 2 پاسخ درست.")).toBeVisible();
       await expect(studentCard).not.toContainText("پاسخ درست دوره");
