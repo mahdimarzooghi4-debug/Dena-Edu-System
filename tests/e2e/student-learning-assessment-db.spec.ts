@@ -719,7 +719,13 @@ test.describe("student learning assessment lifecycle", () => {
       await page.getByRole("button", { name: "ثبت و ارسال برای بازبینی مؤسسه" }).click();
       const browserCreateResponse = await browserCreate;
       expect(browserCreateResponse.status()).toBe(201);
-      browserAssessmentId = (await browserCreateResponse.json()).assessmentId as string;
+      const [browserAssessment] = await db.select({ id: courseLearningAssessments.id })
+        .from(courseLearningAssessments).where(and(
+          eq(courseLearningAssessments.courseId, independentCourseId),
+          eq(courseLearningAssessments.title, "ارزیابی مرورگر همکار مستقل"),
+        ));
+      expect(browserAssessment).toBeDefined();
+      browserAssessmentId = browserAssessment!.id;
       await expect(page.getByText("ارزیابی مرورگر همکار مستقل")).toBeVisible();
       await expect(page.getByText("در انتظار بازبینی مؤسسه")).toBeVisible();
 
