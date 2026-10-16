@@ -438,13 +438,6 @@ test.describe("student learning assessment lifecycle", () => {
   });
 
   test("student completes a learning assessment and lesson review through the browser", async ({ page }) => {
-    let startResponse = "no attempt-start response captured";
-    page.on("response", async (response) => {
-      if (response.url().endsWith(`/api/student/courses/${courseId}/assessments/${assessmentId}/attempts`) &&
-          response.request().method() === "POST") {
-        startResponse = `${response.status()} ${await response.text()}`;
-      }
-    });
     const cookie = await serializeSignedCookie(
       "better-auth.session_token", tokens.browserStudent, process.env.BETTER_AUTH_SECRET!,
     );
@@ -458,11 +451,16 @@ test.describe("student learning assessment lifecycle", () => {
     await page.goto("http://localhost:3000/student/assessments");
     const card = page.locator("article").filter({ hasText: "ارزیابی فصل" });
     await expect(card).toBeVisible();
-    await card.getByRole("button", { name: "شروع / تلاش تازه" }).click();
-    await expect.poll(
-      () => card.getByText("کدام گزینه پاسخ درست پرسش 1 است؟").isVisible(),
-      { message: `Attempt start response: ${startResponse}` },
-    ).toBe(true);
+    const startButton = card.getByRole("button", { name: "شروع / تلاش تازه" });
+    await expect(startButton).toBeEnabled();
+    const attemptStart = page.waitForResponse((response) =>
+      response.url().includes(`/api/student/courses/${courseId}/assessments/${assessmentId}/attempts`) &&
+      response.request().method() === "POST",
+    );
+    await startButton.click();
+    const attemptStartResponse = await attemptStart;
+    expect(attemptStartResponse.status()).toBe(201);
+    await expect(card.getByText("کدام گزینه پاسخ درست پرسش 1 است؟")).toBeVisible();
     await expect(card.getByText("پاسخ هر پرسش نمایش داده نمی‌شود.")).toHaveCount(0);
 
     await card.getByRole("radio").nth(1).check();
@@ -475,11 +473,14 @@ test.describe("student learning assessment lifecycle", () => {
     await expect(card.getByRole("button", { name: "بازبینی کردم" })).toHaveCount(1);
     await card.getByRole("button", { name: "بازبینی کردم" }).click();
     await expect(card.getByText("همه بازبینی‌ها ثبت شدند؛ اکنون می‌توانید تلاش تازه را شروع کنید.")).toBeVisible();
+    const retryStart = page.waitForResponse((response) =>
+      response.url().includes(`/api/student/courses/${courseId}/assessments/${assessmentId}/attempts`) &&
+      response.request().method() === "POST",
+    );
     await card.getByRole("button", { name: "شروع / تلاش تازه" }).click();
-    await expect.poll(
-      () => card.getByText("کدام گزینه پاسخ درست پرسش 1 است؟").isVisible(),
-      { message: `Retry response: ${startResponse}` },
-    ).toBe(true);
+    const retryStartResponse = await retryStart;
+    expect(retryStartResponse.status()).toBe(201);
+    await expect(card.getByText("کدام گزینه پاسخ درست پرسش 1 است؟")).toBeVisible();
 
     await card.getByRole("radio").nth(0).check();
     await card.getByRole("radio").nth(4).check();
