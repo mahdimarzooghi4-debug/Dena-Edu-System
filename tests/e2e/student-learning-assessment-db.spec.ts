@@ -625,7 +625,7 @@ test.describe("student learning assessment lifecycle", () => {
   });
 
   test("provider authors a learning assessment and institute approves it through the browser", async ({ page }) => {
-    test.setTimeout(60_000);
+    test.setTimeout(90_000);
     const uiCourseId = randomUUID();
     const uiAssetId = randomUUID();
     const title = "ارزیابی مرورگر ارائه‌دهنده";
@@ -796,6 +796,50 @@ test.describe("student learning assessment lifecycle", () => {
       await expect(rejectedProviderCard.getByRole("note")).toContainText(
         "برای ارسال محتوای اصلاح‌شده، یک ارزیابی تازه بسازید.",
       );
+
+      const revisionTitle = "ارزیابی اصلاح‌شده برای همان دوره";
+      await page.getByLabel("عنوان ارزیابی").fill(revisionTitle);
+      await page.getByLabel("دستورالعمل").fill("این نسخه پس از دریافت بازخورد مؤسسه بازنویسی شده است.");
+      await page.getByLabel("تعداد پرسش در هر تلاش").fill("1");
+      await page.getByLabel("حداقل پاسخ درست برای تکمیل").fill("1");
+      const revisionQuestion = page.locator("form fieldset").first();
+      await revisionQuestion.getByLabel("متن پرسش").fill("پرسش بازنویسی‌شده بر اساس درس چیست؟");
+      await revisionQuestion.getByLabel("گزینهٔ ۱").fill("پاسخ بازبینی‌شده");
+      await revisionQuestion.getByLabel("گزینهٔ ۲").fill("گزینهٔ جایگزین دوم");
+      await revisionQuestion.getByLabel("گزینهٔ ۳").fill("گزینهٔ جایگزین سوم");
+      await revisionQuestion.getByLabel("گزینهٔ ۴").fill("گزینهٔ جایگزین چهارم");
+      await revisionQuestion.getByLabel("گزینهٔ 1 پاسخ درست است").check();
+      await revisionQuestion.getByLabel("ویدئوی درس برای بازبینی در صورت پاسخ نادرست").selectOption(uiAssetId);
+      const revisionCreateResponse = page.waitForResponse((response) =>
+        response.url().endsWith(`/api/provider/courses/${uiCourseId}/assessments`) &&
+        response.request().method() === "POST",
+      );
+      await page.getByRole("button", { name: "ثبت و ارسال برای بازبینی مؤسسه" }).click();
+      expect((await revisionCreateResponse).status()).toBe(201);
+      const [revisionAssessment] = await db.select({ id: courseLearningAssessments.id })
+        .from(courseLearningAssessments).where(and(
+          eq(courseLearningAssessments.courseId, uiCourseId),
+          eq(courseLearningAssessments.title, revisionTitle),
+        ));
+      expect(revisionAssessment).toBeDefined();
+
+      await page.context().clearCookies();
+      await page.context().addCookies([{
+        name: "better-auth.session_token",
+        value: instituteCookieAgain.split(";")[0].split("=").slice(1).join("="),
+        domain: "localhost", path: "/", httpOnly: true, secure: false, sameSite: "Lax",
+      }]);
+      await page.goto(`http://localhost:3000/institute/courses/${uiCourseId}/assessments`);
+      const revisionReviewCard = page.locator(`#assessment-${revisionAssessment!.id}`);
+      await revisionReviewCard.getByLabel("دلیل تصمیم مستقل مؤسسه (حداقل ۱۵ نویسه)")
+        .fill("پرسش اصلاح‌شده با ویدئوی درس سازگار است.");
+      const revisionApproval = page.waitForResponse((response) =>
+        response.url().endsWith(`/api/institute/courses/${uiCourseId}/assessments/${revisionAssessment!.id}`) &&
+        response.request().method() === "POST",
+      );
+      await revisionReviewCard.getByRole("button", { name: "تأیید ارزیابی" }).click();
+      expect((await revisionApproval).status()).toBe(200);
+      await expect(revisionReviewCard.getByText("تأییدشده")).toBeVisible();
 
       const providerApi = await client("provider");
       const studentApi = await client("other");
