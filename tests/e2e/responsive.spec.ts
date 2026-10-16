@@ -39,3 +39,24 @@ test("desktop sidebar retains role links and shared support entry", async ({ pag
   await expect(nav.getByRole("link", { name: "پشتیبانی فنی مشترک" })).toHaveAttribute("href", "/preview/support");
   await expect(nav.getByRole("link", { name: "داشبورد" })).toHaveAttribute("aria-current", "page");
 });
+
+test("all role preview shells fit narrow mobile and desktop viewports", async ({ page }) => {
+  for (const width of [320, 375, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    for (const role of ["student", "institute", "provider", "admin", "organization", "benefactor"]) {
+      await page.goto(`/preview/${role}`);
+      await expect(page.getByRole("main")).toBeVisible();
+      await expect(page.getByText("پیش‌نمایش رابط کاربری · بدون دادهٔ واقعی")).toBeVisible();
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+        `${role} preview should not overflow at ${width}px`,
+      ).toBe(true);
+      if (width < 768) {
+        await expect(page.getByTestId("mobile-preview-menu")).toBeVisible();
+      } else {
+        await expect(page.getByTestId("mobile-preview-menu")).toBeHidden();
+        await expect(page.getByRole("navigation", { name: "منوی پیش‌نمایش", exact: true })).toBeVisible();
+      }
+    }
+  }
+});
