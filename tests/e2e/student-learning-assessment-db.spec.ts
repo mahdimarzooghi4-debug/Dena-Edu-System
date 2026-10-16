@@ -793,6 +793,31 @@ test.describe("student learning assessment lifecycle", () => {
       await page.reload();
       await expect(page.locator('section[aria-label="روندهای ارزیابی"]')
         .filter({ hasText: title }).getByText("۱ از ۱ پاسخ درست · ۱۰۰٪")).toBeVisible();
+
+      const nonEnrolledStudent = await client("browserStudent");
+      try {
+        const inaccessibleList = await nonEnrolledStudent.get(
+          `/api/student/courses/${uiCourseId}/assessments`,
+        );
+        expect(inaccessibleList.status()).toBe(404);
+        const inaccessibleStart = await post(nonEnrolledStudent,
+          `/api/student/courses/${uiCourseId}/assessments/${assessmentId}/attempts`, {});
+        expect(inaccessibleStart.status()).toBe(404);
+      } finally {
+        await nonEnrolledStudent.dispose();
+      }
+
+      await page.context().clearCookies();
+      const nonEnrolledCookie = await serializeSignedCookie(
+        "better-auth.session_token", tokens.browserStudent, process.env.BETTER_AUTH_SECRET!,
+      );
+      await page.context().addCookies([{
+        name: "better-auth.session_token",
+        value: nonEnrolledCookie.split(";")[0].split("=").slice(1).join("="),
+        domain: "localhost", path: "/", httpOnly: true, secure: false, sameSite: "Lax",
+      }]);
+      await page.goto("http://localhost:3000/student/assessments");
+      await expect(page.locator("article").filter({ hasText: title })).toHaveCount(0);
     } finally {
       const stored = await db.select({ id: courseLearningAssessments.id })
         .from(courseLearningAssessments).where(eq(courseLearningAssessments.courseId, uiCourseId));
