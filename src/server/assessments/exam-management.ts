@@ -603,16 +603,16 @@ export async function getStudentExamAttempt(
   studentUserId: string, examId: string, attemptId: string,
 ) {
   return getDb().transaction(async (tx) => {
-    await requireStudent(tx, studentUserId);
+    const [exam] = await tx.select().from(assessmentExams)
+      .where(eq(assessmentExams.id, examId)).limit(1);
+    if (!exam) throw new ExamManagementError("attempt_unavailable");
+    await requireExamEligibility(tx, studentUserId, exam);
     const [attempt] = await tx.select().from(assessmentExamAttempts).where(and(
       eq(assessmentExamAttempts.id, attemptId),
       eq(assessmentExamAttempts.examId, examId),
       eq(assessmentExamAttempts.studentUserId, studentUserId),
     )).limit(1).for("update");
     if (!attempt) throw new ExamManagementError("attempt_unavailable");
-    const [exam] = await tx.select({
-      title: assessmentExams.title, instructions: assessmentExams.instructions,
-    }).from(assessmentExams).where(eq(assessmentExams.id, examId)).limit(1);
     if (attempt.status === "in_progress" && attempt.deadlineAt <= new Date()) {
       const result = await finalizeStudentExamAttempt(tx, attempt, "expired");
       return { ...result, title: exam!.title, instructions: exam!.instructions,
@@ -661,7 +661,10 @@ export async function saveStudentExamAnswers(
   answers: z.infer<typeof studentExamAnswersInput>["answers"],
 ) {
   return getDb().transaction(async (tx) => {
-    await requireStudent(tx, studentUserId);
+    const [exam] = await tx.select().from(assessmentExams)
+      .where(eq(assessmentExams.id, examId)).limit(1);
+    if (!exam) throw new ExamManagementError("attempt_unavailable");
+    await requireExamEligibility(tx, studentUserId, exam);
     const [attempt] = await tx.select().from(assessmentExamAttempts).where(and(
       eq(assessmentExamAttempts.id, attemptId),
       eq(assessmentExamAttempts.examId, examId),
@@ -700,7 +703,10 @@ export async function submitStudentExamAttempt(
   studentUserId: string, examId: string, attemptId: string,
 ) {
   return getDb().transaction(async (tx) => {
-    await requireStudent(tx, studentUserId);
+    const [exam] = await tx.select().from(assessmentExams)
+      .where(eq(assessmentExams.id, examId)).limit(1);
+    if (!exam) throw new ExamManagementError("attempt_unavailable");
+    await requireExamEligibility(tx, studentUserId, exam);
     const [attempt] = await tx.select().from(assessmentExamAttempts).where(and(
       eq(assessmentExamAttempts.id, attemptId),
       eq(assessmentExamAttempts.examId, examId),

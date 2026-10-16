@@ -40,6 +40,7 @@ test.describe("student learning assessment lifecycle", () => {
   const denaExamId = randomUUID();
   const instituteExamId = randomUUID();
   const denaExamQuestionIds = [randomUUID(), randomUUID()];
+  const instituteExamQuestionId = randomUUID();
   const denaOwnerId = "00000000-0000-0000-0000-000000000001";
 
   async function client(as: keyof typeof tokens): Promise<APIRequestContext> {
@@ -123,6 +124,19 @@ test.describe("student learning assessment lifecycle", () => {
         option3: "گزینه چهارم", correctOption: 0, points: 1,
       }),
     ));
+    await db.insert(assessmentQuestionBankQuestions).values({
+      id: instituteExamQuestionId, bankId: instituteBankId, ownerType: "institute",
+      ownerId: instituteId, courseId, lessonAssetId: null,
+      prompt: "پرسش آزمون مؤسسه چیست؟", option0: "پاسخ درست", option1: "گزینه دوم",
+      option2: "گزینه سوم", option3: "گزینه چهارم", correctOption: 0,
+      createdByUserId: users.institute,
+    });
+    await db.insert(assessmentExamQuestions).values({
+      examId: instituteExamId, bankId: instituteBankId, ownerType: "institute",
+      ownerId: instituteId, bankQuestionId: instituteExamQuestionId, position: 0,
+      prompt: "پرسش آزمون مؤسسه چیست؟", option0: "پاسخ درست", option1: "گزینه دوم",
+      option2: "گزینه سوم", option3: "گزینه چهارم", correctOption: 0, points: 1,
+    });
     await db.insert(privateMediaAssets).values(assetIds.map((id, index) => ({
       id, courseId, title: `درس ${index + 1}`, objectKey: `${courseId}/${id}.mp4`,
     })));
@@ -168,7 +182,8 @@ test.describe("student learning assessment lifecycle", () => {
     await db.delete(assessmentExams).where(inArray(assessmentExams.id,
       [denaExamId, instituteExamId]));
     await db.delete(assessmentQuestionBankQuestions)
-      .where(inArray(assessmentQuestionBankQuestions.id, denaExamQuestionIds));
+      .where(inArray(assessmentQuestionBankQuestions.id,
+        [...denaExamQuestionIds, instituteExamQuestionId]));
     await db.delete(assessmentQuestionBanks)
       .where(eq(assessmentQuestionBanks.id, instituteBankId));
     await db.delete(studentLearningAssessmentLessonReviews)
@@ -461,6 +476,35 @@ test.describe("student learning assessment lifecycle", () => {
     await student.dispose();
     await other.dispose();
     await institute.dispose();
+  });
+
+  test("institute exam attempt access is revoked with course enrollment", async () => {
+    const other = await client("other");
+    await db.insert(studentEnrollments).values({
+      studentUserId: users.other, courseId, status: "active",
+    });
+    const startPath = `/api/student/exams/${instituteExamId}/attempts`;
+    const started = await post(other, startPath, {});
+    expect(started.status()).toBe(201);
+    const attemptId = (await started.json()).attemptId as string;
+    const attemptPath = `${startPath}/${attemptId}`;
+    const details = await other.get(attemptPath);
+    expect(details.status()).toBe(200);
+    const question = (await details.json()).questions[0] as { id: string };
+
+    expect((await post(other, `/api/student/courses/${courseId}/cancel`, {})).status())
+      .toBe(200);
+    expect((await other.get(attemptPath)).status()).toBe(404);
+    const save = await other.patch(`${attemptPath}/answers`, {
+      data: { answers: [{ questionId: question.id, selectedOption: 0 }] },
+      headers: { Origin: "http://localhost:3000" },
+    });
+    expect(save.status()).toBe(409);
+    expect(await save.json()).toMatchObject({ error: "not_enrolled" });
+    const submit = await post(other, attemptPath, {});
+    expect(submit.status()).toBe(409);
+    expect(await submit.json()).toMatchObject({ error: "not_enrolled" });
+    await other.dispose();
   });
 
   test("independent educator assessment lifecycle serializes enrollment with affiliation revocation", async () => {
