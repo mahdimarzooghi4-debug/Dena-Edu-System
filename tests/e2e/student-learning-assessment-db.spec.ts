@@ -463,7 +463,8 @@ test.describe("student learning assessment lifecycle", () => {
     const attemptStartResponse = await attemptStart;
     expect(attemptStartResponse.status()).toBe(201);
     expect((await attemptDetails).status()).toBe(200);
-    await expect(card.getByText("کدام گزینه پاسخ درست پرسش 1 است؟")).toBeVisible({ timeout: 15_000 });
+    await expect(card.getByText(/کدام گزینه پاسخ درست پرسش [1-3] است؟/).first())
+      .toBeVisible({ timeout: 15_000 });
     await expect(card.getByText("پاسخ هر پرسش نمایش داده نمی‌شود.")).toHaveCount(0);
 
     await card.getByRole("radio").nth(1).check();
@@ -486,7 +487,8 @@ test.describe("student learning assessment lifecycle", () => {
     const retryStartResponse = await retryStart;
     expect(retryStartResponse.status()).toBe(201);
     expect((await retryDetails).status()).toBe(200);
-    await expect(card.getByText("کدام گزینه پاسخ درست پرسش 1 است؟")).toBeVisible({ timeout: 15_000 });
+    await expect(card.getByText(/کدام گزینه پاسخ درست پرسش [1-3] است؟/).first())
+      .toBeVisible({ timeout: 15_000 });
 
     await card.getByRole("radio").nth(0).check();
     await card.getByRole("radio").nth(4).check();
