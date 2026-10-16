@@ -9,8 +9,12 @@
 - خطاهای adapter به خطای عمومی تبدیل می‌شوند تا متن vendor، payload، امضا یا راز به caller نشت نکند.
 - آزمون واحد، عبور موفق event، رد event تأییدنشده/نامعتبر، رد currency/status/فیلد اضافی، سقف payload و پاک‌سازی خطای adapter را با fake بررسی می‌کند.
 
+## قرارداد آماده‌سازی checkout
+
+`createServicePaymentIntent` درخواست server-derived و کلید idempotency را به adapter مستقل می‌دهد و پاسخ را با سفارش/مبلغ دقیق، IRR، شناسهٔ intent، انقضا و allowlist دامنهٔ HTTPS checkout اعتبارسنجی می‌کند. خطاهای provider به خطای عمومی تبدیل می‌شوند. caller باید پیش از فراخوانی، سفارش و رضایت لازم را از DB بازبینی کند. این helper به‌تنهایی مبلغ را محاسبه نمی‌کند، intent را در DB پایدار نمی‌کند و لینک را به کاربر نمایش نمی‌دهد.
+
 ## عمداً پیاده‌سازی نشده
 
-این مرز هیچ callback عمومی را منتشر نمی‌کند و به‌تنهایی یک adapter قابل‌اعتماد نیست. تا زمان انتخاب API/vendor، جزئیات canonical signature، timestamp/replay policy، payment-intent creation، redirect کاربر، invoice، refund و settlement تعریف یا فعال نمی‌شوند. redirect مرورگر به‌هیچ‌وجه مدرک پرداخت نیست. پس از انتخاب vendor باید adapter واقعی، route محدود به method/size، secret مستقل در secret manager، sandbox تست و قراردادهای خطای آن اضافه شوند.
+این مرز هیچ callback عمومی یا route ساخت intent را منتشر نمی‌کند و به‌تنهایی یک adapter قابل‌اعتماد نیست. تا زمان انتخاب API/vendor، جزئیات canonical signature، timestamp/replay policy، صفحهٔ بازگشت کاربر، invoice، refund و settlement فعال نمی‌شوند. redirect مرورگر به‌هیچ‌وجه مدرک پرداخت نیست. پس از انتخاب vendor باید adapter واقعی، persistence/idempotency در DB، route محدود به method/size، secret مستقل در secret manager، sandbox تست و قراردادهای خطای آن اضافه شوند.
 
 در حال حاضر فقط CI می‌تواند capture اتمیک داخلی را با شناسهٔ رویداد ساختگی آزمایش کند؛ adapter و پیکربندی درگاه واقعی وجود ندارد و سفارش `awaiting_payment` وجه دریافتی محسوب نمی‌شود.
