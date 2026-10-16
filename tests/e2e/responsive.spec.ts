@@ -62,7 +62,15 @@ test("all role preview shells fit narrow mobile and desktop viewports", async ({
 });
 
 test("role preview landmarks and navigation work with keyboard in RTL", async ({ page }) => {
-  for (const role of ["student", "institute", "provider", "admin", "organization", "benefactor"]) {
+  const homeLabels: Record<string, string> = {
+    student: "خانه من",
+    institute: "خانه مؤسسه",
+    provider: "خانه ارائه‌دهنده",
+    admin: "خانه ادمین",
+    organization: "داشبورد",
+    benefactor: "داشبورد",
+  };
+  for (const role of Object.keys(homeLabels)) {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(`/preview/${role}`);
     await expect(page.locator("html")).toHaveAttribute("lang", "fa");
@@ -75,7 +83,8 @@ test("role preview landmarks and navigation work with keyboard in RTL", async ({
     await expect(page.getByRole("main")).toBeVisible();
 
     const desktopNav = page.getByRole("navigation", { name: "منوی پیش‌نمایش", exact: true });
-    await expect(desktopNav.getByRole("link", { name: "داشبورد" })).toHaveAttribute("aria-current", "page");
+    await expect(desktopNav.getByRole("link", { name: homeLabels[role] }))
+      .toHaveAttribute("aria-current", "page");
 
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto(`/preview/${role}`);
@@ -86,6 +95,6 @@ test("role preview landmarks and navigation work with keyboard in RTL", async ({
     await expect(mobileMenu).toHaveAttribute("open", "");
     await page.keyboard.press("Tab");
     await expect(page.getByRole("navigation", { name: "منوی پیش‌نمایش موبایل" })
-      .getByRole("link", { name: "داشبورد" })).toBeFocused();
+      .getByRole("link", { name: homeLabels[role] })).toBeFocused();
   }
 });
