@@ -616,6 +616,107 @@ test.describe("student learning assessment lifecycle", () => {
     await other.dispose();
   });
 
+  test("provider authors a learning assessment and institute approves it through the browser", async ({ page }) => {
+    test.setTimeout(60_000);
+    const uiCourseId = randomUUID();
+    const uiAssetId = randomUUID();
+    const title = "ارزیابی مرورگر ارائه‌دهنده";
+    await db.insert(courses).values({
+      id: uiCourseId, providerId, responsibleInstituteId: instituteId,
+      title: "دورهٔ مرورگر ارائه‌دهنده", createdByProviderUserId: users.provider,
+      clientRequestId: randomUUID(),
+    });
+    await db.insert(supervisionGrants).values({
+      courseId: uiCourseId, ownerType: "verified_provider", providerId,
+      independentEducatorProfileId: null, instituteId, status: "approved",
+      requestedByProviderUserId: users.provider,
+      approvedByInstituteUserId: users.institute, approvedAt: new Date(),
+    });
+    await db.insert(privateMediaAssets).values({
+      id: uiAssetId, courseId: uiCourseId, title: "درس آمادهٔ ارائه‌دهنده",
+      objectKey: `${uiCourseId}/${uiAssetId}.mp4`,
+    });
+
+    try {
+      const providerCookie = await serializeSignedCookie(
+        "better-auth.session_token", tokens.provider, process.env.BETTER_AUTH_SECRET!,
+      );
+      await page.context().addCookies([{
+        name: "better-auth.session_token",
+        value: providerCookie.split(";")[0].split("=").slice(1).join("="),
+        domain: "localhost", path: "/", httpOnly: true, secure: false, sameSite: "Lax",
+      }]);
+      await page.goto(`http://localhost:3000/provider/courses/${uiCourseId}/assessments`);
+      await expect(page.getByRole("heading", { name: "ساخت ارزیابی تازه" })).toBeVisible();
+      await page.getByLabel("عنوان ارزیابی").fill(title);
+      await page.getByLabel("دستورالعمل").fill("پرسش را با توجه به محتوای دوره پاسخ دهید.");
+      await page.getByLabel("تعداد پرسش در هر تلاش").fill("1");
+      await page.getByLabel("حداقل پاسخ درست برای تکمیل").fill("1");
+      await page.getByLabel("متن پرسش").fill("کدام گزینه محتوای این دوره را بیان می‌کند؟");
+      await page.getByLabel("گزینهٔ ۱").fill("پاسخ درست دوره");
+      await page.getByLabel("گزینهٔ ۲").fill("گزینهٔ جایگزین دوم");
+      await page.getByLabel("گزینهٔ ۳").fill("گزینهٔ جایگزین سوم");
+      await page.getByLabel("گزینهٔ ۴").fill("گزینهٔ جایگزین چهارم");
+      await page.getByLabel("گزینهٔ 1 پاسخ درست است").check();
+      await page.getByLabel("ویدئوی درس برای بازبینی در صورت پاسخ نادرست").selectOption(uiAssetId);
+      const createResponse = page.waitForResponse((response) =>
+        response.url().endsWith(`/api/provider/courses/${uiCourseId}/assessments`) &&
+        response.request().method() === "POST",
+      );
+      await page.getByRole("button", { name: "ثبت و ارسال برای بازبینی مؤسسه" }).click();
+      expect((await createResponse).status()).toBe(201);
+      const [assessment] = await db.select({ id: courseLearningAssessments.id })
+        .from(courseLearningAssessments).where(and(
+          eq(courseLearningAssessments.courseId, uiCourseId),
+          eq(courseLearningAssessments.title, title),
+        ));
+      expect(assessment).toBeDefined();
+      const assessmentId = assessment!.id;
+      await expect(page.getByText(title)).toBeVisible();
+      await expect(page.getByText("در انتظار بازبینی مؤسسه")).toBeVisible();
+
+      await page.context().clearCookies();
+      const instituteCookie = await serializeSignedCookie(
+        "better-auth.session_token", tokens.institute, process.env.BETTER_AUTH_SECRET!,
+      );
+      await page.context().addCookies([{
+        name: "better-auth.session_token",
+        value: instituteCookie.split(";")[0].split("=").slice(1).join("="),
+        domain: "localhost", path: "/", httpOnly: true, secure: false, sameSite: "Lax",
+      }]);
+      await page.goto(`http://localhost:3000/institute/courses/${uiCourseId}/assessments`);
+      const reviewCard = page.locator(`#assessment-${assessmentId}`);
+      await expect(reviewCard.getByRole("heading", { name: title })).toBeVisible();
+      await expect(reviewCard.getByText("پاسخ درست دوره — پاسخ درست اعلام‌شده")).toBeVisible();
+      await reviewCard.getByLabel("دلیل تصمیم مستقل مؤسسه (حداقل ۱۵ نویسه)")
+        .fill("محتوا و کلید پاسخ با درس پیوندخورده بررسی شد.");
+      const decisionResponse = page.waitForResponse((response) =>
+        response.url().endsWith(`/api/institute/courses/${uiCourseId}/assessments/${assessmentId}`) &&
+        response.request().method() === "POST",
+      );
+      await reviewCard.getByRole("button", { name: "تأیید ارزیابی" }).click();
+      expect((await decisionResponse).status()).toBe(200);
+      await expect(reviewCard.getByText("تأییدشده")).toBeVisible();
+    } finally {
+      const stored = await db.select({ id: courseLearningAssessments.id })
+        .from(courseLearningAssessments).where(eq(courseLearningAssessments.courseId, uiCourseId));
+      const ids = stored.map((row) => row.id);
+      if (ids.length > 0) {
+        await db.delete(auditLogs).where(inArray(auditLogs.entityId, ids));
+        await db.delete(courseLearningAssessmentQuestions)
+          .where(inArray(courseLearningAssessmentQuestions.assessmentId, ids));
+        await db.delete(courseLearningAssessments)
+          .where(inArray(courseLearningAssessments.id, ids));
+      }
+      await db.delete(privateMediaAssets).where(eq(privateMediaAssets.id, uiAssetId));
+      await db.delete(auditLogs).where(and(
+        eq(auditLogs.entityType, "COURSE"), eq(auditLogs.entityId, uiCourseId),
+      ));
+      await db.delete(supervisionGrants).where(eq(supervisionGrants.courseId, uiCourseId));
+      await db.delete(courses).where(eq(courses.id, uiCourseId));
+    }
+  });
+
   test("independent educator assessment lifecycle serializes enrollment with affiliation revocation", async ({ page }) => {
     test.setTimeout(90_000);
     const independentCourseId = randomUUID();
