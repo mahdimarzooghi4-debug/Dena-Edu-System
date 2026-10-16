@@ -737,11 +737,69 @@ test.describe("student learning assessment lifecycle", () => {
       await expect(studentCard.getByText(title)).toBeVisible();
       await expect(studentCard.getByRole("button", { name: "شروع / تلاش تازه" })).toBeVisible();
       await expect(studentCard).not.toContainText("پاسخ درست دوره");
+
+      const [authoredQuestion] = await db.select({
+        id: courseLearningAssessmentQuestions.id,
+        prompt: courseLearningAssessmentQuestions.prompt,
+        correctOption: courseLearningAssessmentQuestions.correctOption,
+      }).from(courseLearningAssessmentQuestions).where(
+        eq(courseLearningAssessmentQuestions.assessmentId, assessmentId),
+      );
+      expect(authoredQuestion).toBeDefined();
+      const startedResponse = page.waitForResponse((response) =>
+        response.url().endsWith(`/api/student/courses/${uiCourseId}/assessments/${assessmentId}/attempts`) &&
+        response.request().method() === "POST",
+      );
+      const detailsResponse = page.waitForResponse((response) =>
+        response.url().includes(`/api/student/courses/${uiCourseId}/assessments/${assessmentId}/attempts/`) &&
+        response.request().method() === "GET",
+      );
+      await studentCard.getByRole("button", { name: "شروع / تلاش تازه" }).click();
+      const started = await startedResponse;
+      expect(started.status()).toBe(201);
+      const { attemptId } = await started.json() as { attemptId: string };
+      const attemptDetails = await detailsResponse;
+      expect(attemptDetails.status()).toBe(200);
+      const attemptBody = await attemptDetails.json();
+      expect(attemptBody.attempt.questions).toHaveLength(1);
+      expect(attemptBody.attempt.questions[0].prompt).toBe(authoredQuestion!.prompt);
+      expect(JSON.stringify(attemptBody)).not.toContain("correctOption");
+      const questionField = studentCard.locator("fieldset").filter({
+        hasText: authoredQuestion!.prompt,
+      });
+      await questionField.getByRole("radio").nth(authoredQuestion!.correctOption).check();
+      const submissionResponse = page.waitForResponse((response) =>
+        response.url().endsWith(`/api/student/courses/${uiCourseId}/assessments/${assessmentId}/attempts/${attemptId}`) &&
+        response.request().method() === "POST",
+      );
+      await studentCard.getByRole("button", { name: "ثبت نهایی پاسخ‌ها" }).click();
+      expect((await submissionResponse).status()).toBe(201);
+      await expect(studentCard.getByText("ارزیابی تکمیل شد.")).toBeVisible();
+      await expect(studentCard.getByText("1 از 1 پاسخ درست.")).toBeVisible();
+      await expect(studentCard).not.toContainText("پاسخ درست دوره");
+      await page.reload();
+      const persistedCard = page.locator("article").filter({ hasText: title });
+      await expect(persistedCard.getByText(
+        "این ارزیابی را با موفقیت تکمیل کرده‌اید. کلید پاسخ نمایش داده نمی‌شود.",
+      )).toBeVisible();
+      await expect(persistedCard.getByRole("radio")).toHaveCount(0);
     } finally {
       const stored = await db.select({ id: courseLearningAssessments.id })
         .from(courseLearningAssessments).where(eq(courseLearningAssessments.courseId, uiCourseId));
       const ids = stored.map((row) => row.id);
       if (ids.length > 0) {
+        const attempts = await db.select({ id: studentLearningAssessmentAttempts.id })
+          .from(studentLearningAssessmentAttempts)
+          .where(inArray(studentLearningAssessmentAttempts.assessmentId, ids));
+        const attemptIds = attempts.map((row) => row.id);
+        if (attemptIds.length > 0) {
+          await db.delete(studentLearningAssessmentLessonReviews)
+            .where(inArray(studentLearningAssessmentLessonReviews.attemptId, attemptIds));
+          await db.delete(studentLearningAssessmentAttemptQuestions)
+            .where(inArray(studentLearningAssessmentAttemptQuestions.attemptId, attemptIds));
+          await db.delete(studentLearningAssessmentAttempts)
+            .where(inArray(studentLearningAssessmentAttempts.id, attemptIds));
+        }
         await db.delete(auditLogs).where(inArray(auditLogs.entityId, ids));
         await db.delete(courseLearningAssessmentQuestions)
           .where(inArray(courseLearningAssessmentQuestions.assessmentId, ids));
