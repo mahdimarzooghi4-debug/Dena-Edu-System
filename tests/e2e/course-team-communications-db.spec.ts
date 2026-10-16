@@ -556,6 +556,38 @@ test.describe("course team communication and problem-solving stay course-scoped"
     await counselor.dispose();
   });
 
+  test("student can request and track a support session through the browser", async ({ page }) => {
+    const cookie = await serializeSignedCookie(
+      "better-auth.session_token", tokens.student,
+      process.env.BETTER_AUTH_SECRET!,
+    );
+    const cookiePair = cookie.split(";")[0];
+    const cookieSeparator = cookiePair.indexOf("=");
+    await page.context().addCookies([{
+      name: cookiePair.slice(0, cookieSeparator),
+      value: cookiePair.slice(cookieSeparator + 1),
+      url: "http://localhost:3000",
+      httpOnly: true,
+      sameSite: "Lax",
+    }]);
+
+    await page.goto(`http://localhost:3000/student/courses/${courseId}`);
+    await page.getByRole("link", { name: /پشتیبان آزمون/ }).click();
+
+    const subject = "پیگیری رفع اشکال از رابط دانش‌آموز";
+    const description = "برای حل تمرین‌های پایانی راهنمایی می‌خواهم.";
+    await page.getByLabel("موضوع درخواست").fill(subject);
+    await page.getByLabel("توضیح کوتاه").fill(description);
+    await page.getByRole("button", { name: "ثبت درخواست" }).click();
+    await expect(page.getByText("درخواست جلسه ثبت شد.")).toBeVisible();
+    const requestCard = page.locator("li").filter({ hasText: subject });
+    await expect(requestCard).toContainText(description);
+    await expect(requestCard).toContainText("ثبت‌شده");
+
+    await page.reload();
+    await expect(page.locator("li").filter({ hasText: subject })).toContainText(description);
+  });
+
   test("deactivation immediately closes both messaging and session capability", async () => {
     const institute = await client("institute");
     const student = await client("student");
