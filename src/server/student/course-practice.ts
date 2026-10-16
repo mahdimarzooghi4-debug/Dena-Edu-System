@@ -5,9 +5,11 @@ import { isVerifiedProviderCourse } from "../courses/ownership";
 import { learningConceptIdSchema } from "../ai-tutor/learning-concepts";
 import {
   auditLogs, coursePracticeQuestions, courses, educatorInstituteAffiliations,
-  independentEducatorProfiles, memberships, studentPracticeAttempts, supervisionGrants,
+  independentEducatorProfiles, memberships, studentEnrollments,
+  studentPracticeAttempts, supervisionGrants,
 } from "../../db/schema";
 import { auditLogRecord } from "../admin/audit";
+import { hasStudentEntitlement } from "./entitlement";
 
 const option = z.string().trim().min(1).max(160).refine((value) =>
   !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/u.test(value),
@@ -313,6 +315,17 @@ export async function submitStudentPractice(
   studentUserId: string, courseId: string, selectedOption: number,
 ) {
   return getDb().transaction(async (tx) => {
+    // Keep cancellation and answer creation in one order. If cancellation
+    // already owns the enrollment row, no answer is written; if this lock wins,
+    // cancellation waits until the authorized answer is committed.
+    const [enrollment] = await tx.select({ id: studentEnrollments.id })
+      .from(studentEnrollments).where(and(
+        eq(studentEnrollments.studentUserId, studentUserId),
+        eq(studentEnrollments.courseId, courseId),
+        eq(studentEnrollments.status, "active"),
+      )).limit(1).for("share");
+    if (!enrollment || !await hasStudentEntitlement(studentUserId, courseId)) return null;
+
     const [question] = await tx.select({
       correctOption: coursePracticeQuestions.correctOption,
       learningConceptId: coursePracticeQuestions.learningConceptId,
