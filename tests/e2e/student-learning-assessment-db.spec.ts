@@ -487,7 +487,8 @@ test.describe("student learning assessment lifecycle", () => {
     await page.reload();
     const completedCard = page.locator("article").filter({ hasText: "ارزیابی فصل" });
     await expect(completedCard.getByText("این ارزیابی را با موفقیت تکمیل کرده‌اید.")).toBeVisible();
-    await expect(completedCard.getByText("پاسخ درست")).toHaveCount(0);
+    await expect(completedCard.getByRole("radio")).toHaveCount(0);
+    await expect(completedCard.getByText("کلید پاسخ نمایش داده نمی‌شود.")).toBeVisible();
   });
 
   test("exam attempts serialize starts, protect answer keys, and replay final results", async () => {
