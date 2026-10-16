@@ -476,7 +476,10 @@ test.describe("student learning assessment lifecycle", () => {
     await card.getByRole("button", { name: "بازبینی کردم" }).click();
     await expect(card.getByText("همه بازبینی‌ها ثبت شدند؛ اکنون می‌توانید تلاش تازه را شروع کنید.")).toBeVisible();
     await card.getByRole("button", { name: "شروع / تلاش تازه" }).click();
-    await expect(card.getByText("کدام گزینه پاسخ درست پرسش 1 است؟")).toBeVisible();
+    await expect.poll(
+      () => card.getByText("کدام گزینه پاسخ درست پرسش 1 است؟").isVisible(),
+      { message: `Retry response: ${startResponse}` },
+    ).toBe(true);
 
     await card.getByRole("radio").nth(0).check();
     await card.getByRole("radio").nth(4).check();
