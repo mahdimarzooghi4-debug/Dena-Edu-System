@@ -219,27 +219,41 @@ export async function sendCourseTeamReply(
 
     if (!liveAssignment) return null;
 
+    // Take the enrollment lock before the conversation lock. Student writes
+    // use this same order; locking a joined conversation/enrollment query can
+    // otherwise deadlock with a student message waiting on the conversation's
+    // foreign-key lock while holding the enrollment row.
+    const [identity] = await tx.select({
+      studentUserId: courseConversations.studentUserId,
+    }).from(courseConversations).where(and(
+      eq(courseConversations.id, conversationId),
+      eq(courseConversations.teamMemberId, teamMemberId),
+      eq(courseConversations.courseId, assignment.courseId),
+    )).limit(1);
+    if (!identity) return null;
+
+    const [enrollment] = await tx.select({
+      studentUserId: studentEnrollments.studentUserId,
+    }).from(studentEnrollments).where(and(
+      eq(studentEnrollments.studentUserId, identity.studentUserId),
+      eq(studentEnrollments.courseId, assignment.courseId),
+      eq(studentEnrollments.status, "active"),
+    )).limit(1).for("share");
+
+    if (!enrollment || !await hasStudentEntitlement(
+      enrollment.studentUserId, assignment.courseId,
+    )) return null;
+
     const [conversation] = await tx.select({
       id: courseConversations.id,
-      studentUserId: courseConversations.studentUserId,
-    }).from(courseConversations)
-      .innerJoin(studentEnrollments, and(
-        eq(studentEnrollments.studentUserId, courseConversations.studentUserId),
-        eq(studentEnrollments.courseId, courseConversations.courseId),
-        eq(studentEnrollments.status, "active"),
-      ))
-      .where(and(
-        eq(courseConversations.id, conversationId),
-        eq(courseConversations.teamMemberId, teamMemberId),
-        eq(courseConversations.courseId, assignment.courseId),
-      ))
-      .limit(1)
-      .for("update");
+    }).from(courseConversations).where(and(
+      eq(courseConversations.id, conversationId),
+      eq(courseConversations.teamMemberId, teamMemberId),
+      eq(courseConversations.courseId, assignment.courseId),
+      eq(courseConversations.studentUserId, enrollment.studentUserId),
+    )).limit(1).for("update");
 
-    if (!conversation ||
-        !await hasStudentEntitlement(
-          conversation.studentUserId, assignment.courseId,
-        )) return null;
+    if (!conversation) return null;
 
     const [message] = await tx.insert(courseConversationMessages).values({
       conversationId,
