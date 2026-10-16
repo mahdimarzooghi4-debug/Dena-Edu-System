@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { Card } from "../../../components/ui/card";
 import { ServiceOrderConsent } from "../../../components/institute/service-order-consent";
+import { InstituteServiceCallManagement } from "../../../components/institute/service-call-management";
 import { getServerAccessContext } from "../../../server/access/actor";
 import { getInstituteServiceOrders } from "../../../server/institute/service-orders";
 
@@ -20,12 +21,6 @@ const statusClass = {
   awaiting_payment: "bg-sky-100 text-sky-900",
   paid: "bg-emerald-100 text-emerald-900",
   cancelled: "bg-slate-100 text-slate-700",
-} as const;
-const callStatusLabel = {
-  scheduled: "زمان‌بندی‌شده",
-  started: "شروع‌شده",
-  ended: "پایان‌یافته",
-  cancelled: "لغوشده",
 } as const;
 
 export default async function InstituteServiceOrdersPage() {
@@ -79,12 +74,14 @@ export default async function InstituteServiceOrdersPage() {
             </>}
             <div className="flex justify-between gap-3"><dt className="text-dena-muted">تاریخ ثبت</dt><dd className="font-bold text-dena-deep">{new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium", timeZone: "Asia/Tehran" }).format(order.createdAt)}</dd></div>
           </dl>
-          {order.calls.length > 0 && <section aria-label="جلسه‌های خدمت" className="space-y-2 rounded-xl border border-dena-lavender p-4">
-            <h4 className="text-sm font-extrabold text-dena-deep">جلسه‌های خدمت</h4>
-            {order.calls.map((call) => <p key={call.id} className="text-sm text-dena-muted">
-              {new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Tehran" }).format(call.scheduledAt)} · {callStatusLabel[call.status]}
-            </p>)}
-          </section>}
+          <InstituteServiceCallManagement
+            orderId={order.id}
+            orderStatus={order.status}
+            remainingMinutes={order.remainingMinutes}
+            calls={order.calls.map((call) => ({
+              ...call, scheduledAt: call.scheduledAt.toISOString(),
+            }))}
+          />
           {order.status === "awaiting_guardian_consent" && <ServiceOrderConsent orderId={order.id} />}
         </Card></li>)}
       </ul>

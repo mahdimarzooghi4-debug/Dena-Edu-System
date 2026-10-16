@@ -259,10 +259,38 @@ test.describe("institute service order guardian consent", () => {
     const institutePage = await institute.get("/institute/service-orders");
     expect(await institutePage.text()).toContain("مصرف ثبت‌شده");
     expect(await institutePage.text()).toContain("۶۰ دقیقه");
+
+    const cookie = await serializeSignedCookie(
+      "better-auth.session_token", tokens.institute, process.env.BETTER_AUTH_SECRET!,
+    );
+    const cookiePair = cookie.split(";")[0];
+    const cookieSeparator = cookiePair.indexOf("=");
+    await page.context().addCookies([{
+      name: cookiePair.slice(0, cookieSeparator),
+      value: cookiePair.slice(cookieSeparator + 1),
+      url: "http://localhost:3000",
+    }]);
+    await page.goto("http://localhost:3000/institute/service-orders");
+    const orderCard = page.locator("li").filter({ hasText: `کد درخواست ${orderId.slice(0, 8)}` });
+    const plannedAt = new Date(Date.now() + 120_000);
+    const localDateTime = `${plannedAt.getFullYear()}-${String(plannedAt.getMonth() + 1).padStart(2, "0")}-${String(plannedAt.getDate()).padStart(2, "0")}T${String(plannedAt.getHours()).padStart(2, "0")}:${String(plannedAt.getMinutes()).padStart(2, "0")}`;
+    await orderCard.getByLabel("زمان جلسه").fill(localDateTime);
+    const scheduleResponsePromise = page.waitForResponse((response) =>
+      response.url().endsWith(`/api/institute/service-orders/${orderId}/calls`) &&
+      response.request().method() === "POST",
+    );
+    await orderCard.getByRole("button", { name: "زمان‌بندی جلسه" }).click();
+    const scheduleResponse = await scheduleResponsePromise;
+    expect(scheduleResponse.status()).toBe(201);
+    const browserCallId = (await scheduleResponse.json()).call.id as string;
+    createdServiceCallIds.push(browserCallId);
+    await expect(orderCard.getByText("زمان‌بندی‌شده")).toBeVisible();
+    await orderCard.getByRole("button", { name: "لغو جلسه" }).last().click();
+    await expect(orderCard.getByText("لغوشده")).toBeVisible();
     await institute.dispose();
   });
 
-  test("scopes call scheduling to paid consented service quotas and audits its lifecycle", async () => {
+  test("scopes call scheduling to paid consented service quotas and audits its lifecycle", async ({ page }) => {
     const scheduledAt = new Date(Date.now() + 60_000).toISOString();
     const idempotencyKey = randomUUID();
     const path = `/api/institute/service-orders/${orderId}/calls`;
