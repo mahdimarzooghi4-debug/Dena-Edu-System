@@ -438,6 +438,13 @@ test.describe("student learning assessment lifecycle", () => {
   });
 
   test("student completes a learning assessment and lesson review through the browser", async ({ page }) => {
+    let startResponse = "no attempt-start response captured";
+    page.on("response", async (response) => {
+      if (response.url().endsWith(`/api/student/courses/${courseId}/assessments/${assessmentId}/attempts`) &&
+          response.request().method() === "POST") {
+        startResponse = `${response.status()} ${await response.text()}`;
+      }
+    });
     const cookie = await serializeSignedCookie(
       "better-auth.session_token", tokens.browserStudent, process.env.BETTER_AUTH_SECRET!,
     );
@@ -452,7 +459,10 @@ test.describe("student learning assessment lifecycle", () => {
     const card = page.locator("article").filter({ hasText: "ارزیابی فصل" });
     await expect(card).toBeVisible();
     await card.getByRole("button", { name: "شروع / تلاش تازه" }).click();
-    await expect(card.getByText("کدام گزینه پاسخ درست پرسش 1 است؟")).toBeVisible();
+    await expect.poll(
+      () => card.getByText("کدام گزینه پاسخ درست پرسش 1 است؟").isVisible(),
+      { message: `Attempt start response: ${startResponse}` },
+    ).toBe(true);
     await expect(card.getByText("پاسخ هر پرسش نمایش داده نمی‌شود.")).toHaveCount(0);
 
     await card.getByRole("radio").nth(1).check();
