@@ -504,6 +504,10 @@ test.describe("student learning assessment lifecycle", () => {
     const submit = await post(other, attemptPath, {});
     expect(submit.status()).toBe(409);
     expect(await submit.json()).toMatchObject({ error: "not_enrolled" });
+    await db.delete(studentEnrollments).where(and(
+      eq(studentEnrollments.studentUserId, users.other),
+      eq(studentEnrollments.courseId, courseId),
+    ));
     await other.dispose();
   });
 
