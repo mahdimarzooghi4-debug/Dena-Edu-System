@@ -1,12 +1,11 @@
-import { and, eq } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import { getDb } from "../../../../../../../../db";
-import { studentVideoCompletions } from "../../../../../../../../db/schema";
 import { getServerAccessContext } from "../../../../../../../../server/access/actor";
 import { validSameOrigin } from "../../../../../../../../server/access/role-application-contracts";
 import { hasStudentEntitlement } from "../../../../../../../../server/student/entitlement";
-import { isReadyVideoOfCourse } from "../../../../../../../../server/student/video-progress";
+import {
+  isReadyVideoOfCourse, setStudentVideoCompletion,
+} from "../../../../../../../../server/student/video-progress";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -51,15 +50,15 @@ export async function POST(request: NextRequest, params: Params) {
     });
   }
   const { actor, courseId, assetId } = checked;
-  const [created] = await getDb().insert(studentVideoCompletions).values({
-    studentUserId: actor!.userId, assetId: assetId!,
-  }).onConflictDoNothing({
-    target: [studentVideoCompletions.studentUserId,
-      studentVideoCompletions.assetId],
-  }).returning({ id: studentVideoCompletions.id });
+  const result = await setStudentVideoCompletion(
+    actor!.userId, courseId!, assetId!, true,
+  );
+  if (!result) return NextResponse.json({ error: "Not found" }, {
+    status: 404, headers: noStore,
+  });
   return NextResponse.json({ courseId, assetId, completed: true,
-    replayed: !created }, {
-    status: created ? 201 : 200, headers: noStore,
+    replayed: !result.created }, {
+    status: result.created ? 201 : 200, headers: noStore,
   });
 }
 
@@ -68,10 +67,9 @@ export async function DELETE(request: NextRequest, params: Params) {
   const checked = await authorized(request, params);
   if (checked.error) return checked.error;
   const { actor, courseId, assetId } = checked;
-  await getDb().delete(studentVideoCompletions).where(and(
-    eq(studentVideoCompletions.studentUserId, actor!.userId),
-    eq(studentVideoCompletions.assetId, assetId!),
-  ));
+  if (!await setStudentVideoCompletion(actor!.userId, courseId!, assetId!, false)) {
+    return NextResponse.json({ error: "Not found" }, { status: 404, headers: noStore });
+  }
   return NextResponse.json({ courseId, assetId, completed: false }, {
     headers: noStore,
   });

@@ -18,6 +18,7 @@ test.describe("free enrollment and private video access must stay course-scoped"
   const users = {
     admin: randomUUID(), provider: randomUUID(), institute: randomUUID(),
     student: randomUUID(), otherStudent: randomUUID(), stranger: randomUUID(),
+    raceStudent: randomUUID(),
   };
   const tokens = Object.fromEntries(
     Object.keys(users).map((name) => [name, randomUUID()]),
@@ -79,6 +80,7 @@ test.describe("free enrollment and private video access must stay course-scoped"
       { userId: users.student, role: "student" },
       { userId: users.otherStudent, role: "student" },
       { userId: users.stranger, role: "student" },
+      { userId: users.raceStudent, role: "student" },
     ]);
     const expiresAt = new Date(Date.now() + 3_600_000);
     await db.insert(session).values(
@@ -1350,6 +1352,56 @@ test.describe("free enrollment and private video access must stay course-scoped"
         eq(studentPracticeAttempts.studentUserId, users.stranger),
       ));
     expect(after?.id ?? null).toBe(afterRace?.id ?? null);
+    await student.dispose();
+  });
+
+  test("video completion and private-note writes serialize with cancellation", async () => {
+    const student = await client("raceStudent");
+    expect((await post(student, enrollPath(ids.live), {})).status()).toBe(201);
+    const note = "یادداشت هم‌زمان با لغو ثبت‌نام";
+    const [completion, savedNote, cancelled] = await Promise.all([
+      post(student, progressPath(ids.live, videoIds.ready), {}),
+      student.put(notePath(ids.live, videoIds.ready), {
+        data: { note }, headers: { Origin: "http://localhost:3000" },
+      }),
+      post(student, `/api/student/courses/${ids.live}/cancel`, {}),
+    ]);
+    expect([201, 404]).toContain(completion.status());
+    expect([200, 404]).toContain(savedNote.status());
+    expect(cancelled.status()).toBe(200);
+    const [completionBeforeRetry] = await db.select({ id: studentVideoCompletions.id })
+      .from(studentVideoCompletions).where(and(
+        eq(studentVideoCompletions.studentUserId, users.raceStudent),
+        eq(studentVideoCompletions.assetId, videoIds.ready),
+      ));
+    const [noteBeforeRetry] = await db.select({ id: studentVideoNotes.id, body: studentVideoNotes.body })
+      .from(studentVideoNotes).where(and(
+        eq(studentVideoNotes.studentUserId, users.raceStudent),
+        eq(studentVideoNotes.assetId, videoIds.ready),
+      ));
+    expect(completion.status() === 201).toBe(Boolean(completionBeforeRetry));
+    expect(savedNote.status() === 200).toBe(noteBeforeRetry?.body === note);
+    expect((await post(student, progressPath(ids.live, videoIds.ready), {})).status())
+      .toBe(404);
+    expect((await student.put(notePath(ids.live, videoIds.ready), {
+      data: { note: "ویرایش پس از لغو" },
+      headers: { Origin: "http://localhost:3000" },
+    })).status()).toBe(404);
+    expect((await student.delete(notePath(ids.live, videoIds.ready), {
+      headers: { Origin: "http://localhost:3000" },
+    })).status()).toBe(404);
+    const [completionAfterRetry] = await db.select({ id: studentVideoCompletions.id })
+      .from(studentVideoCompletions).where(and(
+        eq(studentVideoCompletions.studentUserId, users.raceStudent),
+        eq(studentVideoCompletions.assetId, videoIds.ready),
+      ));
+    const [noteAfterRetry] = await db.select({ id: studentVideoNotes.id, body: studentVideoNotes.body })
+      .from(studentVideoNotes).where(and(
+        eq(studentVideoNotes.studentUserId, users.raceStudent),
+        eq(studentVideoNotes.assetId, videoIds.ready),
+      ));
+    expect(completionAfterRetry?.id ?? null).toBe(completionBeforeRetry?.id ?? null);
+    expect(noteAfterRetry ?? null).toEqual(noteBeforeRetry ?? null);
     await student.dispose();
   });
 
