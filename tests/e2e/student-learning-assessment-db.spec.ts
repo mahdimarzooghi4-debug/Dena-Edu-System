@@ -462,6 +462,7 @@ test.describe("student learning assessment lifecycle", () => {
     await expect(card.getByRole("link", { name: "رفتن به ویدئوی درس" })).toHaveCount(2);
 
     await card.getByRole("button", { name: "بازبینی کردم" }).first().click();
+    await expect(card.getByRole("button", { name: "بازبینی کردم" })).toHaveCount(1);
     await card.getByRole("button", { name: "بازبینی کردم" }).click();
     await expect(card.getByText("همه بازبینی‌ها ثبت شدند؛ اکنون می‌توانید تلاش تازه را شروع کنید.")).toBeVisible();
     await card.getByRole("button", { name: "شروع / تلاش تازه" }).click();
