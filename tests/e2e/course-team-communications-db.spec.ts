@@ -617,10 +617,10 @@ test.describe("course team communication and problem-solving stay course-scoped"
     const sessionCard = page.locator("li").filter({ hasText: subject }).nth(1);
     await expect(sessionCard).toContainText("برنامه‌ریزی‌شده");
     await sessionCard.getByRole("button", { name: "جلسه برگزار شد" }).click();
-    await expect(sessionCard).toContainText("برگزارشده");
+    await expect(sessionCard).toContainText("برگزارش‌شده");
     await page.reload();
     await expect(page.locator("li").filter({ hasText: subject })
-      .filter({ hasText: "برگزارشده" })).toBeVisible();
+      .filter({ hasText: "برگزارش‌شده" })).toBeVisible();
 
     await setIdentity("student");
     await page.goto(`http://localhost:3000/student/courses/${courseId}`);
@@ -628,7 +628,7 @@ test.describe("course team communication and problem-solving stay course-scoped"
     await expect(page.locator("li").filter({ hasText: subject }))
       .toContainText("تعیین جلسه");
     await expect(page.locator("li").filter({ hasText: subject }))
-      .toContainText("برگزارشده");
+      .toContainText("برگزارش‌شده");
   });
 
   test("deactivation immediately closes both messaging and session capability", async () => {
