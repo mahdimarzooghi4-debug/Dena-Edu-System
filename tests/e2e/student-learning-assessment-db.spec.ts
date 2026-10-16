@@ -39,6 +39,7 @@ test.describe("student learning assessment lifecycle", () => {
   const instituteBankId = randomUUID();
   const denaExamId = randomUUID();
   const instituteExamId = randomUUID();
+  const uiExamId = randomUUID();
   const denaExamQuestionIds = [randomUUID(), randomUUID()];
   const instituteExamQuestionId = randomUUID();
   const denaOwnerId = "00000000-0000-0000-0000-000000000001";
@@ -105,6 +106,12 @@ test.describe("student learning assessment lifecycle", () => {
         courseId, title: "آزمون مؤسسه", instructions: "آزمون آزمایشی",
         startsAt: examStartsAt, endsAt: examEndsAt, durationMinutes: 30,
         attemptLimit: 1, status: "published", createdByUserId: users.admin },
+      { id: uiExamId, examType: "dena_coordinated",
+        ownerType: "dena", ownerId: denaOwnerId, bankId: denaBankId,
+        courseId: null, title: "آزمون رابط کاربری",
+        instructions: "پاسخ‌ها را از رابط دانش‌آموز ثبت کنید.",
+        startsAt: examStartsAt, endsAt: examEndsAt, durationMinutes: 30,
+        attemptLimit: 1, status: "published", createdByUserId: users.admin },
     ]);
     await db.insert(assessmentQuestionBankQuestions).values(denaExamQuestionIds.map(
       (id, index) => ({
@@ -120,6 +127,15 @@ test.describe("student learning assessment lifecycle", () => {
         examId: denaExamId, bankId: denaBankId, ownerType: "dena" as const,
         ownerId: denaOwnerId, bankQuestionId, position,
         prompt: `پرسش آزمون دنا ${position + 1} چیست؟`,
+        option0: "پاسخ درست", option1: "گزینه دوم", option2: "گزینه سوم",
+        option3: "گزینه چهارم", correctOption: 0, points: 1,
+      }),
+    ));
+    await db.insert(assessmentExamQuestions).values(denaExamQuestionIds.map(
+      (bankQuestionId, position) => ({
+        examId: uiExamId, bankId: denaBankId, ownerType: "dena" as const,
+        ownerId: denaOwnerId, bankQuestionId, position,
+        prompt: `پرسش آزمون رابط کاربری ${position + 1} چیست؟`,
         option0: "پاسخ درست", option1: "گزینه دوم", option2: "گزینه سوم",
         option3: "گزینه چهارم", correctOption: 0, points: 1,
       }),
@@ -177,10 +193,10 @@ test.describe("student learning assessment lifecycle", () => {
 
   test.afterAll(async () => {
     await db.delete(assessmentExamAttempts).where(inArray(
-      assessmentExamAttempts.examId, [denaExamId, instituteExamId],
+      assessmentExamAttempts.examId, [denaExamId, instituteExamId, uiExamId],
     ));
     await db.delete(assessmentExams).where(inArray(assessmentExams.id,
-      [denaExamId, instituteExamId]));
+      [denaExamId, instituteExamId, uiExamId]));
     await db.delete(assessmentQuestionBankQuestions)
       .where(inArray(assessmentQuestionBankQuestions.id,
         [...denaExamQuestionIds, instituteExamQuestionId]));
@@ -388,6 +404,32 @@ test.describe("student learning assessment lifecycle", () => {
     expect(html).toContain("آزمون مؤسسه");
     expect(html).toContain("/student/assessments");
     await student.dispose();
+  });
+
+  test("student can start, answer, and submit an exam through the browser", async ({ page }) => {
+    const cookie = await serializeSignedCookie(
+      "better-auth.session_token", tokens.student, process.env.BETTER_AUTH_SECRET!,
+    );
+    const pair = cookie.split(";")[0];
+    const separator = pair.indexOf("=");
+    await page.context().addCookies([{
+      name: pair.slice(0, separator), value: pair.slice(separator + 1),
+      url: "http://127.0.0.1:3000",
+    }]);
+
+    await page.goto("http://127.0.0.1:3000/student/assessments");
+    const card = page.locator("article").filter({ hasText: "آزمون رابط کاربری" });
+    await expect(card).toBeVisible();
+    await card.getByRole("button", { name: "شروع آزمون" }).click();
+    await expect(page).toHaveURL(new RegExp(`/student/exams/${uiExamId}/attempt/`));
+    await expect(page.getByText("زمان باقی‌مانده:")).toBeVisible();
+    await expect(page.getByText("پرسش آزمون رابط کاربری 1 چیست؟")).toBeVisible();
+
+    await page.getByRole("radio").first().check();
+    await expect(page.getByText("1 از 2 پاسخ ذخیره شد")).toBeVisible();
+    await page.getByRole("button", { name: "ثبت نهایی پاسخ‌ها" }).click();
+    await expect(page.getByRole("heading", { name: "نتیجهٔ شما" })).toBeVisible();
+    await expect(page.getByText("1 از 2 امتیاز")).toBeVisible();
   });
 
   test("exam attempts serialize starts, protect answer keys, and replay final results", async () => {
