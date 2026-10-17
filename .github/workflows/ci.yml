@@ -114,6 +114,13 @@ jobs:
           fi
       - name: Apply migrations to disposable PostgreSQL
         run: npx drizzle-kit migrate
+      - name: Verify PostgreSQL backup and restore in disposable CI database
+        if: matrix.shard == 'operations'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client-16
+          pg_dump --version
+          node scripts/test-postgres-backup-restore.mjs
       - name: Build for database-backed browser tests
         run: npm run build
       - name: Install Chromium
