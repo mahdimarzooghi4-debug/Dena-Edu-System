@@ -195,6 +195,7 @@ test.describe("course-scoped provider requests and independent institute decisio
     expect(ownHtml).toContain("دوره دوم برای اطمینان از تفکیک مجوز");
     expect(ownHtml).toContain("در انتظار بررسی مؤسسه");
     expect(ownHtml).toContain("ویدئوهای آماده:");
+    expect(ownHtml).toContain("ثبت‌نام فعال:");
     expect(ownHtml).toContain("سؤال تمرینی:");
     expect(ownHtml).toContain("ثبت نشده");
     expect(ownHtml).not.toContain(`/provider/courses/${courseIds[0]}/media`);

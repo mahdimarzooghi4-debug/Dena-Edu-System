@@ -130,6 +130,9 @@ export default async function ProviderHomePage() {
                   ویدئوهای آماده: {course.readyVideos.toLocaleString("fa-IR")}
                 </p>
                 <p className="text-sm text-dena-muted">
+                  ثبت‌نام فعال: {course.activeEnrollmentCount.toLocaleString("fa-IR")}
+                </p>
+                <p className="text-sm text-dena-muted">
                   سؤال تمرینی: {practiceLabels[course.practiceReviewStatus]}
                 </p>
                 <div className="rounded-xl bg-dena-bg p-4">
@@ -185,7 +188,9 @@ export default async function ProviderHomePage() {
         <p className="mt-3 text-sm leading-8 text-dena-muted">
           یک تمرین چهارگزینه‌ایِ اختیاری برای هر دوره اکنون قابل ثبت است؛
           شمار ویدئوهای آماده و وضعیت بررسی سؤال فقط metadata واقعی همان دوره‌اند.
-          تکلیف جامع، آزمون رسمی، آمار دانش‌آموزان و درآمد هنوز به این صفحه متصل نیستند.
+          شمار ثبت‌نام فعال فقط تعداد عضویت‌های فعال دوره است و هیچ هویت یا پروندهٔ
+          دانش‌آموزی را نشان نمی‌دهد. درآمد و گزارش نتایج آزمون رسمی به این صفحه متصل
+          نیستند؛ آزمون رسمی در محدودهٔ دنا یا مؤسسه مدیریت می‌شود.
           تأیید نقش ارائه‌دهنده به معنی تأیید خودکار نظارت یا انتشار دوره نیست.
         </p>
       </Card>

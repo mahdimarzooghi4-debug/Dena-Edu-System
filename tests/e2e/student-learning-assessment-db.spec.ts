@@ -1358,8 +1358,11 @@ test.describe("student learning assessment lifecycle", () => {
     const providerHomeHtml = await providerHome.text();
     expect(providerHomeHtml).toContain("ارزیابی‌های یادگیری");
     expect(providerHomeHtml).toContain("تأییدشده");
+    expect(providerHomeHtml).toMatch(/ثبت‌نام فعال:(?: <!-- -->)۲/);
     expect(providerHomeHtml).toContain(`/provider/courses/${courseId}/assessments`);
     expect(providerHomeHtml).toContain('href="/provider/courses"');
+    expect(providerHomeHtml).not.toContain(`${users.student}@assessment.example.test`);
+    expect(providerHomeHtml).not.toContain(`${users.browserStudent}@assessment.example.test`);
     expect(providerHomeHtml).not.toContain("کدام گزینه پاسخ درست پرسش 1 است؟");
     const providerCourses = await provider.get("/provider/courses");
     expect(providerCourses.status()).toBe(200);
