@@ -28,7 +28,8 @@ export async function createOrganizationStudent(input: {
 }) {
   const db = getDb();
   const nationalCodeHash = nationalCodeTenantHash(input.organizationId, input.record.nationalCode);
-  return db.transaction(async (tx) => {
+  try {
+    return await db.transaction(async (tx) => {
     const [membership] = await tx.select({ id: memberships.id }).from(memberships)
       .innerJoin(verifiedEntities, and(
         eq(verifiedEntities.id, memberships.organizationId),
@@ -120,7 +121,21 @@ export async function createOrganizationStudent(input: {
       entityId: student.id,
     });
     return student;
-  });
+    });
+  } catch (error) {
+    if (isUniqueConstraintViolation(error)) throw new OrganizationStudentError("duplicate");
+    throw error;
+  }
+}
+
+function isUniqueConstraintViolation(error: unknown): boolean {
+  let current: unknown = error;
+  for (let depth = 0; depth < 4 && current && typeof current === "object"; depth += 1) {
+    const candidate = current as { code?: unknown; cause?: unknown };
+    if (candidate.code === "23505") return true;
+    current = candidate.cause;
+  }
+  return false;
 }
 
 export async function listOrganizationStudents(

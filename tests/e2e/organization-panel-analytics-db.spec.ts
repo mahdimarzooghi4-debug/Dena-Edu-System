@@ -4,7 +4,7 @@ import { serializeSignedCookie } from "better-call";
 import { test, expect, request, type APIRequestContext } from "@playwright/test";
 import { getDb } from "../../src/db";
 import {
-  memberships, organizationStudents, session, user, verifiedEntities,
+  auditLogs, memberships, organizationStudents, session, user, verifiedEntities,
 } from "../../src/db/schema";
 import { getOrganizationPanelSnapshot } from "../../src/server/organization/analytics";
 import { getOrganizationScopes } from "../../src/server/organization/scopes";
@@ -178,5 +178,52 @@ test.describe("organization reports use only active tenant scopes", () => {
     await expect(page).toHaveURL(new RegExp(`organizationId=${secondOrganizationId}`));
     await expect(page.locator("tbody")).toContainText("second");
     await expect(page.locator("tbody")).not.toContainText("verified");
+  });
+
+  test("concurrent duplicate student creation returns one conflict", async () => {
+    const organization = await client();
+    const phone = () => `+989${randomUUID().replace(/[^0-9]/g, "").padEnd(9, "7").slice(0, 9)}`;
+    const payload = (phoneNumber: string) => ({
+      organizationId,
+      student: {
+        firstName: "هم‌زمان", lastName: "آزمایشی", nationalCode: "1234567891",
+        birthDate: "2010-01-01", gender: "prefer_not_to_say", phoneNumber,
+      },
+      guardianConsentConfirmed: true,
+    });
+    let createdStudentId: string | undefined;
+
+    try {
+      const origin = new URL(process.env.BETTER_AUTH_URL!).origin;
+      const responses = await Promise.all([
+        organization.post("/api/organization/students", {
+          headers: { Origin: origin }, data: payload(phone()),
+        }),
+        organization.post("/api/organization/students", {
+          headers: { Origin: origin }, data: payload(phone()),
+        }),
+      ]);
+      expect(responses.map((response) => response.status()).sort()).toEqual([201, 409]);
+      const successfulResponse = responses.find((response) => response.status() === 201);
+      expect(successfulResponse).toBeDefined();
+      const result = await successfulResponse!.json();
+      const studentId: string = result.student.id;
+      createdStudentId = studentId;
+      const [created] = await db.select({ id: organizationStudents.id, userId: organizationStudents.userId })
+        .from(organizationStudents).where(eq(organizationStudents.id, studentId)).limit(1);
+      expect(created).toBeDefined();
+    } finally {
+      if (createdStudentId) {
+        const [created] = await db.select({ userId: organizationStudents.userId })
+          .from(organizationStudents).where(eq(organizationStudents.id, createdStudentId)).limit(1);
+        await db.delete(auditLogs).where(eq(auditLogs.entityId, createdStudentId));
+        await db.delete(organizationStudents).where(eq(organizationStudents.id, createdStudentId));
+        if (created) {
+          await db.delete(memberships).where(eq(memberships.userId, created.userId));
+          await db.delete(user).where(eq(user.id, created.userId));
+        }
+      }
+      await organization.dispose();
+    }
   });
 });
