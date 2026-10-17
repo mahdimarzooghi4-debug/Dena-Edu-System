@@ -104,7 +104,7 @@ test.describe("organization reports use only active tenant scopes", () => {
     expect(pending.status()).toBe(200);
     const pendingHtml = await pending.text();
     expect(pendingHtml).toContain("فهرست فقط پرونده‌های در انتظار تأیید شماره را نشان می‌دهد");
-    expect(pendingHtml).toContain("pending fixture");
+    expect(pendingHtml).toContain("pending<!-- --> <!-- -->fixture");
     expect(pendingHtml).not.toContain("verified fixture");
     await organization.dispose();
   });
