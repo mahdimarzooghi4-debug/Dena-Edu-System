@@ -24,7 +24,9 @@ node scripts/test-postgres-backup-restore.mjs
 - `GET /api/health/ready` یک query سبک `SELECT 1` اجرا می‌کند و در اختلال DB فقط وضعیت عمومی `unavailable` با HTTP 503 برمی‌گرداند؛ متن استثنا، نام میزبان، URL یا secret در پاسخ قرار نمی‌گیرد.
 - Playwright این دو مسیر را در CI با نقش `dena_app_ci` بررسی می‌کند.
 
-این endpointها metrics، alert، history، dependency health خارج از PostgreSQL یا SLA ارائه نمی‌کنند.
+خانه مدیر و `GET /api/admin/media-operations` شمار تجمیعی وضعیت‌های ingest، processing و cleanup را برای مدیر نشان می‌دهند؛ پاسخ شامل شناسهٔ upload، عنوان، hash یا متن خطا نیست. دسترسی endpoint با session نقش admin کنترل و در CI آزموده می‌شود.
+
+این قابلیت‌ها metrics زمان‌مند، alert، history، dependency health برای scanner/storage خارج از PostgreSQL یا SLA ارائه نمی‌کنند.
 
 ## تمرین لازم برای محیط واقعی
 
