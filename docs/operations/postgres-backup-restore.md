@@ -16,6 +16,8 @@ node scripts/test-postgres-backup-restore.mjs
 
 آزمون archive سفارشی می‌سازد، آن را در یک دیتابیس جداگانه restore می‌کند، sentinel را از دیتابیس بازیابی‌شده می‌خواند، و منابع موقت را پاک می‌کند. موفقیت آن، صحت مسیر فنی dump/restore برای این نسخه از PostgreSQL را نشان می‌دهد.
 
+پس از migration و آزمون restore، هر shard نقش `dena_app_ci` را با حداقل مجوزهای DML روی جداول/sequenceها ایجاد می‌کند؛ سپس build و Playwright با این نقش اجرا می‌شوند. workflow وجود نداشتن ویژگی superuser را کنترل می‌کند. کاربر `dena_test` فقط برای ایجاد schema و migration در CI است؛ این الگو هنوز معادل طراحی و بازبینی مجوزهای production نیست.
+
 ## تمرین لازم برای محیط واقعی
 
 پیش از Stage/Production باید مالک سرویس این موارد را در runbook محیطی تکمیل و ثبت کند:
