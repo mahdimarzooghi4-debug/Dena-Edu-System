@@ -8,6 +8,7 @@ import {
   session, user, verifiedEntities,
 } from "../../src/db/schema";
 import { getOrganizationPanelSnapshot } from "../../src/server/organization/analytics";
+import { reserveOrganizationApiKeyRequest } from "../../src/server/organization/api-keys";
 import { getOrganizationScopes } from "../../src/server/organization/scopes";
 
 test.describe.configure({ mode: "serial" });
@@ -294,6 +295,15 @@ test.describe("organization reports use only active tenant scopes", () => {
         data: { ...student, guardianConsentConfirmed: true },
       });
       expect(newKeyRequest.status()).toBe(409);
+      const concurrentReservations = await Promise.all(Array.from(
+        { length: 59 }, () => reserveOrganizationApiKeyRequest(rotatedKeyId!),
+      ));
+      expect(concurrentReservations.every(Boolean)).toBe(true);
+      const overLimit = await organization.post("/api/v1/organization/students", {
+        headers: { Authorization: `Bearer ${rotatedSecret}` },
+        data: { ...student, guardianConsentConfirmed: true },
+      });
+      expect(overLimit.status()).toBe(429);
 
       const revoked = await organization.delete(`/api/organization/api-keys/${rotatedKeyId}`, {
         headers: { Origin: origin },
