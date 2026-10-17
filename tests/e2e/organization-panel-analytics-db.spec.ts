@@ -113,7 +113,9 @@ test.describe("organization reports use only active tenant scopes", () => {
     const pending = await organization.get(`/organization/students?activation=pending&organizationId=${secondOrganizationId}`);
     expect(pending.status()).toBe(200);
     const pendingHtml = await pending.text();
-    expect(pendingHtml).toContain("فهرست فقط پرونده‌های در انتظار تأیید شماره را نشان می‌دهد؛ سازمان: سازمان دوم مجاز.");
+    expect(pendingHtml).toContain("فهرست فقط پرونده‌های در انتظار تأیید شماره را نشان می‌دهد");
+    expect(pendingHtml).toContain("سازمان دوم مجاز");
+    expect(pendingHtml).toContain(`value="${secondOrganizationId}" selected=""`);
     expect(pendingHtml).toContain("second<!-- --> <!-- -->pending");
     expect(pendingHtml).not.toContain("pending<!-- --> <!-- -->fixture");
     expect(pendingHtml).not.toContain("verified fixture");
