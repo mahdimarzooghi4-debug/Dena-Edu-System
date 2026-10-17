@@ -29,6 +29,11 @@ export async function readRequestBodyAtMost(request: Request, maxBytes: number):
   return Buffer.concat(chunks, totalBytes);
 }
 
+export async function readRequestTextAtMost(request: Request, maxBytes: number): Promise<string> {
+  const body = await readRequestBodyAtMost(request, maxBytes);
+  return new TextDecoder("utf-8", { fatal: true }).decode(body);
+}
+
 /** Parses multipart form data only after the raw request has passed a byte cap. */
 export async function readFormDataAtMost(request: Request, maxBytes: number): Promise<FormData> {
   const contentType = request.headers.get("content-type");

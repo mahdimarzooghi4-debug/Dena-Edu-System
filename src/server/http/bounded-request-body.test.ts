@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  readFormDataAtMost, readRequestBodyAtMost, RequestBodyLimitError,
+  readFormDataAtMost, readRequestBodyAtMost, readRequestTextAtMost, RequestBodyLimitError,
 } from "./bounded-request-body";
 
 describe("bounded request-body readers", () => {
@@ -35,5 +35,17 @@ describe("bounded request-body readers", () => {
     expect(parsed.get("organizationId")).toBe("organization-fixture");
     expect(parsed.get("guardianConsentConfirmed")).toBe("true");
     expect((parsed.get("file") as File).name).toBe("students.csv");
+  });
+
+  it("applies the text cap to UTF-8 bytes and rejects malformed encoding", async () => {
+    const textRequest = new Request("https://example.test/intake", {
+      method: "POST", body: "سلام",
+    });
+    await expect(readRequestTextAtMost(textRequest, 7)).rejects.toBeInstanceOf(RequestBodyLimitError);
+
+    const invalidUtf8 = new Request("https://example.test/intake", {
+      method: "POST", body: new Uint8Array([0xff]),
+    });
+    await expect(readRequestTextAtMost(invalidUtf8, 8)).rejects.toThrow();
   });
 });
