@@ -161,6 +161,9 @@ export default async function InstituteHomePage() {
                   ویدئوهای آماده: {course.readyVideos.toLocaleString("fa-IR")}
                 </p>
                 <p className="text-sm text-dena-muted">
+                  ثبت‌نام فعال: {course.activeEnrollmentCount.toLocaleString("fa-IR")}
+                </p>
+                <p className="text-sm text-dena-muted">
                   سؤال تمرینی: {practiceLabels[course.practiceReviewStatus]}
                 </p>
                 <div className="space-y-1 rounded-xl bg-dena-bg p-4 text-sm">
@@ -213,8 +216,9 @@ export default async function InstituteHomePage() {
       <Card>
         <h2 className="text-lg font-extrabold">دامنهٔ این فاز</h2>
         <p className="mt-3 text-sm leading-8 text-dena-muted">
-          این صفحه آمار هویتی دانش‌آموزان، نتیجهٔ آزمون یا مدرک آموزشی
-          ارائه نمی‌کند؛ تأیید مؤسسه نیز جایگزین مجوز رسمی آموزشی نیست.
+          شمار ثبت‌نام فعال فقط تعداد عضویت‌های فعال دوره است و هیچ هویت یا پروندهٔ
+          فردی نشان نمی‌دهد. این صفحه نتیجهٔ آزمون یا مدرک آموزشی ارائه نمی‌کند؛
+          تأیید مؤسسه نیز جایگزین مجوز رسمی آموزشی نیست.
         </p>
       </Card>
     </main>

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { apiStudentInputSchema } from "../../../../../server/organization/student-contracts";
 import { createOrganizationStudent, OrganizationStudentError } from "../../../../../server/organization/students";
 import { authenticateOrganizationApiKey, reserveOrganizationApiKeyRequest } from "../../../../../server/organization/api-keys";
+import { readRequestTextAtMost, RequestBodyLimitError } from "../../../../../server/http/bounded-request-body";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,8 +19,15 @@ export async function POST(request: NextRequest) {
   }
   const contentLength = Number(request.headers.get("content-length") ?? 0);
   if (contentLength > 32_768) return NextResponse.json({ error: "Payload too large" }, { status: 413, headers: noStore });
-  const raw = await request.text();
-  if (raw.length > 32_768) return NextResponse.json({ error: "Payload too large" }, { status: 413, headers: noStore });
+  let raw: string;
+  try {
+    raw = await readRequestTextAtMost(request, 32_768);
+  } catch (error) {
+    if (error instanceof RequestBodyLimitError) {
+      return NextResponse.json({ error: "Payload too large" }, { status: 413, headers: noStore });
+    }
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400, headers: noStore });
+  }
   let body: unknown;
   try { body = JSON.parse(raw); } catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400, headers: noStore }); }
   const parsed = apiStudentInputSchema.safeParse(body);

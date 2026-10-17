@@ -114,6 +114,39 @@ jobs:
           fi
       - name: Apply migrations to disposable PostgreSQL
         run: npx drizzle-kit migrate
+      - name: Verify PostgreSQL backup and restore in disposable CI database
+        if: matrix.shard == 'operations'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client-16
+          pg_dump --version
+          node scripts/test-postgres-backup-restore.mjs
+      - name: Switch integration tests to least-privilege database role
+        run: |
+          app_password=$(openssl rand -hex 32)
+          echo "::add-mask::$app_password"
+          psql "$DATABASE_URL" --set ON_ERROR_STOP=1 --set app_password="$app_password" <<'SQL'
+          CREATE ROLE dena_app_ci LOGIN PASSWORD :'app_password';
+          GRANT CONNECT ON DATABASE dena_integration TO dena_app_ci;
+          GRANT USAGE ON SCHEMA public TO dena_app_ci;
+          GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER
+            ON ALL TABLES IN SCHEMA public TO dena_app_ci;
+          GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO dena_app_ci;
+          GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO dena_app_ci;
+          ALTER DEFAULT PRIVILEGES FOR ROLE dena_test IN SCHEMA public
+            GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON TABLES TO dena_app_ci;
+          ALTER DEFAULT PRIVILEGES FOR ROLE dena_test IN SCHEMA public
+            GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO dena_app_ci;
+          ALTER DEFAULT PRIVILEGES FOR ROLE dena_test IN SCHEMA public
+            GRANT EXECUTE ON FUNCTIONS TO dena_app_ci;
+          SQL
+          app_url="postgresql://dena_app_ci:${app_password}@127.0.0.1:5432/dena_integration"
+          role_is_superuser=$(PGPASSWORD="$app_password" psql "$app_url" --tuples-only --no-align --command "SELECT rolsuper FROM pg_roles WHERE rolname = current_user")
+          if [ "$role_is_superuser" != "f" ]; then
+            echo "Integration application role unexpectedly has elevated privileges."
+            exit 1
+          fi
+          echo "DATABASE_URL=$app_url" >> "$GITHUB_ENV"
       - name: Build for database-backed browser tests
         run: npm run build
       - name: Install Chromium

@@ -17,6 +17,12 @@ const statusLabel: Record<string, string> = {
   paid: "پرداخت‌شده",
   cancelled: "لغوشده",
 };
+const callStatusLabel = {
+  scheduled: "زمان‌بندی‌شده",
+  started: "شروع‌شده",
+  ended: "پایان‌یافته",
+  cancelled: "لغوشده",
+} as const;
 
 const dateFormatter = new Intl.DateTimeFormat("fa-IR", {
   dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Tehran",
@@ -70,10 +76,21 @@ export default async function StudentServiceOrdersPage() {
 
             <dl className="grid gap-3 rounded-xl bg-dena-bg p-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
               <div><dt className="text-xs text-dena-muted">مبلغ اعلام‌شده</dt><dd className="mt-1 font-bold text-dena-deep">{order.priceToman.toLocaleString("fa-IR")} تومان</dd></div>
-              <div><dt className="text-xs text-dena-muted">سهمیهٔ زمانی</dt><dd className="mt-1 font-bold text-dena-deep">{order.includedMinutes === null ? "ندارد" : `${order.includedMinutes.toLocaleString("fa-IR")} دقیقه`}</dd></div>
+              <div><dt className="text-xs text-dena-muted">سهمیهٔ خریداری‌شده</dt><dd className="mt-1 font-bold text-dena-deep">{order.includedMinutes === null ? "ندارد" : `${order.includedMinutes.toLocaleString("fa-IR")} دقیقه`}</dd></div>
+              {order.includedMinutes !== null && <>
+                <div><dt className="text-xs text-dena-muted">مصرف ثبت‌شده</dt><dd className="mt-1 font-bold text-dena-deep">{order.consumedMinutes.toLocaleString("fa-IR")} دقیقه</dd></div>
+                <div><dt className="text-xs text-dena-muted">ماندهٔ ثبت‌شده</dt><dd className="mt-1 font-bold text-dena-deep">{order.status === "paid" ? `${order.remainingMinutes.toLocaleString("fa-IR")} دقیقه` : "پس از پرداخت فعال می‌شود"}</dd></div>
+              </>}
               <div><dt className="text-xs text-dena-muted">اعتبار خدمت</dt><dd className="mt-1 font-bold text-dena-deep">{order.validityDays === null ? "اعلام نشده" : `${order.validityDays.toLocaleString("fa-IR")} روز`}</dd></div>
               <div><dt className="text-xs text-dena-muted">زمان ثبت</dt><dd className="mt-1 font-bold text-dena-deep">{dateFormatter.format(order.createdAt)}</dd></div>
             </dl>
+
+            {order.calls.length > 0 && <section aria-label="زمان جلسه‌های خدمت" className="space-y-2 rounded-xl border border-dena-lavender p-4">
+              <h4 className="text-sm font-extrabold text-dena-deep">زمان جلسه</h4>
+              {order.calls.map((call) => <p key={call.id} className="text-sm text-dena-muted">
+                {dateFormatter.format(call.scheduledAt)} · {callStatusLabel[call.status]}
+              </p>)}
+            </section>}
 
             <ServiceOrderAction
               serviceId={order.serviceId}

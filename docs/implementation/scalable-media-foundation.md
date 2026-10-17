@@ -1,6 +1,6 @@
 # پایهٔ مستقل از فروشنده برای خط لولهٔ ویدئوی مقیاس‌پذیر
 
-**وضعیت: کد قرارداد و صف پایدار پیاده شده؛ هیچ storage، signing gateway، scanner، transcoder، CDN یا edge عملیاتی به پروژه متصل نشده است.** مسیر فعال موجود همچنان پایلوت حداکثر ۸ MiB با عبور بایت‌ها از Next.js است. این تغییر نه آن سقف را برمی‌دارد و نه قابلیت direct-upload تولیدی را فعال می‌کند.
+**وضعیت: قراردادهای vendor-neutral و صف پایدار پیاده شده؛ هیچ storage، signing gateway، scanner، transcoder، CDN یا edge عملیاتی به پروژه متصل نشده است.** مسیر فعال موجود همچنان پایلوت حداکثر ۸ MiB با عبور بایت‌ها از Next.js است. این تغییر نه آن سقف را برمی‌دارد و نه قابلیت direct-upload تولیدی را فعال می‌کند.
 
 ## direct-to-quarantine multipart: قرارداد قابل اتصال، نه endpoint فعال
 
@@ -9,6 +9,8 @@
 - امضای هر part را به upload UUID، کلید قرنطینه، part number، اندازه، checksum و TTL محدود کند؛ CORS صرفاً origin اپ را مجاز کند؛ مجوز list/read/delete عمومی ندهد. expiry و quota سراسری با PostgreSQL و rate limiter توزیع‌شده enforce شوند.
 - قبل از complete، بخش‌ها را مستقل از اظهارات کلاینت از storage list کند، manifest را بررسی کند، object کامل را سروری از storage verify کند و سپس durable processing job را enqueue کند. اگر storage امکان whole-object SHA ندارد، به digest multipart/ETag اتکا نکند؛ یک stream verifier مستقل لازم است.
 - در خطا multipart را abort کند و پس از TTL فایل/part رهاشده را از bucket واقعی حذف کند. سرویس cleanup فعلی تنها برای **ingest پایلوت** و `quarantine/<UUID>` قرارداد DELETE و صف retry دارد؛ نه abortِ multipart و نه cron عملیاتی و نه bucket واقعی متصل شده‌اند.
+
+`src/server/media/storage-adapter.ts` اکنون port قابل‌تعویضی برای ساخت session، صدور grant، فهرست‌کردن partها، complete/abort، خواندن/حذف شیء خصوصی دارد. helperهای آن URL و expiry هر grant را به originهای HTTPS مجاز محدود می‌کنند، بعد از شکست grant session را abort می‌کنند، manifest را فقط از پاسخ `listParts` خود storage می‌سازند و پس از complete بایت‌های کامل شیء خصوصی را stream/hash می‌کنند. اگر شیء نهایی نامعتبر باشد حذف می‌شود؛ در صورت شکست حذف، cleanup پایدار باید آن را جمع کند. تست‌ها با fake adapter شکست جزئی و مسیر تکمیل را بررسی می‌کنند. این port هنوز به DB، route، durable worker یا صف cleanup multipart متصل نشده و هیچ endpointی از آن grant صادر نمی‌کند؛ API واقعی storage باید انتخاب و سپس آداپتور vendor نوشته/آزموده شود.
 
 ## صف PostgreSQL (هم‌اکنون در ingest پایلوت متصل)
 
@@ -31,11 +33,13 @@ Migration `0007_dena_media_cleanup.sql` یک ledger جدا برای cleanup با
 
 Sweep فقط `reserved` قدیمی‌تر از ۲۴ ساعت را رد می‌کند، `quarantined` دارای job در dead-letter قدیمی‌تر از ۱ ساعت را رد می‌کند و `rejected` قدیمی‌تر از ۱ ساعت و فاقد asset ساخته‌شده را وارد cleanup می‌کند. `uploading` به‌صورت خودکار حذف نمی‌شود چون ممکن است انتقال طولانی هنوز در حال نوشتن باشد. Cleanup فقط `DELETE /quarantine/<server UUID>` روی origin خصوصی با Bearer سروری می‌زند؛ 204/404 به معنای موفقیت، خطا/timeout به retry پایدار منجر می‌شود. هرگز `/private` یا ویدئوی ready حذف نمی‌شود. CI فقط حذف در mock loopback را می‌سنجد؛ adapter واقعی باید multipartهای ناقص را abort کند، حذف versioned objects را بررسی کند، نوشتن دیرهنگام پس از TTL را منع کند، و وضعیت حذف، audit و alertهای dead-letter را متصل کند.
 
-## Durable dry-run multipart planning (migration 0008)
+## Durable dry-run multipart planning (migrations 0008 and 0051)
 
 `POST /api/provider/courses/:courseId/multipart-plans` is **metadata-only** with flag `DENA_MULTIPART_PLANNING_ENABLED=0` by default. For an active provider and still-draft, independently institute-approved course, it records a server-generated UUID, 24-hour expiry, expected size + SHA-256 and idempotency key, then returns a 16 MiB part plan with proposed 15-minute grant TTL. The response has `plan.key=quarantine/<UUID>` but deliberately **NO signed URLs, bucket identifier, storage upload session or part upload endpoints**. It does not accept file bytes. Its 5-GiB bound is a checked *planning contract*, not a functional upload limit. Browser UI and live pilot stay at 8 MiB.
 
 Replay matches all original metadata, refuses any changed owner/content and never refreshes an expired intent. It checks provider role, independent institute approval and active approving institute membership on every replay. Course-level PostgreSQL lock serializes with the pilot reservation; both share a 20-intent pilot/demo quota. Expired plans stop counting but their request IDs cannot be reused. No plan becomes `ready`, queued for processing or visible to a student. Production connection needs reviewed private multipart adapter, controlled abort/list/complete, isolated final SHA verifier, granular grants and redis rate limiting, credential management, late-write fencing and cleanup for incomplete sessions.
+
+The same metadata-only contract is available to the owner of a supervised independent-educator course at `/api/independent-educator/courses/:courseId/multipart-plans`. Migration 0051 adds owner type/profile scope to each plan. Reserve and cancel take the approved-affiliation lock before the course lock, matching affiliation revocation order. The corresponding page is `/account/independent-educator/courses/:courseId/media`; all multipart routes remain planning-only and issue no upload capability.
 
 ## فهرست و لغو امن طرح‌های چندبخشی (migration 0009)
 
@@ -45,7 +49,7 @@ Replay matches all original metadata, refuses any changed owner/content and neve
 
 ## رابط فارسی برنامه‌ریزی حجم بالا
 
-در صفحهٔ ارائه‌دهنده `/provider/courses/:courseId/media`، هنگام روشن بودن **صرفاً** `DENA_MULTIPART_PLANNING_ENABLED` یک کارت مستقل برای ورود عنوان، اندازهٔ دقیق و هش SHA-256 کل فایل، مشاهدهٔ تعداد بخش‌ها/انقضا، فهرست شخصی و لغو طرح فعال نمایش داده می‌شود. فرم عمدی **فایل را انتخاب یا بخشی از آن را به سرور یا storage ارسال نمی‌کند**؛ هش از ابزار محلی مستقل محاسبه می‌شود تا browser در تلاش برای hash کل ۵ GiB به حافظه نیاز نداشته باشد. طرح‌های قبلی بعد از لغو نظارت مؤسسه همچنان مشاهده/لغو می‌شوند؛ ایجاد فقط در draft و approval انجام می‌شود و API بار دیگر بررسی می‌کند. تست مرورگر باید عدم ارسال بایت و لغو idempotent را تأیید کند. این رابط، UI انتشار ویدئو یا direct upload نیست.
+در صفحهٔ ارائه‌دهنده `/provider/courses/:courseId/media` و صفحهٔ همکار مستقل `/account/independent-educator/courses/:courseId/media`، هنگام روشن بودن **صرفاً** `DENA_MULTIPART_PLANNING_ENABLED` فرم ورود عنوان، اندازهٔ دقیق و هش SHA-256 کل فایل، مشاهدهٔ تعداد بخش‌ها/انقضا، فهرست شخصی و لغو طرح فعال نمایش داده می‌شود. فرم عمدی **فایل را انتخاب یا بخشی از آن را به سرور یا storage ارسال نمی‌کند**؛ هش از ابزار محلی مستقل محاسبه می‌شود تا browser در تلاش برای hash کل ۵ GiB به حافظه نیاز نداشته باشد. طرح‌های قبلی provider بعد از لغو نظارت مؤسسه همچنان مشاهده/لغو می‌شوند؛ ایجاد فقط در draft و approval انجام می‌شود و API بار دیگر بررسی می‌کند. برای مالک مستقل، لغو affiliation مالکیت دوره را به مؤسسه منتقل می‌کند و دسترسی صفحه/طرح مستقل بسته می‌شود. این رابط، UI انتشار ویدئو یا direct upload نیست.
 
 ## قرارداد حذف همراه با فنس و راستی‌آزمایی جریانی کامل
 

@@ -5,6 +5,7 @@ import {
   courseConversationMessages,
   courseConversations,
   courseTeamMembers,
+  studentEnrollments,
   user,
 } from "../../db/schema";
 import { hasStudentEntitlement } from "./entitlement";
@@ -150,6 +151,17 @@ export async function sendStudentCourseMessage(
     )).limit(1).for("share");
 
     if (!liveMember) return null;
+
+    // Serialize message creation with enrollment cancellation. Without this
+    // lock, an entitlement checked before the transaction could go stale while
+    // the message is being written.
+    const [enrollment] = await tx.select({ id: studentEnrollments.id })
+      .from(studentEnrollments).where(and(
+        eq(studentEnrollments.studentUserId, studentUserId),
+        eq(studentEnrollments.courseId, courseId),
+        eq(studentEnrollments.status, "active"),
+      )).limit(1).for("share");
+    if (!enrollment || !await hasStudentEntitlement(studentUserId, courseId)) return null;
 
     const [createdConversation] = await tx.insert(courseConversations).values({
       courseId,

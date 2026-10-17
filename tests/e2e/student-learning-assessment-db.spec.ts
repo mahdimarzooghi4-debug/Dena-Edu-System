@@ -1,12 +1,15 @@
 import { randomUUID } from "node:crypto";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { serializeSignedCookie } from "better-call";
 import { expect, request, test, type APIRequestContext } from "@playwright/test";
 import { getDb } from "../../src/db";
 import {
-  assessmentExamAttempts, assessmentExams, assessmentQuestionBanks,
-  courseLearningAssessmentQuestions, courseLearningAssessments,
+  assessmentExamAttempts, assessmentExams, assessmentQuestionBanks, auditLogs,
+  assessmentExamQuestions, assessmentQuestionBankQuestions,
+  courseLearningAssessmentQuestions, courseLearningAssessments, courseOwnershipEvents,
   coursePracticeQuestions, courses,
+  educatorInstituteAffiliationEvents, educatorInstituteAffiliations,
+  independentEducatorProfiles,
   memberships, privateMediaAssets, session, studentEnrollments,
   studentLearningAssessmentAttempts,
   studentLearningAssessmentAttemptQuestions,
@@ -19,9 +22,9 @@ test.describe.configure({ mode: "serial" });
 test.describe("student learning assessment lifecycle", () => {
   const db = getDb();
   const users = { admin: randomUUID(), provider: randomUUID(), institute: randomUUID(),
-    student: randomUUID(), other: randomUUID() };
+    student: randomUUID(), other: randomUUID(), browserStudent: randomUUID() };
   const tokens = {
-    student: randomUUID(), other: randomUUID(), institute: randomUUID(),
+    student: randomUUID(), other: randomUUID(), browserStudent: randomUUID(), institute: randomUUID(),
     provider: randomUUID(),
   };
   const providerId = randomUUID();
@@ -36,6 +39,9 @@ test.describe("student learning assessment lifecycle", () => {
   const instituteBankId = randomUUID();
   const denaExamId = randomUUID();
   const instituteExamId = randomUUID();
+  const uiExamId = randomUUID();
+  const denaExamQuestionIds = [randomUUID(), randomUUID()];
+  const instituteExamQuestionId = randomUUID();
   const denaOwnerId = "00000000-0000-0000-0000-000000000001";
 
   async function client(as: keyof typeof tokens): Promise<APIRequestContext> {
@@ -66,11 +72,13 @@ test.describe("student learning assessment lifecycle", () => {
       { userId: users.institute, role: "institute", instituteId },
       { userId: users.student, role: "student" },
       { userId: users.other, role: "student" },
+      { userId: users.browserStudent, role: "student" },
     ]);
     const expiresAt = new Date(Date.now() + 3_600_000);
     await db.insert(session).values([
       { userId: users.student, token: tokens.student, expiresAt },
       { userId: users.other, token: tokens.other, expiresAt },
+      { userId: users.browserStudent, token: tokens.browserStudent, expiresAt },
       { userId: users.institute, token: tokens.institute, expiresAt },
       { userId: users.provider, token: tokens.provider, expiresAt },
     ]);
@@ -94,18 +102,67 @@ test.describe("student learning assessment lifecycle", () => {
         ownerType: "dena", ownerId: denaOwnerId, bankId: denaBankId,
         courseId: null, title: "آزمون هماهنگ دنا", instructions: "آزمون آزمایشی",
         startsAt: examStartsAt, endsAt: examEndsAt, durationMinutes: 30,
-        attemptLimit: 1, status: "published", createdByUserId: users.admin },
+        attemptLimit: 3, status: "published", createdByUserId: users.admin },
       { id: instituteExamId, examType: "institute_planned",
         ownerType: "institute", ownerId: instituteId, bankId: instituteBankId,
         courseId, title: "آزمون مؤسسه", instructions: "آزمون آزمایشی",
         startsAt: examStartsAt, endsAt: examEndsAt, durationMinutes: 30,
         attemptLimit: 1, status: "published", createdByUserId: users.admin },
+      { id: uiExamId, examType: "dena_coordinated",
+        ownerType: "dena", ownerId: denaOwnerId, bankId: denaBankId,
+        courseId: null, title: "آزمون رابط کاربری",
+        instructions: "پاسخ‌ها را از رابط دانش‌آموز ثبت کنید.",
+        startsAt: examStartsAt, endsAt: examEndsAt, durationMinutes: 30,
+        attemptLimit: 1, status: "published", createdByUserId: users.admin },
     ]);
+    await db.insert(assessmentQuestionBankQuestions).values(denaExamQuestionIds.map(
+      (id, index) => ({
+        id, bankId: denaBankId, ownerType: "dena" as const, ownerId: denaOwnerId,
+        courseId: null, lessonAssetId: null,
+        prompt: `پرسش آزمون دنا ${index + 1} چیست؟`,
+        option0: "پاسخ درست", option1: "گزینه دوم", option2: "گزینه سوم",
+        option3: "گزینه چهارم", correctOption: 0, createdByUserId: users.admin,
+      }),
+    ));
+    await db.insert(assessmentExamQuestions).values(denaExamQuestionIds.map(
+      (bankQuestionId, position) => ({
+        examId: denaExamId, bankId: denaBankId, ownerType: "dena" as const,
+        ownerId: denaOwnerId, bankQuestionId, position,
+        prompt: `پرسش آزمون دنا ${position + 1} چیست؟`,
+        option0: "پاسخ درست", option1: "گزینه دوم", option2: "گزینه سوم",
+        option3: "گزینه چهارم", correctOption: 0, points: 1,
+      }),
+    ));
+    await db.insert(assessmentExamQuestions).values(denaExamQuestionIds.map(
+      (bankQuestionId, position) => ({
+        examId: uiExamId, bankId: denaBankId, ownerType: "dena" as const,
+        ownerId: denaOwnerId, bankQuestionId, position,
+        prompt: `پرسش آزمون رابط کاربری ${position + 1} چیست؟`,
+        option0: "پاسخ درست", option1: "گزینه دوم", option2: "گزینه سوم",
+        option3: "گزینه چهارم", correctOption: 0, points: 1,
+      }),
+    ));
     await db.insert(privateMediaAssets).values(assetIds.map((id, index) => ({
       id, courseId, title: `درس ${index + 1}`, objectKey: `${courseId}/${id}.mp4`,
     })));
+    await db.insert(assessmentQuestionBankQuestions).values({
+      id: instituteExamQuestionId, bankId: instituteBankId, ownerType: "institute",
+      ownerId: instituteId, courseId, lessonAssetId: assetIds[0],
+      prompt: "پرسش آزمون مؤسسه چیست؟", option0: "پاسخ درست", option1: "گزینه دوم",
+      option2: "گزینه سوم", option3: "گزینه چهارم", correctOption: 0,
+      createdByUserId: users.institute,
+    });
+    await db.insert(assessmentExamQuestions).values({
+      examId: instituteExamId, bankId: instituteBankId, ownerType: "institute",
+      ownerId: instituteId, bankQuestionId: instituteExamQuestionId, position: 0,
+      prompt: "پرسش آزمون مؤسسه چیست؟", option0: "پاسخ درست", option1: "گزینه دوم",
+      option2: "گزینه سوم", option3: "گزینه چهارم", correctOption: 0, points: 1,
+    });
     await db.insert(studentEnrollments).values({
       studentUserId: users.student, courseId, status: "active",
+    });
+    await db.insert(studentEnrollments).values({
+      studentUserId: users.browserStudent, courseId, status: "active",
     });
     await db.insert(courseLearningAssessments).values({
       id: assessmentId, courseId, title: "ارزیابی فصل",
@@ -141,10 +198,13 @@ test.describe("student learning assessment lifecycle", () => {
 
   test.afterAll(async () => {
     await db.delete(assessmentExamAttempts).where(inArray(
-      assessmentExamAttempts.examId, [denaExamId, instituteExamId],
+      assessmentExamAttempts.examId, [denaExamId, instituteExamId, uiExamId],
     ));
     await db.delete(assessmentExams).where(inArray(assessmentExams.id,
-      [denaExamId, instituteExamId]));
+      [denaExamId, instituteExamId, uiExamId]));
+    await db.delete(assessmentQuestionBankQuestions)
+      .where(inArray(assessmentQuestionBankQuestions.id,
+        [...denaExamQuestionIds, instituteExamQuestionId]));
     await db.delete(assessmentQuestionBanks)
       .where(eq(assessmentQuestionBanks.id, instituteBankId));
     await db.delete(studentLearningAssessmentLessonReviews)
@@ -339,6 +399,912 @@ test.describe("student learning assessment lifecycle", () => {
     await student.dispose();
   });
 
+  test("student home surfaces published institute and Dena exams", async () => {
+    const student = await client("student");
+    const home = await student.get("/student");
+    expect(home.status()).toBe(200);
+    const html = await home.text();
+    expect(html).toContain("آزمون‌های من");
+    expect(html).toContain("آزمون هماهنگ دنا");
+    expect(html).toContain("آزمون مؤسسه");
+    expect(html).toContain("/student/assessments");
+    await student.dispose();
+  });
+
+  test("student can start, answer, and submit an exam through the browser", async ({ page }) => {
+    const cookie = await serializeSignedCookie(
+      "better-auth.session_token", tokens.student, process.env.BETTER_AUTH_SECRET!,
+    );
+    const pair = cookie.split(";")[0];
+    const separator = pair.indexOf("=");
+    await page.context().addCookies([{
+      name: pair.slice(0, separator), value: pair.slice(separator + 1),
+      url: "http://localhost:3000",
+    }]);
+
+    await page.goto("http://localhost:3000/student/assessments");
+    const card = page.locator("article").filter({ hasText: "آزمون رابط کاربری" });
+    await expect(card).toBeVisible();
+    await card.getByRole("button", { name: "شروع آزمون" }).click();
+    await expect(page).toHaveURL(new RegExp(`/student/exams/${uiExamId}/attempt/`));
+    await expect(page.getByText("زمان باقی‌مانده:")).toBeVisible();
+    await expect(page.getByText("پرسش آزمون رابط کاربری 1 چیست؟")).toBeVisible();
+
+    await page.getByRole("radio").first().click();
+    await expect(page.getByText("1 از 2 پاسخ ذخیره شد")).toBeVisible();
+    await page.getByRole("button", { name: "ثبت نهایی پاسخ‌ها" }).click();
+    await expect(page.getByRole("heading", { name: "نتیجهٔ شما" })).toBeVisible();
+    await expect(page.getByText("1 از 2 امتیاز")).toBeVisible();
+  });
+
+  test("student completes a learning assessment and lesson review through the browser", async ({ page }) => {
+    const cookie = await serializeSignedCookie(
+      "better-auth.session_token", tokens.browserStudent, process.env.BETTER_AUTH_SECRET!,
+    );
+    const pair = cookie.split(";")[0];
+    const separator = pair.indexOf("=");
+    await page.context().addCookies([{
+      name: pair.slice(0, separator), value: pair.slice(separator + 1),
+      url: "http://localhost:3000",
+    }]);
+
+    await page.goto("http://localhost:3000/student/assessments");
+    const card = page.locator("article").filter({ hasText: "ارزیابی فصل" });
+    await expect(card).toBeVisible();
+    const startButton = card.getByRole("button", { name: "شروع / تلاش تازه" });
+    await expect(startButton).toBeEnabled();
+    const attemptStart = page.waitForResponse((response) =>
+      response.url().includes(`${basePath}/attempts`) && response.request().method() === "POST",
+    );
+    const attemptDetails = page.waitForResponse((response) =>
+      response.url().includes(`${basePath}/attempts/`) && response.request().method() === "GET",
+    );
+    await startButton.click();
+    const attemptStartResponse = await attemptStart;
+    expect(attemptStartResponse.status()).toBe(201);
+    expect((await attemptDetails).status()).toBe(200);
+    await expect(card.getByText(/کدام گزینه پاسخ درست پرسش [1-3] است؟/).first())
+      .toBeVisible({ timeout: 15_000 });
+    await expect(card.getByText("پاسخ هر پرسش نمایش داده نمی‌شود.")).toHaveCount(0);
+
+    await card.getByRole("radio").nth(1).check();
+    await card.getByRole("radio").nth(5).check();
+    await card.getByRole("button", { name: "ثبت نهایی پاسخ‌ها" }).click();
+    await expect(card.getByText(/نتیجه نیازمند مرور درس است/)).toBeVisible();
+    await expect(card.getByRole("link", { name: "رفتن به ویدئوی درس" })).toHaveCount(2);
+
+    await card.getByRole("button", { name: "بازبینی کردم" }).first().click();
+    await expect(card.getByRole("button", { name: "بازبینی کردم" })).toHaveCount(1);
+    await card.getByRole("button", { name: "بازبینی کردم" }).click();
+    await expect(card.getByText("همه بازبینی‌ها ثبت شدند؛ اکنون می‌توانید تلاش تازه را شروع کنید.")).toBeVisible();
+    const retryStart = page.waitForResponse((response) =>
+      response.url().includes(`${basePath}/attempts`) && response.request().method() === "POST",
+    );
+    const retryDetails = page.waitForResponse((response) =>
+      response.url().includes(`${basePath}/attempts/`) && response.request().method() === "GET",
+    );
+    await card.getByRole("button", { name: "شروع / تلاش تازه" }).click();
+    const retryStartResponse = await retryStart;
+    expect(retryStartResponse.status()).toBe(201);
+    expect((await retryDetails).status()).toBe(200);
+    await expect(card.getByText(/کدام گزینه پاسخ درست پرسش [1-3] است؟/).first())
+      .toBeVisible({ timeout: 15_000 });
+
+    await card.getByRole("radio").nth(0).check();
+    await card.getByRole("radio").nth(4).check();
+    await card.getByRole("button", { name: "ثبت نهایی پاسخ‌ها" }).click();
+    await expect(card.getByText(/ارزیابی تکمیل شد/)).toBeVisible();
+    await expect(card.getByText(/2 از 2 پاسخ درست/)).toBeVisible();
+
+    await page.reload();
+    const completedCard = page.locator("article").filter({ hasText: "ارزیابی فصل" });
+    await expect(completedCard.getByText("این ارزیابی را با موفقیت تکمیل کرده‌اید.")).toBeVisible();
+    await expect(completedCard.getByRole("radio")).toHaveCount(0);
+    await expect(completedCard.getByText("کلید پاسخ نمایش داده نمی‌شود.")).toBeVisible();
+  });
+
+  test("exam attempts serialize starts, protect answer keys, and replay final results", async () => {
+    const student = await client("student");
+    const other = await client("other");
+    const institute = await client("institute");
+    const startPath = `/api/student/exams/${denaExamId}/attempts`;
+    expect((await post(institute, startPath, {})).status()).toBe(404);
+
+    const starts = await Promise.all([
+      post(student, startPath, {}), post(student, startPath, {}),
+    ]);
+    expect(starts.every((response) => response.status() === 200 || response.status() === 201)).toBe(true);
+    const startResults = await Promise.all(starts.map((response) => response.json()));
+    expect(new Set(startResults.map((result) => result.attemptId)).size).toBe(1);
+    const attemptId = startResults[0].attemptId as string;
+    const attemptPath = `/api/student/exams/${denaExamId}/attempts/${attemptId}`;
+    const attemptResponse = await student.get(attemptPath);
+    expect(attemptResponse.status()).toBe(200);
+    const attempt = await attemptResponse.json();
+    expect(attempt.questions).toHaveLength(2);
+    expect(JSON.stringify(attempt)).not.toContain("correctOption");
+    expect(JSON.stringify(attempt)).not.toContain('"correct"');
+    expect((await other.get(attemptPath)).status()).toBe(404);
+
+    const saved = await student.patch(`${attemptPath}/answers`, {
+      data: { answers: attempt.questions.map((question: { id: string }, index: number) => ({
+        questionId: question.id, selectedOption: index === 0 ? 0 : 2,
+      })) },
+      headers: { Origin: "http://localhost:3000" },
+    });
+    expect(saved.status()).toBe(200);
+    expect(await saved.json()).toEqual({ saved: 2 });
+
+    const submitted = await post(student, attemptPath, {});
+    expect(submitted.status()).toBe(200);
+    const result = await submitted.json();
+    expect(result).toMatchObject({
+      id: attemptId, status: "submitted", correctCount: 1,
+      totalPoints: 2, earnedPoints: 1,
+    });
+    const replay = await post(student, attemptPath, {});
+    expect(replay.status()).toBe(200);
+    expect(await replay.json()).toMatchObject({
+      id: attemptId, status: result.status, correctCount: result.correctCount,
+      totalPoints: result.totalPoints, earnedPoints: result.earnedPoints,
+    });
+    const secondStart = await post(student, startPath, {});
+    expect(secondStart.status()).toBe(201);
+    const secondAttemptId = (await secondStart.json()).attemptId as string;
+    const expiredAt = new Date(Date.now() - 60_000);
+    await db.update(assessmentExamAttempts).set({
+      startedAt: new Date(expiredAt.getTime() - 60_000), deadlineAt: expiredAt,
+    })
+      .where(eq(assessmentExamAttempts.id, secondAttemptId));
+    const thirdStart = await post(student, startPath, {});
+    expect(thirdStart.status()).toBe(201);
+    const thirdAttemptId = (await thirdStart.json()).attemptId as string;
+    expect(thirdAttemptId).not.toBe(secondAttemptId);
+    const expiredAttempt = await student.get(
+      `/api/student/exams/${denaExamId}/attempts/${secondAttemptId}`,
+    );
+    expect(expiredAttempt.status()).toBe(200);
+    expect(await expiredAttempt.json()).toMatchObject({ id: secondAttemptId, status: "expired" });
+    const replayStart = await post(student, startPath, {});
+    expect(replayStart.status()).toBe(200);
+    expect(await replayStart.json()).toMatchObject({ attemptId: thirdAttemptId, resumed: true });
+    const thirdAttempt = await student.get(
+      `/api/student/exams/${denaExamId}/attempts/${thirdAttemptId}`,
+    );
+    const thirdQuestions = (await thirdAttempt.json()).questions as Array<{ id: string }>;
+    const thirdSave = await student.patch(
+      `/api/student/exams/${denaExamId}/attempts/${thirdAttemptId}/answers`, {
+        data: { answers: thirdQuestions.map((question) => ({
+          questionId: question.id, selectedOption: 0,
+        })) },
+        headers: { Origin: "http://localhost:3000" },
+      },
+    );
+    expect(thirdSave.status()).toBe(200);
+    expect((await post(student,
+      `/api/student/exams/${denaExamId}/attempts/${thirdAttemptId}`, {})).status()).toBe(200);
+    const exhaustedStart = await post(student, startPath, {});
+    expect(exhaustedStart.status()).toBe(409);
+    expect(await exhaustedStart.json()).toMatchObject({ error: "attempt_limit" });
+    await student.dispose();
+    await other.dispose();
+    await institute.dispose();
+  });
+
+  test("institute exam attempt access is revoked with course enrollment", async () => {
+    const other = await client("other");
+    await db.insert(studentEnrollments).values({
+      studentUserId: users.other, courseId, status: "active",
+    });
+    const startPath = `/api/student/exams/${instituteExamId}/attempts`;
+    const started = await post(other, startPath, {});
+    expect(started.status()).toBe(201);
+    const attemptId = (await started.json()).attemptId as string;
+    const attemptPath = `${startPath}/${attemptId}`;
+    const details = await other.get(attemptPath);
+    expect(details.status()).toBe(200);
+    const question = (await details.json()).questions[0] as { id: string };
+
+    expect((await post(other, `/api/student/courses/${courseId}/cancel`, {})).status())
+      .toBe(200);
+    expect((await other.get(attemptPath)).status()).toBe(404);
+    const save = await other.patch(`${attemptPath}/answers`, {
+      data: { answers: [{ questionId: question.id, selectedOption: 0 }] },
+      headers: { Origin: "http://localhost:3000" },
+    });
+    expect(save.status()).toBe(409);
+    expect(await save.json()).toMatchObject({ error: "not_enrolled" });
+    const submit = await post(other, attemptPath, {});
+    expect(submit.status()).toBe(409);
+    expect(await submit.json()).toMatchObject({ error: "not_enrolled" });
+    await db.delete(studentEnrollments).where(and(
+      eq(studentEnrollments.studentUserId, users.other),
+      eq(studentEnrollments.courseId, courseId),
+    ));
+    await other.dispose();
+  });
+
+  test("provider authors a learning assessment and institute approves it through the browser", async ({ page }) => {
+    test.setTimeout(90_000);
+    const uiCourseId = randomUUID();
+    const uiAssetId = randomUUID();
+    const title = "ارزیابی مرورگر ارائه‌دهنده";
+    await db.insert(courses).values({
+      id: uiCourseId, providerId, responsibleInstituteId: instituteId,
+      title: "دورهٔ مرورگر ارائه‌دهنده", createdByProviderUserId: users.provider,
+      clientRequestId: randomUUID(),
+    });
+    await db.insert(supervisionGrants).values({
+      courseId: uiCourseId, ownerType: "verified_provider", providerId,
+      independentEducatorProfileId: null, instituteId, status: "approved",
+      requestedByProviderUserId: users.provider,
+      approvedByInstituteUserId: users.institute, approvedAt: new Date(),
+    });
+    await db.insert(privateMediaAssets).values({
+      id: uiAssetId, courseId: uiCourseId, title: "درس آمادهٔ ارائه‌دهنده",
+      objectKey: `${uiCourseId}/${uiAssetId}.mp4`,
+    });
+
+    try {
+      const providerCookie = await serializeSignedCookie(
+        "better-auth.session_token", tokens.provider, process.env.BETTER_AUTH_SECRET!,
+      );
+      await page.context().addCookies([{
+        name: "better-auth.session_token",
+        value: providerCookie.split(";")[0].split("=").slice(1).join("="),
+        domain: "localhost", path: "/", httpOnly: true, secure: false, sameSite: "Lax",
+      }]);
+      await page.goto(`http://localhost:3000/provider/courses/${uiCourseId}/assessments`);
+      await expect(page.getByRole("heading", { name: "ساخت ارزیابی تازه" })).toBeVisible();
+      await page.getByLabel("عنوان ارزیابی").fill(title);
+      await page.getByLabel("دستورالعمل").fill("پرسش را با توجه به محتوای دوره پاسخ دهید.");
+      await page.getByLabel("تعداد پرسش در هر تلاش").fill("2");
+      await page.getByLabel("حداقل پاسخ درست برای تکمیل").fill("2");
+      await page.getByLabel("متن پرسش").fill("کدام گزینه محتوای این دوره را بیان می‌کند؟");
+      await page.getByLabel("گزینهٔ ۱").fill("پاسخ درست دوره");
+      await page.getByLabel("گزینهٔ ۲").fill("گزینهٔ جایگزین دوم");
+      await page.getByLabel("گزینهٔ ۳").fill("گزینهٔ جایگزین سوم");
+      await page.getByLabel("گزینهٔ ۴").fill("گزینهٔ جایگزین چهارم");
+      await page.getByLabel("گزینهٔ 1 پاسخ درست است").check();
+      await page.getByLabel("ویدئوی درس برای بازبینی در صورت پاسخ نادرست").selectOption(uiAssetId);
+      await page.getByRole("button", { name: "افزودن سؤال" }).click();
+      await page.getByRole("button", { name: "افزودن سؤال" }).click();
+      const secondQuestion = page.locator("form fieldset").nth(1);
+      await secondQuestion.getByLabel("متن پرسش").fill("کدام گزینه مفهوم درس دوم را نشان می‌دهد؟");
+      await secondQuestion.getByLabel("گزینهٔ ۱").fill("پاسخ درست پرسش دوم");
+      await secondQuestion.getByLabel("گزینهٔ ۲").fill("گزینهٔ دوم پرسش دوم");
+      await secondQuestion.getByLabel("گزینهٔ ۳").fill("گزینهٔ سوم پرسش دوم");
+      await secondQuestion.getByLabel("گزینهٔ ۴").fill("گزینهٔ چهارم پرسش دوم");
+      await secondQuestion.getByLabel("گزینهٔ 1 پاسخ درست است").check();
+      await secondQuestion.getByLabel("ویدئوی درس برای بازبینی در صورت پاسخ نادرست").selectOption(uiAssetId);
+      const thirdQuestion = page.locator("form fieldset").nth(2);
+      await thirdQuestion.getByLabel("متن پرسش").fill("کدام گزینه نتیجهٔ درس سوم را بیان می‌کند؟");
+      await thirdQuestion.getByLabel("گزینهٔ ۱").fill("پاسخ درست پرسش سوم");
+      await thirdQuestion.getByLabel("گزینهٔ ۲").fill("گزینهٔ دوم پرسش سوم");
+      await thirdQuestion.getByLabel("گزینهٔ ۳").fill("گزینهٔ سوم پرسش سوم");
+      await thirdQuestion.getByLabel("گزینهٔ ۴").fill("گزینهٔ چهارم پرسش سوم");
+      await thirdQuestion.getByLabel("گزینهٔ 1 پاسخ درست است").check();
+      await thirdQuestion.getByLabel("ویدئوی درس برای بازبینی در صورت پاسخ نادرست").selectOption(uiAssetId);
+      const createResponse = page.waitForResponse((response) =>
+        response.url().endsWith(`/api/provider/courses/${uiCourseId}/assessments`) &&
+        response.request().method() === "POST",
+      );
+      await page.getByRole("button", { name: "ثبت و ارسال برای بازبینی مؤسسه" }).click();
+      expect((await createResponse).status()).toBe(201);
+      const [assessment] = await db.select({ id: courseLearningAssessments.id })
+        .from(courseLearningAssessments).where(and(
+          eq(courseLearningAssessments.courseId, uiCourseId),
+          eq(courseLearningAssessments.title, title),
+        ));
+      expect(assessment).toBeDefined();
+      const assessmentId = assessment!.id;
+      await expect(page.getByText(title)).toBeVisible();
+      await expect(page.getByText("در انتظار بازبینی مؤسسه")).toBeVisible();
+
+      await page.context().clearCookies();
+      const instituteCookie = await serializeSignedCookie(
+        "better-auth.session_token", tokens.institute, process.env.BETTER_AUTH_SECRET!,
+      );
+      await page.context().addCookies([{
+        name: "better-auth.session_token",
+        value: instituteCookie.split(";")[0].split("=").slice(1).join("="),
+        domain: "localhost", path: "/", httpOnly: true, secure: false, sameSite: "Lax",
+      }]);
+      await page.goto(`http://localhost:3000/institute/courses/${uiCourseId}/assessments`);
+      const reviewCard = page.locator(`#assessment-${assessmentId}`);
+      await expect(reviewCard.getByRole("heading", { name: title })).toBeVisible();
+      await expect(reviewCard.getByText("پاسخ درست دوره — پاسخ درست اعلام‌شده")).toBeVisible();
+      await reviewCard.getByLabel("دلیل تصمیم مستقل مؤسسه (حداقل ۱۵ نویسه)")
+        .fill("محتوا و کلید پاسخ با درس پیوندخورده بررسی شد.");
+      const decisionResponse = page.waitForResponse((response) =>
+        response.url().endsWith(`/api/institute/courses/${uiCourseId}/assessments/${assessmentId}`) &&
+        response.request().method() === "POST",
+      );
+      await reviewCard.getByRole("button", { name: "تأیید ارزیابی" }).click();
+      expect((await decisionResponse).status()).toBe(200);
+      await expect(reviewCard.getByText("تأییدشده")).toBeVisible();
+
+      // Verify the author can read a final rejection and its reason, and gets
+      // clear guidance that a correction must be submitted as a new immutable assessment.
+      await page.context().clearCookies();
+      const providerCookieAgain = await serializeSignedCookie(
+        "better-auth.session_token", tokens.provider, process.env.BETTER_AUTH_SECRET!,
+      );
+      await page.context().addCookies([{
+        name: "better-auth.session_token",
+        value: providerCookieAgain.split(";")[0].split("=").slice(1).join("="),
+        domain: "localhost", path: "/", httpOnly: true, secure: false, sameSite: "Lax",
+      }]);
+      await page.goto(`http://localhost:3000/provider/courses/${uiCourseId}/assessments`);
+      const rejectedTitle = "ارزیابی برای مرور اصلاحی";
+      const rejectionReason = "پیوند پرسش با محتوای درس نیازمند اصلاح است.";
+      await page.getByLabel("عنوان ارزیابی").fill(rejectedTitle);
+      await page.getByLabel("دستورالعمل").fill("این نسخه برای بررسی جداگانه ثبت می‌شود.");
+      await page.getByLabel("تعداد پرسش در هر تلاش").fill("1");
+      await page.getByLabel("حداقل پاسخ درست برای تکمیل").fill("1");
+      const rejectedQuestion = page.locator("form fieldset").first();
+      await rejectedQuestion.getByLabel("متن پرسش").fill("پرسش نسخهٔ اصلاحی برای ارزیابی چیست؟");
+      await rejectedQuestion.getByLabel("گزینهٔ ۱").fill("پاسخ اول");
+      await rejectedQuestion.getByLabel("گزینهٔ ۲").fill("پاسخ دوم");
+      await rejectedQuestion.getByLabel("گزینهٔ ۳").fill("پاسخ سوم");
+      await rejectedQuestion.getByLabel("گزینهٔ ۴").fill("پاسخ چهارم");
+      await rejectedQuestion.getByLabel("ویدئوی درس برای بازبینی در صورت پاسخ نادرست").selectOption(uiAssetId);
+      const rejectedCreate = page.waitForResponse((response) =>
+        response.url().endsWith(`/api/provider/courses/${uiCourseId}/assessments`) &&
+        response.request().method() === "POST",
+      );
+      await page.getByRole("button", { name: "ثبت و ارسال برای بازبینی مؤسسه" }).click();
+      expect((await rejectedCreate).status()).toBe(201);
+      const [rejectedAssessment] = await db.select({ id: courseLearningAssessments.id })
+        .from(courseLearningAssessments).where(and(
+          eq(courseLearningAssessments.courseId, uiCourseId),
+          eq(courseLearningAssessments.title, rejectedTitle),
+        ));
+      expect(rejectedAssessment).toBeDefined();
+
+      await page.context().clearCookies();
+      const instituteCookieAgain = await serializeSignedCookie(
+        "better-auth.session_token", tokens.institute, process.env.BETTER_AUTH_SECRET!,
+      );
+      await page.context().addCookies([{
+        name: "better-auth.session_token",
+        value: instituteCookieAgain.split(";")[0].split("=").slice(1).join("="),
+        domain: "localhost", path: "/", httpOnly: true, secure: false, sameSite: "Lax",
+      }]);
+      await page.goto(`http://localhost:3000/institute/courses/${uiCourseId}/assessments`);
+      const rejectedReviewCard = page.locator(`#assessment-${rejectedAssessment!.id}`);
+      await rejectedReviewCard.getByLabel("دلیل تصمیم مستقل مؤسسه (حداقل ۱۵ نویسه)")
+        .fill(rejectionReason);
+      const rejectionResponse = page.waitForResponse((response) =>
+        response.url().endsWith(`/api/institute/courses/${uiCourseId}/assessments/${rejectedAssessment!.id}`) &&
+        response.request().method() === "POST",
+      );
+      await rejectedReviewCard.getByRole("button", { name: "رد ارزیابی" }).click();
+      expect((await rejectionResponse).status()).toBe(200);
+      await expect(rejectedReviewCard.getByText("ردشده")).toBeVisible();
+
+      await page.context().clearCookies();
+      await page.context().addCookies([{
+        name: "better-auth.session_token",
+        value: providerCookieAgain.split(";")[0].split("=").slice(1).join("="),
+        domain: "localhost", path: "/", httpOnly: true, secure: false, sameSite: "Lax",
+      }]);
+      await page.goto(`http://localhost:3000/provider/courses/${uiCourseId}/assessments`);
+      const rejectedProviderCard = page.locator("section").filter({ hasText: rejectedTitle }).last();
+      await expect(rejectedProviderCard.getByText("ردشده")).toBeVisible();
+      await expect(rejectedProviderCard.getByText(`دلیل بازبینی: ${rejectionReason}`)).toBeVisible();
+      await expect(rejectedProviderCard.getByRole("note")).toContainText(
+        "برای ارسال محتوای اصلاح‌شده، یک ارزیابی تازه بسازید.",
+      );
+
+      const revisionTitle = "ارزیابی اصلاح‌شده برای همان دوره";
+      await page.getByLabel("عنوان ارزیابی").fill(revisionTitle);
+      await page.getByLabel("دستورالعمل").fill("این نسخه پس از دریافت بازخورد مؤسسه بازنویسی شده است.");
+      await page.getByLabel("تعداد پرسش در هر تلاش").fill("1");
+      await page.getByLabel("حداقل پاسخ درست برای تکمیل").fill("1");
+      const revisionQuestion = page.locator("form fieldset").first();
+      await revisionQuestion.getByLabel("متن پرسش").fill("پرسش بازنویسی‌شده بر اساس درس چیست؟");
+      await revisionQuestion.getByLabel("گزینهٔ ۱").fill("پاسخ بازبینی‌شده");
+      await revisionQuestion.getByLabel("گزینهٔ ۲").fill("گزینهٔ جایگزین دوم");
+      await revisionQuestion.getByLabel("گزینهٔ ۳").fill("گزینهٔ جایگزین سوم");
+      await revisionQuestion.getByLabel("گزینهٔ ۴").fill("گزینهٔ جایگزین چهارم");
+      await revisionQuestion.getByLabel("گزینهٔ 1 پاسخ درست است").check();
+      await revisionQuestion.getByLabel("ویدئوی درس برای بازبینی در صورت پاسخ نادرست").selectOption(uiAssetId);
+      const revisionCreateResponse = page.waitForResponse((response) =>
+        response.url().endsWith(`/api/provider/courses/${uiCourseId}/assessments`) &&
+        response.request().method() === "POST",
+      );
+      await page.getByRole("button", { name: "ثبت و ارسال برای بازبینی مؤسسه" }).click();
+      expect((await revisionCreateResponse).status()).toBe(201);
+      const [revisionAssessment] = await db.select({ id: courseLearningAssessments.id })
+        .from(courseLearningAssessments).where(and(
+          eq(courseLearningAssessments.courseId, uiCourseId),
+          eq(courseLearningAssessments.title, revisionTitle),
+        ));
+      expect(revisionAssessment).toBeDefined();
+
+      await page.context().clearCookies();
+      await page.context().addCookies([{
+        name: "better-auth.session_token",
+        value: instituteCookieAgain.split(";")[0].split("=").slice(1).join("="),
+        domain: "localhost", path: "/", httpOnly: true, secure: false, sameSite: "Lax",
+      }]);
+      await page.goto(`http://localhost:3000/institute/courses/${uiCourseId}/assessments`);
+      const revisionReviewCard = page.locator(`#assessment-${revisionAssessment!.id}`);
+      await revisionReviewCard.getByLabel("دلیل تصمیم مستقل مؤسسه (حداقل ۱۵ نویسه)")
+        .fill("پرسش اصلاح‌شده با ویدئوی درس سازگار است.");
+      const revisionApproval = page.waitForResponse((response) =>
+        response.url().endsWith(`/api/institute/courses/${uiCourseId}/assessments/${revisionAssessment!.id}`) &&
+        response.request().method() === "POST",
+      );
+      await revisionReviewCard.getByRole("button", { name: "تأیید ارزیابی" }).click();
+      expect((await revisionApproval).status()).toBe(200);
+      await expect(revisionReviewCard.getByText("تأییدشده")).toBeVisible();
+
+      const providerApi = await client("provider");
+      const studentApi = await client("other");
+      try {
+        const publication = await post(providerApi,
+          `/api/provider/courses/${uiCourseId}/publication`, { action: "publish" });
+        expect(publication.status()).toBe(200);
+        expect(await publication.json()).toMatchObject({
+          courseId: uiCourseId, publicationStatus: "published", replayed: false,
+        });
+        const enrollment = await post(studentApi, `/api/student/courses/${uiCourseId}/enroll`, {});
+        expect(enrollment.status()).toBe(201);
+        expect(await enrollment.json()).toMatchObject({ courseId: uiCourseId, enrolled: true });
+      } finally {
+        await providerApi.dispose();
+        await studentApi.dispose();
+      }
+
+      await page.context().clearCookies();
+      const studentCookie = await serializeSignedCookie(
+        "better-auth.session_token", tokens.other, process.env.BETTER_AUTH_SECRET!,
+      );
+      await page.context().addCookies([{
+        name: "better-auth.session_token",
+        value: studentCookie.split(";")[0].split("=").slice(1).join("="),
+        domain: "localhost", path: "/", httpOnly: true, secure: false, sameSite: "Lax",
+      }]);
+      await page.goto("http://localhost:3000/student/assessments");
+      const studentCard = page.locator("article").filter({ hasText: title });
+      await expect(studentCard.getByText(title)).toBeVisible();
+      await expect(studentCard.getByRole("button", { name: "شروع / تلاش تازه" })).toBeVisible();
+      await expect(studentCard).not.toContainText("پاسخ درست دوره");
+
+      const authoredQuestions = await db.select({
+        id: courseLearningAssessmentQuestions.id,
+        prompt: courseLearningAssessmentQuestions.prompt,
+        correctOption: courseLearningAssessmentQuestions.correctOption,
+      }).from(courseLearningAssessmentQuestions).where(
+        eq(courseLearningAssessmentQuestions.assessmentId, assessmentId),
+      );
+      expect(authoredQuestions).toHaveLength(3);
+      const startedResponse = page.waitForResponse((response) =>
+        response.url().endsWith(`/api/student/courses/${uiCourseId}/assessments/${assessmentId}/attempts`) &&
+        response.request().method() === "POST",
+      );
+      const detailsResponse = page.waitForResponse((response) =>
+        response.url().includes(`/api/student/courses/${uiCourseId}/assessments/${assessmentId}/attempts/`) &&
+        response.request().method() === "GET",
+      );
+      await studentCard.getByRole("button", { name: "شروع / تلاش تازه" }).click();
+      const started = await startedResponse;
+      expect(started.status()).toBe(201);
+      const { attemptId } = await started.json() as { attemptId: string };
+      const attemptDetails = await detailsResponse;
+      expect(attemptDetails.status()).toBe(200);
+      const attemptBody = await attemptDetails.json();
+      expect(attemptBody.attempt.questions).toHaveLength(2);
+      const selectedIds = attemptBody.attempt.questions.map((question: { questionId: string }) =>
+        question.questionId,
+      );
+      expect(new Set(selectedIds).size).toBe(2);
+      const authoredById = new Map(authoredQuestions.map((question) => [question.id, question]));
+      for (const [index, question] of (attemptBody.attempt.questions as Array<{
+        questionId: string; prompt: string;
+      }>).entries()) {
+        const authored = authoredById.get(question.questionId);
+        expect(authored).toBeDefined();
+        expect(question.prompt).toBe(authored!.prompt);
+        const selectedOption = index === 0
+          ? (authored!.correctOption + 1) % 4
+          : authored!.correctOption;
+        const questionField = studentCard.locator("fieldset").filter({ hasText: question.prompt });
+        await questionField.getByRole("radio").nth(selectedOption).check();
+      }
+      expect(JSON.stringify(attemptBody)).not.toContain("correctOption");
+      const submissionResponse = page.waitForResponse((response) =>
+        response.url().endsWith(`/api/student/courses/${uiCourseId}/assessments/${assessmentId}/attempts/${attemptId}`) &&
+        response.request().method() === "POST",
+      );
+      await studentCard.getByRole("button", { name: "ثبت نهایی پاسخ‌ها" }).click();
+      expect((await submissionResponse).status()).toBe(201);
+      await expect(studentCard.getByText("نتیجه نیازمند مرور درس است.")).toBeVisible();
+      await expect(studentCard.getByText("1 از 2 پاسخ درست.")).toBeVisible();
+      const reviewPanel = studentCard.getByRole("region", { name: "بازبینی درس‌های مرتبط" });
+      await expect(reviewPanel).toBeVisible();
+      const reviewButton = reviewPanel.getByRole("button", { name: "بازبینی کردم" });
+      await reviewButton.click();
+      await expect(reviewPanel.getByText("بازبینی ثبت شد")).toBeVisible();
+      await expect(reviewPanel.getByText(
+        "همه بازبینی‌ها ثبت شدند؛ اکنون می‌توانید تلاش تازه را شروع کنید.",
+      )).toBeVisible();
+
+      const retryStartResponse = page.waitForResponse((response) =>
+        response.url().endsWith(`/api/student/courses/${uiCourseId}/assessments/${assessmentId}/attempts`) &&
+        response.request().method() === "POST",
+      );
+      const retryDetailsResponse = page.waitForResponse((response) =>
+        response.url().includes(`/api/student/courses/${uiCourseId}/assessments/${assessmentId}/attempts/`) &&
+        response.request().method() === "GET",
+      );
+      await studentCard.getByRole("button", { name: "شروع / تلاش تازه" }).click();
+      const retryStart = await retryStartResponse;
+      expect(retryStart.status()).toBe(201);
+      const retry = await retryStart.json() as { attemptId: string; attemptNumber: number };
+      expect(retry.attemptNumber).toBe(2);
+      const retryDetails = await retryDetailsResponse;
+      expect(retryDetails.status()).toBe(200);
+      const retryBody = await retryDetails.json();
+      expect(retryBody.attempt.questions).toHaveLength(2);
+      for (const question of retryBody.attempt.questions as Array<{
+        questionId: string; prompt: string;
+      }>) {
+        const authored = authoredById.get(question.questionId);
+        expect(authored).toBeDefined();
+        const questionField = studentCard.locator("fieldset").filter({ hasText: question.prompt });
+        await questionField.getByRole("radio").nth(authored!.correctOption).check();
+      }
+      expect(JSON.stringify(retryBody)).not.toContain("correctOption");
+      await expect(studentCard.getByRole("region", { name: "بازبینی درس‌های مرتبط" }))
+        .toHaveCount(0);
+      const retrySubmission = page.waitForResponse((response) =>
+        response.url().endsWith(`/api/student/courses/${uiCourseId}/assessments/${assessmentId}/attempts/${retry.attemptId}`) &&
+        response.request().method() === "POST",
+      );
+      await studentCard.getByRole("button", { name: "ثبت نهایی پاسخ‌ها" }).click();
+      expect((await retrySubmission).status()).toBe(201);
+      await expect(studentCard.getByText("ارزیابی تکمیل شد.")).toBeVisible();
+      await expect(studentCard.getByText("2 از 2 پاسخ درست.")).toBeVisible();
+      await expect(studentCard).not.toContainText("پاسخ درست دوره");
+      await page.reload();
+      const persistedCard = page.locator("article").filter({ hasText: title });
+      await expect(persistedCard.getByText(
+        "این ارزیابی را با موفقیت تکمیل کرده‌اید. کلید پاسخ نمایش داده نمی‌شود.",
+      )).toBeVisible();
+      await expect(persistedCard.getByRole("radio")).toHaveCount(0);
+      await page.goto("http://localhost:3000/student/growth");
+      const growthSeries = page.locator('section[aria-label="روندهای ارزیابی"]')
+        .filter({ hasText: title });
+      await expect(growthSeries.getByRole("heading", { name: title })).toBeVisible();
+      await expect(growthSeries.getByText("۲ از ۲ پاسخ درست · ۱۰۰٪")).toBeVisible();
+      await expect(growthSeries.getByText("ارزیابی تکمیل شد")).toBeVisible();
+      await expect(page.locator("body")).not.toContainText("پاسخ درست دوره");
+      await page.reload();
+      await expect(page.locator('section[aria-label="روندهای ارزیابی"]')
+        .filter({ hasText: title }).getByText("۲ از ۲ پاسخ درست · ۱۰۰٪")).toBeVisible();
+
+      const nonEnrolledStudent = await client("browserStudent");
+      try {
+        const inaccessibleList = await nonEnrolledStudent.get(
+          `/api/student/courses/${uiCourseId}/assessments`,
+        );
+        expect(inaccessibleList.status()).toBe(404);
+        const inaccessibleStart = await post(nonEnrolledStudent,
+          `/api/student/courses/${uiCourseId}/assessments/${assessmentId}/attempts`, {});
+        expect(inaccessibleStart.status()).toBe(404);
+      } finally {
+        await nonEnrolledStudent.dispose();
+      }
+
+      await page.context().clearCookies();
+      const nonEnrolledCookie = await serializeSignedCookie(
+        "better-auth.session_token", tokens.browserStudent, process.env.BETTER_AUTH_SECRET!,
+      );
+      await page.context().addCookies([{
+        name: "better-auth.session_token",
+        value: nonEnrolledCookie.split(";")[0].split("=").slice(1).join("="),
+        domain: "localhost", path: "/", httpOnly: true, secure: false, sameSite: "Lax",
+      }]);
+      await page.goto("http://localhost:3000/student/assessments");
+      await expect(page.locator("article").filter({ hasText: title })).toHaveCount(0);
+    } finally {
+      const stored = await db.select({ id: courseLearningAssessments.id })
+        .from(courseLearningAssessments).where(eq(courseLearningAssessments.courseId, uiCourseId));
+      const ids = stored.map((row) => row.id);
+      if (ids.length > 0) {
+        const attempts = await db.select({ id: studentLearningAssessmentAttempts.id })
+          .from(studentLearningAssessmentAttempts)
+          .where(inArray(studentLearningAssessmentAttempts.assessmentId, ids));
+        const attemptIds = attempts.map((row) => row.id);
+        if (attemptIds.length > 0) {
+          await db.delete(studentLearningAssessmentLessonReviews)
+            .where(inArray(studentLearningAssessmentLessonReviews.attemptId, attemptIds));
+          await db.delete(studentLearningAssessmentAttemptQuestions)
+            .where(inArray(studentLearningAssessmentAttemptQuestions.attemptId, attemptIds));
+          await db.delete(studentLearningAssessmentAttempts)
+            .where(inArray(studentLearningAssessmentAttempts.id, attemptIds));
+        }
+        await db.delete(auditLogs).where(inArray(auditLogs.entityId, ids));
+        await db.delete(courseLearningAssessmentQuestions)
+          .where(inArray(courseLearningAssessmentQuestions.assessmentId, ids));
+        await db.delete(courseLearningAssessments)
+          .where(inArray(courseLearningAssessments.id, ids));
+      }
+      await db.delete(privateMediaAssets).where(eq(privateMediaAssets.id, uiAssetId));
+      await db.delete(studentEnrollments).where(and(
+        eq(studentEnrollments.studentUserId, users.other),
+        eq(studentEnrollments.courseId, uiCourseId),
+      ));
+      await db.delete(auditLogs).where(and(
+        eq(auditLogs.entityType, "COURSE"), eq(auditLogs.entityId, uiCourseId),
+      ));
+      await db.delete(supervisionGrants).where(eq(supervisionGrants.courseId, uiCourseId));
+      await db.delete(courses).where(eq(courses.id, uiCourseId));
+    }
+  });
+
+  test("independent educator assessment lifecycle serializes enrollment with affiliation revocation", async ({ page }) => {
+    test.setTimeout(90_000);
+    const independentCourseId = randomUUID();
+    const profileId = randomUUID();
+    const affiliationId = randomUUID();
+    const assetId = randomUUID();
+    let assessmentId: string | null = null;
+    let browserAssessmentId: string | null = null;
+    await db.insert(independentEducatorProfiles).values({
+      id: profileId, userId: users.student, displayName: "همکار آزمون",
+    });
+    await db.insert(educatorInstituteAffiliations).values({
+      id: affiliationId, educatorProfileId: profileId, instituteId,
+      requestedByUserId: users.student, clientRequestId: randomUUID(),
+      displayNameSnapshot: "همکار آزمون",
+      statement: "همکاری آموزشی برای آزمون یک دورهٔ آزمایشی.",
+      status: "approved", reviewedByUserId: users.institute,
+      reviewedAt: new Date(), decisionReason: "همکاری برای آزمون پذیرفته شد.",
+    });
+    await db.insert(courses).values({
+      id: independentCourseId, ownerType: "independent_educator",
+      independentEducatorProfileId: profileId, providerId: null,
+      responsibleInstituteId: instituteId, title: "دورهٔ همکار مستقل",
+      createdByProviderUserId: users.student, clientRequestId: randomUUID(),
+    });
+    await db.insert(supervisionGrants).values({
+      courseId: independentCourseId, ownerType: "independent_educator",
+      independentEducatorProfileId: profileId, providerId: null, instituteId,
+      status: "approved", requestedByProviderUserId: users.student,
+      approvedByInstituteUserId: users.institute, approvedAt: new Date(),
+    });
+    await db.insert(privateMediaAssets).values({
+      id: assetId, courseId: independentCourseId, title: "درس آماده",
+      objectKey: `${independentCourseId}/${assetId}.mp4`,
+    });
+    // Exercise the mixed-role case: course owner is also an institute member,
+    // and must still be unable to review their own practice question.
+    await db.insert(memberships).values({
+      userId: users.student, role: "institute", instituteId,
+    });
+
+    try {
+      const educator = await client("student");
+      const instituteClient = await client("institute");
+      const selfReviewClient = await client("student");
+      const other = await client("other");
+      const path = `/api/independent-educator/courses/${independentCourseId}/assessments`;
+      expect((await educator.get(path)).status()).toBe(200);
+      expect((await other.get(path)).status()).toBe(404);
+      expect((await post(other,
+        `/api/independent-educator/courses/${independentCourseId}/publication`,
+        { action: "publish" })).status()).toBe(404);
+      const created = await post(educator, path, {
+        title: "ارزیابی همکار مستقل", instructions: "به پرسش پاسخ دهید.",
+        questionCount: 1, requiredCorrectCount: 1,
+        questions: [{
+          prompt: "کدام گزینه برای ارزیابی این درس درست است؟",
+          options: ["پاسخ درست", "گزینهٔ دوم", "گزینهٔ سوم", "گزینهٔ چهارم"],
+          correctOption: 0, lessonAssetId: assetId,
+        }],
+      });
+      expect(created.status()).toBe(201);
+      const createdBody = await created.json();
+      assessmentId = createdBody.assessmentId;
+      expect(createdBody).toMatchObject({ reviewStatus: "pending" });
+      expect((await instituteClient.get(
+        `/api/institute/courses/${independentCourseId}/assessments`,
+      )).status()).toBe(200);
+      const decision = await post(instituteClient,
+        `/api/institute/courses/${independentCourseId}/assessments/${assessmentId}`, {
+          action: "approve", reason: "متن، کلید و درس مرتبط بررسی شد.",
+        });
+      expect(decision.status()).toBe(200);
+      expect(await decision.json()).toMatchObject({ reviewStatus: "approved" });
+
+      const educatorCookie = await serializeSignedCookie(
+        "better-auth.session_token", tokens.student, process.env.BETTER_AUTH_SECRET!,
+      );
+      await page.context().addCookies([{
+        name: "better-auth.session_token",
+        value: educatorCookie.split(";")[0].split("=").slice(1).join("="),
+        domain: "localhost", path: "/", httpOnly: true, secure: false, sameSite: "Lax",
+      }]);
+      await page.goto(`http://localhost:3000/account/independent-educator/courses/${independentCourseId}/assessments`);
+      await expect(page.getByRole("heading", { name: "ساخت ارزیابی تازه" })).toBeVisible();
+      await page.getByLabel("عنوان ارزیابی").fill("ارزیابی مرورگر همکار مستقل");
+      await page.getByLabel("دستورالعمل").fill("پرسش را با توجه به محتوای درس پاسخ دهید.");
+      await page.getByLabel("تعداد پرسش در هر تلاش").fill("1");
+      await page.getByLabel("حداقل پاسخ درست برای تکمیل").fill("1");
+      await page.getByLabel("متن پرسش").fill("کدام گزینه محتوای درس را درست بیان می‌کند؟");
+      await page.getByLabel("گزینهٔ ۱").fill("پاسخ معتبر درس");
+      await page.getByLabel("گزینهٔ ۲").fill("پاسخ جایگزین دوم");
+      await page.getByLabel("گزینهٔ ۳").fill("پاسخ جایگزین سوم");
+      await page.getByLabel("گزینهٔ ۴").fill("پاسخ جایگزین چهارم");
+      await page.getByLabel("گزینهٔ 1 پاسخ درست است").check();
+      await page.getByLabel("ویدئوی درس برای بازبینی در صورت پاسخ نادرست").selectOption(assetId);
+      const browserCreate = page.waitForResponse((response) =>
+        response.url().endsWith(`/api/independent-educator/courses/${independentCourseId}/assessments`) &&
+        response.request().method() === "POST",
+      );
+      await page.getByRole("button", { name: "ثبت و ارسال برای بازبینی مؤسسه" }).click();
+      const browserCreateResponse = await browserCreate;
+      expect(browserCreateResponse.status()).toBe(201);
+      const [browserAssessment] = await db.select({ id: courseLearningAssessments.id })
+        .from(courseLearningAssessments).where(and(
+          eq(courseLearningAssessments.courseId, independentCourseId),
+          eq(courseLearningAssessments.title, "ارزیابی مرورگر همکار مستقل"),
+        ));
+      expect(browserAssessment).toBeDefined();
+      browserAssessmentId = browserAssessment!.id;
+      await expect(page.getByText("ارزیابی مرورگر همکار مستقل")).toBeVisible();
+      await expect(page.getByText("در انتظار بازبینی مؤسسه")).toBeVisible();
+
+      await page.context().clearCookies();
+      const browserInstituteCookie = await serializeSignedCookie(
+        "better-auth.session_token", tokens.institute, process.env.BETTER_AUTH_SECRET!,
+      );
+      await page.context().addCookies([{
+        name: "better-auth.session_token",
+        value: browserInstituteCookie.split(";")[0].split("=").slice(1).join("="),
+        domain: "localhost", path: "/", httpOnly: true, secure: false, sameSite: "Lax",
+      }]);
+      await page.goto(`http://localhost:3000/institute/courses/${independentCourseId}/assessments`);
+      const reviewCard = page.locator(`#assessment-${browserAssessmentId}`);
+      await expect(reviewCard.getByRole("heading", { name: "ارزیابی مرورگر همکار مستقل" })).toBeVisible();
+      await expect(reviewCard.getByText("پاسخ معتبر درس — پاسخ درست اعلام‌شده")).toBeVisible();
+      await reviewCard.getByLabel("دلیل تصمیم مستقل مؤسسه (حداقل ۱۵ نویسه)")
+        .fill("متن و کلید پاسخ با محتوای درس بررسی شد.");
+      const browserDecision = page.waitForResponse((response) =>
+        response.url().endsWith(`/api/institute/courses/${independentCourseId}/assessments/${browserAssessmentId}`) &&
+        response.request().method() === "POST",
+      );
+      await reviewCard.getByRole("button", { name: "تأیید ارزیابی" }).click();
+      expect((await browserDecision).status()).toBe(200);
+      await expect(reviewCard.getByText("تأییدشده")).toBeVisible();
+
+      const practicePath = `/api/independent-educator/courses/${independentCourseId}/practice`;
+      const practiceCreated = await post(educator, practicePath, {
+        learningConceptId: "math.percent.v1",
+        prompt: "کدام گزینه درصد یک‌چهارم را نشان می‌دهد؟",
+        options: ["۲۵ درصد", "۵۰ درصد", "۷۵ درصد", "۱۰۰ درصد"],
+        correctOption: 0,
+      });
+      expect(practiceCreated.status()).toBe(201);
+      expect((await educator.get(practicePath)).status()).toBe(200);
+      const practiceReviewPath = `/api/institute/courses/${independentCourseId}/practice`;
+      expect((await selfReviewClient.get(practiceReviewPath)).status()).toBe(404);
+      expect((await post(selfReviewClient, practiceReviewPath, {
+        action: "approve", reason: "نباید مالک خودش تصمیم بازبینی بگیرد.",
+      })).status()).toBe(404);
+      const pendingPractice = await instituteClient.get(practiceReviewPath);
+      expect(pendingPractice.status()).toBe(200);
+      expect((await pendingPractice.json()).question).toMatchObject({
+        reviewStatus: "pending", correctOption: 0,
+      });
+      const practiceDecision = await post(instituteClient, practiceReviewPath, {
+        action: "approve", reason: "پرسش و پاسخ درست برای این درس بررسی شد.",
+      });
+      expect(practiceDecision.status()).toBe(200);
+      expect(await practiceDecision.json()).toMatchObject({ reviewStatus: "approved" });
+      const practicePage = await educator.get(
+        `/account/independent-educator/courses/${independentCourseId}/practice`,
+      );
+      expect(practicePage.status()).toBe(200);
+      expect(await practicePage.text()).toContain("کدام گزینه درصد یک‌چهارم را نشان می‌دهد؟");
+      const educatorAssessmentPage = await educator.get(
+        `/account/independent-educator/courses/${independentCourseId}/assessments`,
+      );
+      expect(educatorAssessmentPage.status()).toBe(200);
+      expect(await educatorAssessmentPage.text()).toContain("ارزیابی همکار مستقل");
+      const publication = await post(educator,
+        `/api/independent-educator/courses/${independentCourseId}/publication`,
+        { action: "publish" });
+      expect(publication.status()).toBe(200);
+      expect(await publication.json()).toMatchObject({
+        courseId: independentCourseId, publicationStatus: "published", replayed: false,
+      });
+      const catalog = await other.get(
+        `/api/student/courses?q=${encodeURIComponent("دورهٔ همکار مستقل")}`,
+      );
+      expect(catalog.status()).toBe(200);
+      expect((await catalog.json()).courses).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          courseId: independentCourseId, title: "دورهٔ همکار مستقل",
+          ownerType: "independent_educator",
+        }),
+      ]));
+      const enrollPath = `/api/student/courses/${independentCourseId}/enroll`;
+      const [enrollment, affiliationRevocation] = await Promise.all([
+        post(other, enrollPath, {}),
+        post(instituteClient, `/api/institute/educators/${affiliationId}/decision`, {
+          action: "revoke", reason: "پایان همکاری برای آزمون هم‌زمان ثبت شد.",
+        }),
+      ]);
+      expect(enrollment.status()).toBe(201);
+      expect(await enrollment.json()).toMatchObject({
+        courseId: independentCourseId, enrolled: true, replayed: false, free: true,
+      });
+      expect(affiliationRevocation.status()).toBe(200);
+      const [transferredCourse] = await db.select().from(courses)
+        .where(eq(courses.id, independentCourseId));
+      expect(transferredCourse?.ownerType).toBe("institute");
+      const studentPractice = await other.get(`/api/student/courses/${independentCourseId}/practice`);
+      expect(studentPractice.status()).toBe(200);
+      const studentPracticeBody = (await studentPractice.json()).practice;
+      expect(studentPracticeBody).toMatchObject({
+        prompt: "کدام گزینه درصد یک‌چهارم را نشان می‌دهد؟",
+      });
+      expect(studentPracticeBody).not.toHaveProperty("correctOption");
+      await educator.dispose();
+      await instituteClient.dispose();
+      await other.dispose();
+      await selfReviewClient.dispose();
+    } finally {
+      const storedAssessments = await db.select({ id: courseLearningAssessments.id })
+        .from(courseLearningAssessments)
+        .where(eq(courseLearningAssessments.courseId, independentCourseId));
+      const cleanupAssessmentIds = [...new Set([
+        assessmentId, browserAssessmentId, ...storedAssessments.map((assessment) => assessment.id),
+      ].filter((id): id is string => Boolean(id)))];
+      if (cleanupAssessmentIds.length > 0) {
+        await db.delete(auditLogs).where(inArray(auditLogs.entityId, cleanupAssessmentIds));
+        await db.delete(courseLearningAssessmentQuestions)
+          .where(inArray(courseLearningAssessmentQuestions.assessmentId, cleanupAssessmentIds));
+        await db.delete(courseLearningAssessments)
+          .where(inArray(courseLearningAssessments.id, cleanupAssessmentIds));
+      }
+      await db.delete(privateMediaAssets).where(eq(privateMediaAssets.id, assetId));
+      await db.delete(auditLogs).where(and(
+        eq(auditLogs.entityType, "PRACTICE"), eq(auditLogs.entityId, independentCourseId),
+      ));
+      await db.delete(coursePracticeQuestions)
+        .where(eq(coursePracticeQuestions.courseId, independentCourseId));
+      await db.delete(studentEnrollments)
+        .where(and(eq(studentEnrollments.courseId, independentCourseId),
+          eq(studentEnrollments.studentUserId, users.other)));
+      await db.delete(courseOwnershipEvents)
+        .where(eq(courseOwnershipEvents.courseId, independentCourseId));
+      await db.delete(auditLogs).where(and(
+        eq(auditLogs.entityType, "COURSE"),
+        eq(auditLogs.entityId, independentCourseId),
+      ));
+      await db.delete(memberships).where(and(
+        eq(memberships.userId, users.student), eq(memberships.role, "institute"),
+        eq(memberships.instituteId, instituteId),
+      ));
+      await db.delete(supervisionGrants).where(eq(supervisionGrants.courseId, independentCourseId));
+      await db.delete(courses).where(eq(courses.id, independentCourseId));
+      await db.delete(educatorInstituteAffiliationEvents)
+        .where(eq(educatorInstituteAffiliationEvents.affiliationId, affiliationId));
+      await db.delete(auditLogs).where(and(
+        eq(auditLogs.entityType, "EDUCATOR_AFFILIATION"),
+        eq(auditLogs.entityId, affiliationId),
+      ));
+      await db.delete(educatorInstituteAffiliations).where(eq(educatorInstituteAffiliations.id, affiliationId));
+      await db.delete(independentEducatorProfiles).where(eq(independentEducatorProfiles.id, profileId));
+    }
+  });
+
   test("hides answer keys, serializes starts, and requires lesson review before retry", async () => {
     const student = await client("student");
     const other = await client("other");
@@ -355,6 +1321,9 @@ test.describe("student learning assessment lifecycle", () => {
     expect(instituteHome.status()).toBe(200);
     const instituteHomeHtml = await instituteHome.text();
     expect(instituteHomeHtml).toMatch(/تأییدشده:(?: <!-- -->)۱/);
+    expect(instituteHomeHtml).toMatch(/ثبت‌نام فعال:(?: <!-- -->)۲/);
+    expect(instituteHomeHtml).not.toContain(`${users.student}@assessment.example.test`);
+    expect(instituteHomeHtml).not.toContain(`${users.browserStudent}@assessment.example.test`);
     expect(instituteHomeHtml).toContain("مشاهدهٔ ارزیابی‌های یادگیری");
     const instituteCourses = await institute.get("/institute/courses");
     expect(instituteCourses.status()).toBe(200);
@@ -392,8 +1361,11 @@ test.describe("student learning assessment lifecycle", () => {
     const providerHomeHtml = await providerHome.text();
     expect(providerHomeHtml).toContain("ارزیابی‌های یادگیری");
     expect(providerHomeHtml).toContain("تأییدشده");
+    expect(providerHomeHtml).toMatch(/ثبت‌نام فعال:(?: <!-- -->)۲/);
     expect(providerHomeHtml).toContain(`/provider/courses/${courseId}/assessments`);
     expect(providerHomeHtml).toContain('href="/provider/courses"');
+    expect(providerHomeHtml).not.toContain(`${users.student}@assessment.example.test`);
+    expect(providerHomeHtml).not.toContain(`${users.browserStudent}@assessment.example.test`);
     expect(providerHomeHtml).not.toContain("کدام گزینه پاسخ درست پرسش 1 است؟");
     const providerCourses = await provider.get("/provider/courses");
     expect(providerCourses.status()).toBe(200);
@@ -443,9 +1415,19 @@ test.describe("student learning assessment lifecycle", () => {
 
     const answers = Object.fromEntries(attempt.questions.map((item: { questionId: string }) =>
       [item.questionId, 1]));
-    const submitted = await post(student, `${basePath}/attempts/${attemptId}`, { answers });
-    expect(submitted.status()).toBe(201);
-    const result = await submitted.json();
+    const submissions = await Promise.all([
+      post(student, `${basePath}/attempts/${attemptId}`, { answers }),
+      post(student, `${basePath}/attempts/${attemptId}`, { answers }),
+    ]);
+    expect(submissions.map((response) => response.status())).toEqual([201, 201]);
+    const results = await Promise.all(submissions.map((response) => response.json()));
+    expect(results.map((result) => result.replayed).sort()).toEqual([false, true]);
+    expect(results[0]).toMatchObject({ outcome: "needs_review", correctCount: 0, questionCount: 2 });
+    expect(results[1]).toMatchObject({
+      attemptId, outcome: results[0].outcome, correctCount: results[0].correctCount,
+      questionCount: results[0].questionCount, submittedAt: results[0].submittedAt,
+    });
+    const result = results[0];
     expect(result).toMatchObject({ outcome: "needs_review", correctCount: 0, questionCount: 2 });
     expect(JSON.stringify(result)).not.toContain("correctOption");
 
@@ -478,5 +1460,52 @@ test.describe("student learning assessment lifecycle", () => {
     await institute.dispose();
     await provider.dispose();
     await student.dispose();
+  });
+
+  test("learning assessment submission serializes with enrollment cancellation", async () => {
+    const other = await client("other");
+    await db.insert(studentEnrollments).values({
+      studentUserId: users.other, courseId, status: "active",
+    });
+    const started = await post(other, `${basePath}/attempts`, {});
+    expect(started.status()).toBe(201);
+    const attemptId = (await started.json()).attemptId as string;
+    const attemptResponse = await other.get(`${basePath}/attempts/${attemptId}`);
+    expect(attemptResponse.status()).toBe(200);
+    const questions = (await attemptResponse.json()).attempt.questions as Array<{
+      questionId: string;
+    }>;
+    const answers = Object.fromEntries(questions.map((question) => [question.questionId, 0]));
+
+    const [submitted, cancelled] = await Promise.all([
+      post(other, `${basePath}/attempts/${attemptId}`, { answers }),
+      post(other, `/api/student/courses/${courseId}/cancel`, {}),
+    ]);
+    expect([201, 404]).toContain(submitted.status());
+    expect(cancelled.status()).toBe(200);
+    const [afterRace] = await db.select({
+      status: studentLearningAssessmentAttempts.status,
+      outcome: studentLearningAssessmentAttempts.outcome,
+    }).from(studentLearningAssessmentAttempts).where(and(
+      eq(studentLearningAssessmentAttempts.id, attemptId),
+      eq(studentLearningAssessmentAttempts.studentUserId, users.other),
+    ));
+    expect(submitted.status() === 201).toBe(afterRace?.status === "submitted");
+    expect((await post(other, `${basePath}/attempts/${attemptId}`, { answers }))
+      .status()).toBe(404);
+    const [afterRetry] = await db.select({
+      status: studentLearningAssessmentAttempts.status,
+      outcome: studentLearningAssessmentAttempts.outcome,
+    }).from(studentLearningAssessmentAttempts).where(and(
+      eq(studentLearningAssessmentAttempts.id, attemptId),
+      eq(studentLearningAssessmentAttempts.studentUserId, users.other),
+    ));
+    expect(afterRetry).toEqual(afterRace);
+    expect((await other.get(listPath)).status()).toBe(404);
+    expect((await other.get(`${basePath}/attempts/${attemptId}`)).status()).toBe(404);
+    const growthAfterCancellation = await other.get("/student/growth");
+    expect(growthAfterCancellation.status()).toBe(200);
+    expect(await growthAfterCancellation.text()).not.toContain("ارزیابی فصل");
+    await other.dispose();
   });
 });

@@ -4,9 +4,13 @@ import { serializeSignedCookie } from "better-call";
 import { expect, request, test, type APIRequestContext } from "@playwright/test";
 import { getDb } from "../../src/db";
 import {
-  auditLogs, instituteServiceCatalog, instituteServiceOrders, memberships,
+  auditLogs, financialEntries, financialJournals, instituteServiceCatalog,
+  instituteServiceCalls, instituteServiceOrders, memberships, serviceTimeLedger,
   session, user, verifiedEntities,
 } from "../../src/db/schema";
+import { captureInstituteServiceOrderPayment } from "../../src/server/finance/service-order-payments";
+import { endInstituteServiceCall, startInstituteServiceCall } from "../../src/server/institute/service-calls";
+import { recordInstituteServiceCallUsage } from "../../src/server/institute/service-call-usage";
 
 test.describe.configure({ mode: "serial" });
 
@@ -22,7 +26,11 @@ test.describe("institute service order guardian consent", () => {
   const instituteId = randomUUID();
   const otherInstituteId = randomUUID();
   const serviceId = randomUUID();
+  const noConsentServiceId = randomUUID();
   const orderId = randomUUID();
+  const orderIdempotencyKey = randomUUID();
+  let concurrentlyCreatedOrderId: string | undefined;
+  const createdServiceCallIds: string[] = [];
   const consentPath = `/api/institute/service-orders/${orderId}/consent`;
 
   async function client(as?: keyof typeof tokens): Promise<APIRequestContext> {
@@ -59,8 +67,16 @@ test.describe("institute service order guardian consent", () => {
       id: serviceId, instituteId, createdByUserId: users.institute,
       title: "مشاورهٔ آزمایشی", category: "consultation",
       description: "خدمت آزمایشی برای آزمون جریان رضایت سرپرست.",
-      priceToman: 200_000, includedMinutes: null, validityDays: null,
+      priceToman: 200_000, includedMinutes: 60, validityDays: 30,
       guardianConsentRequired: true, cancellationPolicy: "درخواست پرداخت‌نشده قابل لغو است.",
+      status: "active",
+    });
+    await db.insert(instituteServiceCatalog).values({
+      id: noConsentServiceId, instituteId, createdByUserId: users.institute,
+      title: "خدمت آزمایشی بدون سهمیه", category: "support",
+      description: "برای آزمون درخواست تکراری و لغو قبل از پرداخت.",
+      priceToman: 50_000, includedMinutes: null, validityDays: null,
+      guardianConsentRequired: false, cancellationPolicy: "درخواست پرداخت‌نشده قابل لغو است.",
       status: "active",
     });
     await db.insert(instituteServiceOrders).values({
@@ -68,17 +84,35 @@ test.describe("institute service order guardian consent", () => {
       serviceId, instituteId, serviceTitleSnapshot: "مشاورهٔ آزمایشی",
       categorySnapshot: "consultation", priceToman: 200_000,
       grossRials: 2_000_000, denaShareRials: 200_000, instituteShareRials: 1_800_000,
-      commissionBasisPoints: 1_000, includedMinutes: null, validityDays: null,
+      commissionBasisPoints: 1_000, includedMinutes: 60, validityDays: 30,
       guardianConsentRequired: true, status: "awaiting_guardian_consent",
     });
   });
 
   test.afterAll(async () => {
+    if (createdServiceCallIds.length) {
+      await db.delete(auditLogs).where(and(
+        eq(auditLogs.entityType, "SERVICE_CALL"), inArray(auditLogs.entityId, createdServiceCallIds),
+      ));
+      await db.delete(instituteServiceCalls).where(inArray(instituteServiceCalls.id, createdServiceCallIds));
+    }
+    await db.delete(serviceTimeLedger).where(eq(serviceTimeLedger.serviceOrderId, orderId));
     await db.delete(auditLogs).where(and(
       eq(auditLogs.entityType, "SERVICE_ORDER"), eq(auditLogs.entityId, orderId),
     ));
     await db.delete(instituteServiceOrders).where(eq(instituteServiceOrders.id, orderId));
-    await db.delete(instituteServiceCatalog).where(eq(instituteServiceCatalog.id, serviceId));
+    if (concurrentlyCreatedOrderId) {
+      await db.delete(auditLogs).where(and(
+        eq(auditLogs.entityType, "SERVICE_ORDER"),
+        eq(auditLogs.entityId, concurrentlyCreatedOrderId),
+      ));
+      await db.delete(instituteServiceOrders).where(
+        eq(instituteServiceOrders.id, concurrentlyCreatedOrderId),
+      );
+    }
+    await db.delete(instituteServiceCatalog).where(inArray(
+      instituteServiceCatalog.id, [serviceId, noConsentServiceId],
+    ));
     await db.delete(session).where(inArray(session.userId, Object.values(users)));
     await db.delete(memberships).where(inArray(memberships.userId, Object.values(users)));
     await db.delete(verifiedEntities).where(inArray(
@@ -132,6 +166,12 @@ test.describe("institute service order guardian consent", () => {
     });
     await otherInstitute.dispose();
 
+    await expect(captureInstituteServiceOrderPayment({
+      orderId,
+      gatewayEventId: `gateway-test-${randomUUID()}`,
+      grossRials: 2_000_000,
+    })).rejects.toMatchObject({ kind: "order_not_payable" });
+
     const first = await post(institute, consentPath, { consentConfirmed: true });
     expect(first.status()).toBe(200);
     expect(await first.json()).toMatchObject({
@@ -167,5 +207,244 @@ test.describe("institute service order guardian consent", () => {
     expect(await studentHistory.text()).toContain("هیچ مبلغی دریافت نشده است.");
     await studentAfter.dispose();
     await institute.dispose();
+  });
+
+  test("captures a verified payment once with an atomic balanced journal", async ({ page }) => {
+    const gatewayEventId = `gateway-test-${randomUUID()}`;
+    const captured = await captureInstituteServiceOrderPayment({
+      orderId, gatewayEventId, grossRials: 2_000_000,
+    });
+    expect(captured).toEqual({ orderId, status: "paid", duplicate: false });
+
+    const replay = await captureInstituteServiceOrderPayment({
+      orderId, gatewayEventId, grossRials: 2_000_000,
+    });
+    expect(replay).toEqual({ orderId, status: "paid", duplicate: true });
+    await expect(captureInstituteServiceOrderPayment({
+      orderId, gatewayEventId: `gateway-test-${randomUUID()}`, grossRials: 2_000_000,
+    })).rejects.toMatchObject({ kind: "event_reused" });
+    await expect(captureInstituteServiceOrderPayment({
+      orderId, gatewayEventId: `gateway-test-${randomUUID()}`, grossRials: 1_999_999,
+    })).rejects.toMatchObject({ kind: "amount_mismatch" });
+
+    const [order] = await db.select().from(instituteServiceOrders)
+      .where(eq(instituteServiceOrders.id, orderId));
+    expect(order?.status).toBe("paid");
+    expect(order?.paidAt).toBeInstanceOf(Date);
+    const [journal] = await db.select().from(financialJournals)
+      .where(eq(financialJournals.eventKey, `service-payment:${gatewayEventId}`));
+    expect(journal).toMatchObject({
+      sourceId: orderId,
+      revenueStream: "institute_service",
+      eventType: "payment_captured",
+    });
+    const entries = await db.select().from(financialEntries)
+      .where(eq(financialEntries.journalId, journal!.id));
+    expect(entries).toHaveLength(3);
+    expect(entries.reduce((sum, entry) => sum + entry.debitRials, 0)).toBe(2_000_000);
+    expect(entries.reduce((sum, entry) => sum + entry.creditRials, 0)).toBe(2_000_000);
+    const quotaGrants = await db.select().from(serviceTimeLedger)
+      .where(eq(serviceTimeLedger.serviceOrderId, orderId));
+    expect(quotaGrants).toHaveLength(1);
+    expect(quotaGrants[0]).toMatchObject({
+      eventKey: `service-quota-grant:${orderId}`, eventType: "grant", minutes: 60,
+      serviceSessionId: null,
+    });
+    const student = await client("student");
+    const studentPage = await student.get("/student/services/orders");
+    expect(await studentPage.text()).toContain("ماندهٔ ثبت‌شده");
+    expect(await studentPage.text()).toContain("۶۰ دقیقه");
+    await student.dispose();
+    const institute = await client("institute");
+    const institutePage = await institute.get("/institute/service-orders");
+    expect(await institutePage.text()).toContain("مصرف ثبت‌شده");
+    expect(await institutePage.text()).toContain("۶۰ دقیقه");
+
+    const cookie = await serializeSignedCookie(
+      "better-auth.session_token", tokens.institute, process.env.BETTER_AUTH_SECRET!,
+    );
+    const cookiePair = cookie.split(";")[0];
+    const cookieSeparator = cookiePair.indexOf("=");
+    await page.context().addCookies([{
+      name: cookiePair.slice(0, cookieSeparator),
+      value: cookiePair.slice(cookieSeparator + 1),
+      url: "http://localhost:3000",
+    }]);
+    await page.goto("http://localhost:3000/institute/service-orders");
+    const orderCard = page.locator("li").filter({ hasText: `کد درخواست ${orderId.slice(0, 8)}` });
+    const plannedAt = new Date(Date.now() + 120_000);
+    const localDateTime = `${plannedAt.getFullYear()}-${String(plannedAt.getMonth() + 1).padStart(2, "0")}-${String(plannedAt.getDate()).padStart(2, "0")}T${String(plannedAt.getHours()).padStart(2, "0")}:${String(plannedAt.getMinutes()).padStart(2, "0")}`;
+    await orderCard.getByLabel("زمان جلسه").fill(localDateTime);
+    const scheduleResponsePromise = page.waitForResponse((response) =>
+      response.url().endsWith(`/api/institute/service-orders/${orderId}/calls`) &&
+      response.request().method() === "POST",
+    );
+    await orderCard.getByRole("button", { name: "زمان‌بندی جلسه" }).click();
+    const scheduleResponse = await scheduleResponsePromise;
+    expect(scheduleResponse.status()).toBe(201);
+    const [browserCall] = await db.select({ id: instituteServiceCalls.id })
+      .from(instituteServiceCalls).where(and(
+        eq(instituteServiceCalls.serviceOrderId, orderId),
+        eq(instituteServiceCalls.status, "scheduled"),
+      )).limit(1);
+    if (!browserCall) throw new Error("UI did not create a scheduled service call");
+    createdServiceCallIds.push(browserCall.id);
+    await expect(orderCard.getByText("زمان‌بندی‌شده")).toBeVisible();
+    await orderCard.getByRole("button", { name: "لغو جلسه" }).last().click();
+    await expect(orderCard.getByText("لغوشده")).toBeVisible();
+    await institute.dispose();
+  });
+
+  test("scopes call scheduling to paid consented service quotas and audits its lifecycle", async () => {
+    const scheduledAt = new Date(Date.now() + 60_000).toISOString();
+    const idempotencyKey = randomUUID();
+    const path = `/api/institute/service-orders/${orderId}/calls`;
+    const anonymous = await client();
+    expect((await post(anonymous, path, { scheduledAt, idempotencyKey })).status()).toBe(401);
+    await anonymous.dispose();
+
+    const student = await client("student");
+    expect((await post(student, path, { scheduledAt, idempotencyKey })).status()).toBe(404);
+    await student.dispose();
+
+    const otherInstitute = await client("otherInstitute");
+    expect((await post(otherInstitute, path, { scheduledAt, idempotencyKey })).status()).toBe(404);
+    await otherInstitute.dispose();
+
+    const institute = await client("institute");
+    const created = await post(institute, path, { scheduledAt, idempotencyKey });
+    expect(created.status()).toBe(201);
+    const createdBody = await created.json();
+    const serviceCallId = createdBody.call.id as string;
+    createdServiceCallIds.push(serviceCallId);
+    expect(createdBody.call).toMatchObject({ status: "scheduled", duplicate: false });
+
+    const replay = await post(institute, path, { scheduledAt, idempotencyKey });
+    expect(replay.status()).toBe(200);
+    expect(await replay.json()).toMatchObject({ call: {
+      id: serviceCallId, status: "scheduled", duplicate: true,
+    } });
+    expect((await post(institute, path, {
+      scheduledAt: new Date(Date.now() + 120_000).toISOString(), idempotencyKey,
+    })).status()).toBe(409);
+    expect((await post(institute, path, {
+      scheduledAt, idempotencyKey: randomUUID(),
+    })).status()).toBe(409);
+    const earlyStart = await post(institute,
+      `/api/institute/service-calls/${serviceCallId}`, { action: "start" });
+    expect(earlyStart.status()).toBe(409);
+    expect(await earlyStart.json()).toMatchObject({ error: "call_too_early" });
+
+    const started = await startInstituteServiceCall(
+      users.institute, serviceCallId, new Date(Date.parse(scheduledAt) + 1_000),
+    );
+    expect(started).toMatchObject({ status: "started", duplicate: false });
+    expect(await startInstituteServiceCall(
+      users.institute, serviceCallId, new Date(Date.parse(scheduledAt) + 2_000),
+    )).toMatchObject({ status: "started", duplicate: true });
+    await expect(recordInstituteServiceCallUsage({ providerId: "livekit", event: {
+      callId: serviceCallId, eventId: `usage-event-${randomUUID()}`,
+      state: "ended", billableMinutes: 17,
+    } })).rejects.toMatchObject({ kind: "call_not_ended" });
+    expect(await endInstituteServiceCall(
+      users.institute, serviceCallId, new Date(Date.parse(scheduledAt) + 3_000),
+    )).toMatchObject({ status: "ended", duplicate: false });
+    expect(await endInstituteServiceCall(
+      users.institute, serviceCallId, new Date(Date.parse(scheduledAt) + 4_000),
+    )).toMatchObject({ status: "ended", duplicate: true });
+    expect(await db.select().from(auditLogs).where(and(
+      eq(auditLogs.entityType, "SERVICE_CALL"), eq(auditLogs.entityId, serviceCallId),
+    ))).toHaveLength(3);
+    const usageEventId = `usage-event-${randomUUID()}`;
+    const usageInput = { providerId: "livekit", event: {
+      callId: serviceCallId, eventId: usageEventId, state: "ended" as const, billableMinutes: 17,
+    } };
+    const [usageFirst, usageReplay] = await Promise.all([
+      recordInstituteServiceCallUsage(usageInput),
+      recordInstituteServiceCallUsage(usageInput),
+    ]);
+    expect([usageFirst.duplicate, usageReplay.duplicate].sort()).toEqual([false, true]);
+    expect(usageFirst).toMatchObject({
+      serviceOrderId: orderId, callId: serviceCallId,
+      consumedMinutes: 17, remainingMinutes: 43,
+    });
+    expect(await db.select().from(serviceTimeLedger).where(and(
+      eq(serviceTimeLedger.serviceOrderId, orderId),
+      eq(serviceTimeLedger.serviceSessionId, serviceCallId),
+      eq(serviceTimeLedger.eventType, "consume"),
+    ))).toHaveLength(1);
+    await expect(recordInstituteServiceCallUsage({
+      providerId: "livekit",
+      event: { ...usageInput.event, billableMinutes: 18 },
+    })).rejects.toMatchObject({ kind: "event_reused" });
+    await expect(recordInstituteServiceCallUsage({
+      providerId: "livekit",
+      event: { ...usageInput.event, eventId: `other-event-${randomUUID()}` },
+    })).rejects.toMatchObject({ kind: "event_reused" });
+
+    const secondSchedule = new Date(Date.now() + 120_000).toISOString();
+    const secondCreated = await post(institute, path, {
+      scheduledAt: secondSchedule, idempotencyKey: randomUUID(),
+    });
+    expect(secondCreated.status()).toBe(201);
+    const secondCallId = (await secondCreated.json()).call.id as string;
+    createdServiceCallIds.push(secondCallId);
+    await startInstituteServiceCall(
+      users.institute, secondCallId, new Date(Date.parse(secondSchedule) + 1_000),
+    );
+    await endInstituteServiceCall(
+      users.institute, secondCallId, new Date(Date.parse(secondSchedule) + 3_000),
+    );
+    await expect(recordInstituteServiceCallUsage({
+      providerId: "livekit",
+      event: {
+        callId: secondCallId, eventId: `overage-event-${randomUUID()}`,
+        state: "ended", billableMinutes: 44,
+      },
+    })).rejects.toMatchObject({ kind: "quota_exceeded" });
+    const studentHistory = await client("student");
+    const studentHistoryBody = await (await studentHistory.get("/student/services/orders")).text();
+    expect(studentHistoryBody).toContain("زمان جلسه");
+    expect(studentHistoryBody).toContain("مصرف ثبت‌شده");
+    expect(studentHistoryBody).toContain("۴۳ دقیقه");
+    await studentHistory.dispose();
+    const institutePage = await (await institute.get("/institute/service-orders")).text();
+    expect(institutePage).toContain("جلسه‌های خدمت");
+    expect(institutePage).toContain("مصرف ثبت‌شده");
+    expect(institutePage).toContain("۴۳ دقیقه");
+    await institute.dispose();
+  });
+
+  test("serializes concurrent idempotent requests and allows unpaid cancellation", async () => {
+    const student = await client("student");
+    const path = `/api/student/services/${noConsentServiceId}/orders`;
+    const [first, retry] = await Promise.all([
+      post(student, path, { idempotencyKey: orderIdempotencyKey }),
+      post(student, path, { idempotencyKey: orderIdempotencyKey }),
+    ]);
+    expect([first.status(), retry.status()].sort()).toEqual([200, 201]);
+    const firstBody = await first.json();
+    const retryBody = await retry.json();
+    expect(firstBody.order.id).toBe(retryBody.order.id);
+    const createdOrderId: string = firstBody.order.id;
+    concurrentlyCreatedOrderId = createdOrderId;
+    expect([firstBody.order.duplicate, retryBody.order.duplicate].sort()).toEqual([false, true]);
+    expect(firstBody.order.status).toBe("awaiting_payment");
+
+    const cancelPath = `/api/student/services/orders/${createdOrderId}/cancel`;
+    const cancelled = await post(student, cancelPath, {});
+    expect(cancelled.status()).toBe(200);
+    expect(await cancelled.json()).toMatchObject({
+      order: { id: createdOrderId, status: "cancelled", duplicate: false },
+    });
+    const replayedCancel = await post(student, cancelPath, {});
+    expect(await replayedCancel.json()).toMatchObject({
+      order: { id: createdOrderId, status: "cancelled", duplicate: true },
+    });
+    const [storedOrder] = await db.select().from(instituteServiceOrders)
+      .where(eq(instituteServiceOrders.id, createdOrderId));
+    expect(storedOrder?.paidAt).toBeNull();
+    expect(storedOrder?.status).toBe("cancelled");
+    await student.dispose();
   });
 });

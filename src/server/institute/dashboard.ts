@@ -5,7 +5,8 @@ import { getDb } from "../../db";
 import {
   courseLearningAssessments, coursePracticeQuestions, courses,
   independentEducatorProfiles, privateMediaAssets,
-  providerInstituteCollaborations, supervisionGrants, verifiedEntities,
+  providerInstituteCollaborations, studentEnrollments, supervisionGrants,
+  verifiedEntities,
 } from "../../db/schema";
 
 const instituteDashboardProvider = alias(verifiedEntities, "institute_dashboard_provider");
@@ -100,7 +101,7 @@ export async function getInstituteDashboardCourses(
   // Query only course IDs already validated against the live institute scope.
   // Keep counts separate from question rows to prevent multiplication.
   // Student attempts, notes, question text/answer and storage keys are absent.
-  const [assetRows, questionRows, assessmentRows] = await Promise.all([
+  const [assetRows, questionRows, assessmentRows, enrollmentRows] = await Promise.all([
     db.select({
       courseId: privateMediaAssets.courseId,
       readyVideos: count(privateMediaAssets.id),
@@ -122,9 +123,18 @@ export async function getInstituteDashboardCourses(
       inArray(courseLearningAssessments.courseId, courseIds),
     ).groupBy(courseLearningAssessments.courseId,
       courseLearningAssessments.reviewStatus),
+    db.select({
+      courseId: studentEnrollments.courseId,
+      activeEnrollmentCount: count(studentEnrollments.id),
+    }).from(studentEnrollments).where(and(
+      inArray(studentEnrollments.courseId, courseIds),
+      eq(studentEnrollments.status, "active"),
+    )).groupBy(studentEnrollments.courseId),
   ]);
   const readyByCourse = new Map(assetRows.map((row) =>
     [row.courseId, row.readyVideos] as const));
+  const enrollmentCountByCourse = new Map(enrollmentRows.map((row) =>
+    [row.courseId, row.activeEnrollmentCount] as const));
   const reviewByCourse = new Map(questionRows.map((row) =>
     [row.courseId, row.reviewStatus] as const));
   const assessmentsByCourse = new Map<string, {
@@ -143,6 +153,7 @@ export async function getInstituteDashboardCourses(
     courses: visible.map((course) => ({
       ...course,
       readyVideos: readyByCourse.get(course.courseId) ?? 0,
+      activeEnrollmentCount: enrollmentCountByCourse.get(course.courseId) ?? 0,
       practiceReviewStatus: reviewByCourse.get(course.courseId) ??
         ("not_created" as const),
       learningAssessmentReviews: assessmentsByCourse.get(course.courseId) ?? {

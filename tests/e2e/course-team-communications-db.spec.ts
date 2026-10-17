@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { inArray, eq } from "drizzle-orm";
+import { and, inArray, eq } from "drizzle-orm";
 import { serializeSignedCookie } from "better-call";
 import { expect, request, test, type APIRequestContext } from "@playwright/test";
 import { getDb } from "../../src/db";
@@ -405,6 +405,43 @@ test.describe("course team communication and problem-solving stay course-scoped"
     await otherSupporter.dispose();
   });
 
+  test("student can message the course supporter through the browser", async ({ page }) => {
+    const cookie = await serializeSignedCookie(
+      "better-auth.session_token", tokens.student,
+      process.env.BETTER_AUTH_SECRET!,
+    );
+    const cookiePair = cookie.split(";")[0];
+    const cookieSeparator = cookiePair.indexOf("=");
+    await page.context().addCookies([{
+      name: cookiePair.slice(0, cookieSeparator),
+      value: cookiePair.slice(cookieSeparator + 1),
+      url: "http://localhost:3000",
+      httpOnly: true,
+      sameSite: "Lax",
+    }]);
+
+    await page.goto(`http://localhost:3000/student/courses/${courseId}`);
+    await page.getByRole("link", { name: /پشتیبان آزمون/ }).click();
+    await page.getByRole("link", { name: "مشاهده گفت‌وگو" }).click();
+
+    const message = "برای ادامهٔ درس از رابط دانش‌آموز پیام می‌فرستم.";
+    await page.getByLabel("پیام خود را بنویسید").fill(message);
+    await page.getByRole("button", { name: "ارسال" }).click();
+    await expect(page.getByText(message)).toBeVisible();
+
+    const supporter = await client("supporter");
+    const reply = "پیامت را از مسیر گفت‌وگوی دوره دریافت کردم.";
+    const response = await supporter.post(
+      `/api/course-team/assignments/${supporterTeamMemberId}/conversations/${conversationId}`,
+      { data: { body: reply }, headers: origin },
+    );
+    expect(response.status()).toBe(201);
+    await supporter.dispose();
+
+    await page.reload();
+    await expect(page.getByText(reply)).toBeVisible();
+  });
+
   test("problem-solving is supporter-only and institute-enabled", async () => {
     const student = await client("student");
     const otherStudent = await client("otherStudent");
@@ -519,6 +556,80 @@ test.describe("course team communication and problem-solving stay course-scoped"
     await counselor.dispose();
   });
 
+  test("student can request and track a support session through the browser", async ({ page }) => {
+    const cookie = await serializeSignedCookie(
+      "better-auth.session_token", tokens.student,
+      process.env.BETTER_AUTH_SECRET!,
+    );
+    const cookiePair = cookie.split(";")[0];
+    const cookieSeparator = cookiePair.indexOf("=");
+    await page.context().addCookies([{
+      name: cookiePair.slice(0, cookieSeparator),
+      value: cookiePair.slice(cookieSeparator + 1),
+      url: "http://localhost:3000",
+      httpOnly: true,
+      sameSite: "Lax",
+    }]);
+
+    await page.goto(`http://localhost:3000/student/courses/${courseId}`);
+    await page.getByRole("link", { name: /پشتیبان آزمون/ }).click();
+
+    const subject = "پیگیری رفع اشکال از رابط دانش‌آموز";
+    const description = "برای حل تمرین‌های پایانی راهنمایی می‌خواهم.";
+    await page.getByLabel("موضوع درخواست").fill(subject);
+    await page.getByLabel("توضیح کوتاه").fill(description);
+    await page.getByRole("button", { name: "ثبت درخواست" }).click();
+    await expect(page.getByText("درخواست جلسه ثبت شد.")).toBeVisible();
+    const requestCard = page.locator("li").filter({ hasText: subject });
+    await expect(requestCard).toContainText(description);
+    await expect(requestCard).toContainText("ثبت‌شده");
+
+    await page.reload();
+    await expect(page.locator("li").filter({ hasText: subject })).toContainText(description);
+  });
+
+  test("supporter reviews and completes a student request through the browser", async ({ page }) => {
+    const setIdentity = async (as: keyof typeof users) => {
+      await page.context().clearCookies();
+      const cookie = await signed(as);
+      const cookieSeparator = cookie.indexOf("=");
+      await page.context().addCookies([{
+        name: cookie.slice(0, cookieSeparator),
+        value: cookie.slice(cookieSeparator + 1),
+        url: "http://localhost:3000",
+        httpOnly: true,
+        sameSite: "Lax",
+      }]);
+    };
+
+    const subject = "پیگیری رفع اشکال از رابط دانش‌آموز";
+    await setIdentity("supporter");
+    await page.goto(`http://localhost:3000/course-team/${supporterTeamMemberId}/problem-solving`);
+    const requestCard = page.locator("li").filter({ hasText: subject });
+    await expect(requestCard).toContainText("ثبت‌شده");
+    await requestCard.getByRole("button", { name: "در حال بررسی" }).click();
+    await expect(requestCard).toContainText("در حال بررسی");
+
+    await requestCard.getByLabel("تاریخ و زمان جلسه").fill("2031-06-15T10:30");
+    await requestCard.getByRole("button", { name: "تعیین جلسه" }).click();
+    await expect(requestCard).toContainText("تعیین جلسه");
+
+    const sessionCard = page.locator("li").filter({ hasText: subject }).nth(1);
+    await expect(sessionCard).toContainText("برنامه‌ریزی‌شده");
+    await sessionCard.getByRole("button", { name: "جلسه برگزار شد" }).click();
+    await expect(sessionCard).toContainText("برگزارش‌شده");
+    await page.reload();
+    await expect(page.locator("li").filter({ hasText: subject })
+      .filter({ hasText: "برگزارش‌شده" })).toBeVisible();
+
+    await setIdentity("student");
+    await page.goto(`http://localhost:3000/student/courses/${courseId}`);
+    await page.getByRole("link", { name: /پشتیبان آزمون/ }).click();
+    const studentCards = page.locator("li").filter({ hasText: subject });
+    await expect(studentCards.nth(0)).toContainText("تعیین جلسه");
+    await expect(studentCards.nth(1)).toContainText("برگزارش‌شده");
+  });
+
   test("deactivation immediately closes both messaging and session capability", async () => {
     const institute = await client("institute");
     const student = await client("student");
@@ -561,6 +672,76 @@ test.describe("course team communication and problem-solving stay course-scoped"
     }).from(courseTeamMembers)
       .where(eq(courseTeamMembers.id, supporterTeamMemberId));
     expect(row.requestsEnabled).toBe(false);
+
+    const reactivated = await institute.post(
+      `/api/institute/courses/${courseId}/team`, {
+        data: { memberUserId: users.supporter, role: "academic_supporter" },
+        headers: origin,
+      },
+    );
+    expect(reactivated.status()).toBe(201);
+    expect((await reactivated.json()).teamMemberId).toBe(supporterTeamMemberId);
+    const enabled = await institute.patch(
+      `/api/institute/courses/${courseId}/team/${supporterTeamMemberId}`,
+      { data: { enabled: true }, headers: origin },
+    );
+    expect(enabled.status()).toBe(200);
+
+    const counselorConversation =
+      `/api/student/courses/${courseId}/team/${counselorTeamMemberId}/conversation`;
+    const problemSolvingPath =
+      `/api/student/courses/${courseId}/team/${supporterTeamMemberId}/problem-solving`;
+    const [messageDuringCancellation, requestDuringCancellation, cancelled] = await Promise.all([
+      student.post(counselorConversation, {
+        data: { body: "پیام هم‌زمان با لغو ثبت‌نام" }, headers: origin,
+      }),
+      student.post(problemSolvingPath, {
+        data: {
+          subject: "درخواست هم‌زمان با لغو ثبت‌نام",
+          description: "برای حل تمرین به راهنمایی نیاز دارم.",
+        }, headers: origin,
+      }),
+      student.post(`/api/student/courses/${courseId}/cancel`, {
+        data: {}, headers: origin,
+      }),
+    ]);
+    expect([201, 404]).toContain(messageDuringCancellation.status());
+    expect([201, 404]).toContain(requestDuringCancellation.status());
+    expect(cancelled.status()).toBe(200);
+    const messagesAfterCancellation = await db.select({ id: courseConversationMessages.id })
+      .from(courseConversationMessages).innerJoin(courseConversations,
+        eq(courseConversations.id, courseConversationMessages.conversationId))
+      .where(and(
+        eq(courseConversations.studentUserId, users.student),
+        eq(courseConversations.courseId, courseId),
+      ));
+    const requestsAfterCancellation = await db.select({ id: problemSolvingRequests.id })
+      .from(problemSolvingRequests).where(and(
+        eq(problemSolvingRequests.studentUserId, users.student),
+        eq(problemSolvingRequests.courseId, courseId),
+      ));
+    expect((await student.post(counselorConversation, {
+      data: { body: "پیام پس از لغو" }, headers: origin,
+    })).status()).toBe(404);
+    const messagesAfterDeniedRetry = await db.select({ id: courseConversationMessages.id })
+      .from(courseConversationMessages).innerJoin(courseConversations,
+        eq(courseConversations.id, courseConversationMessages.conversationId))
+      .where(and(
+        eq(courseConversations.studentUserId, users.student),
+        eq(courseConversations.courseId, courseId),
+      ));
+    expect((await student.post(problemSolvingPath, {
+      data: { subject: "درخواست پس از لغو" }, headers: origin,
+    })).status()).toBe(404);
+    const requestsAfterDeniedRetry = await db.select({ id: problemSolvingRequests.id })
+      .from(problemSolvingRequests).where(and(
+        eq(problemSolvingRequests.studentUserId, users.student),
+        eq(problemSolvingRequests.courseId, courseId),
+      ));
+    expect(messagesAfterDeniedRetry.map((message) => message.id))
+      .toEqual(messagesAfterCancellation.map((message) => message.id));
+    expect(requestsAfterDeniedRetry.map((request) => request.id))
+      .toEqual(requestsAfterCancellation.map((request) => request.id));
 
     await institute.dispose();
     await student.dispose();

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getServerAccessContext } from "../../../../../../server/access/actor";
 import { validSameOrigin } from "../../../../../../server/access/role-application-contracts";
 import {
-  createProviderLearningAssessment, getProviderLearningAssessments,
+  createCourseLearningAssessment, getCourseLearningAssessmentsForOwner,
   LearningAssessmentUnavailable, newLearningAssessment,
 } from "../../../../../../server/assessments/learning-assessment";
 
@@ -28,7 +28,7 @@ async function scoped(params: Params) {
       status: 404, headers: noStore,
     }),
   };
-  const state = await getProviderLearningAssessments(actor.userId, courseId);
+  const state = await getCourseLearningAssessmentsForOwner(actor.userId, courseId);
   if (!state) return { error: NextResponse.json({ error: "Not found" }, {
     status: 404, headers: noStore,
   }) };
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest, params: Params) {
     status: 400, headers: noStore,
   });
   try {
-    const result = await createProviderLearningAssessment(
+    const result = await createCourseLearningAssessment(
       checked.actor!.userId, checked.courseId!, parsed.data,
     );
     return NextResponse.json(result, { status: 201, headers: noStore });

@@ -502,6 +502,28 @@ export async function completeAttestedIngest(uploadId: string, leaseToken: strin
   if (!outputVerified) return "conflict" as const;
 
   return db.transaction(async (tx) => {
+    // Upload receipt takes these locks in this order: course, ingest, then
+    // processing job. Keep the callback on that same path so it cannot hold
+    // an ingest/job lock while waiting for a course lock held by an upload.
+    const [scope] = await tx.select({
+      ownerType: courses.ownerType,
+      profileId: courses.independentEducatorProfileId,
+      instituteId: courses.responsibleInstituteId,
+    }).from(courses).where(eq(courses.id, initial.courseId)).limit(1);
+    if (scope?.ownerType === "independent_educator" && scope.profileId) {
+      await tx.select({ id: educatorInstituteAffiliations.id })
+        .from(educatorInstituteAffiliations).where(and(
+          eq(educatorInstituteAffiliations.educatorProfileId, scope.profileId),
+          eq(educatorInstituteAffiliations.instituteId, scope.instituteId),
+          eq(educatorInstituteAffiliations.status, "approved"),
+        )).limit(1).for("share");
+    }
+    const [course] = await tx.select().from(courses)
+      .where(eq(courses.id, initial.courseId)).limit(1).for("share");
+    if (!course || course.publicationStatus !== "draft") {
+      return "conflict" as const;
+    }
+
     const [job] = await tx.select().from(mediaIngests)
       .where(eq(mediaIngests.id, uploadId)).limit(1).for("update");
     if (!job) return "not_found" as const;
@@ -517,22 +539,7 @@ export async function completeAttestedIngest(uploadId: string, leaseToken: strin
         !leased.leaseUntil || leased.leaseUntil <= new Date()) {
       return "conflict" as const;
     }
-    const [scope] = await tx.select({
-      ownerType: courses.ownerType,
-      profileId: courses.independentEducatorProfileId,
-      instituteId: courses.responsibleInstituteId,
-    }).from(courses).where(eq(courses.id, job.courseId)).limit(1);
-    if (scope?.ownerType === "independent_educator" && scope.profileId) {
-      await tx.select({ id: educatorInstituteAffiliations.id })
-        .from(educatorInstituteAffiliations).where(and(
-          eq(educatorInstituteAffiliations.educatorProfileId, scope.profileId),
-          eq(educatorInstituteAffiliations.instituteId, scope.instituteId),
-          eq(educatorInstituteAffiliations.status, "approved"),
-        )).limit(1).for("share");
-    }
-    const [course] = await tx.select().from(courses)
-      .where(eq(courses.id, job.courseId)).limit(1).for("share");
-    if (!course || course.publicationStatus !== "draft" ||
+    if (course.publicationStatus !== "draft" ||
         course.ownerType !== job.ownerType ||
         course.providerId !== job.providerId ||
         course.independentEducatorProfileId !== job.independentEducatorProfileId) {

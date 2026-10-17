@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { Card } from "../../../components/ui/card";
 import { ServiceOrderConsent } from "../../../components/institute/service-order-consent";
+import { InstituteServiceCallManagement } from "../../../components/institute/service-call-management";
 import { getServerAccessContext } from "../../../server/access/actor";
 import { getInstituteServiceOrders } from "../../../server/institute/service-orders";
 
@@ -66,9 +67,21 @@ export default async function InstituteServiceOrdersPage() {
             <div className="flex justify-between gap-3"><dt className="text-dena-muted">قیمت زمان ثبت درخواست</dt><dd className="font-bold text-dena-deep">{order.priceToman.toLocaleString("fa-IR")} تومان</dd></div>
             <div className="flex justify-between gap-3"><dt className="text-dena-muted">رضایت سرپرست</dt><dd className="font-bold text-dena-deep">{!order.guardianConsentRequired ? "در تعریف خدمت الزامی نیست" : order.guardianConsentConfirmedAt ? "تأیید مؤسسه ثبت شده" : "در انتظار تأیید مؤسسه"}</dd></div>
             {order.guardianConsentRequired && order.guardianConsentConfirmedAt && <div className="flex justify-between gap-3"><dt className="text-dena-muted">زمان ثبت تأیید</dt><dd className="font-bold text-dena-deep">{new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Tehran" }).format(order.guardianConsentConfirmedAt)}</dd></div>}
-            <div className="flex justify-between gap-3"><dt className="text-dena-muted">زمان استفاده</dt><dd className="text-left font-bold text-dena-deep">{order.includedMinutes === null ? "بدون سهمیهٔ زمانی" : `${order.includedMinutes.toLocaleString("fa-IR")} دقیقه · ${order.validityDays?.toLocaleString("fa-IR")} روز اعتبار`}</dd></div>
+            <div className="flex justify-between gap-3"><dt className="text-dena-muted">سهمیهٔ خریداری‌شده</dt><dd className="text-left font-bold text-dena-deep">{order.includedMinutes === null ? "بدون سهمیهٔ زمانی" : `${order.includedMinutes.toLocaleString("fa-IR")} دقیقه · ${order.validityDays?.toLocaleString("fa-IR")} روز اعتبار`}</dd></div>
+            {order.includedMinutes !== null && <>
+              <div className="flex justify-between gap-3"><dt className="text-dena-muted">مصرف ثبت‌شده</dt><dd className="text-left font-bold text-dena-deep">{order.consumedMinutes.toLocaleString("fa-IR")} دقیقه</dd></div>
+              <div className="flex justify-between gap-3"><dt className="text-dena-muted">ماندهٔ ثبت‌شده</dt><dd className="text-left font-bold text-dena-deep">{order.status === "paid" ? `${order.remainingMinutes.toLocaleString("fa-IR")} دقیقه` : "پس از پرداخت فعال می‌شود"}</dd></div>
+            </>}
             <div className="flex justify-between gap-3"><dt className="text-dena-muted">تاریخ ثبت</dt><dd className="font-bold text-dena-deep">{new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium", timeZone: "Asia/Tehran" }).format(order.createdAt)}</dd></div>
           </dl>
+          <InstituteServiceCallManagement
+            orderId={order.id}
+            orderStatus={order.status}
+            remainingMinutes={order.remainingMinutes}
+            calls={order.calls.map((call) => ({
+              ...call, scheduledAt: call.scheduledAt.toISOString(),
+            }))}
+          />
           {order.status === "awaiting_guardian_consent" && <ServiceOrderConsent orderId={order.id} />}
         </Card></li>)}
       </ul>

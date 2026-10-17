@@ -4,10 +4,12 @@ import { getDb } from "../../db";
 import { isVerifiedProviderCourse } from "../courses/ownership";
 import { learningConceptIdSchema } from "../ai-tutor/learning-concepts";
 import {
-  auditLogs, coursePracticeQuestions, courses, memberships, studentPracticeAttempts,
-  supervisionGrants,
+  auditLogs, coursePracticeQuestions, courses, educatorInstituteAffiliations,
+  independentEducatorProfiles, memberships, studentEnrollments,
+  studentPracticeAttempts, supervisionGrants,
 } from "../../db/schema";
 import { auditLogRecord } from "../admin/audit";
+import { hasStudentEntitlement } from "./entitlement";
 
 const option = z.string().trim().min(1).max(160).refine((value) =>
   !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/u.test(value),
@@ -155,6 +157,119 @@ export async function createProviderPractice(
   });
 }
 
+/** Independent educator view of the same immutable one-question workflow. */
+export async function getIndependentEducatorPractice(userId: string, courseId: string) {
+  const db = getDb();
+  const [course] = await db.select({
+    courseId: courses.id, title: courses.title,
+    profileId: courses.independentEducatorProfileId,
+    instituteId: courses.responsibleInstituteId,
+    publicationStatus: courses.publicationStatus,
+    supervisionStatus: supervisionGrants.status,
+    grantOwnerType: supervisionGrants.ownerType,
+    grantProfileId: supervisionGrants.independentEducatorProfileId,
+    grantInstituteId: supervisionGrants.instituteId,
+    approvedBy: supervisionGrants.approvedByInstituteUserId,
+  }).from(courses).innerJoin(supervisionGrants,
+    eq(supervisionGrants.courseId, courses.id),
+  ).where(and(eq(courses.id, courseId),
+    eq(courses.ownerType, "independent_educator"))).limit(1);
+  if (!course.profileId || course.publicationStatus !== "draft" ||
+      course.supervisionStatus !== "approved" ||
+      course.grantOwnerType !== "independent_educator" ||
+      course.grantProfileId !== course.profileId ||
+      course.grantInstituteId !== course.instituteId || !course.approvedBy) return null;
+  const [owner] = await db.select({ userId: independentEducatorProfiles.userId })
+    .from(independentEducatorProfiles).innerJoin(memberships, and(
+      eq(memberships.userId, independentEducatorProfiles.userId),
+      eq(memberships.role, "student"), eq(memberships.status, "active"),
+    )).innerJoin(educatorInstituteAffiliations, and(
+      eq(educatorInstituteAffiliations.educatorProfileId, independentEducatorProfiles.id),
+      eq(educatorInstituteAffiliations.instituteId, course.instituteId),
+      eq(educatorInstituteAffiliations.status, "approved"),
+    )).where(and(
+      eq(independentEducatorProfiles.id, course.profileId),
+      eq(independentEducatorProfiles.userId, userId),
+    )).limit(1);
+  const [approver] = await db.select({ id: memberships.id }).from(memberships)
+    .where(and(
+      eq(memberships.userId, course.approvedBy), eq(memberships.role, "institute"),
+      eq(memberships.instituteId, course.instituteId), eq(memberships.status, "active"),
+    )).limit(1);
+  if (!owner || !approver) return null;
+  const [question] = await db.select().from(coursePracticeQuestions)
+    .where(eq(coursePracticeQuestions.courseId, courseId)).limit(1);
+  return {
+    courseId, title: course.title, publicationStatus: course.publicationStatus,
+    question: question ? { ...toPublicQuestion(question),
+      correctOption: question.correctOption, reviewStatus: question.reviewStatus,
+      reviewReason: question.reviewReason } : null,
+  };
+}
+
+export async function createIndependentEducatorPractice(
+  userId: string, courseId: string, input: NewPracticeQuestion,
+) {
+  return getDb().transaction(async (tx) => {
+    const [candidate] = await tx.select({
+      profileId: courses.independentEducatorProfileId,
+      instituteId: courses.responsibleInstituteId,
+    }).from(courses).where(and(
+      eq(courses.id, courseId), eq(courses.ownerType, "independent_educator"),
+    )).limit(1);
+    if (!candidate?.profileId) throw new PracticeUnavailable("not_available");
+    const [affiliation] = await tx.select({ id: educatorInstituteAffiliations.id })
+      .from(educatorInstituteAffiliations).where(and(
+        eq(educatorInstituteAffiliations.educatorProfileId, candidate.profileId),
+        eq(educatorInstituteAffiliations.instituteId, candidate.instituteId),
+        eq(educatorInstituteAffiliations.status, "approved"),
+      )).limit(1).for("share");
+    const [owner] = await tx.select({ id: memberships.id })
+      .from(memberships).innerJoin(independentEducatorProfiles, and(
+        eq(independentEducatorProfiles.id, candidate.profileId),
+        eq(independentEducatorProfiles.userId, memberships.userId),
+      )).where(and(
+        eq(memberships.userId, userId), eq(memberships.role, "student"),
+        eq(memberships.status, "active"),
+      )).limit(1).for("share");
+    if (!affiliation || !owner) throw new PracticeUnavailable("not_available");
+    const [course] = await tx.select().from(courses).where(and(
+      eq(courses.id, courseId), eq(courses.ownerType, "independent_educator"),
+      eq(courses.independentEducatorProfileId, candidate.profileId),
+      eq(courses.responsibleInstituteId, candidate.instituteId),
+    )).limit(1).for("share");
+    if (!course || course.publicationStatus !== "draft") {
+      throw new PracticeUnavailable("not_available");
+    }
+    const [grant] = await tx.select().from(supervisionGrants).where(and(
+      eq(supervisionGrants.courseId, courseId),
+      eq(supervisionGrants.ownerType, "independent_educator"),
+      eq(supervisionGrants.independentEducatorProfileId, candidate.profileId),
+      eq(supervisionGrants.instituteId, candidate.instituteId),
+      eq(supervisionGrants.status, "approved"),
+    )).limit(1).for("share");
+    if (!grant?.approvedByInstituteUserId || !grant.approvedAt) {
+      throw new PracticeUnavailable("not_available");
+    }
+    const [approver] = await tx.select({ id: memberships.id }).from(memberships)
+      .where(and(
+        eq(memberships.userId, grant.approvedByInstituteUserId),
+        eq(memberships.role, "institute"),
+        eq(memberships.instituteId, candidate.instituteId),
+        eq(memberships.status, "active"),
+      )).limit(1).for("share");
+    if (!approver) throw new PracticeUnavailable("not_available");
+    const [created] = await tx.insert(coursePracticeQuestions).values({
+      courseId, learningConceptId: input.learningConceptId, prompt: input.prompt,
+      option0: input.options[0], option1: input.options[1],
+      option2: input.options[2], option3: input.options[3],
+      correctOption: input.correctOption, authoredByProviderUserId: userId,
+    }).onConflictDoNothing().returning({ courseId: coursePracticeQuestions.courseId });
+    if (!created) throw new PracticeUnavailable("already_created");
+    return { courseId, created: true };
+  });
+}
+
 /** Caller MUST check hasStudentEntitlement on every read. Correct answer is
  * not selected or serialized from this path, including after submission.
  */
@@ -200,6 +315,17 @@ export async function submitStudentPractice(
   studentUserId: string, courseId: string, selectedOption: number,
 ) {
   return getDb().transaction(async (tx) => {
+    // Keep cancellation and answer creation in one order. If cancellation
+    // already owns the enrollment row, no answer is written; if this lock wins,
+    // cancellation waits until the authorized answer is committed.
+    const [enrollment] = await tx.select({ id: studentEnrollments.id })
+      .from(studentEnrollments).where(and(
+        eq(studentEnrollments.studentUserId, studentUserId),
+        eq(studentEnrollments.courseId, courseId),
+        eq(studentEnrollments.status, "active"),
+      )).limit(1).for("share");
+    if (!enrollment || !await hasStudentEntitlement(studentUserId, courseId)) return null;
+
     const [question] = await tx.select({
       correctOption: coursePracticeQuestions.correctOption,
       learningConceptId: coursePracticeQuestions.learningConceptId,
@@ -249,6 +375,11 @@ export async function getInstitutePractice(
   instituteUserId: string, courseId: string,
 ) {
   const db = getDb();
+  const [owner] = await db.select({ ownerType: courses.ownerType })
+    .from(courses).where(eq(courses.id, courseId)).limit(1);
+  if (owner?.ownerType === "independent_educator") {
+    return getIndependentEducatorInstitutePractice(instituteUserId, courseId);
+  }
   const [course] = await db.select({
     courseId: courses.id, title: courses.title,
     ownerType: courses.ownerType,
@@ -307,6 +438,11 @@ export async function decideInstitutePractice(
   instituteUserId: string, courseId: string,
   decision: z.infer<typeof practiceReviewDecision>,
 ) {
+  const [owner] = await getDb().select({ ownerType: courses.ownerType })
+    .from(courses).where(eq(courses.id, courseId)).limit(1);
+  if (owner?.ownerType === "independent_educator") {
+    return decideIndependentEducatorInstitutePractice(instituteUserId, courseId, decision);
+  }
   return getDb().transaction(async (tx) => {
     const [course] = await tx.select().from(courses)
       .where(eq(courses.id, courseId)).limit(1).for("share");
@@ -365,6 +501,131 @@ export async function decideInstitutePractice(
         ? "course.practice.approved" : "course.practice.rejected",
       entityType: "PRACTICE",
       entityId: courseId,
+    }));
+    return { courseId, reviewStatus };
+  });
+}
+
+async function getIndependentEducatorInstitutePractice(
+  instituteUserId: string, courseId: string,
+) {
+  const db = getDb();
+  const [course] = await db.select({
+    courseId: courses.id, title: courses.title,
+    profileId: courses.independentEducatorProfileId,
+    instituteId: courses.responsibleInstituteId,
+    publicationStatus: courses.publicationStatus,
+    supervisionStatus: supervisionGrants.status,
+    grantOwnerType: supervisionGrants.ownerType,
+    grantProfileId: supervisionGrants.independentEducatorProfileId,
+    grantInstituteId: supervisionGrants.instituteId,
+    approvedBy: supervisionGrants.approvedByInstituteUserId,
+  }).from(courses).innerJoin(supervisionGrants,
+    eq(supervisionGrants.courseId, courses.id),
+  ).where(and(eq(courses.id, courseId),
+    eq(courses.ownerType, "independent_educator"))).limit(1);
+  if (!course?.profileId || course.supervisionStatus !== "approved" ||
+      course.grantOwnerType !== "independent_educator" ||
+      course.grantProfileId !== course.profileId ||
+      course.grantInstituteId !== course.instituteId || !course.approvedBy) return null;
+  const [affiliation] = await db.select({ id: educatorInstituteAffiliations.id })
+    .from(educatorInstituteAffiliations).where(and(
+      eq(educatorInstituteAffiliations.educatorProfileId, course.profileId),
+      eq(educatorInstituteAffiliations.instituteId, course.instituteId),
+      eq(educatorInstituteAffiliations.status, "approved"),
+    )).limit(1);
+  const [reviewer] = await db.select({ id: memberships.id })
+    .from(memberships).where(and(
+      eq(memberships.userId, instituteUserId), eq(memberships.role, "institute"),
+      eq(memberships.instituteId, course.instituteId), eq(memberships.status, "active"),
+    )).limit(1);
+  const [approver] = await db.select({ id: memberships.id })
+    .from(memberships).where(and(
+      eq(memberships.userId, course.approvedBy), eq(memberships.role, "institute"),
+      eq(memberships.instituteId, course.instituteId), eq(memberships.status, "active"),
+    )).limit(1);
+  const [educator] = await db.select({ userId: independentEducatorProfiles.userId })
+    .from(independentEducatorProfiles)
+    .where(eq(independentEducatorProfiles.id, course.profileId)).limit(1);
+  if (!affiliation || !reviewer || !approver || educator?.userId === instituteUserId) return null;
+  const [question] = await db.select().from(coursePracticeQuestions)
+    .where(eq(coursePracticeQuestions.courseId, courseId)).limit(1);
+  return {
+    courseId, title: course.title, ownerType: "independent_educator" as const,
+    publicationStatus: course.publicationStatus,
+    question: question ? { ...toPublicQuestion(question),
+      correctOption: question.correctOption, reviewStatus: question.reviewStatus,
+      reviewReason: question.reviewReason } : null,
+  };
+}
+
+async function decideIndependentEducatorInstitutePractice(
+  instituteUserId: string, courseId: string,
+  decision: z.infer<typeof practiceReviewDecision>,
+) {
+  return getDb().transaction(async (tx) => {
+    const [candidate] = await tx.select({
+      profileId: courses.independentEducatorProfileId,
+      instituteId: courses.responsibleInstituteId,
+    }).from(courses).where(and(
+      eq(courses.id, courseId), eq(courses.ownerType, "independent_educator"),
+    )).limit(1);
+    if (!candidate?.profileId) return null;
+    const [affiliation] = await tx.select({ id: educatorInstituteAffiliations.id })
+      .from(educatorInstituteAffiliations).where(and(
+        eq(educatorInstituteAffiliations.educatorProfileId, candidate.profileId),
+        eq(educatorInstituteAffiliations.instituteId, candidate.instituteId),
+        eq(educatorInstituteAffiliations.status, "approved"),
+      )).limit(1).for("share");
+    if (!affiliation) return null;
+    const [course] = await tx.select().from(courses).where(and(
+      eq(courses.id, courseId), eq(courses.ownerType, "independent_educator"),
+      eq(courses.independentEducatorProfileId, candidate.profileId),
+      eq(courses.responsibleInstituteId, candidate.instituteId),
+    )).limit(1).for("share");
+    if (!course || course.publicationStatus !== "draft") return null;
+    const [grant] = await tx.select().from(supervisionGrants).where(and(
+      eq(supervisionGrants.courseId, courseId),
+      eq(supervisionGrants.ownerType, "independent_educator"),
+      eq(supervisionGrants.independentEducatorProfileId, candidate.profileId),
+      eq(supervisionGrants.instituteId, candidate.instituteId),
+      eq(supervisionGrants.status, "approved"),
+    )).limit(1).for("share");
+    if (!grant?.approvedByInstituteUserId || !grant.approvedAt) return null;
+    const [reviewer] = await tx.select({ id: memberships.id })
+      .from(memberships).where(and(
+        eq(memberships.userId, instituteUserId), eq(memberships.role, "institute"),
+        eq(memberships.instituteId, candidate.instituteId),
+        eq(memberships.status, "active"),
+      )).limit(1).for("share");
+    const [approver] = await tx.select({ id: memberships.id })
+      .from(memberships).where(and(
+        eq(memberships.userId, grant.approvedByInstituteUserId),
+        eq(memberships.role, "institute"),
+        eq(memberships.instituteId, candidate.instituteId),
+        eq(memberships.status, "active"),
+      )).limit(1).for("share");
+    const [educator] = await tx.select({ userId: independentEducatorProfiles.userId })
+      .from(independentEducatorProfiles)
+      .where(eq(independentEducatorProfiles.id, candidate.profileId)).limit(1);
+    if (!reviewer || !approver || educator?.userId === instituteUserId) return null;
+    const [question] = await tx.select({
+      status: coursePracticeQuestions.reviewStatus,
+    }).from(coursePracticeQuestions).where(
+      eq(coursePracticeQuestions.courseId, courseId),
+    ).limit(1).for("update");
+    if (!question) return null;
+    if (question.status !== "pending") throw new PracticeUnavailable("already_created");
+    const reviewStatus = decision.action === "approve" ? "approved" : "rejected";
+    await tx.update(coursePracticeQuestions).set({
+      reviewStatus, reviewedByInstituteUserId: instituteUserId,
+      reviewedAt: new Date(), reviewReason: decision.reason,
+    }).where(eq(coursePracticeQuestions.courseId, courseId));
+    await tx.insert(auditLogs).values(auditLogRecord({
+      actorId: instituteUserId, actorRole: "institute",
+      action: decision.action === "approve"
+        ? "course.practice.approved" : "course.practice.rejected",
+      entityType: "PRACTICE", entityId: courseId,
     }));
     return { courseId, reviewStatus };
   });

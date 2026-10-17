@@ -18,12 +18,14 @@ export default defineConfig({
     "**/technical-support-db.spec.ts",
     "**/institute-service-orders-db.spec.ts",
     "**/organization-panel-analytics-db.spec.ts",
+    "**/health-db.spec.ts",
+    "**/admin-media-operations-db.spec.ts",
   ],
   use: { baseURL: "http://127.0.0.1:3000", ...devices["Desktop Chrome"] },
   webServer: {
     command: process.env.CI && process.env.DENA_DB_INTEGRATION === "1"
       ? "npm run start -- --hostname 127.0.0.1"
-      : "npm run dev",
+      : "npm run dev -- --hostname 127.0.0.1",
     url: "http://127.0.0.1:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

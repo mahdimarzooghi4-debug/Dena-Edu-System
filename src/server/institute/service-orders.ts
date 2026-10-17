@@ -3,6 +3,8 @@ import { getDb } from "../../db";
 import { auditLogs, instituteServiceOrders, memberships, verifiedEntities } from "../../db/schema";
 import { auditLogRecord } from "../admin/audit";
 import { getInstituteScopes } from "./scopes";
+import { addRecordedServiceTimeBalances } from "./service-time-quota";
+import { addInstituteServiceCallSchedules } from "./service-calls";
 
 export const instituteServiceOrderStatuses = [
   "awaiting_guardian_consent", "awaiting_payment", "paid", "cancelled",
@@ -54,8 +56,9 @@ export async function getInstituteServiceOrders(userId: string) {
       .groupBy(instituteServiceOrders.status),
   ]);
   const statuses = summarizeInstituteServiceOrderStatuses(statusRows);
+  const ordersWithBalances = await addRecordedServiceTimeBalances(orders);
   return {
-    institutes: scopes, orders,
+    institutes: scopes, orders: await addInstituteServiceCallSchedules(ordersWithBalances),
     summary: {
       total: Object.values(statuses).reduce((total, value) => total + value, 0),
       statuses,

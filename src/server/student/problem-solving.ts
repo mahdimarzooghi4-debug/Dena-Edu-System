@@ -5,6 +5,7 @@ import {
   courseTeamMembers,
   problemSolvingRequests,
   problemSolvingSessions,
+  studentEnrollments,
 } from "../../db/schema";
 import { hasStudentEntitlement } from "./entitlement";
 
@@ -89,21 +90,39 @@ export async function createStudentProblemSolvingRequest(
   input: z.infer<typeof problemSolvingRequestInput>,
 ) {
   if (!await hasStudentEntitlement(studentUserId, courseId)) return null;
-  const supporter = await supporterScope(courseId, teamMemberId);
-  if (!supporter || !supporter.requestsEnabled) return null;
+  return getDb().transaction(async (tx) => {
+    const [supporter] = await tx.select({
+      teamMemberId: courseTeamMembers.id,
+      requestsEnabled: courseTeamMembers.studentSessionRequestsEnabled,
+    }).from(courseTeamMembers).where(and(
+      eq(courseTeamMembers.id, teamMemberId),
+      eq(courseTeamMembers.courseId, courseId),
+      eq(courseTeamMembers.role, "academic_supporter"),
+      eq(courseTeamMembers.status, "active"),
+    )).limit(1).for("share");
+    if (!supporter?.requestsEnabled) return null;
 
-  const [created] = await getDb().insert(problemSolvingRequests).values({
-    courseId,
-    studentUserId,
-    supporterTeamMemberId: teamMemberId,
-    subject: input.subject,
-    description: input.description ?? null,
-  }).returning({
-    id: problemSolvingRequests.id,
-    subject: problemSolvingRequests.subject,
-    status: problemSolvingRequests.status,
-    createdAt: problemSolvingRequests.createdAt,
+    const [enrollment] = await tx.select({ id: studentEnrollments.id })
+      .from(studentEnrollments).where(and(
+        eq(studentEnrollments.studentUserId, studentUserId),
+        eq(studentEnrollments.courseId, courseId),
+        eq(studentEnrollments.status, "active"),
+      )).limit(1).for("share");
+    if (!enrollment || !await hasStudentEntitlement(studentUserId, courseId)) return null;
+
+    const [created] = await tx.insert(problemSolvingRequests).values({
+      courseId,
+      studentUserId,
+      supporterTeamMemberId: teamMemberId,
+      subject: input.subject,
+      description: input.description ?? null,
+    }).returning({
+      id: problemSolvingRequests.id,
+      subject: problemSolvingRequests.subject,
+      status: problemSolvingRequests.status,
+      createdAt: problemSolvingRequests.createdAt,
+    });
+
+    return created ?? null;
   });
-
-  return created ?? null;
 }

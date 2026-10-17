@@ -1131,7 +1131,10 @@ export const mediaMultipartPlans = pgTable("dena_media_multipart_plans", {
   courseId: uuid("course_id").notNull().references(() => courses.id, {
     onDelete: "restrict",
   }),
-  providerId: uuid("provider_id").notNull(),
+  ownerType: courseOwnerType("owner_type").notNull().default("verified_provider"),
+  providerId: uuid("provider_id"),
+  independentEducatorProfileId: uuid("independent_educator_profile_id")
+    .references(() => independentEducatorProfiles.id, { onDelete: "restrict" }),
   createdByUserId: uuid("created_by_user_id").notNull().references(() => user.id, {
     onDelete: "restrict",
   }),
@@ -1154,6 +1157,12 @@ export const mediaMultipartPlans = pgTable("dena_media_multipart_plans", {
   `),
   check("dena_multipart_status_ck", sql`
     status IN ('planned', 'expired', 'cancelled')
+  `),
+  check("dena_multipart_owner_scope_ck", sql`
+    (owner_type = 'verified_provider' AND provider_id IS NOT NULL
+      AND independent_educator_profile_id IS NULL)
+    OR (owner_type = 'independent_educator' AND provider_id IS NULL
+      AND independent_educator_profile_id IS NOT NULL)
   `),
   check("dena_multipart_cancel_ck", sql`
     (status = 'cancelled' AND cancelled_at IS NOT NULL)
@@ -1806,7 +1815,7 @@ export const auditEntityType = pgEnum("dena_audit_entity_type", [
   "SYSTEM", "USER", "COURSE", "PRACTICE", "MEDIA", "ROLE_APPLICATION",
   "ORGANIZATION_STUDENT", "ORGANIZATION_API_KEY", "ASSESSMENT_QUESTION",
   "ASSESSMENT_EXAM", "INSTITUTE_SERVICE", "SERVICE_ORDER",
-  "PROVIDER_COLLABORATION", "EDUCATOR_AFFILIATION",
+  "SERVICE_CALL", "PROVIDER_COLLABORATION", "EDUCATOR_AFFILIATION",
 ]);
 export const auditLogs = pgTable("dena_audit_logs", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -2146,5 +2155,61 @@ export const instituteServiceOrders = pgTable("dena_institute_service_orders", {
     OR (status = 'paid' AND paid_at IS NOT NULL
       AND (guardian_consent_required = false OR guardian_consent_confirmed_at IS NOT NULL))
     OR (status = 'cancelled' AND paid_at IS NULL)
+  `),
+]);
+
+export const serviceTimeLedgerEventType = pgEnum("dena_service_time_ledger_event_type", [
+  "grant", "consume",
+]);
+export const serviceTimeLedger = pgTable("dena_service_time_ledger", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  serviceOrderId: uuid("service_order_id").notNull()
+    .references(() => instituteServiceOrders.id, { onDelete: "restrict" }),
+  eventKey: text("event_key").notNull(),
+  eventType: serviceTimeLedgerEventType("event_type").notNull(),
+  minutes: integer("minutes").notNull(),
+  serviceSessionId: uuid("service_session_id"),
+  createdByUserId: uuid("created_by_user_id").references(() => user.id, { onDelete: "restrict" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("dena_service_time_ledger_event_key_uidx").on(table.eventKey),
+  uniqueIndex("dena_service_time_ledger_consume_session_uidx").on(table.serviceSessionId)
+    .where(sql`${table.eventType} = 'consume'`),
+  index("dena_service_time_ledger_order_created_idx").on(table.serviceOrderId, table.createdAt),
+  check("dena_service_time_ledger_event_key_ck", sql`event_key ~ '^[a-zA-Z0-9_.:-]{8,180}$'`),
+  check("dena_service_time_ledger_minutes_ck", sql`minutes BETWEEN 1 AND 100000`),
+  check("dena_service_time_ledger_event_session_ck", sql`
+    (event_type = 'grant' AND service_session_id IS NULL)
+    OR (event_type = 'consume' AND service_session_id IS NOT NULL)
+  `),
+]);
+
+export const instituteServiceCallStatus = pgEnum("dena_institute_service_call_status", [
+  "scheduled", "started", "ended", "cancelled",
+]);
+export const instituteServiceCalls = pgTable("dena_institute_service_calls", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  serviceOrderId: uuid("service_order_id").notNull()
+    .references(() => instituteServiceOrders.id, { onDelete: "restrict" }),
+  idempotencyKey: uuid("idempotency_key").notNull(),
+  scheduledAt: timestamp("scheduled_at", { withTimezone: true }).notNull(),
+  status: instituteServiceCallStatus("status").notNull().default("scheduled"),
+  startedAt: timestamp("started_at", { withTimezone: true }),
+  endedAt: timestamp("ended_at", { withTimezone: true }),
+  createdByUserId: uuid("created_by_user_id").notNull()
+    .references(() => user.id, { onDelete: "restrict" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("dena_institute_service_call_order_created_idx").on(table.serviceOrderId, table.createdAt),
+  uniqueIndex("dena_institute_service_call_order_idempotency_uidx")
+    .on(table.serviceOrderId, table.idempotencyKey),
+  uniqueIndex("dena_institute_service_call_order_open_uidx").on(table.serviceOrderId)
+    .where(sql`${table.status} IN ('scheduled', 'started')`),
+  check("dena_institute_service_call_state_ck", sql`
+    (status = 'scheduled' AND started_at IS NULL AND ended_at IS NULL)
+    OR (status = 'started' AND started_at IS NOT NULL AND ended_at IS NULL)
+    OR (status = 'ended' AND started_at IS NOT NULL AND ended_at >= started_at)
+    OR (status = 'cancelled' AND started_at IS NULL AND ended_at IS NULL)
   `),
 ]);

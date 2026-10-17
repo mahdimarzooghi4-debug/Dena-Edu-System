@@ -25,11 +25,11 @@ const genderOptions = [
 const genderLabel = Object.fromEntries(genderOptions) as Record<string, string>;
 
 export function OrganizationStudentWorkspace({
-  scopes, initialStudents,
-}: { scopes: Scope[]; initialStudents: Student[] }) {
+  scopes, initialStudents, initialOrganizationId, searchTerm, activationPendingOnly,
+}: { scopes: Scope[]; initialStudents: Student[]; initialOrganizationId?: string; searchTerm: string; activationPendingOnly: boolean }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("manual");
-  const [organizationId, setOrganizationId] = useState(scopes[0]?.id ?? "");
+  const [organizationId, setOrganizationId] = useState(initialOrganizationId ?? scopes[0]?.id ?? "");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -38,11 +38,9 @@ export function OrganizationStudentWorkspace({
   const [importErrors, setImportErrors] = useState<Array<{ row: number; error: string }>>([]);
   const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
   const [keyLabel, setKeyLabel] = useState("اتصال سامانه سازمان");
-  const [search, setSearch] = useState("");
   const organizationNames = useMemo(() => new Map(scopes.map((scope) => [scope.id, scope.name])), [scopes]);
   const visibleStudents = initialStudents.filter((student) =>
-    (!organizationId || student.organizationId === organizationId) &&
-    `${student.firstName} ${student.lastName} ${student.phoneNumber ?? ""}`.includes(search.trim()),
+    !organizationId || student.organizationId === organizationId,
   );
 
   async function submitManual(event: React.FormEvent<HTMLFormElement>) {
@@ -124,7 +122,15 @@ export function OrganizationStudentWorkspace({
         </div>
         <label className="w-full max-w-sm text-xs font-bold text-dena-muted">
           سازمان فعال
-          <select className={`${inputClass} mt-1 text-dena-ink`} value={organizationId} onChange={(event) => setOrganizationId(event.target.value)}>
+          <select className={`${inputClass} mt-1 text-dena-ink`} value={organizationId} onChange={(event) => {
+            const nextOrganizationId = event.target.value;
+            setOrganizationId(nextOrganizationId);
+            const params = new URLSearchParams();
+            params.set("organizationId", nextOrganizationId);
+            if (activationPendingOnly) params.set("activation", "pending");
+            if (searchTerm) params.set("q", searchTerm);
+            router.push(`/organization/students?${params.toString()}`);
+          }}>
             {scopes.map((scope) => <option key={scope.id} value={scope.id}>{scope.name}</option>)}
           </select>
         </label>
@@ -201,10 +207,18 @@ export function OrganizationStudentWorkspace({
 
       <section className="space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <div><h2 className="text-xl font-extrabold">فهرست دانش‌آموزان این سازمان</h2><p className="mt-1 text-sm text-dena-muted">{visibleStudents.length.toLocaleString("fa-IR")} پرونده</p></div>
-          <input aria-label="جست‌وجو" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="نام یا موبایل" className={`${inputClass} max-w-xs`} />
+          <div><h2 className="text-xl font-extrabold">فهرست دانش‌آموزان این سازمان</h2><p className="mt-1 text-sm text-dena-muted">{visibleStudents.length.toLocaleString("fa-IR")} پرونده در این صفحه</p></div>
+          <form method="GET" action="/organization/students" className="flex flex-wrap items-end gap-2">
+            {organizationId && <input type="hidden" name="organizationId" value={organizationId} />}
+            {activationPendingOnly && <input type="hidden" name="activation" value="pending" />}
+            <label className="text-xs font-bold text-dena-muted">جست‌وجو در همهٔ پرونده‌های این محدوده
+              <input aria-label="جست‌وجو در همهٔ پرونده‌های این محدوده" name="q" defaultValue={searchTerm}
+                maxLength={100} placeholder="نام یا موبایل" className={`${inputClass} mt-1 max-w-xs`} />
+            </label>
+            <button className={buttonClassName("secondary")} type="submit">جست‌وجو</button>
+          </form>
         </div>
-        {visibleStudents.length === 0 ? <Card><p className="text-sm leading-7 text-dena-muted">هنوز دانش‌آموزی در این سازمان ثبت نشده است.</p></Card> :
+        {visibleStudents.length === 0 ? <Card><p className="text-sm leading-7 text-dena-muted">{searchTerm ? "پرونده‌ای با این نام یا شماره پیدا نشد." : "هنوز دانش‌آموزی در این سازمان ثبت نشده است."}</p></Card> :
           <div className="overflow-x-auto rounded-2xl border border-dena-border bg-white">
             <table className="w-full min-w-[820px] text-right text-sm">
               <thead className="bg-dena-lavender text-dena-muted"><tr>{["نام", "موبایل", "کدملی", "تاریخ تولد", "جنسیت", "حساب", "عملیات"].map((heading) => <th key={heading} className="px-4 py-3 font-bold">{heading}</th>)}</tr></thead>

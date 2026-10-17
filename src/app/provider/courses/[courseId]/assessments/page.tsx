@@ -5,7 +5,7 @@ import { z } from "zod";
 import { Card } from "../../../../../components/ui/card";
 import { LearningAssessmentAuthor } from "../../../../../components/provider/learning-assessment-author";
 import { getServerAccessContext } from "../../../../../server/access/actor";
-import { getProviderLearningAssessments } from "../../../../../server/assessments/learning-assessment";
+import { getCourseLearningAssessmentsForOwner } from "../../../../../server/assessments/learning-assessment";
 import { getProviderCourseDetail } from "../../../../../server/provider/course-detail";
 
 export const runtime = "nodejs";
@@ -28,7 +28,7 @@ export default async function ProviderLearningAssessmentsPage({
     entry.role === "provider" ? [entry.providerId] : []))];
   const [course, state] = await Promise.all([
     getProviderCourseDetail(providerIds, courseId),
-    getProviderLearningAssessments(actor.userId, courseId),
+    getCourseLearningAssessmentsForOwner(actor.userId, courseId),
   ]);
   if (!course || !state) notFound();
 

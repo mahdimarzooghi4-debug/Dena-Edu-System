@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import Link from "next/link";
 import { Button } from "../ui/button";
 
 type Institute = { id: string; name: string };
@@ -8,6 +9,7 @@ type EducatorCourse = {
   courseId: string; title: string; instituteId: string; instituteName: string;
   publicationStatus: "draft" | "published" | "archived";
   supervisionStatus: "requested" | "approved" | "revoked";
+  hasReadyVideo: boolean;
 };
 type Affiliation = {
   id: string; instituteId: string; instituteName: string; displayName: string;
@@ -128,6 +130,33 @@ export function IndependentEducatorWorkspace({
         : "پیش‌نویس دوره ثبت و برای بررسی مؤسسه فرستاده شد.");
     } catch { setError("ارتباط برقرار نشد؛ فهرست دوره‌ها را تازه کنید."); }
     finally { setBusy(false); }
+  }
+
+  async function publishCourse(courseId: string) {
+    if (busy) return;
+    setBusy(true); setError(""); setNotice("");
+    try {
+      const response = await fetch(
+        `/api/independent-educator/courses/${encodeURIComponent(courseId)}/publication`, {
+          method: "POST", credentials: "same-origin", cache: "no-store",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "publish" }),
+        },
+      );
+      const body = await response.json().catch(() => null) as { error?: string } | null;
+      if (!response.ok) {
+        setError(body?.error === "private_media_unavailable"
+          ? "انتشار تا آماده‌شدن سرویس رسانهٔ خصوصی غیرفعال است."
+          : body?.error === "practice_review_pending"
+            ? "تا پایان بازبینی تمرین‌های دوره امکان انتشار نیست."
+            : "شرایط انتشار کامل نیست؛ نظارت، ویدئوی آماده و همکاری فعال را بررسی کنید.");
+        return;
+      }
+      await refresh();
+      setNotice("دوره منتشر شد و در کاتالوگ رایگان دانش‌آموزان نمایش داده می‌شود.");
+    } catch {
+      setError("ارتباط برقرار نشد؛ وضعیت انتشار را دوباره بررسی کنید.");
+    } finally { setBusy(false); }
   }
 
   async function uploadCourseMedia(event: FormEvent<HTMLFormElement>) {
@@ -331,6 +360,27 @@ export function IndependentEducatorWorkspace({
                 {" · "}انتشار: {course.publicationStatus === "draft" ? "پیش‌نویس"
                   : course.publicationStatus === "published" ? "منتشرشده" : "بایگانی‌شده"}
               </p>
+              {course.publicationStatus === "draft" &&
+                course.supervisionStatus === "approved" && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Link href={`/account/independent-educator/courses/${course.courseId}/assessments`}
+                      className="inline-flex min-h-10 items-center rounded-lg bg-dena-lavender px-3 text-sm font-bold text-dena-brand">
+                      مدیریت ارزیابی‌های یادگیری
+                    </Link>
+                    <Link href={`/account/independent-educator/courses/${course.courseId}/practice`}
+                      className="inline-flex min-h-10 items-center rounded-lg border border-dena-border px-3 text-sm font-bold text-dena-brand">
+                      تمرین کوتاه
+                    </Link>
+                    <Link href={`/account/independent-educator/courses/${course.courseId}/media`}
+                      className="inline-flex min-h-10 items-center rounded-lg border border-dena-border px-3 text-sm font-bold text-dena-brand">
+                      برنامه‌ریزی ویدئوی حجیم
+                    </Link>
+                    {course.hasReadyVideo && <Button type="button" variant="outline"
+                      disabled={busy} onClick={() => void publishCourse(course.courseId)}>
+                      انتشار دوره
+                    </Button>}
+                  </div>
+                )}
             </li>
           ))}
         </ul>

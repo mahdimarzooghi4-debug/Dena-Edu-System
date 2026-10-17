@@ -86,6 +86,10 @@ export function LearningAssessmentCard({ courseId, assessment }: {
       } else if (body.completed) {
         setResult({ outcome: "completed", correctCount: null, questionCount: null });
       } else {
+        setReviewAttemptId(null);
+        setReviewLessons([]);
+        setAcknowledged([]);
+        setResult(null);
         await readAttempt(body.attemptId);
       }
     } catch (cause) {
