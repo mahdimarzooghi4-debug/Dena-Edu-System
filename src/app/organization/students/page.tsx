@@ -65,7 +65,7 @@ export default async function OrganizationStudentsPage({
           : "/organization/students"}
           className={buttonClassName("secondary")}>نمایش همهٔ پرونده‌ها</Link>
       </Card>}
-      <OrganizationStudentWorkspace scopes={visibleScopes} initialStudents={studentPage.students}
+      <OrganizationStudentWorkspace scopes={scopes} initialStudents={studentPage.students}
         initialOrganizationId={selectedOrganization?.id} searchTerm={q?.trim() ?? ""}
         activationPendingOnly={activationPendingOnly} />
       {studentPage.nextCursor && <nav aria-label="صفحه‌بندی دانش‌آموزان" className="flex justify-end">
