@@ -51,7 +51,6 @@ let probeCreated = false;
 let failure;
 
 try {
-  run("pg_dump", ["--format=custom", "--no-owner", "--no-privileges", "--file", archive]);
   run("psql", [
     "--set", "ON_ERROR_STOP=1",
     "--command",
