@@ -14,11 +14,13 @@ test.describe("organization reports use only active tenant scopes", () => {
   const db = getDb();
   const actorId = randomUUID();
   const organizationId = randomUUID();
+  const secondOrganizationId = randomUUID();
   const otherOrganizationId = randomUUID();
   const verifiedStudentId = randomUUID();
   const pendingStudentId = randomUUID();
+  const secondPendingStudentId = randomUUID();
   const otherStudentId = randomUUID();
-  const rosterIds = [randomUUID(), randomUUID(), randomUUID()];
+  const rosterIds = [randomUUID(), randomUUID(), randomUUID(), randomUUID()];
   const token = randomUUID();
   const baseURL = "http://127.0.0.1:3000";
 
@@ -38,13 +40,18 @@ test.describe("organization reports use only active tenant scopes", () => {
       { id: actorId, name: "organization analytics fixture", email: actorId + "@example.test" },
       { id: verifiedStudentId, name: "verified fixture", email: verifiedStudentId + "@example.test", phoneNumberVerified: true },
       { id: pendingStudentId, name: "pending fixture", email: pendingStudentId + "@example.test" },
+      { id: secondPendingStudentId, name: "second pending fixture", email: secondPendingStudentId + "@example.test" },
       { id: otherStudentId, name: "other tenant fixture", email: otherStudentId + "@example.test" },
     ]);
     await db.insert(verifiedEntities).values([
       { id: organizationId, role: "organization", name: "سازمان آزمایشی مجاز", evidenceReference: "fixture-ref-1", verifiedByUserId: actorId },
+      { id: secondOrganizationId, role: "organization", name: "سازمان دوم مجاز", evidenceReference: "fixture-ref-3", verifiedByUserId: actorId },
       { id: otherOrganizationId, role: "organization", name: "سازمان خارج از دسترس", evidenceReference: "fixture-ref-2", verifiedByUserId: actorId },
     ]);
-    await db.insert(memberships).values({ userId: actorId, role: "organization", organizationId });
+    await db.insert(memberships).values([
+      { userId: actorId, role: "organization", organizationId },
+      { userId: actorId, role: "organization", organizationId: secondOrganizationId },
+    ]);
     await db.insert(session).values({
       userId: actorId, token, expiresAt: new Date(Date.now() + 60 * 60 * 1000),
     });
@@ -58,7 +65,8 @@ test.describe("organization reports use only active tenant scopes", () => {
     await db.insert(organizationStudents).values([
       { ...baseStudent, id: rosterIds[0], organizationId, userId: verifiedStudentId, firstName: "verified", lastName: "fixture", nationalCodeHash: randomUUID(), nationalCodeLast4: "1001" },
       { ...baseStudent, id: rosterIds[1], organizationId, userId: pendingStudentId, firstName: "pending", lastName: "fixture", nationalCodeHash: randomUUID(), nationalCodeLast4: "1002", source: "bulk" },
-      { ...baseStudent, id: rosterIds[2], organizationId: otherOrganizationId, userId: otherStudentId, firstName: "outside", lastName: "fixture", nationalCodeHash: randomUUID(), nationalCodeLast4: "1003", source: "api" },
+      { ...baseStudent, id: rosterIds[2], organizationId: secondOrganizationId, userId: secondPendingStudentId, firstName: "second", lastName: "pending", nationalCodeHash: randomUUID(), nationalCodeLast4: "1004", source: "api" },
+      { ...baseStudent, id: rosterIds[3], organizationId: otherOrganizationId, userId: otherStudentId, firstName: "outside", lastName: "fixture", nationalCodeHash: randomUUID(), nationalCodeLast4: "1003", source: "api" },
     ]);
   });
 
@@ -67,26 +75,28 @@ test.describe("organization reports use only active tenant scopes", () => {
     await db.delete(session).where(eq(session.token, token));
     await db.delete(memberships).where(eq(memberships.userId, actorId));
     await db.delete(verifiedEntities).where(inArray(
-      verifiedEntities.id, [organizationId, otherOrganizationId],
+      verifiedEntities.id, [organizationId, secondOrganizationId, otherOrganizationId],
     ));
     await db.delete(user).where(inArray(user.id, [
-      actorId, verifiedStudentId, pendingStudentId, otherStudentId,
+      actorId, verifiedStudentId, pendingStudentId, secondPendingStudentId, otherStudentId,
     ]));
   });
 
   test("snapshot is aggregate-only and excludes another organization", async () => {
     const scopes = await getOrganizationScopes(actorId);
-    expect(scopes.map((scope) => scope.id)).toEqual([organizationId]);
+    expect(scopes.map((scope) => scope.id).sort()).toEqual([organizationId, secondOrganizationId].sort());
     const snapshot = await getOrganizationPanelSnapshot(scopes);
     expect(snapshot.totals).toEqual({
-      students: 2, phoneVerified: 1, activationPending: 1,
+      students: 3, phoneVerified: 1, activationPending: 2,
     });
-    expect(snapshot.organizations).toEqual([{
-      id: organizationId, name: "سازمان آزمایشی مجاز",
-      students: 2, phoneVerified: 1, activationPending: 1,
-    }]);
+    expect(snapshot.organizations.find((row) => row.id === organizationId)).toEqual({
+      id: organizationId, name: "سازمان آزمایشی مجاز", students: 2, phoneVerified: 1, activationPending: 1,
+    });
+    expect(snapshot.organizations.find((row) => row.id === secondOrganizationId)).toEqual({
+      id: secondOrganizationId, name: "سازمان دوم مجاز", students: 1, phoneVerified: 0, activationPending: 1,
+    });
     expect(snapshot.months).toHaveLength(6);
-    expect(snapshot.months.reduce((sum, item) => sum + item.registrations, 0)).toBe(2);
+    expect(snapshot.months.reduce((sum, item) => sum + item.registrations, 0)).toBe(3);
     expect(JSON.stringify(snapshot)).not.toContain("nationalCode");
     expect(JSON.stringify(snapshot)).not.toContain("verified fixture");
   });
@@ -100,11 +110,12 @@ test.describe("organization reports use only active tenant scopes", () => {
       expect(response.status()).toBe(200);
       expect(response.headers()["cache-control"]).toContain("no-store");
     }
-    const pending = await organization.get("/organization/students?activation=pending");
+    const pending = await organization.get(`/organization/students?activation=pending&organizationId=${secondOrganizationId}`);
     expect(pending.status()).toBe(200);
     const pendingHtml = await pending.text();
-    expect(pendingHtml).toContain("فهرست فقط پرونده‌های در انتظار تأیید شماره را نشان می‌دهد");
-    expect(pendingHtml).toContain("pending<!-- --> <!-- -->fixture");
+    expect(pendingHtml).toContain("فهرست فقط پرونده‌های در انتظار تأیید شماره را نشان می‌دهد؛ سازمان: سازمان دوم مجاز.");
+    expect(pendingHtml).toContain("second<!-- --> <!-- -->pending");
+    expect(pendingHtml).not.toContain("pending<!-- --> <!-- -->fixture");
     expect(pendingHtml).not.toContain("verified fixture");
     await organization.dispose();
   });

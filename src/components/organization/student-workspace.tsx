@@ -25,11 +25,11 @@ const genderOptions = [
 const genderLabel = Object.fromEntries(genderOptions) as Record<string, string>;
 
 export function OrganizationStudentWorkspace({
-  scopes, initialStudents,
-}: { scopes: Scope[]; initialStudents: Student[] }) {
+  scopes, initialStudents, initialOrganizationId,
+}: { scopes: Scope[]; initialStudents: Student[]; initialOrganizationId?: string }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("manual");
-  const [organizationId, setOrganizationId] = useState(scopes[0]?.id ?? "");
+  const [organizationId, setOrganizationId] = useState(initialOrganizationId ?? scopes[0]?.id ?? "");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");

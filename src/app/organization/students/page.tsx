@@ -16,16 +16,18 @@ export const metadata: Metadata = {
 
 export default async function OrganizationStudentsPage({
   searchParams,
-}: { searchParams: Promise<{ activation?: string }> }) {
+}: { searchParams: Promise<{ activation?: string; organizationId?: string }> }) {
   if (!process.env.DATABASE_URL || !process.env.BETTER_AUTH_SECRET || !process.env.BETTER_AUTH_URL) redirect("/login");
   const actor = await getServerAccessContext();
   if (!actor) redirect("/login");
   if (!actor.memberships.some((membership) => membership.role === "organization")) notFound();
   const scopes = await getOrganizationScopes(actor.userId);
   if (!scopes.length) notFound();
-  const { activation } = await searchParams;
+  const { activation, organizationId } = await searchParams;
   const activationPendingOnly = activation === "pending";
-  const students = await listOrganizationStudents(scopes.map((scope) => scope.id), {
+  const selectedOrganization = scopes.find((scope) => scope.id === organizationId);
+  const visibleScopes = selectedOrganization ? [selectedOrganization] : scopes;
+  const students = await listOrganizationStudents(visibleScopes.map((scope) => scope.id), {
     activationPendingOnly,
   });
 
@@ -43,10 +45,14 @@ export default async function OrganizationStudentsPage({
         </p>
       </section>
       {activationPendingOnly && <Card className="flex flex-wrap items-center justify-between gap-3 border-amber-200 bg-amber-50">
-        <p className="text-sm font-bold text-amber-950">فهرست فقط پرونده‌های در انتظار تأیید شماره را نشان می‌دهد.</p>
+        <p className="text-sm font-bold text-amber-950">
+          فهرست فقط پرونده‌های در انتظار تأیید شماره را نشان می‌دهد
+          {selectedOrganization ? `؛ سازمان: ${selectedOrganization.name}` : ""}.
+        </p>
         <Link href="/organization/students" className={buttonClassName("secondary")}>نمایش همهٔ پرونده‌ها</Link>
       </Card>}
-      <OrganizationStudentWorkspace scopes={scopes} initialStudents={students} />
+      <OrganizationStudentWorkspace scopes={scopes} initialStudents={students}
+        initialOrganizationId={selectedOrganization?.id} />
     </main>
   );
 }
