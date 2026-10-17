@@ -116,6 +116,7 @@ test.describe("organization reports use only active tenant scopes", () => {
     expect(pendingHtml).toContain("فهرست فقط پرونده‌های در انتظار تأیید شماره را نشان می‌دهد");
     expect(pendingHtml).toContain("سازمان دوم مجاز");
     expect(pendingHtml).toContain(`value="${secondOrganizationId}" selected=""`);
+    expect(pendingHtml).toContain(`href="/organization/students?organizationId=${secondOrganizationId}"`);
     expect(pendingHtml).toContain("second<!-- --> <!-- -->pending");
     expect(pendingHtml).not.toContain("pending<!-- --> <!-- -->fixture");
     expect(pendingHtml).not.toContain("verified fixture");

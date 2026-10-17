@@ -59,7 +59,10 @@ export default async function OrganizationStudentsPage({
           فهرست فقط پرونده‌های در انتظار تأیید شماره را نشان می‌دهد
           {selectedOrganization ? `؛ سازمان: ${selectedOrganization.name}` : ""}.
         </p>
-        <Link href="/organization/students" className={buttonClassName("secondary")}>نمایش همهٔ پرونده‌ها</Link>
+        <Link href={selectedOrganization
+          ? `/organization/students?organizationId=${encodeURIComponent(selectedOrganization.id)}`
+          : "/organization/students"}
+          className={buttonClassName("secondary")}>نمایش همهٔ پرونده‌ها</Link>
       </Card>}
       <OrganizationStudentWorkspace scopes={visibleScopes} initialStudents={studentPage.students}
         initialOrganizationId={selectedOrganization?.id} />
