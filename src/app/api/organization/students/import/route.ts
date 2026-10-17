@@ -4,10 +4,13 @@ import { getOrganizationScopes } from "../../../../../server/organization/scopes
 import { createOrganizationStudent, OrganizationStudentError } from "../../../../../server/organization/students";
 import { parseStudentImport } from "../../../../../server/organization/import-file";
 import { studentInputSchema } from "../../../../../server/organization/student-contracts";
+import { readFormDataAtMost, RequestBodyLimitError } from "../../../../../server/http/bounded-request-body";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 const noStore = { "Cache-Control": "private, no-store" };
+const maxFileBytes = 5 * 1024 * 1024;
+const maxRequestBytes = maxFileBytes + 64 * 1024;
 
 export async function POST(request: NextRequest) {
   const origin = request.headers.get("origin");
@@ -16,13 +19,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403, headers: noStore });
   }
   const contentLength = Number(request.headers.get("content-length") ?? 0);
-  if (contentLength > 5 * 1024 * 1024) return NextResponse.json({ error: "File too large" }, { status: 413, headers: noStore });
+  if (contentLength > maxRequestBytes) return NextResponse.json({ error: "File too large" }, { status: 413, headers: noStore });
   const actor = await getServerAccessContext();
   if (!actor) return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: noStore });
   const scopes = await getOrganizationScopes(actor.userId);
   if (!scopes.length) return NextResponse.json({ error: "Not found" }, { status: 404, headers: noStore });
 
-  const form = await request.formData().catch(() => null);
+  let form: FormData | null;
+  try {
+    form = await readFormDataAtMost(request, maxRequestBytes);
+  } catch (error) {
+    if (error instanceof RequestBodyLimitError) {
+      return NextResponse.json({ error: "File too large" }, { status: 413, headers: noStore });
+    }
+    form = null;
+  }
   const file = form?.get("file");
   const organizationId = form?.get("organizationId");
   const guardianConsentConfirmed = form?.get("guardianConsentConfirmed");
@@ -32,7 +43,7 @@ export async function POST(request: NextRequest) {
   }
   try {
     const bytes = Buffer.from(await file.arrayBuffer());
-    if (bytes.length > 5 * 1024 * 1024) return NextResponse.json({ error: "File too large" }, { status: 413, headers: noStore });
+    if (bytes.length > maxFileBytes) return NextResponse.json({ error: "File too large" }, { status: 413, headers: noStore });
     const rows = parseStudentImport(bytes, file.name);
     const parsed = rows.map((row) => ({ rowNumber: row.rowNumber, result: studentInputSchema.safeParse(row.values) }));
     const errors = parsed.filter((row) => !row.result.success).map((row) => ({ row: row.rowNumber, error: "invalid_row" }));
