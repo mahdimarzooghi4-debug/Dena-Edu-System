@@ -18,6 +18,7 @@ export default defineConfig({
     "**/technical-support-db.spec.ts",
     "**/institute-service-orders-db.spec.ts",
     "**/organization-panel-analytics-db.spec.ts",
+    "**/health-db.spec.ts",
   ],
   use: { baseURL: "http://127.0.0.1:3000", ...devices["Desktop Chrome"] },
   webServer: {
