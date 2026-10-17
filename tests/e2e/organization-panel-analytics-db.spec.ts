@@ -4,7 +4,8 @@ import { serializeSignedCookie } from "better-call";
 import { test, expect, request, type APIRequestContext } from "@playwright/test";
 import { getDb } from "../../src/db";
 import {
-  auditLogs, memberships, organizationStudents, session, user, verifiedEntities,
+  auditLogs, memberships, organizationApiKeys, organizationStudents, rateLimit,
+  session, user, verifiedEntities,
 } from "../../src/db/schema";
 import { getOrganizationPanelSnapshot } from "../../src/server/organization/analytics";
 import { getOrganizationScopes } from "../../src/server/organization/scopes";
@@ -222,6 +223,105 @@ test.describe("organization reports use only active tenant scopes", () => {
           await db.delete(memberships).where(eq(memberships.userId, created.userId));
           await db.delete(user).where(eq(user.id, created.userId));
         }
+      }
+      await organization.dispose();
+    }
+  });
+
+  test("organization API keys are one-time, scoped, consent-gated, and revocable", async () => {
+    const organization = await client();
+    const origin = new URL(process.env.BETTER_AUTH_URL!).origin;
+    const phoneNumber = `+989${randomUUID().replace(/[^0-9]/g, "").padEnd(9, "7").slice(0, 9)}`;
+    let keyId: string | undefined;
+    let rotatedKeyId: string | undefined;
+    let secret: string | undefined;
+    let rotatedSecret: string | undefined;
+    let studentId: string | undefined;
+
+    try {
+      const createdKey = await organization.post("/api/organization/api-keys", {
+        headers: { Origin: origin },
+        data: { organizationId, label: "integration lifecycle" },
+      });
+      expect(createdKey.status()).toBe(201);
+      expect(createdKey.headers()["cache-control"]).toContain("no-store");
+      const keyResult = await createdKey.json();
+      keyId = keyResult.key.id;
+      secret = keyResult.key.secret;
+      expect(secret).toMatch(/^dena_org_[A-Za-z0-9_-]{40,60}$/);
+
+      const keyList = await organization.get("/api/organization/api-keys");
+      expect(keyList.status()).toBe(200);
+      const listed = await keyList.json();
+      expect(listed.keys).toEqual(expect.arrayContaining([
+        expect.objectContaining({ id: keyId, prefix: keyResult.key.prefix }),
+      ]));
+      expect(JSON.stringify(listed)).not.toContain(secret);
+
+      const student = {
+        firstName: "کلید", lastName: "سازمانی", nationalCode: "1234567891",
+        birthDate: "2010-01-01", gender: "prefer_not_to_say", phoneNumber: phoneNumber,
+      };
+      const deniedConsent = await organization.post("/api/v1/organization/students", {
+        headers: { Authorization: `Bearer ${secret}` }, data: student,
+      });
+      expect(deniedConsent.status()).toBe(400);
+
+      const accepted = await organization.post("/api/v1/organization/students", {
+        headers: { Authorization: `Bearer ${secret}` },
+        data: { ...student, guardianConsentConfirmed: true },
+      });
+      expect(accepted.status()).toBe(201);
+      studentId = (await accepted.json()).student.id;
+
+      const rotated = await organization.post("/api/organization/api-keys", {
+        headers: { Origin: origin },
+        data: { organizationId, label: "rotated integration", rotateFromKeyId: keyId },
+      });
+      expect(rotated.status()).toBe(201);
+      const rotatedResult = await rotated.json();
+      rotatedKeyId = rotatedResult.key.id;
+      rotatedSecret = rotatedResult.key.secret;
+      expect(rotatedSecret).not.toBe(secret);
+
+      const oldKeyRequest = await organization.post("/api/v1/organization/students", {
+        headers: { Authorization: `Bearer ${secret}` },
+        data: { ...student, guardianConsentConfirmed: true },
+      });
+      expect(oldKeyRequest.status()).toBe(401);
+      const newKeyRequest = await organization.post("/api/v1/organization/students", {
+        headers: { Authorization: `Bearer ${rotatedSecret}` },
+        data: { ...student, guardianConsentConfirmed: true },
+      });
+      expect(newKeyRequest.status()).toBe(409);
+
+      const revoked = await organization.delete(`/api/organization/api-keys/${rotatedKeyId}`, {
+        headers: { Origin: origin },
+      });
+      expect(revoked.status()).toBe(200);
+      const revokedKeyRequest = await organization.post("/api/v1/organization/students", {
+        headers: { Authorization: `Bearer ${rotatedSecret}` },
+        data: { ...student, guardianConsentConfirmed: true },
+      });
+      expect(revokedKeyRequest.status()).toBe(401);
+    } finally {
+      if (studentId) {
+        const [created] = await db.select({ userId: organizationStudents.userId })
+          .from(organizationStudents).where(eq(organizationStudents.id, studentId)).limit(1);
+        await db.delete(auditLogs).where(eq(auditLogs.entityId, studentId));
+        await db.delete(organizationStudents).where(eq(organizationStudents.id, studentId));
+        if (created) {
+          await db.delete(memberships).where(eq(memberships.userId, created.userId));
+          await db.delete(user).where(eq(user.id, created.userId));
+        }
+      }
+      const keyIds = [keyId, rotatedKeyId].filter((id): id is string => Boolean(id));
+      if (keyIds.length) {
+        await db.delete(auditLogs).where(inArray(auditLogs.entityId, keyIds));
+        await db.delete(organizationApiKeys).where(inArray(organizationApiKeys.id, keyIds));
+        await db.delete(rateLimit).where(inArray(
+          rateLimit.key, keyIds.map((id) => `organization-api:${id}`),
+        ));
       }
       await organization.dispose();
     }
