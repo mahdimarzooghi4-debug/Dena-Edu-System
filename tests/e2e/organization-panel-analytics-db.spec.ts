@@ -161,4 +161,22 @@ test.describe("organization reports use only active tenant scopes", () => {
     expect((await organization.get("/api/organization/students?cursor=not-a-cursor")).status()).toBe(400);
     await organization.dispose();
   });
+
+  test("organization selector reloads the server-scoped roster", async ({ page }) => {
+    const setCookie = await serializeSignedCookie(
+      "better-auth.session_token", token, process.env.BETTER_AUTH_SECRET!,
+    );
+    const cookiePair = setCookie.split(";")[0];
+    const separator = cookiePair.indexOf("=");
+    await page.context().addCookies([{
+      name: cookiePair.slice(0, separator), value: cookiePair.slice(separator + 1),
+      url: baseURL, httpOnly: true, sameSite: "Lax",
+    }]);
+    await page.goto(`${baseURL}/organization/students?organizationId=${organizationId}`);
+    await expect(page.locator("tbody")).toContainText("verified");
+    await page.getByLabel("سازمان فعال").selectOption(secondOrganizationId);
+    await expect(page).toHaveURL(new RegExp(`organizationId=${secondOrganizationId}`));
+    await expect(page.locator("tbody")).toContainText("second");
+    await expect(page.locator("tbody")).not.toContainText("verified");
+  });
 });

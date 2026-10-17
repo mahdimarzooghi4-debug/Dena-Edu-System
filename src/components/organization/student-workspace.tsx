@@ -122,7 +122,15 @@ export function OrganizationStudentWorkspace({
         </div>
         <label className="w-full max-w-sm text-xs font-bold text-dena-muted">
           سازمان فعال
-          <select className={`${inputClass} mt-1 text-dena-ink`} value={organizationId} onChange={(event) => setOrganizationId(event.target.value)}>
+          <select className={`${inputClass} mt-1 text-dena-ink`} value={organizationId} onChange={(event) => {
+            const nextOrganizationId = event.target.value;
+            setOrganizationId(nextOrganizationId);
+            const params = new URLSearchParams();
+            params.set("organizationId", nextOrganizationId);
+            if (activationPendingOnly) params.set("activation", "pending");
+            if (searchTerm) params.set("q", searchTerm);
+            router.push(`/organization/students?${params.toString()}`);
+          }}>
             {scopes.map((scope) => <option key={scope.id} value={scope.id}>{scope.name}</option>)}
           </select>
         </label>

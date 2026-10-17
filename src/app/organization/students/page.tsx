@@ -25,8 +25,8 @@ export default async function OrganizationStudentsPage({
   if (!scopes.length) notFound();
   const { activation, organizationId, cursor, q } = await searchParams;
   const activationPendingOnly = activation === "pending";
-  const selectedOrganization = scopes.find((scope) => scope.id === organizationId);
-  const visibleScopes = selectedOrganization ? [selectedOrganization] : scopes;
+  const selectedOrganization = scopes.find((scope) => scope.id === organizationId) ?? scopes[0];
+  const visibleScopes = [selectedOrganization];
   let studentPage;
   try {
     studentPage = await listOrganizationStudents(visibleScopes.map((scope) => scope.id), {
