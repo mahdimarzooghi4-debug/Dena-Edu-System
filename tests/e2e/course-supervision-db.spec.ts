@@ -374,6 +374,7 @@ test.describe("course-scoped provider requests and independent institute decisio
     expect(approvedHome.status()).toBe(200);
     const approvedHtml = await approvedHome.text();
     expect(approvedHtml).toContain("تأیید نظارت همین دوره");
+    expect(approvedHtml).toContain("ثبت‌نام فعال:");
     expect(approvedHtml).toContain(`/provider/courses/${a}/media`);
     expect(approvedHtml).not.toContain(`/provider/courses/${b}/media`);
     const approvedDetail = await (await provider.get(
