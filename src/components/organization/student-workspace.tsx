@@ -201,8 +201,8 @@ export function OrganizationStudentWorkspace({
 
       <section className="space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <div><h2 className="text-xl font-extrabold">فهرست دانش‌آموزان این سازمان</h2><p className="mt-1 text-sm text-dena-muted">{visibleStudents.length.toLocaleString("fa-IR")} پرونده</p></div>
-          <input aria-label="جست‌وجو" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="نام یا موبایل" className={`${inputClass} max-w-xs`} />
+          <div><h2 className="text-xl font-extrabold">فهرست دانش‌آموزان این سازمان</h2><p className="mt-1 text-sm text-dena-muted">{visibleStudents.length.toLocaleString("fa-IR")} پرونده در این صفحه</p></div>
+          <input aria-label="جست‌وجو در این صفحه" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="نام یا موبایل" className={`${inputClass} max-w-xs`} />
         </div>
         {visibleStudents.length === 0 ? <Card><p className="text-sm leading-7 text-dena-muted">هنوز دانش‌آموزی در این سازمان ثبت نشده است.</p></Card> :
           <div className="overflow-x-auto rounded-2xl border border-dena-border bg-white">

@@ -119,6 +119,32 @@ test.describe("organization reports use only active tenant scopes", () => {
     expect(pendingHtml).toContain("second<!-- --> <!-- -->pending");
     expect(pendingHtml).not.toContain("pending<!-- --> <!-- -->fixture");
     expect(pendingHtml).not.toContain("verified fixture");
+
+    const pageOneResponse = await organization.get("/api/organization/students?limit=2");
+    expect(pageOneResponse.status()).toBe(200);
+    const pageOne = await pageOneResponse.json();
+    expect(pageOne.students).toHaveLength(2);
+    expect(pageOne.pageSize).toBe(2);
+    expect(typeof pageOne.nextCursor).toBe("string");
+    const pageTwoResponse = await organization.get(
+      `/api/organization/students?limit=2&cursor=${encodeURIComponent(pageOne.nextCursor)}`,
+    );
+    expect(pageTwoResponse.status()).toBe(200);
+    const pageTwo = await pageTwoResponse.json();
+    expect(pageTwo.students).toHaveLength(1);
+    expect(pageTwo.nextCursor).toBeNull();
+    expect(new Set([...pageOne.students, ...pageTwo.students].map((student: { id: string }) => student.id)).size).toBe(3);
+
+    const scopedResponse = await organization.get(
+      `/api/organization/students?organizationId=${secondOrganizationId}&activation=pending`,
+    );
+    expect(scopedResponse.status()).toBe(200);
+    expect((await scopedResponse.json()).students.map((student: { id: string }) => student.id))
+      .toEqual([rosterIds[2]]);
+    expect((await organization.get(`/api/organization/students?organizationId=${otherOrganizationId}`)).status())
+      .toBe(404);
+    expect((await organization.get("/api/organization/students?limit=101")).status()).toBe(400);
+    expect((await organization.get("/api/organization/students?cursor=not-a-cursor")).status()).toBe(400);
     await organization.dispose();
   });
 });

@@ -16,20 +16,30 @@ export const metadata: Metadata = {
 
 export default async function OrganizationStudentsPage({
   searchParams,
-}: { searchParams: Promise<{ activation?: string; organizationId?: string }> }) {
+}: { searchParams: Promise<{ activation?: string; organizationId?: string; cursor?: string }> }) {
   if (!process.env.DATABASE_URL || !process.env.BETTER_AUTH_SECRET || !process.env.BETTER_AUTH_URL) redirect("/login");
   const actor = await getServerAccessContext();
   if (!actor) redirect("/login");
   if (!actor.memberships.some((membership) => membership.role === "organization")) notFound();
   const scopes = await getOrganizationScopes(actor.userId);
   if (!scopes.length) notFound();
-  const { activation, organizationId } = await searchParams;
+  const { activation, organizationId, cursor } = await searchParams;
   const activationPendingOnly = activation === "pending";
   const selectedOrganization = scopes.find((scope) => scope.id === organizationId);
   const visibleScopes = selectedOrganization ? [selectedOrganization] : scopes;
-  const students = await listOrganizationStudents(visibleScopes.map((scope) => scope.id), {
-    activationPendingOnly,
-  });
+  let studentPage;
+  try {
+    studentPage = await listOrganizationStudents(visibleScopes.map((scope) => scope.id), {
+      activationPendingOnly, cursor, limit: 50,
+    });
+  } catch {
+    redirect("/organization/students");
+  }
+  const nextParams = new URLSearchParams();
+  if (activationPendingOnly) nextParams.set("activation", "pending");
+  if (selectedOrganization) nextParams.set("organizationId", selectedOrganization.id);
+  if (studentPage.nextCursor) nextParams.set("cursor", studentPage.nextCursor);
+  const nextHref = `/organization/students?${nextParams.toString()}`;
 
   return (
     <main id="main-content" className="mx-auto min-h-screen max-w-6xl space-y-7 px-5 py-8 md:px-10 md:py-12">
@@ -51,8 +61,11 @@ export default async function OrganizationStudentsPage({
         </p>
         <Link href="/organization/students" className={buttonClassName("secondary")}>نمایش همهٔ پرونده‌ها</Link>
       </Card>}
-      <OrganizationStudentWorkspace scopes={scopes} initialStudents={students}
+      <OrganizationStudentWorkspace scopes={visibleScopes} initialStudents={studentPage.students}
         initialOrganizationId={selectedOrganization?.id} />
+      {studentPage.nextCursor && <nav aria-label="صفحه‌بندی دانش‌آموزان" className="flex justify-end">
+        <Link href={nextHref} className={buttonClassName("secondary")}>نمایش صفحهٔ بعد</Link>
+      </nav>}
     </main>
   );
 }

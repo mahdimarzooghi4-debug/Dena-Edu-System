@@ -17,15 +17,39 @@ function sameOrigin(request: NextRequest) {
   return Boolean(origin && base && origin === new URL(base).origin);
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const actor = await getServerAccessContext();
   if (!actor) return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: noStore });
   if (!actor.memberships.some((membership) => membership.role === "organization")) {
     return NextResponse.json({ error: "Not found" }, { status: 404, headers: noStore });
   }
   const scopes = await getOrganizationScopes(actor.userId);
-  const students = await listOrganizationStudents(scopes.map((scope) => scope.id));
-  return NextResponse.json({ students }, { headers: noStore });
+  const params = request.nextUrl.searchParams;
+  const requestedOrganizationId = params.get("organizationId");
+  const visibleScopes = requestedOrganizationId
+    ? scopes.filter((scope) => scope.id === requestedOrganizationId)
+    : scopes;
+  if (requestedOrganizationId && !visibleScopes.length) {
+    return NextResponse.json({ error: "Not found" }, { status: 404, headers: noStore });
+  }
+  const rawLimit = params.get("limit");
+  const limit = rawLimit === null ? 50 : Number(rawLimit);
+  if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+    return NextResponse.json({ error: "Invalid limit" }, { status: 400, headers: noStore });
+  }
+  try {
+    const page = await listOrganizationStudents(visibleScopes.map((scope) => scope.id), {
+      activationPendingOnly: params.get("activation") === "pending",
+      cursor: params.get("cursor") ?? undefined,
+      limit,
+    });
+    return NextResponse.json({ ...page, pageSize: limit }, { headers: noStore });
+  } catch (error) {
+    if (error instanceof OrganizationStudentError && error.kind === "invalid_cursor") {
+      return NextResponse.json({ error: "Invalid cursor" }, { status: 400, headers: noStore });
+    }
+    return NextResponse.json({ error: "Unable to list students" }, { status: 500, headers: noStore });
+  }
 }
 
 export async function POST(request: NextRequest) {
