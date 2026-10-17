@@ -18,6 +18,14 @@ node scripts/test-postgres-backup-restore.mjs
 
 پس از migration و آزمون restore، هر shard نقش `dena_app_ci` را با حداقل مجوزهای DML روی جداول/sequenceها ایجاد می‌کند؛ سپس build و Playwright با این نقش اجرا می‌شوند. workflow وجود نداشتن ویژگی superuser را کنترل می‌کند. کاربر `dena_test` فقط برای ایجاد schema و migration در CI است؛ این الگو هنوز معادل طراحی و بازبینی مجوزهای production نیست.
 
+## Health probes در برنامه
+
+- `GET /api/health/live` فقط زنده بودن process را با پاسخ ثابت و بدون cache گزارش می‌کند.
+- `GET /api/health/ready` یک query سبک `SELECT 1` اجرا می‌کند و در اختلال DB فقط وضعیت عمومی `unavailable` با HTTP 503 برمی‌گرداند؛ متن استثنا، نام میزبان، URL یا secret در پاسخ قرار نمی‌گیرد.
+- Playwright این دو مسیر را در CI با نقش `dena_app_ci` بررسی می‌کند.
+
+این endpointها metrics، alert، history، dependency health خارج از PostgreSQL یا SLA ارائه نمی‌کنند.
+
 ## تمرین لازم برای محیط واقعی
 
 پیش از Stage/Production باید مالک سرویس این موارد را در runbook محیطی تکمیل و ثبت کند:
