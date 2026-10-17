@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { serializeSignedCookie } from "better-call";
 import { test, expect, request, type APIRequestContext } from "@playwright/test";
 import { getDb } from "../../src/db";
@@ -332,6 +332,87 @@ test.describe("organization reports use only active tenant scopes", () => {
         await db.delete(rateLimit).where(inArray(
           rateLimit.key, keyIds.map((id) => `organization-api:${id}`),
         ));
+      }
+      await organization.dispose();
+    }
+  });
+
+  test("organization CSV import enforces consent, scope, row validation, and partial results", async () => {
+    const organization = await client();
+    const origin = new URL(process.env.BETTER_AUTH_URL!).origin;
+    const suffix = randomUUID().slice(0, 8);
+    const firstName = `batch-${suffix}`;
+    const secondName = `batch-new-${suffix}`;
+    const phone = (seed: string) => `+989${[...seed.replace(/-/g, "")]
+      .map((char) => Number.parseInt(char, 16) % 10).join("").slice(0, 9)}`;
+    const nationalCode = (seed: string) => {
+      const digits = seed.replace(/[^0-9]/g, "").padEnd(9, "3").slice(0, 9);
+      const total = digits.split("").reduce((sum, digit, index) =>
+        sum + Number(digit) * (10 - index), 0);
+      const remainder = total % 11;
+      return `${digits}${remainder < 2 ? remainder : 11 - remainder}`;
+    };
+    const first = {
+      firstName, lastName: "ورود گروهی", nationalCode: nationalCode(randomUUID()),
+      birthDate: "2010-01-01", gender: "prefer_not_to_say", phoneNumber: phone(randomUUID()),
+    };
+    const second = {
+      firstName: secondName, lastName: "ورود گروهی", nationalCode: nationalCode(randomUUID()),
+      birthDate: "2010-01-01", gender: "prefer_not_to_say", phoneNumber: phone(randomUUID()),
+    };
+    const csv = (...records: typeof first[]) => [
+      "firstName,lastName,nationalCode,birthDate,gender,phoneNumber",
+      ...records.map((record) => [
+        record.firstName, record.lastName, record.nationalCode, record.birthDate,
+        record.gender, record.phoneNumber,
+      ].join(",")),
+    ].join("\n");
+    const upload = (contents: string, consent: boolean, scope = organizationId) =>
+      organization.post("/api/organization/students/import", {
+        headers: { Origin: origin },
+        multipart: {
+          file: { name: "students.csv", mimeType: "text/csv", buffer: Buffer.from(contents) },
+          organizationId: scope,
+          guardianConsentConfirmed: String(consent),
+        },
+      });
+
+    try {
+      expect((await upload(csv(first), false)).status()).toBe(400);
+      expect((await upload(csv(first), true, otherOrganizationId)).status()).toBe(400);
+      const duplicateFile = await upload(csv(first, first), true);
+      expect(duplicateFile.status()).toBe(400);
+      expect(await duplicateFile.json()).toMatchObject({ imported: 0, errors: [{ row: 3, error: "duplicate_in_file" }] });
+
+      const firstImport = await upload(csv(first), true);
+      expect(firstImport.status()).toBe(201);
+      expect(await firstImport.json()).toMatchObject({ imported: 1, errors: [] });
+
+      const partialImport = await upload(csv(first, second), true);
+      expect(partialImport.status()).toBe(207);
+      expect(await partialImport.json()).toMatchObject({
+        imported: 1, errors: [{ row: 2, error: "already_exists" }],
+      });
+      const importedRows = await db.select({ id: organizationStudents.id, userId: organizationStudents.userId })
+        .from(organizationStudents).where(and(
+          eq(organizationStudents.organizationId, organizationId),
+          inArray(organizationStudents.firstName, [firstName, secondName]),
+        ));
+      expect(importedRows).toHaveLength(2);
+    } finally {
+      const createdRows = await db.select({ id: organizationStudents.id, userId: organizationStudents.userId })
+        .from(organizationStudents).where(and(
+          eq(organizationStudents.organizationId, organizationId),
+          inArray(organizationStudents.firstName, [firstName, secondName]),
+        ));
+      if (createdRows.length) {
+        await db.delete(auditLogs).where(inArray(auditLogs.entityId, createdRows.map((row) => row.id)));
+        await db.delete(organizationStudents).where(inArray(
+          organizationStudents.id, createdRows.map((row) => row.id),
+        ));
+        const createdUserIds = createdRows.map((row) => row.userId);
+        await db.delete(memberships).where(inArray(memberships.userId, createdUserIds));
+        await db.delete(user).where(inArray(user.id, createdUserIds));
       }
       await organization.dispose();
     }
