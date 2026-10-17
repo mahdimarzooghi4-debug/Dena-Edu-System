@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, inArray, isNull, or } from "drizzle-orm";
+import { and, asc, eq, gt, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 import { getDb } from "../../db";
 import {
   auditLogs, memberships, organizationApiKeys, organizationStudents, user, verifiedEntities,
@@ -10,7 +10,7 @@ import {
 
 export type StudentSource = "manual" | "bulk" | "api";
 export class OrganizationStudentError extends Error {
-  constructor(readonly kind: "scope_unavailable" | "duplicate" | "student_membership_blocked" | "invalid_cursor") {
+  constructor(readonly kind: "scope_unavailable" | "duplicate" | "student_membership_blocked" | "invalid_cursor" | "invalid_search") {
     super(kind);
   }
 }
@@ -125,13 +125,16 @@ export async function createOrganizationStudent(input: {
 
 export async function listOrganizationStudents(
   organizationIds: string[], options: {
-    activationPendingOnly?: boolean; cursor?: string; limit?: number;
+    activationPendingOnly?: boolean; cursor?: string; limit?: number; search?: string;
   } = {},
 ) {
   const limit = Math.min(100, Math.max(1, Math.floor(options.limit ?? 50)));
   if (!organizationIds.length) return { students: [], nextCursor: null };
   const cursor = options.cursor ? decodeOrganizationStudentCursor(options.cursor) : null;
   if (options.cursor && !cursor) throw new OrganizationStudentError("invalid_cursor");
+  const search = options.search?.trim();
+  if (search && search.length > 100) throw new OrganizationStudentError("invalid_search");
+  const searchPattern = search ? `%${search.replace(/[\\%_]/g, "\\$&")}%` : null;
   const rows = await getDb().select({
     id: organizationStudents.id,
     organizationId: organizationStudents.organizationId,
@@ -148,6 +151,12 @@ export async function listOrganizationStudents(
     .where(and(
       inArray(organizationStudents.organizationId, organizationIds),
       ...(options.activationPendingOnly ? [eq(user.phoneNumberVerified, false)] : []),
+      ...(searchPattern ? [or(
+        ilike(organizationStudents.firstName, searchPattern),
+        ilike(organizationStudents.lastName, searchPattern),
+        ilike(user.phoneNumber, searchPattern),
+        ilike(sql<string>`${organizationStudents.firstName} || ' ' || ${organizationStudents.lastName}`, searchPattern),
+      )] : []),
       ...(cursor ? [or(
         gt(organizationStudents.createdAt, cursor.createdAt),
         and(eq(organizationStudents.createdAt, cursor.createdAt), gt(organizationStudents.id, cursor.id)),

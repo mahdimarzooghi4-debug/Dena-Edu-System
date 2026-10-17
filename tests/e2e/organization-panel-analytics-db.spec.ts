@@ -144,7 +144,20 @@ test.describe("organization reports use only active tenant scopes", () => {
       .toEqual([rosterIds[2]]);
     expect((await organization.get(`/api/organization/students?organizationId=${otherOrganizationId}`)).status())
       .toBe(404);
+    const searched = await organization.get("/api/organization/students?q=second");
+    expect(searched.status()).toBe(200);
+    expect((await searched.json()).students.map((student: { id: string }) => student.id))
+      .toEqual([rosterIds[2]]);
+    const wildcard = await organization.get("/api/organization/students?q=%25");
+    expect(wildcard.status()).toBe(200);
+    expect((await wildcard.json()).students).toEqual([]);
+    const searchedPage = await organization.get(
+      `/organization/students?organizationId=${secondOrganizationId}&q=second`,
+    );
+    expect(searchedPage.status()).toBe(200);
+    expect(await searchedPage.text()).toContain("second<!-- --> <!-- -->pending");
     expect((await organization.get("/api/organization/students?limit=101")).status()).toBe(400);
+    expect((await organization.get(`/api/organization/students?q=${"x".repeat(101)}`)).status()).toBe(400);
     expect((await organization.get("/api/organization/students?cursor=not-a-cursor")).status()).toBe(400);
     await organization.dispose();
   });

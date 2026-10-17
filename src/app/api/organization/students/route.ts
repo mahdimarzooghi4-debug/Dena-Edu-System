@@ -42,11 +42,15 @@ export async function GET(request: NextRequest) {
       activationPendingOnly: params.get("activation") === "pending",
       cursor: params.get("cursor") ?? undefined,
       limit,
+      search: params.get("q") ?? undefined,
     });
     return NextResponse.json({ ...page, pageSize: limit }, { headers: noStore });
   } catch (error) {
     if (error instanceof OrganizationStudentError && error.kind === "invalid_cursor") {
       return NextResponse.json({ error: "Invalid cursor" }, { status: 400, headers: noStore });
+    }
+    if (error instanceof OrganizationStudentError && error.kind === "invalid_search") {
+      return NextResponse.json({ error: "Invalid search" }, { status: 400, headers: noStore });
     }
     return NextResponse.json({ error: "Unable to list students" }, { status: 500, headers: noStore });
   }
