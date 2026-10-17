@@ -119,7 +119,7 @@ export function OrganizationPanelAnalytics({
                 {fa(item.activationPending)} پرونده هنوز شمارهٔ تأییدشده ندارد. دانش‌آموز باید خودش فرایند رمز یک‌بارمصرف را انجام دهد.
               </p>
             </div>
-            <Link href="/organization/students" className={buttonClassName("secondary")}>بررسی فهرست دانش‌آموزان</Link>
+            <Link href="/organization/students?activation=pending" className={buttonClassName("secondary")}>نمایش پرونده‌های در انتظار</Link>
           </Card>
         ))}
       </section>}

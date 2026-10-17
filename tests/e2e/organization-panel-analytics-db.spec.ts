@@ -100,6 +100,12 @@ test.describe("organization reports use only active tenant scopes", () => {
       expect(response.status()).toBe(200);
       expect(response.headers()["cache-control"]).toContain("no-store");
     }
+    const pending = await organization.get("/organization/students?activation=pending");
+    expect(pending.status()).toBe(200);
+    const pendingHtml = await pending.text();
+    expect(pendingHtml).toContain("فهرست فقط پرونده‌های در انتظار تأیید شماره را نشان می‌دهد");
+    expect(pendingHtml).toContain("pending fixture");
+    expect(pendingHtml).not.toContain("verified fixture");
     await organization.dispose();
   });
 });

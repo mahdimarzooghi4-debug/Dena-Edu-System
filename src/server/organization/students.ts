@@ -123,7 +123,9 @@ export async function createOrganizationStudent(input: {
   });
 }
 
-export async function listOrganizationStudents(organizationIds: string[]) {
+export async function listOrganizationStudents(
+  organizationIds: string[], options: { activationPendingOnly?: boolean } = {},
+) {
   if (!organizationIds.length) return [];
   return getDb().select({
     id: organizationStudents.id,
@@ -138,7 +140,10 @@ export async function listOrganizationStudents(organizationIds: string[]) {
     phoneNumberVerified: user.phoneNumberVerified,
     createdAt: organizationStudents.createdAt,
   }).from(organizationStudents).innerJoin(user, eq(user.id, organizationStudents.userId))
-    .where(inArray(organizationStudents.organizationId, organizationIds))
+    .where(and(
+      inArray(organizationStudents.organizationId, organizationIds),
+      ...(options.activationPendingOnly ? [eq(user.phoneNumberVerified, false)] : []),
+    ))
     .orderBy(organizationStudents.createdAt);
 }
 

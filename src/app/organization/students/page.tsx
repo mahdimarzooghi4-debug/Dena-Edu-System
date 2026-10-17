@@ -6,6 +6,7 @@ import { OrganizationStudentWorkspace } from "../../../components/organization/s
 import { getServerAccessContext } from "../../../server/access/actor";
 import { listOrganizationStudents } from "../../../server/organization/students";
 import { getOrganizationScopes } from "../../../server/organization/scopes";
+import { Card } from "../../../components/ui/card";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,14 +14,20 @@ export const metadata: Metadata = {
   title: "دانش‌آموزان سازمان | دنا", robots: { index: false, follow: false },
 };
 
-export default async function OrganizationStudentsPage() {
+export default async function OrganizationStudentsPage({
+  searchParams,
+}: { searchParams: Promise<{ activation?: string }> }) {
   if (!process.env.DATABASE_URL || !process.env.BETTER_AUTH_SECRET || !process.env.BETTER_AUTH_URL) redirect("/login");
   const actor = await getServerAccessContext();
   if (!actor) redirect("/login");
   if (!actor.memberships.some((membership) => membership.role === "organization")) notFound();
   const scopes = await getOrganizationScopes(actor.userId);
   if (!scopes.length) notFound();
-  const students = await listOrganizationStudents(scopes.map((scope) => scope.id));
+  const { activation } = await searchParams;
+  const activationPendingOnly = activation === "pending";
+  const students = await listOrganizationStudents(scopes.map((scope) => scope.id), {
+    activationPendingOnly,
+  });
 
   return (
     <main id="main-content" className="mx-auto min-h-screen max-w-6xl space-y-7 px-5 py-8 md:px-10 md:py-12">
@@ -35,6 +42,10 @@ export default async function OrganizationStudentsPage() {
           ثبت دستی، ورود گروهی با CSV و Excel، و ساخت پرونده از API سازمان. حساب ورود دانش‌آموز با تأیید شمارهٔ موبایل توسط خودش فعال می‌شود.
         </p>
       </section>
+      {activationPendingOnly && <Card className="flex flex-wrap items-center justify-between gap-3 border-amber-200 bg-amber-50">
+        <p className="text-sm font-bold text-amber-950">فهرست فقط پرونده‌های در انتظار تأیید شماره را نشان می‌دهد.</p>
+        <Link href="/organization/students" className={buttonClassName("secondary")}>نمایش همهٔ پرونده‌ها</Link>
+      </Card>}
       <OrganizationStudentWorkspace scopes={scopes} initialStudents={students} />
     </main>
   );
