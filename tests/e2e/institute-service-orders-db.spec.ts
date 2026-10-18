@@ -446,7 +446,7 @@ test.describe("institute service order guardian consent", () => {
     await endInstituteServiceCall(
       users.institute, secondCallId, new Date(Date.parse(secondSchedule) + 60_000),
     );
-    const secondPresenceStart = Date.parse(secondSchedule) + 2_000;
+    const secondPresenceStart = Math.ceil((Date.parse(secondSchedule) + 2_000) / 1_000) * 1_000;
     const secondPresence = [
       { at: 0, identity: users.student, kind: "joined" as const },
       { at: 5, identity: users.institute, kind: "joined" as const },
