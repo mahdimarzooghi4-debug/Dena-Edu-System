@@ -59,6 +59,9 @@ jobs:
       LIVEKIT_URL: wss://calls.example.test
       LIVEKIT_API_KEY: dena-ci-test-key
       DENA_LIVEKIT_ENABLED: "1"
+      # Token issuance is tested against a fake WSS endpoint. Room Service
+      # deletion has its focused SDK mock test; CI has no LiveKit daemon.
+      DENA_LIVEKIT_ROOM_CONTROL_ENABLED: "0"
       DENA_DB_INTEGRATION: "1"
       DENA_SMS_ENABLED: "1"
       DENA_MEDIA_ENABLED: "1"

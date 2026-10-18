@@ -233,7 +233,10 @@ async function transitionInstituteServiceCall(
     }));
     return { id: call.id, status, duplicate: false };
   });
-  if (action === "end" && process.env.DENA_LIVEKIT_ENABLED === "1") {
+  // CI enables token issuance with a fake WSS URL, but intentionally does not
+  // enable Room Service control. Production preflight requires this flag on.
+  if (action === "end" && process.env.DENA_LIVEKIT_ENABLED === "1" &&
+      process.env.DENA_LIVEKIT_ROOM_CONTROL_ENABLED !== "0") {
     try {
       // Repeat this even for an already-ended call so a transient media server
       // failure can be repaired by retrying the same end action.

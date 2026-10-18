@@ -23,6 +23,7 @@ const good = {
   DENA_SUPPORT_ATTACHMENT_SCANNER_TOKEN: "support-scan-" + "g".repeat(36),
   DENA_SUPPORT_ATTACHMENT_SCAN_HMAC_KEY: "support-hmac-" + "h".repeat(36),
   DENA_LIVEKIT_ENABLED: "1",
+  DENA_LIVEKIT_ROOM_CONTROL_ENABLED: "1",
   DENA_SMS_ENABLED: "1",
   DENA_MEDIA_ENABLED: "1",
   DENA_INGEST_ENABLED: "1",
@@ -82,6 +83,12 @@ describe("release preflight only validates static configuration", () => {
     const result = run({ NODE_TLS_REJECT_UNAUTHORIZED: "0" });
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("NODE_TLS_REJECT_UNAUTHORIZED:certificate_validation_disabled");
+  });
+
+  it("requires media-room shutdown controls before full release", () => {
+    const result = run({ DENA_LIVEKIT_ROOM_CONTROL_ENABLED: "0" });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("DENA_LIVEKIT_ROOM_CONTROL_ENABLED:not_enabled");
   });
 
   it.each([
