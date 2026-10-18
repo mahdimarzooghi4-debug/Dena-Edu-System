@@ -252,7 +252,7 @@ test.describe("institute service order guardian consent", () => {
       .where(eq(serviceTimeLedger.serviceOrderId, orderId));
     expect(quotaGrants).toHaveLength(1);
     expect(quotaGrants[0]).toMatchObject({
-      eventKey: `service-quota-grant:${orderId}`, eventType: "grant", minutes: 60,
+      eventKey: `service-quota-grant:${orderId}`, eventType: "grant", seconds: 3_600,
       serviceSessionId: null,
     });
     const student = await client("student");
