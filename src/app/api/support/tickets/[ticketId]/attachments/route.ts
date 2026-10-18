@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { getServerAccessContext } from "../../../../../../server/access/actor";
 import { validSameOrigin } from "../../../../../../server/access/role-application-contracts";
+import { readFormDataAtMost, RequestBodyLimitError } from "../../../../../../server/http/bounded-request-body";
 import {
   MAX_SUPPORT_ATTACHMENT_BYTES, MAX_SUPPORT_ATTACHMENTS_PER_TICKET,
   listSupportTicketAttachments, uploadSupportAttachment,
@@ -29,12 +30,15 @@ export async function POST(request: NextRequest, { params }: Params) {
     status: 404, headers: noStore,
   });
   const contentLength = Number(request.headers.get("content-length") ?? 0);
-  if (!Number.isFinite(contentLength) || contentLength >
-      MAX_SUPPORT_ATTACHMENT_BYTES * MAX_SUPPORT_ATTACHMENTS_PER_TICKET + 16_384) {
+  const maxRequestBytes = MAX_SUPPORT_ATTACHMENT_BYTES * MAX_SUPPORT_ATTACHMENTS_PER_TICKET + 16_384;
+  if (!Number.isFinite(contentLength) || contentLength > maxRequestBytes) {
     return NextResponse.json({ error: "Payload too large" }, { status: 413, headers: noStore });
   }
   let form: FormData;
-  try { form = await request.formData(); } catch {
+  try { form = await readFormDataAtMost(request, maxRequestBytes); } catch (error) {
+    if (error instanceof RequestBodyLimitError) return NextResponse.json({ error: "Payload too large" }, {
+      status: 413, headers: noStore,
+    });
     return NextResponse.json({ error: "Invalid request" }, { status: 400, headers: noStore });
   }
   const files = form.getAll("files");

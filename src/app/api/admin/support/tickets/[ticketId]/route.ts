@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { getServerAccessContext } from "../../../../../../server/access/actor";
 import { validSameOrigin } from "../../../../../../server/access/role-application-contracts";
+import { readRequestTextAtMost, RequestBodyLimitError } from "../../../../../../server/http/bounded-request-body";
 import {
   updateTechnicalSupportTicket,
   updateTechnicalSupportTicketByOperator,
@@ -33,7 +34,10 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     status: 413, headers: noStore,
   });
   let body: unknown;
-  try { body = await request.json(); } catch {
+  try { body = JSON.parse(await readRequestTextAtMost(request, 4096)); } catch (error) {
+    if (error instanceof RequestBodyLimitError) return NextResponse.json({ error: "Payload too large" }, {
+      status: 413, headers: noStore,
+    });
     return NextResponse.json({ error: "Invalid request" }, { status: 400, headers: noStore });
   }
   const parsed = updateTechnicalSupportTicket.safeParse(body);

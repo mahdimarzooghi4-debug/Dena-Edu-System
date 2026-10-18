@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getServerAccessContext } from "../../../../server/access/actor";
 import { validSameOrigin } from "../../../../server/access/role-application-contracts";
+import { readRequestTextAtMost, RequestBodyLimitError } from "../../../../server/http/bounded-request-body";
 import {
   createTechnicalSupportTicket, listRequesterTechnicalSupportTickets,
   newTechnicalSupportTicket,
@@ -47,7 +48,10 @@ export async function POST(request: NextRequest) {
     status: 413, headers: noStore,
   });
   let body: unknown;
-  try { body = await request.json(); } catch {
+  try { body = JSON.parse(await readRequestTextAtMost(request, 16_384)); } catch (error) {
+    if (error instanceof RequestBodyLimitError) return NextResponse.json({ error: "Payload too large" }, {
+      status: 413, headers: noStore,
+    });
     return NextResponse.json({ error: "Invalid request" }, { status: 400, headers: noStore });
   }
   const parsed = newTechnicalSupportTicket.safeParse(body);
