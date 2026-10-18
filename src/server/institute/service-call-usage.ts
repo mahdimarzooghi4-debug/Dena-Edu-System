@@ -8,8 +8,8 @@ export const verifiedServiceCallUsage = z.object({
   eventId: z.string().regex(/^[A-Za-z0-9._:-]{8,100}$/),
   callId: z.uuid(),
   state: z.literal("ended"),
-  /** Final minutes supplied by a trusted adapter under an approved billing rule. */
-  billableMinutes: z.number().int().min(1).max(100_000),
+  /** Exact overlap seconds supplied by the authenticated LiveKit presence tracker. */
+  billableSeconds: z.number().int().min(1).max(6_000_000),
 }).strict();
 export type VerifiedServiceCallUsage = z.infer<typeof verifiedServiceCallUsage>;
 
@@ -22,8 +22,7 @@ export interface ServiceCallUsageAdapter {
 export class ServiceCallUsageError extends Error {
   constructor(readonly kind:
     "request_invalid" | "provider_unavailable" | "event_unverified" | "event_invalid" |
-    "call_unavailable" | "service_not_ready" | "call_not_ended" |
-    "quota_exceeded" | "event_reused") {
+    "call_unavailable" | "service_not_ready" | "call_not_ended" | "event_reused") {
     super(kind);
   }
 }
@@ -33,8 +32,7 @@ const MAX_WEBHOOK_BYTES = 64 * 1024;
 const usageEventKey = (providerId: string, eventId: string) =>
   `service-call-usage:${providerId}:${eventId}`;
 
-/** Records a provider-measured final usage value. This function does not derive
- * minutes from timestamps, choose rounding, or decide what is billable.
+/** Records an authenticated provider-measured final usage value in exact seconds.
  */
 export async function recordInstituteServiceCallUsage(input: {
   providerId: string;
@@ -89,20 +87,20 @@ export async function recordInstituteServiceCallUsage(input: {
     const [existingEvent] = await tx.select({
       serviceOrderId: serviceTimeLedger.serviceOrderId,
       eventType: serviceTimeLedger.eventType,
-      minutes: serviceTimeLedger.minutes,
+      seconds: serviceTimeLedger.seconds,
       serviceSessionId: serviceTimeLedger.serviceSessionId,
     }).from(serviceTimeLedger).where(eq(serviceTimeLedger.eventKey, eventKey)).limit(1);
     if (existingEvent) {
       if (existingEvent.serviceOrderId !== order.id || existingEvent.eventType !== "consume" ||
-        existingEvent.minutes !== parsed.data.billableMinutes ||
+        existingEvent.seconds !== parsed.data.billableSeconds ||
         existingEvent.serviceSessionId !== call.id) {
         throw new ServiceCallUsageError("event_reused");
       }
       const balance = await remainingQuota(tx, order.id);
       return {
         serviceOrderId: order.id, callId: call.id,
-        consumedMinutes: existingEvent.minutes,
-        remainingMinutes: balance, duplicate: true,
+        consumedSeconds: existingEvent.seconds,
+        remainingSeconds: balance, duplicate: true,
       };
     }
 
@@ -113,21 +111,18 @@ export async function recordInstituteServiceCallUsage(input: {
       )).limit(1);
     if (existingCallUsage) throw new ServiceCallUsageError("event_reused");
 
-    const remainingMinutes = await remainingQuota(tx, order.id);
-    if (parsed.data.billableMinutes > remainingMinutes) {
-      throw new ServiceCallUsageError("quota_exceeded");
-    }
+    const remainingSeconds = await remainingQuota(tx, order.id);
     await tx.insert(serviceTimeLedger).values({
       serviceOrderId: order.id,
       eventKey,
       eventType: "consume",
-      minutes: parsed.data.billableMinutes,
+      seconds: parsed.data.billableSeconds,
       serviceSessionId: call.id,
     });
     return {
       serviceOrderId: order.id, callId: call.id,
-      consumedMinutes: parsed.data.billableMinutes,
-      remainingMinutes: remainingMinutes - parsed.data.billableMinutes,
+      consumedSeconds: parsed.data.billableSeconds,
+      remainingSeconds: Math.max(0, remainingSeconds - parsed.data.billableSeconds),
       duplicate: false,
     };
   });
@@ -135,15 +130,15 @@ export async function recordInstituteServiceCallUsage(input: {
 
 async function remainingQuota(tx: FinancialJournalTransaction, orderId: string) {
   const [balance] = await tx.select({
-    minutes: sql<number>`coalesce(sum(case when ${serviceTimeLedger.eventType} = 'grant' then ${serviceTimeLedger.minutes} else -${serviceTimeLedger.minutes} end), 0)::int`,
+    seconds: sql<number>`coalesce(sum(case when ${serviceTimeLedger.eventType} = 'grant' then ${serviceTimeLedger.seconds} else -${serviceTimeLedger.seconds} end), 0)::int`,
   }).from(serviceTimeLedger).where(eq(serviceTimeLedger.serviceOrderId, orderId));
-  return Math.max(0, balance?.minutes ?? 0);
+  return Math.max(0, balance?.seconds ?? 0);
 }
 
 type RecordUsage = typeof recordInstituteServiceCallUsage;
 
-/** Authenticates provider callbacks before recording a final usage event.
- * No HTTP route is exposed until a provider and its policy have been selected.
+/** Authenticates provider callbacks before recording exact second usage.
+ * LiveKit presence events determine the overlap; this boundary never rounds.
  */
 export async function handleServiceCallUsageWebhook(
   input: { headers: Headers; rawBody: Uint8Array },

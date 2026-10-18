@@ -35,7 +35,20 @@ Dena-managed VM/network, separate from the Next.js app.
    secret store, then set `LIVEKIT_URL` and `DENA_LIVEKIT_ENABLED=1`. The app
    process must be able to reach the server's HTTPS API as well as browsers
    reaching the public WSS/media endpoints.
-6. Before enabling Stage for users, test two authorized accounts from separate
+6. Configure the LiveKit webhook destination as
+   `https://<dena-app-host>/api/webhooks/livekit` with the same environment's
+   API key. Subscribe to `participant_joined`, `participant_left`,
+   `participant_connection_aborted`, and `room_finished`. LiveKit signs the raw
+   JSON body; Dena verifies the signature and persists provider event IDs to
+   make retries idempotent. Keep the webhook endpoint on TLS and do not put
+   webhook credentials in client code.
+7. Run the separate Dena app worker with
+   `DENA_LIVEKIT_QUOTA_SWEEP_URL=https://<internal-app-host>/api/internal/livekit-quota/sweep`
+   and a unique random `DENA_LIVEKIT_QUOTA_WORKER_TOKEN` (at least 32
+   characters). Start it with `npm run worker:livekit-quota`. It checks active
+   overlap every second and closes the room automatically when its remaining
+   paid seconds are used. Keep the worker URL on the private app network.
+8. Before enabling Stage for users, test two authorized accounts from separate
    networks: camera/microphone permission, both-way audio/video, reconnect,
    end-call disconnection, denied role/quota/consent, TLS, UDP and TURN/TLS
    fallback. Do not enable Production until the same checks and an operational
@@ -55,6 +68,12 @@ first, repeat the network tests, then promote the same pinned version.
   self-hosted Room Service to delete its room, which disconnects connected
   participants. If the media API is temporarily unavailable, the app returns
   an error and retrying the end action retries media shutdown.
+- Quota grants are stored in seconds (purchased whole minutes convert to
+  seconds exactly). LiveKit presence webhooks add usage only for intervals when
+  the student and at least one active institute member overlap. Usage is stored
+  without minute rounding and finalized when the LiveKit room finishes. The
+  quota worker ends the room when paid time is depleted; the measured usage
+  remains the actual whole seconds reported by LiveKit.
 - No recording, egress, screen sharing, or third-party call provider is enabled
   by this setup.
 

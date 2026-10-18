@@ -14,7 +14,7 @@ type ServiceCall = {
 type Props = {
   orderId: string;
   orderStatus: string;
-  remainingMinutes: number;
+  remainingSeconds: number;
   calls: ServiceCall[];
 };
 
@@ -30,7 +30,7 @@ const dateFormatter = new Intl.DateTimeFormat("fa-IR", {
 });
 
 export function InstituteServiceCallManagement({
-  orderId, orderStatus, remainingMinutes, calls,
+  orderId, orderStatus, remainingSeconds, calls,
 }: Props) {
   const router = useRouter();
   const [scheduledAt, setScheduledAt] = useState("");
@@ -38,7 +38,7 @@ export function InstituteServiceCallManagement({
   const [message, setMessage] = useState("");
 
   const openCall = calls.some((call) => call.status === "scheduled" || call.status === "started");
-  const canSchedule = orderStatus === "paid" && remainingMinutes > 0 && !openCall;
+  const canSchedule = orderStatus === "paid" && remainingSeconds > 0 && !openCall;
 
   async function schedule(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -156,7 +156,7 @@ export function InstituteServiceCallManagement({
         {busy ? "در حال ثبت…" : "زمان‌بندی جلسه"}
       </button>
     </form>}
-    {orderStatus === "paid" && remainingMinutes <= 0 && !openCall &&
+    {orderStatus === "paid" && remainingSeconds <= 0 && !openCall &&
       <p className="text-xs text-dena-muted">برای زمان‌بندی جلسه، ماندهٔ سهمیه باید بیشتر از صفر باشد.</p>}
     {message && <p role="status" className="text-sm font-semibold text-dena-deep">{message}</p>}
   </section>;

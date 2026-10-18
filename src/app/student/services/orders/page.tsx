@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ServiceOrderAction } from "../../../../components/student/service-order-action";
 import { LiveKitCallRoom } from "../../../../components/services/livekit-call-room";
+import { formatServiceDuration } from "../../../../server/institute/service-time-format";
 import { StudentShell } from "../../../../components/student/student-shell";
 import { Card } from "../../../../components/ui/card";
 import { getServerAccessContext } from "../../../../server/access/actor";
@@ -79,8 +80,8 @@ export default async function StudentServiceOrdersPage() {
               <div><dt className="text-xs text-dena-muted">مبلغ اعلام‌شده</dt><dd className="mt-1 font-bold text-dena-deep">{order.priceToman.toLocaleString("fa-IR")} تومان</dd></div>
               <div><dt className="text-xs text-dena-muted">سهمیهٔ خریداری‌شده</dt><dd className="mt-1 font-bold text-dena-deep">{order.includedMinutes === null ? "ندارد" : `${order.includedMinutes.toLocaleString("fa-IR")} دقیقه`}</dd></div>
               {order.includedMinutes !== null && <>
-                <div><dt className="text-xs text-dena-muted">مصرف ثبت‌شده</dt><dd className="mt-1 font-bold text-dena-deep">{order.consumedMinutes.toLocaleString("fa-IR")} دقیقه</dd></div>
-                <div><dt className="text-xs text-dena-muted">ماندهٔ ثبت‌شده</dt><dd className="mt-1 font-bold text-dena-deep">{order.status === "paid" ? `${order.remainingMinutes.toLocaleString("fa-IR")} دقیقه` : "پس از پرداخت فعال می‌شود"}</dd></div>
+                <div><dt className="text-xs text-dena-muted">مصرف ثبت‌شده</dt><dd className="mt-1 font-bold text-dena-deep">{formatServiceDuration(order.consumedSeconds)}</dd></div>
+                <div><dt className="text-xs text-dena-muted">ماندهٔ ثبت‌شده</dt><dd className="mt-1 font-bold text-dena-deep">{order.status === "paid" ? formatServiceDuration(order.remainingSeconds) : "پس از پرداخت فعال می‌شود"}</dd></div>
               </>}
               <div><dt className="text-xs text-dena-muted">اعتبار خدمت</dt><dd className="mt-1 font-bold text-dena-deep">{order.validityDays === null ? "اعلام نشده" : `${order.validityDays.toLocaleString("fa-IR")} روز`}</dd></div>
               <div><dt className="text-xs text-dena-muted">زمان ثبت</dt><dd className="mt-1 font-bold text-dena-deep">{dateFormatter.format(order.createdAt)}</dd></div>

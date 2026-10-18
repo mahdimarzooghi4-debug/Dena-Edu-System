@@ -372,6 +372,20 @@
       "when": 1792140748041,
       "tag": "0052_dena_service_call_usage",
       "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1792309445915,
+      "tag": "0053_dena_livekit_exact_usage",
+      "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1792309524301,
+      "tag": "0054_dena_livekit_exact_usage",
+      "breakpoints": true
     }
   ]
 }

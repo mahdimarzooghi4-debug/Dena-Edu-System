@@ -13,6 +13,8 @@ const good = {
   LIVEKIT_URL: "wss://calls.example.com/",
   LIVEKIT_API_KEY: "dena-stage-key",
   LIVEKIT_API_SECRET: "livekit-" + "i".repeat(36),
+  DENA_LIVEKIT_QUOTA_WORKER_TOKEN: "quota-worker-" + "q".repeat(36),
+  DENA_LIVEKIT_QUOTA_SWEEP_URL: "https://dena.example.com/api/internal/livekit-quota/sweep",
   DENA_MEDIA_ATTESTATION_KEY_ID: "production-scanner-v1",
   BETTER_AUTH_SECRET: "auth-" + "a".repeat(36),
   DENA_SMS_GATEWAY_TOKEN: "sms-" + "b".repeat(36),

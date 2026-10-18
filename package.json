@@ -14,6 +14,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "check:release-config": "node scripts/release-preflight.mjs",
+    "worker:livekit-quota": "node scripts/livekit-quota-worker.mjs",
     "test:e2e": "playwright test",
     "test:e2e:db": "npm run test:e2e:db:auth && npm run test:e2e:db:course && npm run test:e2e:db:operations",
     "test:e2e:db:auth": "playwright test --workers=1 access-db.spec.ts phone-otp-db.spec.ts login-ui-db.spec.ts role-applications-db.spec.ts",

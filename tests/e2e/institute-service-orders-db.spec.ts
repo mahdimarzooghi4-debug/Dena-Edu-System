@@ -6,12 +6,13 @@ import { expect, request, test, type APIRequestContext } from "@playwright/test"
 import { getDb } from "../../src/db";
 import {
   auditLogs, financialEntries, financialJournals, instituteServiceCatalog,
-  instituteServiceCalls, instituteServiceOrders, memberships, serviceTimeLedger,
+  instituteServiceCalls, instituteServiceOrders, memberships, serviceCallMediaEvents, serviceTimeLedger,
   session, user, verifiedEntities,
 } from "../../src/db/schema";
 import { captureInstituteServiceOrderPayment } from "../../src/server/finance/service-order-payments";
 import { endInstituteServiceCall, startInstituteServiceCall } from "../../src/server/institute/service-calls";
 import { recordInstituteServiceCallUsage } from "../../src/server/institute/service-call-usage";
+import { recordLiveKitPresenceEvent } from "../../src/server/institute/livekit-usage";
 
 test.describe.configure({ mode: "serial" });
 
@@ -92,6 +93,9 @@ test.describe("institute service order guardian consent", () => {
 
   test.afterAll(async () => {
     if (createdServiceCallIds.length) {
+      await db.delete(serviceCallMediaEvents).where(inArray(
+        serviceCallMediaEvents.serviceCallId, createdServiceCallIds,
+      ));
       await db.delete(auditLogs).where(and(
         eq(auditLogs.entityType, "SERVICE_CALL"), inArray(auditLogs.entityId, createdServiceCallIds),
       ));
@@ -388,7 +392,7 @@ test.describe("institute service order guardian consent", () => {
     )).toMatchObject({ status: "started", duplicate: true });
     await expect(recordInstituteServiceCallUsage({ providerId: "livekit", event: {
       callId: serviceCallId, eventId: `usage-event-${randomUUID()}`,
-      state: "ended", billableMinutes: 17,
+      state: "ended", billableSeconds: 17,
     } })).rejects.toMatchObject({ kind: "call_not_ended" });
     expect(await endInstituteServiceCall(
       users.institute, serviceCallId, new Date(Date.parse(scheduledAt) + 3_000),
@@ -404,7 +408,7 @@ test.describe("institute service order guardian consent", () => {
     ))).toHaveLength(3);
     const usageEventId = `usage-event-${randomUUID()}`;
     const usageInput = { providerId: "livekit", event: {
-      callId: serviceCallId, eventId: usageEventId, state: "ended" as const, billableMinutes: 17,
+      callId: serviceCallId, eventId: usageEventId, state: "ended" as const, billableSeconds: 17,
     } };
     const [usageFirst, usageReplay] = await Promise.all([
       recordInstituteServiceCallUsage(usageInput),
@@ -413,7 +417,7 @@ test.describe("institute service order guardian consent", () => {
     expect([usageFirst.duplicate, usageReplay.duplicate].sort()).toEqual([false, true]);
     expect(usageFirst).toMatchObject({
       serviceOrderId: orderId, callId: serviceCallId,
-      consumedMinutes: 17, remainingMinutes: 43,
+      consumedSeconds: 17, remainingSeconds: 3_583,
     });
     expect(await db.select().from(serviceTimeLedger).where(and(
       eq(serviceTimeLedger.serviceOrderId, orderId),
@@ -422,7 +426,7 @@ test.describe("institute service order guardian consent", () => {
     ))).toHaveLength(1);
     await expect(recordInstituteServiceCallUsage({
       providerId: "livekit",
-      event: { ...usageInput.event, billableMinutes: 18 },
+      event: { ...usageInput.event, billableSeconds: 18 },
     })).rejects.toMatchObject({ kind: "event_reused" });
     await expect(recordInstituteServiceCallUsage({
       providerId: "livekit",
@@ -440,25 +444,37 @@ test.describe("institute service order guardian consent", () => {
       users.institute, secondCallId, new Date(Date.parse(secondSchedule) + 1_000),
     );
     await endInstituteServiceCall(
-      users.institute, secondCallId, new Date(Date.parse(secondSchedule) + 3_000),
+      users.institute, secondCallId, new Date(Date.parse(secondSchedule) + 60_000),
     );
-    await expect(recordInstituteServiceCallUsage({
-      providerId: "livekit",
-      event: {
-        callId: secondCallId, eventId: `overage-event-${randomUUID()}`,
-        state: "ended", billableMinutes: 44,
-      },
-    })).rejects.toMatchObject({ kind: "quota_exceeded" });
+    const secondPresenceStart = Date.parse(secondSchedule) + 2_000;
+    const secondPresence = [
+      { at: 0, identity: users.student, kind: "joined" as const },
+      { at: 5, identity: users.institute, kind: "joined" as const },
+      { at: 26, identity: users.student, kind: "left" as const },
+      { at: 40, identity: null, kind: "room_finished" as const },
+    ];
+    const secondPresenceResults = [];
+    for (const [index, presence] of secondPresence.entries()) {
+      secondPresenceResults.push(await recordLiveKitPresenceEvent({
+        eventId: `second-presence-${index}-${randomUUID()}`,
+        callId: secondCallId,
+        identity: presence.identity,
+        kind: presence.kind,
+        occurredAt: new Date(secondPresenceStart + presence.at * 1_000),
+      }));
+    }
+    expect(secondPresenceResults.at(-1)).toMatchObject({ connectedSeconds: 21, duplicate: false });
     const studentHistory = await client("student");
     const studentHistoryBody = await (await studentHistory.get("/student/services/orders")).text();
     expect(studentHistoryBody).toContain("زمان جلسه");
     expect(studentHistoryBody).toContain("مصرف ثبت‌شده");
-    expect(studentHistoryBody).toContain("۴۳ دقیقه");
+    expect(studentHistoryBody).toContain("۳۸ ثانیه");
+    expect(studentHistoryBody).toContain("۵۹ دقیقه و ۲۲ ثانیه");
     await studentHistory.dispose();
     const institutePage = await (await institute.get("/institute/service-orders")).text();
     expect(institutePage).toContain("جلسه‌های خدمت");
     expect(institutePage).toContain("مصرف ثبت‌شده");
-    expect(institutePage).toContain("۴۳ دقیقه");
+    expect(institutePage).toContain("۳۸ ثانیه");
     await institute.dispose();
   });
 

@@ -89,7 +89,7 @@ async function grantPurchasedQuota(
     serviceOrderId: orderId,
     eventKey: `service-quota-grant:${orderId}`,
     eventType: "grant",
-    minutes: includedMinutes,
+    seconds: includedMinutes * 60,
   }).onConflictDoNothing({ target: serviceTimeLedger.eventKey });
 }
 

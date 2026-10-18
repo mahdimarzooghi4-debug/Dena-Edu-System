@@ -2167,7 +2167,7 @@ export const serviceTimeLedger = pgTable("dena_service_time_ledger", {
     .references(() => instituteServiceOrders.id, { onDelete: "restrict" }),
   eventKey: text("event_key").notNull(),
   eventType: serviceTimeLedgerEventType("event_type").notNull(),
-  minutes: integer("minutes").notNull(),
+  seconds: integer("seconds").notNull(),
   serviceSessionId: uuid("service_session_id"),
   createdByUserId: uuid("created_by_user_id").references(() => user.id, { onDelete: "restrict" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -2177,7 +2177,7 @@ export const serviceTimeLedger = pgTable("dena_service_time_ledger", {
     .where(sql`${table.eventType} = 'consume'`),
   index("dena_service_time_ledger_order_created_idx").on(table.serviceOrderId, table.createdAt),
   check("dena_service_time_ledger_event_key_ck", sql`event_key ~ '^[a-zA-Z0-9_.:-]{8,180}$'`),
-  check("dena_service_time_ledger_minutes_ck", sql`minutes BETWEEN 1 AND 100000`),
+  check("dena_service_time_ledger_seconds_ck", sql`seconds BETWEEN 1 AND 6000000`),
   check("dena_service_time_ledger_event_session_ck", sql`
     (event_type = 'grant' AND service_session_id IS NULL)
     OR (event_type = 'consume' AND service_session_id IS NOT NULL)
@@ -2196,6 +2196,7 @@ export const instituteServiceCalls = pgTable("dena_institute_service_calls", {
   status: instituteServiceCallStatus("status").notNull().default("scheduled"),
   startedAt: timestamp("started_at", { withTimezone: true }),
   endedAt: timestamp("ended_at", { withTimezone: true }),
+  connectedSeconds: integer("connected_seconds").notNull().default(0),
   createdByUserId: uuid("created_by_user_id").notNull()
     .references(() => user.id, { onDelete: "restrict" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -2211,5 +2212,30 @@ export const instituteServiceCalls = pgTable("dena_institute_service_calls", {
     OR (status = 'started' AND started_at IS NOT NULL AND ended_at IS NULL)
     OR (status = 'ended' AND started_at IS NOT NULL AND ended_at >= started_at)
     OR (status = 'cancelled' AND started_at IS NULL AND ended_at IS NULL)
+  `),
+  check("dena_institute_service_call_connected_seconds_ck", sql`connected_seconds >= 0`),
+]);
+
+export const serviceCallMediaEventKind = pgEnum("dena_service_call_media_event_kind", [
+  "joined", "left", "room_finished",
+]);
+export const serviceCallMediaEvents = pgTable("dena_service_call_media_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  providerEventId: text("provider_event_id").notNull(),
+  serviceCallId: uuid("service_call_id").notNull()
+    .references(() => instituteServiceCalls.id, { onDelete: "restrict" }),
+  participantUserId: uuid("participant_user_id").references(() => user.id, { onDelete: "restrict" }),
+  participantRole: text("participant_role").notNull(),
+  kind: serviceCallMediaEventKind("kind").notNull(),
+  occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("dena_service_call_media_event_provider_uidx").on(table.providerEventId),
+  index("dena_service_call_media_event_call_time_idx").on(table.serviceCallId, table.occurredAt, table.id),
+  check("dena_service_call_media_event_provider_id_ck", sql`provider_event_id ~ '^[A-Za-z0-9._:-]{8,100}$'`),
+  check("dena_service_call_media_event_actor_ck", sql`
+    (kind = 'room_finished' AND participant_user_id IS NULL AND participant_role = 'system')
+    OR (kind <> 'room_finished' AND participant_user_id IS NOT NULL
+      AND participant_role IN ('student', 'institute'))
   `),
 ]);

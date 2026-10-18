@@ -5,6 +5,7 @@ import { ServiceOrderConsent } from "../../../components/institute/service-order
 import { InstituteServiceCallManagement } from "../../../components/institute/service-call-management";
 import { getServerAccessContext } from "../../../server/access/actor";
 import { getInstituteServiceOrders } from "../../../server/institute/service-orders";
+import { formatServiceDuration } from "../../../server/institute/service-time-format";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -69,15 +70,15 @@ export default async function InstituteServiceOrdersPage() {
             {order.guardianConsentRequired && order.guardianConsentConfirmedAt && <div className="flex justify-between gap-3"><dt className="text-dena-muted">زمان ثبت تأیید</dt><dd className="font-bold text-dena-deep">{new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Tehran" }).format(order.guardianConsentConfirmedAt)}</dd></div>}
             <div className="flex justify-between gap-3"><dt className="text-dena-muted">سهمیهٔ خریداری‌شده</dt><dd className="text-left font-bold text-dena-deep">{order.includedMinutes === null ? "بدون سهمیهٔ زمانی" : `${order.includedMinutes.toLocaleString("fa-IR")} دقیقه · ${order.validityDays?.toLocaleString("fa-IR")} روز اعتبار`}</dd></div>
             {order.includedMinutes !== null && <>
-              <div className="flex justify-between gap-3"><dt className="text-dena-muted">مصرف ثبت‌شده</dt><dd className="text-left font-bold text-dena-deep">{order.consumedMinutes.toLocaleString("fa-IR")} دقیقه</dd></div>
-              <div className="flex justify-between gap-3"><dt className="text-dena-muted">ماندهٔ ثبت‌شده</dt><dd className="text-left font-bold text-dena-deep">{order.status === "paid" ? `${order.remainingMinutes.toLocaleString("fa-IR")} دقیقه` : "پس از پرداخت فعال می‌شود"}</dd></div>
+              <div className="flex justify-between gap-3"><dt className="text-dena-muted">مصرف ثبت‌شده</dt><dd className="text-left font-bold text-dena-deep">{formatServiceDuration(order.consumedSeconds)}</dd></div>
+              <div className="flex justify-between gap-3"><dt className="text-dena-muted">ماندهٔ ثبت‌شده</dt><dd className="text-left font-bold text-dena-deep">{order.status === "paid" ? formatServiceDuration(order.remainingSeconds) : "پس از پرداخت فعال می‌شود"}</dd></div>
             </>}
             <div className="flex justify-between gap-3"><dt className="text-dena-muted">تاریخ ثبت</dt><dd className="font-bold text-dena-deep">{new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium", timeZone: "Asia/Tehran" }).format(order.createdAt)}</dd></div>
           </dl>
           <InstituteServiceCallManagement
             orderId={order.id}
             orderStatus={order.status}
-            remainingMinutes={order.remainingMinutes}
+            remainingSeconds={order.remainingSeconds}
             calls={order.calls.map((call) => ({
               ...call, scheduledAt: call.scheduledAt.toISOString(),
             }))}

@@ -28,6 +28,7 @@ export async function requireServiceCallJoinAccess(userId: string, callId: strin
   const [context] = await db.select({
     id: instituteServiceCalls.id,
     status: instituteServiceCalls.status,
+    connectedSeconds: instituteServiceCalls.connectedSeconds,
     serviceOrderId: instituteServiceOrders.id,
     studentUserId: instituteServiceOrders.studentUserId,
     instituteId: instituteServiceOrders.instituteId,
@@ -66,9 +67,11 @@ export async function requireServiceCallJoinAccess(userId: string, callId: strin
     if (!instituteMember) throw new InstituteServiceCallError("call_unavailable");
   }
   const [balance] = await db.select({
-    minutes: sql<number>`coalesce(sum(case when ${serviceTimeLedger.eventType} = 'grant' then ${serviceTimeLedger.minutes} else -${serviceTimeLedger.minutes} end), 0)::int`,
+    seconds: sql<number>`coalesce(sum(case when ${serviceTimeLedger.eventType} = 'grant' then ${serviceTimeLedger.seconds} else -${serviceTimeLedger.seconds} end), 0)::int`,
   }).from(serviceTimeLedger).where(eq(serviceTimeLedger.serviceOrderId, context.serviceOrderId));
-  if ((balance?.minutes ?? 0) <= 0) throw new InstituteServiceCallError("quota_empty");
+  if ((balance?.seconds ?? 0) <= context.connectedSeconds) {
+    throw new InstituteServiceCallError("quota_empty");
+  }
   return { callId: context.id };
 }
 
@@ -116,9 +119,9 @@ async function requireUsablePaidOrder(tx: FinancialJournalTransaction, orderId: 
   }
   if (order.includedMinutes === null) throw new InstituteServiceCallError("service_not_ready");
   const [balance] = await tx.select({
-    minutes: sql<number>`coalesce(sum(case when ${serviceTimeLedger.eventType} = 'grant' then ${serviceTimeLedger.minutes} else -${serviceTimeLedger.minutes} end), 0)::int`,
+    seconds: sql<number>`coalesce(sum(case when ${serviceTimeLedger.eventType} = 'grant' then ${serviceTimeLedger.seconds} else -${serviceTimeLedger.seconds} end), 0)::int`,
   }).from(serviceTimeLedger).where(eq(serviceTimeLedger.serviceOrderId, order.id));
-  if ((balance?.minutes ?? 0) <= 0) throw new InstituteServiceCallError("quota_empty");
+  if ((balance?.seconds ?? 0) <= 0) throw new InstituteServiceCallError("quota_empty");
   return order;
 }
 

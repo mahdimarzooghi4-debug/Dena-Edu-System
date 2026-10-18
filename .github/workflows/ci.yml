@@ -62,6 +62,7 @@ jobs:
       # Token issuance is tested against a fake WSS endpoint. Room Service
       # deletion has its focused SDK mock test; CI has no LiveKit daemon.
       DENA_LIVEKIT_ROOM_CONTROL_ENABLED: "0"
+      DENA_LIVEKIT_QUOTA_SWEEP_URL: https://calls.example.test/api/internal/livekit-quota/sweep
       DENA_DB_INTEGRATION: "1"
       DENA_SMS_ENABLED: "1"
       DENA_MEDIA_ENABLED: "1"
@@ -106,6 +107,9 @@ jobs:
           livekit_secret=$(openssl rand -hex 32)
           echo "::add-mask::$livekit_secret"
           echo "LIVEKIT_API_SECRET=$livekit_secret" >> "$GITHUB_ENV"
+          quota_token=$(openssl rand -hex 32)
+          echo "::add-mask::$quota_token"
+          echo "DENA_LIVEKIT_QUOTA_WORKER_TOKEN=$quota_token" >> "$GITHUB_ENV"
       - name: Generate reviewed Drizzle migration candidate
         run: npx drizzle-kit generate
       - name: Preserve generated migration for review

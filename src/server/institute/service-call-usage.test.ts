@@ -10,15 +10,15 @@ const usageEvent = {
   eventId: "livekit-event-123456",
   callId: "9f4fcd3c-2193-4bce-88d0-490d9ce83e2e",
   state: "ended",
-  billableMinutes: 17,
+  billableSeconds: 17,
 } as const;
 
 describe("verified service call usage boundary", () => {
-  it("accepts only a final exact integer-minute event", () => {
+  it("accepts only a final exact integer-second event", () => {
     expect(verifiedServiceCallUsage.parse(usageEvent)).toEqual(usageEvent);
     expect(verifiedServiceCallUsage.safeParse({ ...usageEvent, state: "started" }).success).toBe(false);
-    expect(verifiedServiceCallUsage.safeParse({ ...usageEvent, billableMinutes: 0 }).success).toBe(false);
-    expect(verifiedServiceCallUsage.safeParse({ ...usageEvent, billableMinutes: 1.5 }).success).toBe(false);
+    expect(verifiedServiceCallUsage.safeParse({ ...usageEvent, billableSeconds: 0 }).success).toBe(false);
+    expect(verifiedServiceCallUsage.safeParse({ ...usageEvent, billableSeconds: 1.5 }).success).toBe(false);
     expect(verifiedServiceCallUsage.safeParse({ ...usageEvent, unexpected: true }).success).toBe(false);
   });
 
@@ -36,8 +36,8 @@ describe("verified service call usage boundary", () => {
     }) => ({
       serviceOrderId: "0cc86a62-b113-4d1c-a8b5-9db4da570c42",
       callId: input.event.callId,
-      consumedMinutes: input.event.billableMinutes,
-      remainingMinutes: 43,
+      consumedSeconds: input.event.billableSeconds,
+      remainingSeconds: 43,
       duplicate: false,
     }));
     const result = await handleServiceCallUsageWebhook(
@@ -47,7 +47,7 @@ describe("verified service call usage boundary", () => {
     );
     expect(result).toEqual({
       serviceOrderId: "0cc86a62-b113-4d1c-a8b5-9db4da570c42",
-      callId: usageEvent.callId, consumedMinutes: 17, remainingMinutes: 43, duplicate: false,
+      callId: usageEvent.callId, consumedSeconds: 17, remainingSeconds: 43, duplicate: false,
     });
     expect(verifyWebhook).toHaveBeenCalledTimes(1);
     expect(record).toHaveBeenCalledWith({ providerId: "livekit", event: usageEvent });
