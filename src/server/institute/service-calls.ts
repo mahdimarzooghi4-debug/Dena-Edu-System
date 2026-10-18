@@ -7,6 +7,7 @@ import {
 } from "../../db/schema";
 import { auditLogRecord } from "../admin/audit";
 import type { FinancialJournalTransaction } from "../finance/ledger";
+import { closeLiveKitRoom } from "./livekit";
 
 export const scheduleInstituteServiceCallInput = z.object({
   scheduledAt: z.iso.datetime({ offset: true }),
@@ -16,11 +17,12 @@ export const scheduleInstituteServiceCallInput = z.object({
 export class InstituteServiceCallError extends Error {
   constructor(readonly kind:
     "institute_unavailable" | "call_unavailable" | "order_unavailable" |
-    "service_not_ready" | "quota_empty" | "call_too_early" | "idempotency_conflict") { super(kind); }
+    "service_not_ready" | "quota_empty" | "call_too_early" | "idempotency_conflict" |
+    "media_shutdown_failed") { super(kind); }
 }
 
 /** Rechecks all paid-service, consent, quota, time-limit and participant rules
- * immediately before issuing a short-lived LiveKit room token. */
+ * immediately before issuing a one-hour LiveKit room token. */
 export async function requireServiceCallJoinAccess(userId: string, callId: string) {
   const db = getDb();
   const [context] = await db.select({
@@ -179,7 +181,7 @@ export async function cancelInstituteServiceCall(userId: string, callId: string,
 async function transitionInstituteServiceCall(
   userId: string, callId: string, action: "start" | "end" | "cancel", now: Date,
 ) {
-  return getDb().transaction(async (tx) => {
+  const result = await getDb().transaction(async (tx) => {
     const instituteIds = await getInstituteIds(tx, userId);
     if (!instituteIds.length) throw new InstituteServiceCallError("institute_unavailable");
     const [callReference] = await tx.select({
@@ -231,4 +233,14 @@ async function transitionInstituteServiceCall(
     }));
     return { id: call.id, status, duplicate: false };
   });
+  if (action === "end" && process.env.DENA_LIVEKIT_ENABLED === "1") {
+    try {
+      // Repeat this even for an already-ended call so a transient media server
+      // failure can be repaired by retrying the same end action.
+      await closeLiveKitRoom(callId);
+    } catch {
+      throw new InstituteServiceCallError("media_shutdown_failed");
+    }
+  }
+  return result;
 }

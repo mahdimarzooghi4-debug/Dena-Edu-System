@@ -39,7 +39,8 @@ export async function POST(request: NextRequest,
     return NextResponse.json({ call: result }, { headers: noStore });
   } catch (error) {
     if (!(error instanceof InstituteServiceCallError)) throw error;
-    const status = error.kind === "institute_unavailable" ? 403
+    const status = error.kind === "media_shutdown_failed" ? 503
+      : error.kind === "institute_unavailable" ? 403
       : error.kind === "call_unavailable" || error.kind === "order_unavailable" ? 404 : 409;
     return NextResponse.json({ error: error.kind }, { status, headers: noStore });
   }
