@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { and, eq, inArray } from "drizzle-orm";
 import { serializeSignedCookie } from "better-call";
+import { TokenVerifier } from "livekit-server-sdk";
 import { expect, request, test, type APIRequestContext } from "@playwright/test";
 import { getDb } from "../../src/db";
 import {
@@ -295,7 +296,7 @@ test.describe("institute service order guardian consent", () => {
     await institute.dispose();
   });
 
-  test("scopes call scheduling to paid consented service quotas and audits its lifecycle", async () => {
+  test("scopes call scheduling to paid consented service quotas and audits its lifecycle", async ({ page }) => {
     const scheduledAt = new Date(Date.now() + 60_000).toISOString();
     const idempotencyKey = randomUUID();
     const path = `/api/institute/service-orders/${orderId}/calls`;
@@ -339,6 +340,49 @@ test.describe("institute service order guardian consent", () => {
       users.institute, serviceCallId, new Date(Date.parse(scheduledAt) + 1_000),
     );
     expect(started).toMatchObject({ status: "started", duplicate: false });
+    const joinPath = `/api/service-calls/${serviceCallId}/token`;
+    const anonymousJoin = await client();
+    expect((await post(anonymousJoin, joinPath, {})).status()).toBe(401);
+    await anonymousJoin.dispose();
+    const unrelatedInstitute = await client("otherInstitute");
+    expect((await post(unrelatedInstitute, joinPath, {})).status()).toBe(404);
+    await unrelatedInstitute.dispose();
+    const studentJoin = await client("student");
+    const tokenResponse = await post(studentJoin, joinPath, {});
+    expect(tokenResponse.status()).toBe(200);
+    const tokenBody = await tokenResponse.json();
+    expect(tokenBody.url).toBe("wss://calls.example.test");
+    const claims = await new TokenVerifier(
+      process.env.LIVEKIT_API_KEY!, process.env.LIVEKIT_API_SECRET!,
+    ).verify(tokenBody.token);
+    expect(claims).toMatchObject({
+      sub: users.student,
+      video: { room: serviceCallId, roomJoin: true, canPublish: true, canSubscribe: true },
+    });
+    expect(tokenBody.expiresAt).toBeTruthy();
+    await studentJoin.dispose();
+
+    const signedStudent = await serializeSignedCookie(
+      "better-auth.session_token", tokens.student, process.env.BETTER_AUTH_SECRET!,
+    );
+    const cookiePair = signedStudent.split(";")[0];
+    const cookieSeparator = cookiePair.indexOf("=");
+    await page.context().addCookies([{
+      name: cookiePair.slice(0, cookieSeparator),
+      value: cookiePair.slice(cookieSeparator + 1),
+      url: "http://localhost:3000",
+      httpOnly: true,
+      sameSite: "Lax",
+    }]);
+    await page.goto("http://localhost:3000/student/services/orders");
+    const liveCall = page.getByRole("region", { name: "تماس زنده" });
+    await expect(liveCall).toBeVisible();
+    const mediaDisclosure = liveCall.getByRole("checkbox");
+    await expect(mediaDisclosure).not.toBeChecked();
+    const joinButton = liveCall.getByRole("button", { name: "ورود به جلسه و روشن‌کردن دوربین و میکروفن" });
+    await expect(joinButton).toBeDisabled();
+    await mediaDisclosure.check();
+    await expect(joinButton).toBeEnabled();
     expect(await startInstituteServiceCall(
       users.institute, serviceCallId, new Date(Date.parse(scheduledAt) + 2_000),
     )).toMatchObject({ status: "started", duplicate: true });
@@ -352,6 +396,9 @@ test.describe("institute service order guardian consent", () => {
     expect(await endInstituteServiceCall(
       users.institute, serviceCallId, new Date(Date.parse(scheduledAt) + 4_000),
     )).toMatchObject({ status: "ended", duplicate: true });
+    const endedCallJoin = await client("student");
+    expect((await post(endedCallJoin, joinPath, {})).status()).toBe(404);
+    await endedCallJoin.dispose();
     expect(await db.select().from(auditLogs).where(and(
       eq(auditLogs.entityType, "SERVICE_CALL"), eq(auditLogs.entityId, serviceCallId),
     ))).toHaveLength(3);

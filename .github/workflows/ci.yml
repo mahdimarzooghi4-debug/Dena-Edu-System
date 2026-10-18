@@ -56,6 +56,9 @@ jobs:
     env:
       DATABASE_URL: postgresql://dena_test:dena_test@127.0.0.1:5432/dena_integration
       BETTER_AUTH_URL: http://localhost:3000
+      LIVEKIT_URL: wss://calls.example.test
+      LIVEKIT_API_KEY: dena-ci-test-key
+      DENA_LIVEKIT_ENABLED: "1"
       DENA_DB_INTEGRATION: "1"
       DENA_SMS_ENABLED: "1"
       DENA_MEDIA_ENABLED: "1"
@@ -97,6 +100,9 @@ jobs:
           cleanup_token=$(openssl rand -hex 32)
           echo "::add-mask::$cleanup_token"
           echo "DENA_MEDIA_CLEANUP_TOKEN=$cleanup_token" >> "$GITHUB_ENV"
+          livekit_secret=$(openssl rand -hex 32)
+          echo "::add-mask::$livekit_secret"
+          echo "LIVEKIT_API_SECRET=$livekit_secret" >> "$GITHUB_ENV"
       - name: Generate reviewed Drizzle migration candidate
         run: npx drizzle-kit generate
       - name: Preserve generated migration for review

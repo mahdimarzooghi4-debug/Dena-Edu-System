@@ -3,6 +3,7 @@
 import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { LiveKitCallRoom } from "../services/livekit-call-room";
 
 type ServiceCall = {
   id: string;
@@ -113,7 +114,7 @@ export function InstituteServiceCallManagement({
     <div>
       <h4 className="text-sm font-extrabold text-dena-deep">جلسه‌های خدمت</h4>
       <p className="mt-1 text-xs leading-6 text-dena-muted">
-        این بخش فقط زمان و وضعیت جلسه را ثبت می‌کند؛ تماس زنده هنوز فعال نیست.
+        پس از شروع جلسه، ورود زنده با کنترل پرداخت، رضایت، سهمیه و مجوز دوربین و میکروفن ارائه می‌شود.
       </p>
     </div>
     {calls.length > 0 ? <ul className="space-y-3">
@@ -138,6 +139,9 @@ export function InstituteServiceCallManagement({
             ثبت پایان جلسه
           </button>}
         </div>
+        {call.status === "started" && <div className="w-full">
+          <LiveKitCallRoom callId={call.id} />
+        </div>}
       </li>)}
     </ul> : <p className="text-sm text-dena-muted">برای این سفارش هنوز جلسه‌ای ثبت نشده است.</p>}
     {canSchedule && <form onSubmit={(event) => void schedule(event)} className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">

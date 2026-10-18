@@ -19,6 +19,57 @@ export class InstituteServiceCallError extends Error {
     "service_not_ready" | "quota_empty" | "call_too_early" | "idempotency_conflict") { super(kind); }
 }
 
+/** Rechecks all paid-service, consent, quota, time-limit and participant rules
+ * immediately before issuing a short-lived LiveKit room token. */
+export async function requireServiceCallJoinAccess(userId: string, callId: string) {
+  const db = getDb();
+  const [context] = await db.select({
+    id: instituteServiceCalls.id,
+    status: instituteServiceCalls.status,
+    serviceOrderId: instituteServiceOrders.id,
+    studentUserId: instituteServiceOrders.studentUserId,
+    instituteId: instituteServiceOrders.instituteId,
+    paidAt: instituteServiceOrders.paidAt,
+    validityDays: instituteServiceOrders.validityDays,
+    includedMinutes: instituteServiceOrders.includedMinutes,
+    orderStatus: instituteServiceOrders.status,
+    guardianConsentRequired: instituteServiceOrders.guardianConsentRequired,
+    guardianConsentConfirmedAt: instituteServiceOrders.guardianConsentConfirmedAt,
+  }).from(instituteServiceCalls).innerJoin(instituteServiceOrders, eq(
+    instituteServiceOrders.id, instituteServiceCalls.serviceOrderId,
+  )).where(eq(instituteServiceCalls.id, callId)).limit(1);
+  if (!context || context.status !== "started" || context.orderStatus !== "paid" ||
+      !context.paidAt || context.includedMinutes === null ||
+      (context.guardianConsentRequired && !context.guardianConsentConfirmedAt)) {
+    throw new InstituteServiceCallError("call_unavailable");
+  }
+  if (context.validityDays !== null && Date.now() >
+      context.paidAt.getTime() + context.validityDays * 24 * 60 * 60 * 1000) {
+    throw new InstituteServiceCallError("service_not_ready");
+  }
+  const [instituteMember] = await db.select({ id: memberships.id })
+    .from(memberships).innerJoin(verifiedEntities, and(
+      eq(verifiedEntities.id, memberships.instituteId),
+      eq(verifiedEntities.role, "institute"),
+    )).where(and(
+      eq(memberships.userId, userId), eq(memberships.role, "institute"),
+      eq(memberships.instituteId, context.instituteId), eq(memberships.status, "active"),
+    )).limit(1);
+  const [studentMember] = await db.select({ id: memberships.id })
+    .from(memberships).where(and(
+      eq(memberships.userId, userId), eq(memberships.role, "student"),
+      eq(memberships.status, "active"),
+    )).limit(1);
+  if (context.studentUserId !== userId || !studentMember) {
+    if (!instituteMember) throw new InstituteServiceCallError("call_unavailable");
+  }
+  const [balance] = await db.select({
+    minutes: sql<number>`coalesce(sum(case when ${serviceTimeLedger.eventType} = 'grant' then ${serviceTimeLedger.minutes} else -${serviceTimeLedger.minutes} end), 0)::int`,
+  }).from(serviceTimeLedger).where(eq(serviceTimeLedger.serviceOrderId, context.serviceOrderId));
+  if ((balance?.minutes ?? 0) <= 0) throw new InstituteServiceCallError("quota_empty");
+  return { callId: context.id };
+}
+
 export async function addInstituteServiceCallSchedules<T extends { id: string }>(orders: T[]) {
   if (!orders.length) return orders.map((order) => ({ ...order, calls: [] }));
   const calls = await getDb().select({

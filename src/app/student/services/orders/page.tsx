@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ServiceOrderAction } from "../../../../components/student/service-order-action";
+import { LiveKitCallRoom } from "../../../../components/services/livekit-call-room";
 import { StudentShell } from "../../../../components/student/student-shell";
 import { Card } from "../../../../components/ui/card";
 import { getServerAccessContext } from "../../../../server/access/actor";
@@ -90,6 +91,8 @@ export default async function StudentServiceOrdersPage() {
               {order.calls.map((call) => <p key={call.id} className="text-sm text-dena-muted">
                 {dateFormatter.format(call.scheduledAt)} · {callStatusLabel[call.status]}
               </p>)}
+              {order.calls.filter((call) => call.status === "started").map((call) =>
+                <LiveKitCallRoom key={call.id} callId={call.id} />)}
             </section>}
 
             <ServiceOrderAction

@@ -15,6 +15,7 @@ const flags = [
   "DENA_MEDIA_CLEANUP_ENABLED",
   "DENA_SUPPORT_ATTACHMENTS_ENABLED",
   "DENA_SUPPORT_ATTACHMENT_SCANNER_ENABLED",
+  "DENA_LIVEKIT_ENABLED",
 ];
 const secrets = [
   "BETTER_AUTH_SECRET",
@@ -25,6 +26,8 @@ const secrets = [
   "DENA_MEDIA_CLEANUP_TOKEN",
   "DENA_SUPPORT_ATTACHMENT_SCANNER_TOKEN",
   "DENA_SUPPORT_ATTACHMENT_SCAN_HMAC_KEY",
+  "LIVEKIT_API_KEY",
+  "LIVEKIT_API_SECRET",
 ];
 const lengths = {
   BETTER_AUTH_SECRET: 32,
@@ -35,6 +38,8 @@ const lengths = {
   DENA_MEDIA_CLEANUP_TOKEN: 32,
   DENA_SUPPORT_ATTACHMENT_SCANNER_TOKEN: 32,
   DENA_SUPPORT_ATTACHMENT_SCAN_HMAC_KEY: 32,
+  LIVEKIT_API_KEY: 8,
+  LIVEKIT_API_SECRET: 32,
 };
 function isLocal(hostname) {
   // WHATWG URL retains brackets on IPv6 hosts and canonicalizes short IPv4.
@@ -95,6 +100,9 @@ export function assessReleaseEnvironment(env) {
   blockers.push(...checkUrl(env.DENA_SMS_GATEWAY_URL, "DENA_SMS_GATEWAY_URL"));
   blockers.push(...checkUrl(env.DENA_PRIVATE_MEDIA_ORIGIN_URL,
     "DENA_PRIVATE_MEDIA_ORIGIN_URL", { root: true }));
+  blockers.push(...checkUrl(env.LIVEKIT_URL, "LIVEKIT_URL", {
+    root: true, protocols: ["wss:"],
+  }));
   for (const flag of flags) {
     if (env[flag] !== "1") blockers.push(flag + ":not_enabled");
   }

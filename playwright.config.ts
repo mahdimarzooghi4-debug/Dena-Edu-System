@@ -1,5 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
 
+process.env.LIVEKIT_URL ??= "wss://calls.example.test";
+process.env.LIVEKIT_API_KEY ??= "dena-playwright-test-key";
+process.env.LIVEKIT_API_SECRET ??= "playwright-only-livekit-secret-32-bytes-minimum";
+process.env.DENA_LIVEKIT_ENABLED ??= "1";
+
 export default defineConfig({
   testDir: "./tests/e2e",
   testIgnore: process.env.DENA_DB_INTEGRATION === "1" ? [] : [
