@@ -571,11 +571,9 @@ test.describe("reviewed role requests, scoped grants and audit on PostgreSQL", (
     }]);
     await page.goto("http://localhost:3000/benefactor");
     await expect(page.getByRole("heading", {
-      name: "هویت‌های حمایتی دارای دسترسی من",
+      name: "هویت‌های حمایتی دارای دسترسی",
     })).toBeVisible();
-    await expect(page.getByRole("heading", {
-      name: "حامی مستقل تأییدشده",
-    })).toBeVisible();
+    await expect(page.getByText("حامی مستقل تأییدشده", { exact: true })).toBeVisible();
     await page.getByRole("link", {
       name: "وضعیت درخواست‌های نقش من",
     }).click();
