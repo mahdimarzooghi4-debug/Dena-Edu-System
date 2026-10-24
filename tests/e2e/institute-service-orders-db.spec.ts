@@ -6,7 +6,8 @@ import { expect, request, test, type APIRequestContext } from "@playwright/test"
 import { getDb } from "../../src/db";
 import {
   auditLogs, financialEntries, financialJournals, instituteServiceCatalog,
-  instituteServiceCalls, instituteServiceOrders, memberships, serviceCallMediaEvents, serviceTimeLedger,
+  instituteServiceCalls, instituteServiceOrders, memberships, serviceCallFollowUps,
+  serviceCallMediaEvents, serviceTimeLedger,
   session, user, verifiedEntities,
 } from "../../src/db/schema";
 import { captureInstituteServiceOrderPayment } from "../../src/server/finance/service-order-payments";
@@ -93,6 +94,9 @@ test.describe("institute service order guardian consent", () => {
 
   test.afterAll(async () => {
     if (createdServiceCallIds.length) {
+      await db.delete(serviceCallFollowUps).where(inArray(
+        serviceCallFollowUps.serviceCallId, createdServiceCallIds,
+      ));
       await db.delete(serviceCallMediaEvents).where(inArray(
         serviceCallMediaEvents.serviceCallId, createdServiceCallIds,
       ));
