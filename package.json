@@ -14,6 +14,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "ai:textbooks:ingest": "node scripts/ingest-dena-textbooks.mjs",
     "check:release-config": "node scripts/release-preflight.mjs",
     "worker:livekit-quota": "node scripts/livekit-quota-worker.mjs",
     "test:e2e": "playwright test",
