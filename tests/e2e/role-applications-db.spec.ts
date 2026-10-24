@@ -413,11 +413,9 @@ test.describe("reviewed role requests, scoped grants and audit on PostgreSQL", (
     }]);
     await page.goto("http://localhost:3000/organization");
     await expect(page.getByRole("heading", {
-      name: "سازمان‌های دارای دسترسی من",
+      name: "داشبورد سازمان",
     })).toBeVisible();
-    await expect(page.getByRole("heading", {
-      name: "سازمان آزمایشی تأییدشده",
-    })).toBeVisible();
+    await expect(page.getByText("سازمان آزمایشی تأییدشده", { exact: true })).toBeVisible();
     await page.getByRole("link", {
       name: "وضعیت درخواست‌های نقش من",
     }).click();

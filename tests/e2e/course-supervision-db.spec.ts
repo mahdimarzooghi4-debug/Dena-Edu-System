@@ -493,8 +493,9 @@ test.describe("course-scoped provider requests and independent institute decisio
     }]);
     await page.goto("http://localhost:3000/institute");
     await expect(page.getByRole("heading", {
-      name: "نظارت بر دوره‌های مؤسسه",
+      name: "داشبورد",
     })).toBeVisible();
+    await expect(page.getByRole("heading", { name: uiTitle })).toBeVisible();
     await page.getByRole("link", {
       name: "پروندهٔ وضعیت همین دوره",
     }).first().click();

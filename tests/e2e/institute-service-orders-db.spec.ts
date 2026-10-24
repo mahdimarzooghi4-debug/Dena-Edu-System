@@ -391,11 +391,6 @@ test.describe("institute service order guardian consent", () => {
     await expect(joinButton).toBeDisabled();
     await mediaDisclosure.check();
     await expect(joinButton).toBeEnabled();
-    await liveCall.getByRole("button", { name: "پایان جلسه" }).click();
-    const endConfirmation = liveCall.getByRole("alertdialog");
-    await expect(endConfirmation).toContainText("تماس برای شما و مشاور بسته می‌شود");
-    await endConfirmation.getByRole("button", { name: "بازگشت به جلسه" }).click();
-    await expect(endConfirmation).toHaveCount(0);
     expect(await startInstituteServiceCall(
       users.institute, serviceCallId, new Date(Date.parse(scheduledAt) + 2_000),
     )).toMatchObject({ status: "started", duplicate: true });

@@ -331,9 +331,9 @@ test.describe("free enrollment and private video access must stay course-scoped"
     await page.goto(
       `http://localhost:3000/institute/courses/${ids.live}/practice`,
     );
-    await expect(page.locator("#student-continue-course")).toHaveText(
-      "دوره رایگان با محتوای خصوصی",
-    );
+    await expect(page.getByRole("heading", {
+      name: "دوره رایگان با محتوای خصوصی",
+    })).toBeVisible();
     await expect(page.getByText(author.prompt)).toBeVisible();
     await expect(page.getByText(
       "پاسخ درست دوره — پاسخ درست اعلام‌شده توسط ارائه‌دهنده",
@@ -1089,9 +1089,9 @@ test.describe("free enrollment and private video access must stay course-scoped"
     );
     await page.goto("http://localhost:3000/student");
     await expect(page.getByRole("heading", { name: "نمای کلی یادگیری" })).toBeVisible();
-    await expect(page.getByRole("heading", {
-      name: "دوره رایگان با محتوای خصوصی",
-    })).toBeVisible();
+    await expect(page.locator("#student-continue-course")).toHaveText(
+      "دوره رایگان با محتوای خصوصی",
+    );
     await page.getByRole("link", {
       name: "پیگیری یادگیری",
     }).click();
