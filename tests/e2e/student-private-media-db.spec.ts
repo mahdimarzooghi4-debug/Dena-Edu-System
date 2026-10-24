@@ -1112,7 +1112,7 @@ test.describe("free enrollment and private video access must stay course-scoped"
     await expect(page).toHaveURL(/\/student$/);
     await page.getByRole("link", {
       name: "رفتن به نخستین ویدئوی بی‌علامت",
-    }).click();
+    }).first().click();
     await expect(page).toHaveURL(new RegExp(
       `/student/courses/${ids.live}/watch#next-unmarked-video$`,
     ));
