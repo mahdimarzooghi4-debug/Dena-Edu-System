@@ -89,9 +89,22 @@ export default async function StudentServiceOrdersPage() {
 
             {order.calls.length > 0 && <section aria-label="زمان جلسه‌های خدمت" className="space-y-2 rounded-xl border border-dena-lavender p-4">
               <h4 className="text-sm font-extrabold text-dena-deep">زمان جلسه</h4>
-              {order.calls.map((call) => <p key={call.id} className="text-sm text-dena-muted">
-                {dateFormatter.format(call.scheduledAt)} · {callStatusLabel[call.status]}
-              </p>)}
+              {order.calls.map((call) => <div key={call.id} className="space-y-3 border-b border-dena-border py-3 last:border-0">
+                <p className="text-sm text-dena-muted">
+                  {dateFormatter.format(call.scheduledAt)} · {callStatusLabel[call.status]}
+                </p>
+                {call.followUp && <section aria-label="خلاصه و پیگیری جلسه" className="space-y-2 rounded-xl bg-dena-bg p-4">
+                  <h5 className="font-bold text-dena-deep">خلاصهٔ قابل‌مشاهدهٔ جلسه</h5>
+                  <p className="whitespace-pre-wrap text-sm leading-7 text-dena-ink">{call.followUp.summary}</p>
+                  {call.followUp.nextSteps.length > 0 && <>
+                    <h6 className="text-sm font-bold text-dena-deep">گام‌های بعدی</h6>
+                    <ol className="list-decimal space-y-1 pe-5 text-sm leading-7 text-dena-muted">
+                      {call.followUp.nextSteps.map((step, index) => <li key={`${call.id}-${index}`}>{step}</li>)}
+                    </ol>
+                  </>}
+                  <p className="text-xs text-dena-muted">یادداشت خصوصی مشاور در این بخش نمایش داده نمی‌شود.</p>
+                </section>}
+              </div>)}
               {order.calls.filter((call) => call.status === "started").map((call) =>
                 <LiveKitCallRoom key={call.id} callId={call.id} />)}
             </section>}

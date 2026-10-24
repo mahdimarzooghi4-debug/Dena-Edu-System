@@ -6,6 +6,7 @@ import { buttonClassName } from "../../components/ui/button";
 import { SectionHeading } from "../../components/ui/section-heading";
 import { getServerAccessContext } from "../../server/access/actor";
 import { getProviderDashboardCourses } from "../../server/provider/dashboard";
+import { getProviderCollaborations } from "../../server/provider/collaborations";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -38,6 +39,14 @@ const assessmentStatusLabels = {
   approved: "تأییدشده",
   rejected: "ردشده",
 } as const;
+const collaborationStatusLabels = {
+  requested: "در انتظار تصمیم مؤسسه",
+  awaiting_dena: "در انتظار بررسی نهایی دنا",
+  approved: "همکاری تأیید شده تحت نظارت",
+  institute_rejected: "درخواست توسط مؤسسه رد شده",
+  dena_rejected: "درخواست در بررسی نهایی رد شده",
+  withdrawn: "درخواست پس گرفته شده",
+} as const;
 
 export default async function ProviderHomePage() {
   if (!process.env.DATABASE_URL || !process.env.BETTER_AUTH_SECRET ||
@@ -48,7 +57,10 @@ export default async function ProviderHomePage() {
     entry.role === "provider" ? [entry.providerId] : []))];
   if (!providerIds.length) notFound();
 
-  const { courses, hasMore } = await getProviderDashboardCourses(providerIds);
+  const [{ courses, hasMore }, collaborationData] = await Promise.all([
+    getProviderDashboardCourses(providerIds),
+    getProviderCollaborations(actor.userId),
+  ]);
   return (
     <main id="main-content"
       className="mx-auto min-h-screen max-w-5xl space-y-8 px-5 py-8 md:px-10 md:py-12">
@@ -95,6 +107,26 @@ export default async function ProviderHomePage() {
             فقط دوره‌های محدودهٔ فعال؛ این عدد شمار دانش‌آموز یا درآمد نیست.
           </p>
         </Card>
+      </section>
+
+      <section aria-labelledby="provider-supervision" className="space-y-4">
+        <SectionHeading id="provider-supervision" note="مجوز همکاری جایگزین تأیید مستقل هر دوره نیست">
+          وضعیت همکاری تحت نظارت
+        </SectionHeading>
+        {collaborationData.collaborations.length ? <ul className="grid gap-3 md:grid-cols-2">
+          {collaborationData.collaborations.slice(0, 4).map((collaboration) => <li key={collaboration.id}>
+            <Card className="h-full space-y-2">
+              <p className="font-extrabold text-dena-deep">{collaboration.instituteName}</p>
+              <p className="text-sm text-dena-muted">{collaborationStatusLabels[collaboration.status]}</p>
+              {collaboration.status === "approved" && <p className="text-xs leading-6 text-dena-muted">دامنهٔ همکاری فقط با مؤسسهٔ ناظر تأییدشده فعال است.</p>}
+            </Card>
+          </li>)}
+        </ul> : <Card className="space-y-3">
+          <p className="font-bold text-dena-deep">هنوز مؤسسهٔ ناظری انتخاب نشده است</p>
+          <p className="text-sm leading-7 text-dena-muted">برای فعالیت تحت نظارت، درخواست همکاری برای یک مؤسسهٔ تأییدشده بفرستید.</p>
+          <Link href="/provider/collaborations" className={buttonClassName("secondary")}>انتخاب مؤسسهٔ ناظر</Link>
+        </Card>}
+        {collaborationData.collaborations.length > 4 && <Link href="/provider/collaborations" className="inline-flex text-sm font-bold text-dena-brand hover:underline">مشاهدهٔ همهٔ درخواست‌ها</Link>}
       </section>
 
       <section aria-labelledby="provider-courses" className="space-y-4">

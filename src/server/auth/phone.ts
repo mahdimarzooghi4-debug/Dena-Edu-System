@@ -74,7 +74,11 @@ export async function reserveOtpDispatch(phone: string) {
 /** Provider-neutral JSON gateway contract. Caller must reserve quota BEFORE
  * Better Auth generates/replaces the OTP, not here after code generation.
  */
-export async function sendSmsOtp(phoneNumber: string, code: string): Promise<void> {
+export async function sendSmsOtp(
+  phoneNumber: string,
+  code: string,
+  purpose: "dena-login" | "dena-phone-change" = "dena-login",
+): Promise<void> {
   if (!isCanonicalIranMobile(phoneNumber) || !/^\d{6}$/.test(code)) {
     throw new APIError("BAD_REQUEST", { message: "Invalid phone or OTP format" });
   }
@@ -86,7 +90,7 @@ export async function sendSmsOtp(phoneNumber: string, code: string): Promise<voi
         "Content-Type": "application/json",
         Authorization: `Bearer ${process.env.DENA_SMS_GATEWAY_TOKEN}`,
       },
-      body: JSON.stringify({ phoneNumber, code, purpose: "dena-login" }),
+      body: JSON.stringify({ phoneNumber, code, purpose }),
       // A 307/308 can replay the OTP body to another origin. Never follow any
       // vendor redirect, even if the destination also uses HTTPS.
       redirect: "error",

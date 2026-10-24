@@ -2,12 +2,13 @@ import { randomInt } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { expect, request, test } from "@playwright/test";
 import { getDb } from "../../src/db";
-import { memberships, user } from "../../src/db/schema";
+import { auditLogs, memberships, user } from "../../src/db/schema";
 
 const baseURL = "http://127.0.0.1:3000";
 const testSms = "http://127.0.0.1:4317";
 const token = process.env.DENA_SMS_GATEWAY_TOKEN;
 const phone = `+989${String(randomInt(1_000_000_000)).padStart(9, "0")}`;
+const replacementPhone = `+989${String(randomInt(1_000_000_000)).padStart(9, "0")}`;
 
 test.describe("verified mobile onboarding (disposable DB + SMS mock)", () => {
   test("requires a delivered OTP, never lets applicant choose a privileged role", async () => {
@@ -76,12 +77,39 @@ test.describe("verified mobile onboarding (disposable DB + SMS mock)", () => {
         .where(eq(memberships.userId, data.userId));
       expect(records).toHaveLength(1);
 
+      const changePath = "/api/student/profile/phone-change/request";
+      expect((await browser.post(changePath, { data: { phoneNumber: replacementPhone },
+        headers: { Origin: "https://attacker.invalid" } })).status()).toBe(403);
+      expect((await browser.post(changePath, { data: { phoneNumber: phone },
+        headers: { Origin: "http://localhost:3000" } })).status()).toBe(409);
+      const requested = await browser.post(changePath, {
+        data: { phoneNumber: replacementPhone }, headers: { Origin: "http://localhost:3000" },
+      });
+      expect(requested.status()).toBe(200);
+
+      const newPhoneCodeResponse = await fetch(
+        `${testSms}/__test__/code?phone=${encodeURIComponent(replacementPhone)}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      expect(newPhoneCodeResponse.status).toBe(200);
+      const { code: newPhoneCode } = await newPhoneCodeResponse.json() as { code: string };
+      const wrongCode = newPhoneCode === "000000" ? "000001" : "000000";
+      expect((await browser.post("/api/student/profile/phone-change/verify", {
+        data: { code: wrongCode }, headers: { Origin: "http://localhost:3000" },
+      })).status()).toBe(400);
+      expect((await browser.post("/api/student/profile/phone-change/verify", {
+        data: { code: newPhoneCode }, headers: { Origin: "http://localhost:3000" },
+      })).status()).toBe(200);
+      const [changedUser] = await getDb().select().from(user).where(eq(user.id, data.userId));
+      expect(changedUser).toMatchObject({ phoneNumber: replacementPhone, phoneNumberVerified: true });
+
       await getDb().update(memberships).set({ status: "revoked" })
         .where(eq(memberships.userId, data.userId));
       expect((await browser.post("/api/access/onboard", {
         data: {}, headers: { Origin: "http://localhost:3000" },
       })).status()).toBe(403);
       expect((await browser.get("/api/access/me")).status()).toBe(401);
+      await getDb().delete(auditLogs).where(eq(auditLogs.actorId, data.userId));
       await getDb().delete(user).where(eq(user.id, data.userId));
     } finally {
       await browser.dispose();

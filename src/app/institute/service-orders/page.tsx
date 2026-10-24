@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { Card } from "../../../components/ui/card";
 import { ServiceOrderConsent } from "../../../components/institute/service-order-consent";
 import { InstituteServiceCallManagement } from "../../../components/institute/service-call-management";
+import { ServiceCallFollowUpForm } from "../../../components/institute/service-call-follow-up-form";
 import { getServerAccessContext } from "../../../server/access/actor";
 import { getInstituteServiceOrders } from "../../../server/institute/service-orders";
 import { formatServiceDuration } from "../../../server/institute/service-time-format";
@@ -83,6 +84,9 @@ export default async function InstituteServiceOrdersPage() {
               ...call, scheduledAt: call.scheduledAt.toISOString(),
             }))}
           />
+          {order.calls.filter((call) => call.status === "ended").map((call) => (
+            <ServiceCallFollowUpForm key={call.id} callId={call.id} initial={call.followUp} />
+          ))}
           {order.status === "awaiting_guardian_consent" && <ServiceOrderConsent orderId={order.id} />}
         </Card></li>)}
       </ul>

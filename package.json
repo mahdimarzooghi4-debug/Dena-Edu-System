@@ -9,6 +9,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "db:migrate": "drizzle-kit migrate",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

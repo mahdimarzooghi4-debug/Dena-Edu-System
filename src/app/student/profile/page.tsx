@@ -6,6 +6,7 @@ import { buttonClassName } from "@/components/ui/button";
 import { StudentShell } from "@/components/student/student-shell";
 import { getServerAccessContext } from "@/server/access/actor";
 import { getStudentProfile } from "@/server/student/profile";
+import { StudentPhoneChangeForm } from "@/components/student/phone-change-form";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -55,10 +56,12 @@ export default async function StudentProfilePage() {
             </div>
           </dl>
 
-          <p className="mt-5 text-xs leading-7 text-dena-muted">
-            تغییر شماره همراه باید با workflow مستقل OTP و کنترل امنیتی انجام شود؛
-            تا زمان پیاده‌سازی آن، این صفحه شماره را مستقیماً ویرایش نمی‌کند.
-          </p>
+          {profile.phoneNumberVerified && <div className="mt-6">
+            <StudentPhoneChangeForm />
+          </div>}
+          {!profile.phoneNumberVerified && <p className="mt-5 text-xs leading-7 text-dena-muted">
+            برای تغییر شماره، ابتدا باید شمارهٔ فعلی حساب تأیید شده باشد.
+          </p>}
         </Card>
 
         <section className="grid gap-4 md:grid-cols-2" aria-label="تنظیمات حساب">

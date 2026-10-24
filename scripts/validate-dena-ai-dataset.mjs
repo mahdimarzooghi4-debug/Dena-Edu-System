@@ -47,6 +47,12 @@ function validRef(value, max = 200) {
     /^[A-Za-z0-9][A-Za-z0-9._:/-]*$/.test(value);
 }
 
+function validSourceVersion(value) {
+  return typeof value === "string" &&
+    value.length >= 1 && value.length <= 100 &&
+    /^[A-Za-z0-9][A-Za-z0-9._:/-]*$/.test(value);
+}
+
 function validText(value, max) {
   return typeof value === "string" &&
     value.trim().length > 0 &&
@@ -127,7 +133,7 @@ function validateRecord(record, mode, errors, lineNumber, recordIds, contentSpli
     if (!validText(record[field], max)) addError(errors, `record:${lineNumber}:${field}_invalid_or_sensitive`);
   }
   if (!validRef(record.sourceRef)) addError(errors, `record:${lineNumber}:source_ref_invalid`);
-  if (!validRef(record.sourceVersion, 100)) addError(errors, `record:${lineNumber}:source_version_invalid`);
+  if (!validSourceVersion(record.sourceVersion)) addError(errors, `record:${lineNumber}:source_version_invalid`);
 
   if (context) return;
   const allowedSplits = mode === "dena_initial_training" ? ["train", "validation"] : ["evaluation"];

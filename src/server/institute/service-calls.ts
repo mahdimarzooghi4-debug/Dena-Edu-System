@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getDb } from "../../db";
 import {
   auditLogs, instituteServiceCalls, instituteServiceOrders, memberships,
-  serviceTimeLedger, verifiedEntities,
+  serviceCallFollowUps, serviceTimeLedger, verifiedEntities,
 } from "../../db/schema";
 import { auditLogRecord } from "../admin/audit";
 import type { FinancialJournalTransaction } from "../finance/ledger";
@@ -13,12 +13,22 @@ export const scheduleInstituteServiceCallInput = z.object({
   scheduledAt: z.iso.datetime({ offset: true }),
   idempotencyKey: z.uuid(),
 }).strict();
+export const publishInstituteServiceCallFollowUpInput = z.object({
+  summary: z.string().trim().min(10).max(4_000),
+  nextSteps: z.array(z.string().trim().min(1).max(300)).max(10),
+}).strict();
 
 export class InstituteServiceCallError extends Error {
   constructor(readonly kind:
     "institute_unavailable" | "call_unavailable" | "order_unavailable" |
     "service_not_ready" | "quota_empty" | "call_too_early" | "idempotency_conflict" |
     "media_shutdown_failed") { super(kind); }
+}
+
+export class StudentServiceCallError extends Error {
+  constructor(readonly kind: "student_unavailable" | "call_unavailable" | "media_shutdown_failed") {
+    super(kind);
+  }
 }
 
 /** Rechecks all paid-service, consent, quota, time-limit and participant rules
@@ -85,11 +95,27 @@ export async function addInstituteServiceCallSchedules<T extends { id: string }>
   }).from(instituteServiceCalls).where(inArray(
     instituteServiceCalls.serviceOrderId, orders.map((order) => order.id),
   )).orderBy(asc(instituteServiceCalls.scheduledAt), asc(instituteServiceCalls.id));
+  const followUps = await getDb().select({
+    serviceCallId: serviceCallFollowUps.serviceCallId,
+    summary: serviceCallFollowUps.summary,
+    nextSteps: serviceCallFollowUps.nextSteps,
+    publishedAt: serviceCallFollowUps.publishedAt,
+  }).from(serviceCallFollowUps).where(inArray(
+    serviceCallFollowUps.serviceCallId, calls.map((call) => call.id),
+  ));
+  const followUpByCall = new Map(followUps.map((item) => [item.serviceCallId, {
+    summary: item.summary, nextSteps: item.nextSteps, publishedAt: item.publishedAt,
+  }]));
   const byOrder = new Map<string, typeof calls>();
   for (const call of calls) byOrder.set(call.serviceOrderId, [
     ...(byOrder.get(call.serviceOrderId) ?? []), call,
   ]);
-  return orders.map((order) => ({ ...order, calls: byOrder.get(order.id) ?? [] }));
+  return orders.map((order) => ({
+    ...order,
+    calls: (byOrder.get(order.id) ?? []).map((call) => ({
+      ...call, followUp: followUpByCall.get(call.id) ?? null,
+    })),
+  }));
 }
 
 async function getInstituteIds(tx: FinancialJournalTransaction, userId: string) {
@@ -101,6 +127,79 @@ async function getInstituteIds(tx: FinancialJournalTransaction, userId: string) 
       eq(memberships.status, "active"),
     ));
   return rows.flatMap((row) => row.instituteId ? [row.instituteId] : []);
+}
+
+/** Publishes only an intentional student-visible summary and next steps.
+ * Private counselor notes and recordings have no field in this model. */
+export async function publishInstituteServiceCallFollowUp(
+  userId: string,
+  callId: string,
+  input: z.infer<typeof publishInstituteServiceCallFollowUpInput>,
+) {
+  const parsed = publishInstituteServiceCallFollowUpInput.parse(input);
+  return getDb().transaction(async (tx) => {
+    const instituteIds = await getInstituteIds(tx, userId);
+    if (!instituteIds.length) throw new InstituteServiceCallError("institute_unavailable");
+    const [reference] = await tx.select({
+      id: instituteServiceCalls.id,
+      serviceOrderId: instituteServiceCalls.serviceOrderId,
+    }).from(instituteServiceCalls).where(eq(instituteServiceCalls.id, callId)).limit(1);
+    if (!reference) throw new InstituteServiceCallError("call_unavailable");
+    const [order] = await tx.select({
+      id: instituteServiceOrders.id,
+      status: instituteServiceOrders.status,
+      guardianConsentRequired: instituteServiceOrders.guardianConsentRequired,
+      guardianConsentConfirmedAt: instituteServiceOrders.guardianConsentConfirmedAt,
+    }).from(instituteServiceOrders).where(and(
+      eq(instituteServiceOrders.id, reference.serviceOrderId),
+      inArray(instituteServiceOrders.instituteId, instituteIds),
+    )).limit(1).for("update");
+    const [call] = await tx.select({
+      id: instituteServiceCalls.id,
+      status: instituteServiceCalls.status,
+      endedAt: instituteServiceCalls.endedAt,
+    }).from(instituteServiceCalls).where(and(
+      eq(instituteServiceCalls.id, reference.id),
+      eq(instituteServiceCalls.serviceOrderId, reference.serviceOrderId),
+    )).limit(1).for("update");
+    if (!order || !call) throw new InstituteServiceCallError("call_unavailable");
+    if (order.status !== "paid" ||
+        (order.guardianConsentRequired && !order.guardianConsentConfirmedAt) ||
+        call.status !== "ended" || !call.endedAt) {
+      throw new InstituteServiceCallError("service_not_ready");
+    }
+    const now = new Date();
+    const [followUp] = await tx.insert(serviceCallFollowUps).values({
+      serviceCallId: call.id,
+      authorUserId: userId,
+      summary: parsed.summary,
+      nextSteps: parsed.nextSteps,
+      publishedAt: now,
+      updatedAt: now,
+    }).onConflictDoUpdate({
+      target: serviceCallFollowUps.serviceCallId,
+      set: {
+        authorUserId: userId,
+        summary: parsed.summary,
+        nextSteps: parsed.nextSteps,
+        publishedAt: now,
+        updatedAt: now,
+      },
+    }).returning({
+      serviceCallId: serviceCallFollowUps.serviceCallId,
+      summary: serviceCallFollowUps.summary,
+      nextSteps: serviceCallFollowUps.nextSteps,
+      publishedAt: serviceCallFollowUps.publishedAt,
+    });
+    await tx.insert(auditLogs).values(auditLogRecord({
+      actorId: userId,
+      actorRole: "institute",
+      action: "institute.service_call.follow_up.published",
+      entityType: "SERVICE_CALL",
+      entityId: call.id,
+    }));
+    return { ...followUp!, duplicate: false };
+  });
 }
 
 async function requireUsablePaidOrder(tx: FinancialJournalTransaction, orderId: string, instituteIds: string[]) {
@@ -175,6 +274,64 @@ export async function startInstituteServiceCall(userId: string, callId: string, 
 
 export async function endInstituteServiceCall(userId: string, callId: string, now = new Date()) {
   return transitionInstituteServiceCall(userId, callId, "end", now);
+}
+
+/** Lets the booked student end their own started session. Ending is idempotent;
+ * retries also repair a transient LiveKit room-close failure. */
+export async function endStudentServiceCall(userId: string, callId: string, now = new Date()) {
+  const result = await getDb().transaction(async (tx) => {
+    const [student] = await tx.select({ id: memberships.id }).from(memberships)
+      .where(and(eq(memberships.userId, userId), eq(memberships.role, "student"),
+        eq(memberships.status, "active"))).limit(1);
+    if (!student) throw new StudentServiceCallError("student_unavailable");
+
+    const [reference] = await tx.select({
+      id: instituteServiceCalls.id,
+      serviceOrderId: instituteServiceCalls.serviceOrderId,
+    }).from(instituteServiceCalls).where(eq(instituteServiceCalls.id, callId)).limit(1);
+    if (!reference) throw new StudentServiceCallError("call_unavailable");
+    const [order] = await tx.select({
+      id: instituteServiceOrders.id,
+      studentUserId: instituteServiceOrders.studentUserId,
+      status: instituteServiceOrders.status,
+      guardianConsentRequired: instituteServiceOrders.guardianConsentRequired,
+      guardianConsentConfirmedAt: instituteServiceOrders.guardianConsentConfirmedAt,
+    }).from(instituteServiceOrders).where(and(
+      eq(instituteServiceOrders.id, reference.serviceOrderId),
+      eq(instituteServiceOrders.studentUserId, userId),
+    )).limit(1).for("update");
+    const [call] = await tx.select({
+      id: instituteServiceCalls.id,
+      status: instituteServiceCalls.status,
+      startedAt: instituteServiceCalls.startedAt,
+    }).from(instituteServiceCalls).where(eq(instituteServiceCalls.id, reference.id))
+      .limit(1).for("update");
+    if (!order || !call || order.studentUserId !== userId || order.status !== "paid" ||
+        (order.guardianConsentRequired && !order.guardianConsentConfirmedAt)) {
+      throw new StudentServiceCallError("call_unavailable");
+    }
+    if (call.status === "ended") return { id: call.id, status: call.status, duplicate: true };
+    if (call.status !== "started" || !call.startedAt || now.getTime() < call.startedAt.getTime()) {
+      throw new StudentServiceCallError("call_unavailable");
+    }
+    await tx.update(instituteServiceCalls).set({
+      status: "ended", endedAt: now, updatedAt: now,
+    }).where(eq(instituteServiceCalls.id, call.id));
+    await tx.insert(auditLogs).values(auditLogRecord({
+      actorId: userId, actorRole: "student", action: "student.service_call.ended",
+      entityType: "SERVICE_CALL", entityId: call.id,
+    }));
+    return { id: call.id, status: "ended" as const, duplicate: false };
+  });
+  if (process.env.DENA_LIVEKIT_ENABLED === "1" &&
+      process.env.DENA_LIVEKIT_ROOM_CONTROL_ENABLED !== "0") {
+    try {
+      await closeLiveKitRoom(callId);
+    } catch {
+      throw new StudentServiceCallError("media_shutdown_failed");
+    }
+  }
+  return result;
 }
 
 export async function cancelInstituteServiceCall(userId: string, callId: string, now = new Date()) {

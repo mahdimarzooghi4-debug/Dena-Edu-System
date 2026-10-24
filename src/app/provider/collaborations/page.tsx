@@ -28,7 +28,10 @@ export default async function ProviderCollaborationsPage() {
     <Card className="rounded-[24px] p-6 md:p-8">
       <ProviderCollaborationWorkspace providerIds={providerIds} institutes={data.institutes}
         initialCollaborations={data.collaborations.map((item) => ({
-          ...item, createdAt: item.createdAt.toISOString(), updatedAt: item.updatedAt.toISOString(),
+          ...item,
+          createdAt: item.createdAt.toISOString(),
+          updatedAt: item.updatedAt.toISOString(),
+          events: item.events.map((event) => ({ ...event, createdAt: event.createdAt.toISOString() })),
         }))} />
     </Card>
   </main>;

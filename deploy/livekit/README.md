@@ -7,6 +7,24 @@ Dena-managed VM/network, separate from the Next.js app.
 
 ## Provisioning
 
+### Pilot server profile
+
+For the first low-volume pilot of two-person calls, with no recording,
+transcoding, or AI media processing, provision a **dedicated VM with 4 vCPU,
+8 GB RAM, public IPv4, and a 1 Gbps network interface** as an initial sizing
+estimate. This is not a capacity guarantee: the actual limit depends on video
+quality, participant network paths, and simultaneous rooms. Measure the target
+load with LiveKit's load tester before inviting real users. Keep at least 20 GB
+free disk for the OS, container images, and logs; call media is forwarded, not
+stored by this configuration.
+
+Use a provider/network that permits the required public UDP ports. Render web
+services forward public traffic to one HTTP port, while LiveKit media requires
+public WebRTC UDP ports, so the Dena app may remain on Render but the
+self-hosted LiveKit node should run on a VM that supports this network model.
+
+### Deploy
+
 1. Allocate a public VM for Stage and a separate one for Production. Give each
    environment its own API key, API secret, and DNS names. Do not reuse keys.
 2. Create DNS A/AAAA records for the primary call hostname and TURN hostname,
@@ -58,6 +76,16 @@ LiveKit's official VM deployment guide and generator are the source of truth
 for the generated version-specific configuration. Record the chosen server
 image version and config checksum in the deployment change. Upgrade Stage
 first, repeat the network tests, then promote the same pinned version.
+
+For higher production traffic, size through repeatable tests rather than
+extrapolating from the pilot VM. LiveKit's deployment guidance says CPU and
+bandwidth bound capacity and recommends 10 Gbps or faster for production
+setups. Its benchmarks also caution that capacity depends on tracks,
+subscribers, and the amount of media delivered; each room must fit on one SFU
+node. See the official [deployment](https://docs.livekit.io/transport/self-hosting/deployment/),
+[ports and firewall](https://docs.livekit.io/transport/self-hosting/ports-firewall/),
+and [benchmarking](https://docs.livekit.io/transport/self-hosting/benchmark)
+guides.
 
 ## Application behavior
 

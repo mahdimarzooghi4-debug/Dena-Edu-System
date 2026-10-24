@@ -350,6 +350,8 @@ test.describe("institute service order guardian consent", () => {
     await anonymousJoin.dispose();
     const unrelatedInstitute = await client("otherInstitute");
     expect((await post(unrelatedInstitute, joinPath, {})).status()).toBe(404);
+    expect((await post(unrelatedInstitute,
+      `/api/student/service-calls/${serviceCallId}/end`, {})).status()).toBe(404);
     await unrelatedInstitute.dispose();
     const studentJoin = await client("student");
     const tokenResponse = await post(studentJoin, joinPath, {});
@@ -381,12 +383,19 @@ test.describe("institute service order guardian consent", () => {
     await page.goto("http://localhost:3000/student/services/orders");
     const liveCall = page.getByRole("region", { name: "تماس زنده" });
     await expect(liveCall).toBeVisible();
-    const mediaDisclosure = liveCall.getByRole("checkbox");
+    const mediaDisclosure = liveCall.getByRole("checkbox").first();
     await expect(mediaDisclosure).not.toBeChecked();
-    const joinButton = liveCall.getByRole("button", { name: "ورود به جلسه و روشن‌کردن دوربین و میکروفن" });
+    const audioOnly = liveCall.getByRole("checkbox", { name: "ورود فقط با صدا" });
+    await expect(audioOnly).not.toBeChecked();
+    const joinButton = liveCall.getByRole("button", { name: "ورود به جلسه" });
     await expect(joinButton).toBeDisabled();
     await mediaDisclosure.check();
     await expect(joinButton).toBeEnabled();
+    await liveCall.getByRole("button", { name: "پایان جلسه" }).click();
+    const endConfirmation = liveCall.getByRole("alertdialog");
+    await expect(endConfirmation).toContainText("تماس برای شما و مشاور بسته می‌شود");
+    await endConfirmation.getByRole("button", { name: "بازگشت به جلسه" }).click();
+    await expect(endConfirmation).toHaveCount(0);
     expect(await startInstituteServiceCall(
       users.institute, serviceCallId, new Date(Date.parse(scheduledAt) + 2_000),
     )).toMatchObject({ status: "started", duplicate: true });
@@ -394,18 +403,47 @@ test.describe("institute service order guardian consent", () => {
       callId: serviceCallId, eventId: `usage-event-${randomUUID()}`,
       state: "ended", billableSeconds: 17,
     } })).rejects.toMatchObject({ kind: "call_not_ended" });
-    expect(await endInstituteServiceCall(
-      users.institute, serviceCallId, new Date(Date.parse(scheduledAt) + 3_000),
-    )).toMatchObject({ status: "ended", duplicate: false });
+    const followUpPath = `/api/institute/service-calls/${serviceCallId}/follow-up`;
+    expect((await post(institute, followUpPath, {
+      summary: "یادداشت پیش از پایان جلسه منتشر نمی‌شود.", nextSteps: [],
+    })).status()).toBe(409);
+    await db.update(instituteServiceCalls).set({ startedAt: new Date(Date.now() - 1_000) })
+      .where(eq(instituteServiceCalls.id, serviceCallId));
+    const studentEnds = await client("student");
+    const endPath = `/api/student/service-calls/${serviceCallId}/end`;
+    const studentEnded = await post(studentEnds, endPath, {});
+    expect(studentEnded.status()).toBe(200);
+    expect(await studentEnded.json()).toMatchObject({
+      call: { id: serviceCallId, status: "ended", duplicate: false },
+    });
+    expect(await (await post(studentEnds, endPath, {})).json()).toMatchObject({
+      call: { id: serviceCallId, status: "ended", duplicate: true },
+    });
+    await studentEnds.dispose();
     expect(await endInstituteServiceCall(
       users.institute, serviceCallId, new Date(Date.parse(scheduledAt) + 4_000),
     )).toMatchObject({ status: "ended", duplicate: true });
+    const unrelatedFollowUp = await client("otherInstitute");
+    expect((await post(unrelatedFollowUp, followUpPath, {
+      summary: "این متن برای دانش‌آموز به اشتراک گذاشته می‌شود.", nextSteps: [],
+    })).status()).toBe(404);
+    await unrelatedFollowUp.dispose();
+    const published = await post(institute, followUpPath, {
+      summary: "برنامهٔ مرور هفتگی با سه بازهٔ کوتاه آماده شد.",
+      nextSteps: ["مرور فصل سوم تا پنجشنبه", "ثبت پرسش‌ها برای جلسهٔ بعد"],
+    });
+    expect(published.status()).toBe(200);
+    expect(await published.json()).toMatchObject({ followUp: {
+      serviceCallId,
+      summary: "برنامهٔ مرور هفتگی با سه بازهٔ کوتاه آماده شد.",
+      nextSteps: ["مرور فصل سوم تا پنجشنبه", "ثبت پرسش‌ها برای جلسهٔ بعد"],
+    } });
     const endedCallJoin = await client("student");
     expect((await post(endedCallJoin, joinPath, {})).status()).toBe(404);
     await endedCallJoin.dispose();
     expect(await db.select().from(auditLogs).where(and(
       eq(auditLogs.entityType, "SERVICE_CALL"), eq(auditLogs.entityId, serviceCallId),
-    ))).toHaveLength(3);
+    ))).toHaveLength(4);
     const usageEventId = `usage-event-${randomUUID()}`;
     const usageInput = { providerId: "livekit", event: {
       callId: serviceCallId, eventId: usageEventId, state: "ended" as const, billableSeconds: 17,
@@ -467,6 +505,9 @@ test.describe("institute service order guardian consent", () => {
     const studentHistory = await client("student");
     const studentHistoryBody = await (await studentHistory.get("/student/services/orders")).text();
     expect(studentHistoryBody).toContain("زمان جلسه");
+    expect(studentHistoryBody).toContain("خلاصهٔ قابل‌مشاهدهٔ جلسه");
+    expect(studentHistoryBody).toContain("برنامهٔ مرور هفتگی با سه بازهٔ کوتاه آماده شد.");
+    expect(studentHistoryBody).toContain("مرور فصل سوم تا پنجشنبه");
     expect(studentHistoryBody).toContain("مصرف ثبت‌شده");
     expect(studentHistoryBody).toContain("۳۸ ثانیه");
     expect(studentHistoryBody).toContain("۵۹ دقیقه و ۲۲ ثانیه");

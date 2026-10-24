@@ -1,5 +1,5 @@
 import {
-  bigint, boolean, check, date, foreignKey, index, integer, pgEnum, pgTable,
+  bigint, boolean, check, date, foreignKey, index, integer, jsonb, pgEnum, pgTable,
   primaryKey, text, timestamp, uniqueIndex, uuid,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
@@ -72,6 +72,25 @@ export const otpDispatchLimits = pgTable("dena_otp_dispatch_limits", {
   windowStartedAt: timestamp("window_started_at", { withTimezone: true }).notNull(),
   count: integer("count").notNull(),
 });
+
+/** One short-lived, hashed verification challenge per authenticated user for
+ * changing the account phone. The OTP itself is never stored. */
+export const phoneChangeChallenges = pgTable("dena_phone_change_challenges", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().unique()
+    .references(() => user.id, { onDelete: "cascade" }),
+  phoneNumber: text("phone_number").notNull(),
+  codeHash: text("code_hash").notNull(),
+  attempts: integer("attempts").notNull().default(0),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("dena_phone_change_challenge_expiry_idx").on(table.expiresAt),
+  check("dena_phone_change_challenge_code_hash_ck", sql`code_hash ~ '^[a-f0-9]{64}$'`),
+  check("dena_phone_change_challenge_attempts_ck", sql`attempts BETWEEN 0 AND 3`),
+  check("dena_phone_change_challenge_phone_ck", sql`phone_number ~ '^\\+989[0-9]{9}$'`),
+]);
 
 export const denaRole = pgEnum("dena_role", roles);
 export const membershipStatus = pgEnum("dena_membership_status", ["active", "suspended", "revoked"]);
@@ -2237,5 +2256,27 @@ export const serviceCallMediaEvents = pgTable("dena_service_call_media_events", 
     (kind = 'room_finished' AND participant_user_id IS NULL AND participant_role = 'system')
     OR (kind <> 'room_finished' AND participant_user_id IS NOT NULL
       AND participant_role IN ('student', 'institute'))
+  `),
+]);
+
+/** Only content intentionally published to the student belongs here. Private
+ * counselor notes and session recordings have no field in this model. */
+export const serviceCallFollowUps = pgTable("dena_service_call_follow_ups", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  serviceCallId: uuid("service_call_id").notNull().unique()
+    .references(() => instituteServiceCalls.id, { onDelete: "restrict" }),
+  authorUserId: uuid("author_user_id").notNull()
+    .references(() => user.id, { onDelete: "restrict" }),
+  summary: text("summary").notNull(),
+  nextSteps: jsonb("next_steps").$type<string[]>().notNull().default([]),
+  publishedAt: timestamp("published_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("dena_service_call_follow_up_published_idx").on(table.publishedAt, table.id),
+  check("dena_service_call_follow_up_summary_ck", sql`
+    char_length(summary) BETWEEN 10 AND 4000
+  `),
+  check("dena_service_call_follow_up_steps_ck", sql`
+    jsonb_typeof(next_steps) = 'array' AND jsonb_array_length(next_steps) <= 10
   `),
 ]);

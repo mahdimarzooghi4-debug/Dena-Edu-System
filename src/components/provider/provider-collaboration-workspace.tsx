@@ -9,6 +9,12 @@ type Collaboration = {
   status: "requested" | "awaiting_dena" | "approved" | "institute_rejected" | "dena_rejected" | "withdrawn";
   instituteDecisionReason: string | null; denaDecisionReason: string | null;
   createdAt: string; updatedAt: string;
+  events: Array<{
+    id: string;
+    kind: "requested" | "institute_approved" | "institute_rejected" | "dena_approved" | "dena_rejected" | "provider_withdrew";
+    reason: string | null;
+    createdAt: string;
+  }>;
 };
 const statusLabel: Record<Collaboration["status"], string> = {
   requested: "در انتظار تصمیم مؤسسه",
@@ -17,6 +23,14 @@ const statusLabel: Record<Collaboration["status"], string> = {
   institute_rejected: "درخواست توسط مؤسسه رد شده",
   dena_rejected: "درخواست در بررسی نهایی دنا رد شده",
   withdrawn: "درخواست را پس گرفته‌اید",
+};
+const eventLabels: Record<Collaboration["events"][number]["kind"], string> = {
+  requested: "درخواست برای مؤسسه ارسال شد",
+  institute_approved: "مؤسسه درخواست را پذیرفت",
+  institute_rejected: "مؤسسه درخواست را رد کرد",
+  dena_approved: "بررسی دنا تکمیل شد",
+  dena_rejected: "درخواست در بررسی دنا رد شد",
+  provider_withdrew: "درخواست توسط ارائه‌دهنده پس گرفته شد",
 };
 
 export function ProviderCollaborationWorkspace({ providerIds, institutes, initialCollaborations }: {
@@ -127,6 +141,22 @@ export function ProviderCollaborationWorkspace({ providerIds, institutes, initia
           <p className="mt-3 text-sm font-semibold text-dena-deep">{statusLabel[item.status]}</p>
           {item.instituteDecisionReason && <p className="mt-2 text-sm leading-7 text-dena-muted">یادداشت مؤسسه: {item.instituteDecisionReason}</p>}
           {item.denaDecisionReason && <p className="mt-2 text-sm leading-7 text-dena-muted">یادداشت دنا: {item.denaDecisionReason}</p>}
+          <div className="mt-4 rounded-xl bg-dena-bg p-4">
+            <h3 className="text-sm font-extrabold text-dena-deep">خط زمانی ممیزی</h3>
+            <ol className="mt-3 space-y-3">
+              {item.events.map((event) => <li key={event.id} className="flex gap-3 text-sm">
+                <span aria-hidden="true" className="mt-1.5 size-2 shrink-0 rounded-full bg-dena-brand" />
+                <div className="min-w-0">
+                  <p className="font-bold text-dena-deep">{eventLabels[event.kind]}</p>
+                  <time dateTime={event.createdAt} className="mt-1 block text-xs text-dena-muted">
+                    {new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Tehran" }).format(new Date(event.createdAt))}
+                  </time>
+                  {event.reason && <p className="mt-1 break-words text-xs leading-6 text-dena-muted">{event.reason}</p>}
+                </div>
+              </li>)}
+              {!item.events.length && <li className="text-xs text-dena-muted">رویداد ممیزی ثبت‌شده‌ای برای این درخواست موجود نیست.</li>}
+            </ol>
+          </div>
           {item.status === "requested" && <Button type="button" variant="outline"
             disabled={busy} onClick={() => void withdraw(item.id)} className="mt-4">
             {busy ? "در حال ثبت…" : "پس‌گرفتن درخواست"}
