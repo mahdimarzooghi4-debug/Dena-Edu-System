@@ -23,12 +23,14 @@ function validateEntry(entry) {
   for (const field of ["title", "subject", "grade", "schoolYear", "edition"]) {
     if (typeof entry[field] !== "string" || !entry[field].trim()) throw new Error(`invalid ${field}`);
   }
-  for (const [field, pathPattern] of [["sourcePageUrl", /^\/books\/\d+\/?$/], ["pdfUrl", /\//]]) {
+  const officialBookPage = /^\/books\/\d+\/?$/;
+  const officialPdf = /^\/sites\/default\/files\/lbooks\/\d{4}-\d{4}\/\d+\/[^/]+\.pdf$/i;
+  for (const [field, isAllowedPath] of [["sourcePageUrl", (pathname) => officialBookPage.test(pathname) || officialPdf.test(pathname)], ["pdfUrl", (pathname) => officialPdf.test(pathname)]]) {
     const value = entry[field];
     if (!value && field === "pdfUrl") throw new Error("pdfUrl is not yet recorded; copy it from the official book page");
     let url;
     try { url = new URL(value); } catch { throw new Error(`invalid ${field}`); }
-    if (url.protocol !== "https:" || !OFFICIAL_HOSTS.has(url.hostname) || !pathPattern.test(url.pathname)) {
+    if (url.protocol !== "https:" || !OFFICIAL_HOSTS.has(url.hostname) || !isAllowedPath(url.pathname)) {
       throw new Error(`${field} must be an HTTPS URL on the official chap.sch.ir domain`);
     }
   }

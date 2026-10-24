@@ -40,7 +40,7 @@
 
 ## وضعیت فعلی
 
-در مخزن PDF یا متن کتاب قرار نمی‌گیرد. فهرست اولیهٔ رسمی سال ۱۴۰۵–۱۴۰۶ در [`data/ai/textbooks/catalog-v1.jsonl`](../../data/ai/textbooks/catalog-v1.jsonl) ساخته شده و برای همهٔ دوره‌ها در حال تکمیل است. ابزار `scripts/ingest-dena-textbooks.mjs` PDF رسمی را در مسیر محلی می‌گیرد، SHA-256 را ثبت می‌کند و متن صفحه‌به‌صفحه می‌سازد. batch نامزد [`data/ai/candidate/initial-v1`](../../data/ai/candidate/initial-v1/) همچنان نمونهٔ جداگانهٔ آموزش است.
+در مخزن PDF یا متن کتاب قرار نمی‌گیرد. فهرست اولیهٔ رسمی سال ۱۴۰۵–۱۴۰۶ در [`data/ai/textbooks/catalog-v1.jsonl`](../../data/ai/textbooks/catalog-v1.jsonl) ساخته شده: ۲۱ ردیف از مقاطع و شاخه‌های مختلف که ۱۲ موردشان URL مستقیم PDF رسمی دارند. ابزار `scripts/ingest-dena-textbooks.mjs` PDF رسمی را در مسیر محلی می‌گیرد، SHA-256 را ثبت می‌کند و متن صفحه‌به‌صفحه می‌سازد. دریافت مستقیم از این محیط هنوز با HTTP 503 روبه‌روست؛ پیوندها در فهرست ثبت شده‌اند و استخراج به محض پاسخ‌گویی سرویس قابل اجراست. batch نامزد [`data/ai/candidate/initial-v1`](../../data/ai/candidate/initial-v1/) همچنان نمونهٔ جداگانهٔ آموزش است.
 
 ## منبع رسمی برای بررسی هر عنوان
 
