@@ -513,7 +513,7 @@ test.describe("reviewed role requests, scoped grants and audit on PostgreSQL", (
     expect(html).not.toContain("private-review/");
     expect(html).not.toContain("CI-benefactor-0001");
     expect(html).not.toContain("CI-other-benefactor-0002");
-    expect(html).toContain("صندوق حمایت، کمک‌ها و رسیدها");
+    expect(html).toContain("رسید و گزارش مصرف صندوق");
     expect(html).toContain('href="/benefactor/reports"');
     const reports = await applicant.get("/benefactor/reports");
     expect(reports.status()).toBe(200);
