@@ -574,8 +574,9 @@ test.describe("reviewed role requests, scoped grants and audit on PostgreSQL", (
       name: "هویت‌های حمایتی دارای دسترسی",
     })).toBeVisible();
     await expect(page.getByText("حامی مستقل تأییدشده", { exact: true })).toBeVisible();
+    await page.getByRole("link", { name: "حساب من" }).click();
     await page.getByRole("link", {
-      name: "وضعیت درخواست‌های نقش من",
+      name: "درخواست و پیگیری نقش سازمانی",
     }).click();
     await expect(page).toHaveURL(/\/account\/role-applications$/);
 
