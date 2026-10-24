@@ -1,8 +1,9 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, exists, sql } from "drizzle-orm";
 import { getDb } from "../../db";
 import {
   auditLogs, courses, educatorInstituteAffiliations, independentEducatorProfiles,
   memberships, supervisionEvents, supervisionGrants, verifiedEntities,
+  privateMediaAssets,
 } from "../../db/schema";
 import { auditLogRecord } from "../admin/audit";
 import type { NewIndependentEducatorCourse } from "./course-contracts";
@@ -133,13 +134,18 @@ export async function getIndependentEducatorCourses(userId: string) {
   }).from(independentEducatorProfiles)
     .where(eq(independentEducatorProfiles.userId, userId)).limit(1);
   if (!profile) return [];
-  return getDb().select({
+  const rows = await getDb().select({
     courseId: courses.id,
     title: courses.title,
     instituteId: courses.responsibleInstituteId,
     instituteName: verifiedEntities.name,
     publicationStatus: courses.publicationStatus,
     supervisionStatus: supervisionGrants.status,
+    hasReadyVideo: sql<boolean>`${exists(getDb().select({ id: privateMediaAssets.id })
+      .from(privateMediaAssets).where(and(
+        eq(privateMediaAssets.courseId, courses.id),
+        eq(privateMediaAssets.status, "ready"),
+      )))}`,
   }).from(courses).innerJoin(
     supervisionGrants, eq(supervisionGrants.courseId, courses.id),
   ).innerJoin(verifiedEntities, and(
@@ -149,4 +155,5 @@ export async function getIndependentEducatorCourses(userId: string) {
     eq(courses.ownerType, "independent_educator"),
     eq(courses.independentEducatorProfileId, profile.id),
   )).orderBy(desc(courses.id)).limit(100);
+  return rows.map((course) => ({ ...course, hasReadyVideo: Boolean(course.hasReadyVideo) }));
 }

@@ -1,12 +1,11 @@
-import { and, eq } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import { getDb } from "../../../../../../../../db";
-import { studentVideoNotes } from "../../../../../../../../db/schema";
 import { getServerAccessContext } from "../../../../../../../../server/access/actor";
 import { validSameOrigin } from "../../../../../../../../server/access/role-application-contracts";
 import { hasStudentEntitlement } from "../../../../../../../../server/student/entitlement";
-import { isReadyVideoOfCourse } from "../../../../../../../../server/student/video-progress";
+import {
+  isReadyVideoOfCourse, setStudentVideoNote,
+} from "../../../../../../../../server/student/video-progress";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -56,12 +55,11 @@ export async function PUT(request: NextRequest, params: Params) {
   }, { status: 400, headers: privateNoStore });
   const note = parsed.data.note.trim();
   const { studentUserId, courseId, assetId } = checked;
-  await getDb().insert(studentVideoNotes).values({
-    studentUserId: studentUserId!, assetId: assetId!, body: note,
-  }).onConflictDoUpdate({
-    target: [studentVideoNotes.studentUserId, studentVideoNotes.assetId],
-    set: { body: note, updatedAt: new Date() },
-  });
+  if (!await setStudentVideoNote(studentUserId!, courseId!, assetId!, note)) {
+    return NextResponse.json({ error: "Not found" }, {
+      status: 404, headers: privateNoStore,
+    });
+  }
   return NextResponse.json({
     courseId, assetId, note,
   }, { headers: privateNoStore });
@@ -72,10 +70,11 @@ export async function DELETE(request: NextRequest, params: Params) {
   const checked = await authorized(request, params);
   if (checked.error) return checked.error;
   const { studentUserId, courseId, assetId } = checked;
-  await getDb().delete(studentVideoNotes).where(and(
-    eq(studentVideoNotes.studentUserId, studentUserId!),
-    eq(studentVideoNotes.assetId, assetId!),
-  ));
+  if (!await setStudentVideoNote(studentUserId!, courseId!, assetId!, null)) {
+    return NextResponse.json({ error: "Not found" }, {
+      status: 404, headers: privateNoStore,
+    });
+  }
   return NextResponse.json({ courseId, assetId, note: null }, {
     headers: privateNoStore,
   });

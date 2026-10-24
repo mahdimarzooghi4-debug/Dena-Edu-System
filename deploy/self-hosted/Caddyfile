@@ -1,0 +1,9 @@
+{$DENA_DOMAIN} {
+	encode zstd gzip
+	header {
+		-Server
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+	}
+	reverse_proxy web:3000
+}

@@ -6,6 +6,7 @@ import { OrganizationStudentWorkspace } from "../../../components/organization/s
 import { getServerAccessContext } from "../../../server/access/actor";
 import { listOrganizationStudents } from "../../../server/organization/students";
 import { getOrganizationScopes } from "../../../server/organization/scopes";
+import { Card } from "../../../components/ui/card";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,14 +14,33 @@ export const metadata: Metadata = {
   title: "دانش‌آموزان سازمان | دنا", robots: { index: false, follow: false },
 };
 
-export default async function OrganizationStudentsPage() {
+export default async function OrganizationStudentsPage({
+  searchParams,
+}: { searchParams: Promise<{ activation?: string; organizationId?: string; cursor?: string; q?: string }> }) {
   if (!process.env.DATABASE_URL || !process.env.BETTER_AUTH_SECRET || !process.env.BETTER_AUTH_URL) redirect("/login");
   const actor = await getServerAccessContext();
   if (!actor) redirect("/login");
   if (!actor.memberships.some((membership) => membership.role === "organization")) notFound();
   const scopes = await getOrganizationScopes(actor.userId);
   if (!scopes.length) notFound();
-  const students = await listOrganizationStudents(scopes.map((scope) => scope.id));
+  const { activation, organizationId, cursor, q } = await searchParams;
+  const activationPendingOnly = activation === "pending";
+  const selectedOrganization = scopes.find((scope) => scope.id === organizationId) ?? scopes[0];
+  const visibleScopes = [selectedOrganization];
+  let studentPage;
+  try {
+    studentPage = await listOrganizationStudents(visibleScopes.map((scope) => scope.id), {
+      activationPendingOnly, cursor, limit: 50, search: q,
+    });
+  } catch {
+    redirect("/organization/students");
+  }
+  const nextParams = new URLSearchParams();
+  if (activationPendingOnly) nextParams.set("activation", "pending");
+  if (selectedOrganization) nextParams.set("organizationId", selectedOrganization.id);
+  if (q?.trim()) nextParams.set("q", q.trim());
+  if (studentPage.nextCursor) nextParams.set("cursor", studentPage.nextCursor);
+  const nextHref = `/organization/students?${nextParams.toString()}`;
 
   return (
     <main id="main-content" className="mx-auto min-h-screen max-w-6xl space-y-7 px-5 py-8 md:px-10 md:py-12">
@@ -35,7 +55,22 @@ export default async function OrganizationStudentsPage() {
           ثبت دستی، ورود گروهی با CSV و Excel، و ساخت پرونده از API سازمان. حساب ورود دانش‌آموز با تأیید شمارهٔ موبایل توسط خودش فعال می‌شود.
         </p>
       </section>
-      <OrganizationStudentWorkspace scopes={scopes} initialStudents={students} />
+      {activationPendingOnly && <Card className="flex flex-wrap items-center justify-between gap-3 border-amber-200 bg-amber-50">
+        <p className="text-sm font-bold text-amber-950">
+          فهرست فقط پرونده‌های در انتظار تأیید شماره را نشان می‌دهد
+          {selectedOrganization ? `؛ سازمان: ${selectedOrganization.name}` : ""}.
+        </p>
+        <Link href={selectedOrganization
+          ? `/organization/students?organizationId=${encodeURIComponent(selectedOrganization.id)}`
+          : "/organization/students"}
+          className={buttonClassName("secondary")}>نمایش همهٔ پرونده‌ها</Link>
+      </Card>}
+      <OrganizationStudentWorkspace scopes={scopes} initialStudents={studentPage.students}
+        initialOrganizationId={selectedOrganization?.id} searchTerm={q?.trim() ?? ""}
+        activationPendingOnly={activationPendingOnly} />
+      {studentPage.nextCursor && <nav aria-label="صفحه‌بندی دانش‌آموزان" className="flex justify-end">
+        <Link href={nextHref} className={buttonClassName("secondary")}>نمایش صفحهٔ بعد</Link>
+      </nav>}
     </main>
   );
 }

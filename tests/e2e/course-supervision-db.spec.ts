@@ -195,6 +195,7 @@ test.describe("course-scoped provider requests and independent institute decisio
     expect(ownHtml).toContain("دوره دوم برای اطمینان از تفکیک مجوز");
     expect(ownHtml).toContain("در انتظار بررسی مؤسسه");
     expect(ownHtml).toContain("ویدئوهای آماده:");
+    expect(ownHtml).toContain("ثبت‌نام فعال:");
     expect(ownHtml).toContain("سؤال تمرینی:");
     expect(ownHtml).toContain("ثبت نشده");
     expect(ownHtml).not.toContain(`/provider/courses/${courseIds[0]}/media`);
@@ -270,7 +271,7 @@ test.describe("course-scoped provider requests and independent institute decisio
     expect(instituteHtml).toContain("ویدئوهای آماده:");
     expect(instituteHtml).toContain("سؤال تمرینی:");
     expect(instituteHtml).toContain("ثبت نشده");
-    expect(instituteHtml).toContain("سؤال‌های تمرینی در انتظار بازبینی مستقل");
+    expect(instituteHtml).toContain("سؤال‌های تمرینی در انتظار بازبینی");
     expect(instituteHtml).toContain(
       `/institute/courses/${courseIds[0]}`,
     );
@@ -373,6 +374,7 @@ test.describe("course-scoped provider requests and independent institute decisio
     expect(approvedHome.status()).toBe(200);
     const approvedHtml = await approvedHome.text();
     expect(approvedHtml).toContain("تأیید نظارت همین دوره");
+    expect(approvedHtml).toContain("ثبت‌نام فعال:");
     expect(approvedHtml).toContain(`/provider/courses/${a}/media`);
     expect(approvedHtml).not.toContain(`/provider/courses/${b}/media`);
     const approvedDetail = await (await provider.get(
@@ -491,8 +493,9 @@ test.describe("course-scoped provider requests and independent institute decisio
     }]);
     await page.goto("http://localhost:3000/institute");
     await expect(page.getByRole("heading", {
-      name: "نظارت بر دوره‌های مؤسسه",
+      name: "داشبورد",
     })).toBeVisible();
+    await expect(page.getByRole("heading", { name: uiTitle })).toBeVisible();
     await page.getByRole("link", {
       name: "پروندهٔ وضعیت همین دوره",
     }).first().click();

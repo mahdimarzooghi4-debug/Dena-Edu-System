@@ -6,6 +6,8 @@ coverage/
 *.tsbuildinfo
 .env*
 !.env.example
+/deploy/self-hosted/secrets/
+/deploy/self-hosted/app.env
 .DS_Store
 .idea/
 .vscode/

@@ -53,7 +53,29 @@ export async function getProviderCollaborations(userId: string) {
     )).where(inArray(providerInstituteCollaborations.providerId, providerIds))
       .orderBy(desc(providerInstituteCollaborations.createdAt), desc(providerInstituteCollaborations.id)).limit(100),
   ]);
-  return { institutes, collaborations };
+  const collaborationIds = collaborations.map((item) => item.id);
+  const events = collaborationIds.length ? await db.select({
+    id: providerInstituteCollaborationEvents.id,
+    collaborationId: providerInstituteCollaborationEvents.collaborationId,
+    kind: providerInstituteCollaborationEvents.kind,
+    reason: providerInstituteCollaborationEvents.reason,
+    createdAt: providerInstituteCollaborationEvents.createdAt,
+  }).from(providerInstituteCollaborationEvents)
+    .where(inArray(providerInstituteCollaborationEvents.collaborationId, collaborationIds))
+    .orderBy(asc(providerInstituteCollaborationEvents.createdAt), asc(providerInstituteCollaborationEvents.id))
+    : [];
+  const eventsByCollaboration = new Map<string, typeof events>();
+  for (const event of events) {
+    eventsByCollaboration.set(event.collaborationId, [
+      ...(eventsByCollaboration.get(event.collaborationId) ?? []), event,
+    ]);
+  }
+  return {
+    institutes,
+    collaborations: collaborations.map((item) => ({
+      ...item, events: eventsByCollaboration.get(item.id) ?? [],
+    })),
+  };
 }
 
 export async function getInstituteCollaborations(userId: string) {

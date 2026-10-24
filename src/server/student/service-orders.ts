@@ -6,6 +6,8 @@ import {
 } from "../../db/schema";
 import { auditLogRecord } from "../admin/audit";
 import { calculateInstituteServiceGrossSplit } from "../institute/services";
+import { addRecordedServiceTimeBalances } from "../institute/service-time-quota";
+import { addInstituteServiceCallSchedules } from "../institute/service-calls";
 
 export const createServiceOrderInput = z.object({
   serviceId: z.uuid(),
@@ -24,7 +26,7 @@ export async function getStudentServiceOrders(studentUserId: string) {
     .where(and(eq(memberships.userId, studentUserId), eq(memberships.role, "student"),
       eq(memberships.status, "active"))).limit(1);
   if (!activeStudent) return [];
-  return db.select({
+  const orders = await db.select({
     id: instituteServiceOrders.id,
     serviceId: instituteServiceOrders.serviceId,
     instituteName: verifiedEntities.name,
@@ -41,6 +43,7 @@ export async function getStudentServiceOrders(studentUserId: string) {
     eq(verifiedEntities.role, "institute"),
   )).where(eq(instituteServiceOrders.studentUserId, studentUserId))
     .orderBy(desc(instituteServiceOrders.createdAt), desc(instituteServiceOrders.id)).limit(100);
+  return addInstituteServiceCallSchedules(await addRecordedServiceTimeBalances(orders));
 }
 
 export async function createStudentServiceOrder(
@@ -50,7 +53,7 @@ export async function createStudentServiceOrder(
   return getDb().transaction(async (tx) => {
     const [activeStudent] = await tx.select({ id: memberships.id }).from(memberships)
       .where(and(eq(memberships.userId, studentUserId), eq(memberships.role, "student"),
-        eq(memberships.status, "active"))).limit(1).for("share");
+        eq(memberships.status, "active"))).limit(1).for("update");
     if (!activeStudent) throw new StudentServiceOrderError("student_unavailable");
 
     const [existingByKey] = await tx.select({ id: instituteServiceOrders.id,

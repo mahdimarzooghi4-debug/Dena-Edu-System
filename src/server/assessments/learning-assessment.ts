@@ -4,11 +4,13 @@ import { getDb } from "../../db";
 import { isVerifiedProviderCourse } from "../courses/ownership";
 import {
   auditLogs, courseLearningAssessments, courseLearningAssessmentQuestions, courses,
+  educatorInstituteAffiliations, independentEducatorProfiles,
   memberships, privateMediaAssets, studentLearningAssessmentAttempts,
   studentLearningAssessmentAttemptQuestions,
-  studentLearningAssessmentLessonReviews, supervisionGrants,
+  studentLearningAssessmentLessonReviews, studentEnrollments, supervisionGrants,
 } from "../../db/schema";
 import { auditLogRecord } from "../admin/audit";
+import { hasStudentEntitlement } from "../student/entitlement";
 
 const controlChars = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/u;
 const option = z.string().trim().min(1).max(160).refine((v) => !controlChars.test(v));
@@ -99,6 +101,14 @@ export async function startStudentLearningAssessment(
   studentUserId: string, courseId: string, assessmentId: string,
 ) {
   return getDb().transaction(async (tx) => {
+    const [enrollment] = await tx.select({ id: studentEnrollments.id })
+      .from(studentEnrollments).where(and(
+        eq(studentEnrollments.studentUserId, studentUserId),
+        eq(studentEnrollments.courseId, courseId),
+        eq(studentEnrollments.status, "active"),
+      )).limit(1).for("share");
+    if (!enrollment || !await hasStudentEntitlement(studentUserId, courseId)) return null;
+
     const [assessment] = await tx.select().from(courseLearningAssessments)
       .where(and(
         eq(courseLearningAssessments.id, assessmentId),
@@ -231,6 +241,14 @@ export async function submitStudentLearningAssessment(
   answers: Record<string, number>,
 ) {
   return getDb().transaction(async (tx) => {
+    const [enrollment] = await tx.select({ id: studentEnrollments.id })
+      .from(studentEnrollments).where(and(
+        eq(studentEnrollments.studentUserId, studentUserId),
+        eq(studentEnrollments.courseId, courseId),
+        eq(studentEnrollments.status, "active"),
+      )).limit(1).for("share");
+    if (!enrollment || !await hasStudentEntitlement(studentUserId, courseId)) return null;
+
     const [assessment] = await tx.select().from(courseLearningAssessments)
       .where(and(
         eq(courseLearningAssessments.id, assessmentId),
@@ -246,6 +264,16 @@ export async function submitStudentLearningAssessment(
       )).limit(1).for("update");
     if (!assessment || !attempt) return null;
     if (attempt.status !== "in_progress") {
+      if (attempt.status === "submitted" && attempt.outcome &&
+          attempt.correctCount !== null && attempt.submittedAt) {
+        return {
+          attemptId, outcome: attempt.outcome,
+          correctCount: attempt.correctCount,
+          questionCount: assessment.questionCount,
+          submittedAt: attempt.submittedAt,
+          replayed: true,
+        };
+      }
       throw new LearningAssessmentUnavailable("attempt_closed");
     }
     const questions = await tx.select({
@@ -280,7 +308,7 @@ export async function submitStudentLearningAssessment(
       status: "submitted", outcome, correctCount, submittedAt,
     }).where(eq(studentLearningAssessmentAttempts.id, attemptId));
     return { attemptId, outcome, correctCount,
-      questionCount: assessment.questionCount, submittedAt };
+      questionCount: assessment.questionCount, submittedAt, replayed: false };
   });
 }
 
@@ -290,7 +318,15 @@ export async function acknowledgeStudentLearningAssessmentLessonReview(
   lessonAssetId: string,
 ) {
   const db = getDb();
-  const [attempt] = await db.select({ outcome: studentLearningAssessmentAttempts.outcome })
+  return db.transaction(async (tx) => {
+  const [enrollment] = await tx.select({ id: studentEnrollments.id })
+    .from(studentEnrollments).where(and(
+      eq(studentEnrollments.studentUserId, studentUserId),
+      eq(studentEnrollments.courseId, courseId),
+      eq(studentEnrollments.status, "active"),
+    )).limit(1).for("share");
+  if (!enrollment || !await hasStudentEntitlement(studentUserId, courseId)) return null;
+  const [attempt] = await tx.select({ outcome: studentLearningAssessmentAttempts.outcome })
     .from(studentLearningAssessmentAttempts).where(and(
       eq(studentLearningAssessmentAttempts.id, attemptId),
       eq(studentLearningAssessmentAttempts.assessmentId, assessmentId),
@@ -300,7 +336,7 @@ export async function acknowledgeStudentLearningAssessmentLessonReview(
       eq(studentLearningAssessmentAttempts.outcome, "needs_review"),
     )).limit(1);
   if (!attempt) return null;
-  const [missedLesson] = await db.select({ id: privateMediaAssets.id })
+  const [missedLesson] = await tx.select({ id: privateMediaAssets.id })
     .from(studentLearningAssessmentAttemptQuestions)
     .innerJoin(courseLearningAssessmentQuestions, eq(
       courseLearningAssessmentQuestions.id,
@@ -315,59 +351,118 @@ export async function acknowledgeStudentLearningAssessmentLessonReview(
       eq(courseLearningAssessmentQuestions.lessonAssetId, lessonAssetId),
     )).limit(1);
   if (!missedLesson) return null;
-  const [created] = await db.insert(studentLearningAssessmentLessonReviews).values({
+  const [created] = await tx.insert(studentLearningAssessmentLessonReviews).values({
     attemptId, assessmentId, courseId, studentUserId, lessonAssetId,
   }).onConflictDoNothing().returning({
     attemptId: studentLearningAssessmentLessonReviews.attemptId,
   });
   return { attemptId, lessonAssetId, acknowledged: true, replayed: !created };
+  });
 }
 
 async function courseContext(courseId: string) {
   const db = getDb();
   const [course] = await db.select({
     id: courses.id, ownerType: courses.ownerType, providerId: courses.providerId,
+    educatorProfileId: courses.independentEducatorProfileId,
     instituteId: courses.responsibleInstituteId,
     publicationStatus: courses.publicationStatus,
     supervisionStatus: supervisionGrants.status,
     approvedBy: supervisionGrants.approvedByInstituteUserId,
+    grantOwnerType: supervisionGrants.ownerType,
+    grantProviderId: supervisionGrants.providerId,
+    grantEducatorProfileId: supervisionGrants.independentEducatorProfileId,
+    grantInstituteId: supervisionGrants.instituteId,
   }).from(courses).innerJoin(supervisionGrants,
     eq(supervisionGrants.courseId, courses.id),
   ).where(eq(courses.id, courseId)).limit(1);
   return course ?? null;
 }
 
+type AssessmentScopeActor = {
+  role: "provider" | "institute" | "educator";
+  userId: string;
+  providerId: string | null;
+  instituteId: string | null;
+  educatorProfileId: string | null;
+};
+
 async function activeScopeActors(course: NonNullable<Awaited<ReturnType<typeof courseContext>>>) {
-  if (!isVerifiedProviderCourse(course)) return [];
-  return getDb().select({ role: memberships.role, userId: memberships.userId,
+  if (course.ownerType === "verified_provider" && !isVerifiedProviderCourse(course)) return [];
+  const membershipRows = await getDb().select({ role: memberships.role, userId: memberships.userId,
     providerId: memberships.providerId, instituteId: memberships.instituteId,
   }).from(memberships).where(and(
     eq(memberships.status, "active"),
     or(
-      and(eq(memberships.role, "provider"), eq(memberships.providerId, course.providerId)),
+      ...(course.ownerType === "verified_provider"
+        ? [and(eq(memberships.role, "provider"), eq(memberships.providerId, course.providerId!))]
+        : []),
       and(eq(memberships.role, "institute"), eq(memberships.instituteId, course.instituteId)),
     ),
   ));
+  const actors: AssessmentScopeActor[] = [];
+  for (const actor of membershipRows) {
+    if (actor.role === "provider") actors.push({
+      ...actor, role: "provider", educatorProfileId: null,
+    });
+    if (actor.role === "institute") actors.push({
+      ...actor, role: "institute", educatorProfileId: null,
+    });
+  }
+  if (course.ownerType === "independent_educator" && course.educatorProfileId) {
+    const [educator] = await getDb().select({
+      userId: independentEducatorProfiles.userId,
+      educatorProfileId: independentEducatorProfiles.id,
+    }).from(independentEducatorProfiles)
+      .innerJoin(memberships, and(
+        eq(memberships.userId, independentEducatorProfiles.userId),
+        eq(memberships.role, "student"), eq(memberships.status, "active"),
+      )).innerJoin(educatorInstituteAffiliations, and(
+        eq(educatorInstituteAffiliations.educatorProfileId, independentEducatorProfiles.id),
+        eq(educatorInstituteAffiliations.instituteId, course.instituteId),
+        eq(educatorInstituteAffiliations.status, "approved"),
+      )).where(eq(independentEducatorProfiles.id, course.educatorProfileId)).limit(1);
+    if (educator) actors.push({
+      role: "educator", userId: educator.userId, providerId: null,
+      instituteId: course.instituteId, educatorProfileId: educator.educatorProfileId,
+    });
+  }
+  return actors;
 }
 
 function hasCourseSupervision(
   course: NonNullable<Awaited<ReturnType<typeof courseContext>>>,
-  actors: Awaited<ReturnType<typeof activeScopeActors>>,
+  actors: AssessmentScopeActor[],
 ) {
-  return course.supervisionStatus === "approved" && Boolean(course.approvedBy) &&
-    actors.some((actor) => actor.role === "provider" && actor.providerId === course.providerId) &&
+  const grantMatches = course.grantOwnerType === course.ownerType &&
+    course.grantInstituteId === course.instituteId &&
+    (course.ownerType === "verified_provider"
+      ? course.grantProviderId === course.providerId && course.grantEducatorProfileId === null
+      : course.ownerType === "independent_educator"
+        ? course.grantProviderId === null &&
+          course.grantEducatorProfileId === course.educatorProfileId
+        : course.grantProviderId === null && course.grantEducatorProfileId === null);
+  const ownerActive = course.ownerType === "verified_provider"
+    ? actors.some((actor) => actor.role === "provider" && actor.providerId === course.providerId)
+    : course.ownerType === "independent_educator"
+      ? actors.some((actor) => actor.role === "educator" &&
+        actor.educatorProfileId === course.educatorProfileId)
+      : actors.some((actor) => actor.role === "institute" && actor.instituteId === course.instituteId);
+  return grantMatches && ownerActive && course.supervisionStatus === "approved" && Boolean(course.approvedBy) &&
     actors.some((actor) => actor.role === "institute" && actor.instituteId === course.instituteId) &&
     actors.some((actor) => actor.role === "institute" && actor.userId === course.approvedBy &&
       actor.instituteId === course.instituteId);
 }
 
-export async function getProviderLearningAssessments(providerUserId: string, courseId: string) {
+export async function getCourseLearningAssessmentsForOwner(ownerUserId: string, courseId: string) {
   const course = await courseContext(courseId);
   if (!course) return null;
   const actors = await activeScopeActors(course);
+  const ownerRole = course.ownerType === "independent_educator" ? "educator" : "provider";
   if (!hasCourseSupervision(course, actors) ||
-      !actors.some((actor) => actor.role === "provider" && actor.userId === providerUserId &&
-        actor.providerId === course.providerId)) return null;
+      !actors.some((actor) => actor.role === ownerRole && actor.userId === ownerUserId &&
+        (ownerRole === "provider" ? actor.providerId === course.providerId
+          : actor.educatorProfileId === course.educatorProfileId))) return null;
   const db = getDb();
   const readyLessons = await db.select({
     id: privateMediaAssets.id,
@@ -411,38 +506,75 @@ export async function getProviderLearningAssessments(providerUserId: string, cou
   };
 }
 
-/** Provider creates a complete immutable assessment version in one write.
- * Correct keys are available only in provider/institute-scoped readers. */
-export async function createProviderLearningAssessment(
-  providerUserId: string, courseId: string,
+/** The current course owner creates one immutable assessment version in a write.
+ * Correct keys are available only in owner/institute-scoped readers. */
+export async function createCourseLearningAssessment(
+  ownerUserId: string, courseId: string,
   input: z.infer<typeof newLearningAssessment>,
 ) {
   return getDb().transaction(async (tx) => {
-    const [course] = await tx.select().from(courses).where(eq(courses.id, courseId))
-      .limit(1).for("share");
-    if (!course || !isVerifiedProviderCourse(course) || course.publicationStatus !== "draft") {
+    // Independent-educator revocation locks the affiliation before transferring
+    // its courses. Take that same lock order before sharing the course row.
+    let [course] = await tx.select().from(courses)
+      .where(eq(courses.id, courseId)).limit(1);
+    let educatorAuthorized = false;
+    if (course?.ownerType === "independent_educator" &&
+        course.independentEducatorProfileId) {
+      const [student] = await tx.select({ id: memberships.id })
+        .from(memberships).where(and(
+          eq(memberships.userId, ownerUserId), eq(memberships.role, "student"),
+          eq(memberships.status, "active"),
+        )).limit(1).for("share");
+      const [profile] = await tx.select({ id: independentEducatorProfiles.id })
+        .from(independentEducatorProfiles).where(and(
+          eq(independentEducatorProfiles.id, course.independentEducatorProfileId),
+          eq(independentEducatorProfiles.userId, ownerUserId),
+        )).limit(1).for("share");
+      const [affiliation] = await tx.select({ id: educatorInstituteAffiliations.id })
+        .from(educatorInstituteAffiliations).where(and(
+          eq(educatorInstituteAffiliations.educatorProfileId, course.independentEducatorProfileId),
+          eq(educatorInstituteAffiliations.instituteId, course.responsibleInstituteId),
+          eq(educatorInstituteAffiliations.status, "approved"),
+        )).limit(1).for("share");
+      educatorAuthorized = Boolean(student && profile && affiliation);
+      [course] = await tx.select().from(courses)
+        .where(eq(courses.id, courseId)).limit(1).for("share");
+    } else {
+      [course] = await tx.select().from(courses)
+        .where(eq(courses.id, courseId)).limit(1).for("share");
+    }
+    const ownerAuthorized = course?.ownerType === "verified_provider"
+      ? isVerifiedProviderCourse(course)
+      : course?.ownerType === "independent_educator" && educatorAuthorized;
+    if (!course || !ownerAuthorized || course.publicationStatus !== "draft") {
       throw new LearningAssessmentUnavailable("not_available");
     }
     const [grant] = await tx.select().from(supervisionGrants).where(and(
       eq(supervisionGrants.courseId, courseId),
-      eq(supervisionGrants.providerId, course.providerId),
       eq(supervisionGrants.instituteId, course.responsibleInstituteId),
       eq(supervisionGrants.status, "approved"),
     )).limit(1).for("share");
-    if (!grant?.approvedByInstituteUserId || !grant.approvedAt) {
+    const grantMatches = grant?.ownerType === course.ownerType &&
+      grant.providerId === course.providerId &&
+      grant.independentEducatorProfileId === course.independentEducatorProfileId;
+    if (!grantMatches || !grant?.approvedByInstituteUserId || !grant.approvedAt) {
       throw new LearningAssessmentUnavailable("not_available");
     }
+    const actorScopes = [and(eq(memberships.role, "institute"),
+      eq(memberships.instituteId, course.responsibleInstituteId))];
+    if (course.ownerType === "verified_provider") actorScopes.push(and(
+      eq(memberships.role, "provider"), eq(memberships.providerId, course.providerId!),
+    ));
     const actors = await tx.select({ role: memberships.role, userId: memberships.userId,
       providerId: memberships.providerId, instituteId: memberships.instituteId,
     }).from(memberships).where(and(
       eq(memberships.status, "active"),
-      or(
-        and(eq(memberships.role, "provider"), eq(memberships.providerId, course.providerId)),
-        and(eq(memberships.role, "institute"), eq(memberships.instituteId, course.responsibleInstituteId)),
-      ),
+      or(...actorScopes),
     )).for("share");
-    if (!actors.some((actor) => actor.role === "provider" && actor.userId === providerUserId &&
-          actor.providerId === course.providerId) ||
+    if ((course.ownerType === "verified_provider" &&
+          !actors.some((actor) => actor.role === "provider" && actor.userId === ownerUserId &&
+            actor.providerId === course.providerId)) ||
+        (course.ownerType === "independent_educator" && !educatorAuthorized) ||
         !actors.some((actor) => actor.role === "institute" &&
           actor.instituteId === course.responsibleInstituteId) ||
         !actors.some((actor) => actor.role === "institute" &&
@@ -466,7 +598,7 @@ export async function createProviderLearningAssessment(
       instructions: input.instructions,
       questionCount: input.questionCount,
       requiredCorrectCount: input.requiredCorrectCount,
-      authoredByProviderUserId: providerUserId,
+      authoredByProviderUserId: ownerUserId,
     }).returning({ id: courseLearningAssessments.id });
     await tx.insert(courseLearningAssessmentQuestions).values(input.questions.map((item) => ({
       assessmentId: assessment.id,
@@ -488,8 +620,10 @@ export async function getInstituteLearningAssessments(instituteUserId: string, c
   if (!hasCourseSupervision(course, actors) ||
       !actors.some((actor) => actor.role === "institute" && actor.userId === instituteUserId &&
         actor.instituteId === course.instituteId) ||
-      actors.some((actor) => actor.role === "provider" && actor.userId === instituteUserId &&
-        actor.providerId === course.providerId)) return null;
+      actors.some((actor) => actor.userId === instituteUserId &&
+        ((actor.role === "provider" && actor.providerId === course.providerId) ||
+          (actor.role === "educator" &&
+            actor.educatorProfileId === course.educatorProfileId)))) return null;
   const db = getDb();
   const assessments = await db.select({
     id: courseLearningAssessments.id,
@@ -527,30 +661,56 @@ export async function decideInstituteLearningAssessment(
   decision: z.infer<typeof learningAssessmentDecision>,
 ) {
   return getDb().transaction(async (tx) => {
-    const [course] = await tx.select().from(courses).where(eq(courses.id, courseId))
+    let [course] = await tx.select().from(courses)
+      .where(eq(courses.id, courseId)).limit(1);
+    if (course?.ownerType === "independent_educator" &&
+        course.independentEducatorProfileId) {
+      const [affiliation] = await tx.select({ id: educatorInstituteAffiliations.id })
+        .from(educatorInstituteAffiliations).where(and(
+          eq(educatorInstituteAffiliations.educatorProfileId, course.independentEducatorProfileId),
+          eq(educatorInstituteAffiliations.instituteId, course.responsibleInstituteId),
+          eq(educatorInstituteAffiliations.status, "approved"),
+        )).limit(1).for("share");
+      if (!affiliation) return null;
+    }
+    [course] = await tx.select().from(courses).where(eq(courses.id, courseId))
       .limit(1).for("share");
-    if (!course || !isVerifiedProviderCourse(course) || course.publicationStatus !== "draft") return null;
+    if (!course || course.publicationStatus !== "draft") return null;
     const [grant] = await tx.select().from(supervisionGrants).where(and(
       eq(supervisionGrants.courseId, courseId),
-      eq(supervisionGrants.providerId, course.providerId),
       eq(supervisionGrants.instituteId, course.responsibleInstituteId),
       eq(supervisionGrants.status, "approved"),
     )).limit(1).for("share");
-    if (!grant?.approvedByInstituteUserId || !grant.approvedAt) return null;
+    if (!grant?.approvedByInstituteUserId || !grant.approvedAt ||
+        grant.ownerType !== course.ownerType || grant.providerId !== course.providerId ||
+        grant.independentEducatorProfileId !== course.independentEducatorProfileId) return null;
+    const actorScopes = [and(eq(memberships.role, "institute"),
+      eq(memberships.instituteId, course.responsibleInstituteId))];
+    if (course.ownerType === "verified_provider" && course.providerId) {
+      actorScopes.push(and(eq(memberships.role, "provider"),
+        eq(memberships.providerId, course.providerId)));
+    }
     const actors = await tx.select({ role: memberships.role, userId: memberships.userId,
       providerId: memberships.providerId, instituteId: memberships.instituteId,
     }).from(memberships).where(and(
       eq(memberships.status, "active"),
-      or(
-        and(eq(memberships.role, "provider"), eq(memberships.providerId, course.providerId)),
-        and(eq(memberships.role, "institute"), eq(memberships.instituteId, course.responsibleInstituteId)),
-      ),
+      or(...actorScopes),
     )).for("share");
+    const educatorProfile = course.ownerType === "independent_educator" &&
+      course.independentEducatorProfileId
+      ? await tx.select({ userId: independentEducatorProfiles.userId })
+        .from(independentEducatorProfiles)
+        .where(eq(independentEducatorProfiles.id, course.independentEducatorProfileId))
+        .limit(1)
+      : [];
     if (!actors.some((actor) => actor.role === "institute" && actor.userId === instituteUserId &&
           actor.instituteId === course.responsibleInstituteId) ||
         actors.some((actor) => actor.role === "provider" && actor.userId === instituteUserId &&
           actor.providerId === course.providerId) ||
-        !actors.some((actor) => actor.role === "provider" && actor.providerId === course.providerId) ||
+        (course.ownerType === "verified_provider" &&
+          !actors.some((actor) => actor.role === "provider" && actor.providerId === course.providerId)) ||
+        (course.ownerType === "independent_educator" &&
+          educatorProfile[0]?.userId === instituteUserId) ||
         !actors.some((actor) => actor.role === "institute" &&
           actor.userId === grant.approvedByInstituteUserId &&
           actor.instituteId === course.responsibleInstituteId)) return null;

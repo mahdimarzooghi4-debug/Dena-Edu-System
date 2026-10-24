@@ -559,6 +559,61 @@ test.describe("Dena AI video permission authorization and revocation", () => {
     await supervisedStudent.dispose();
   });
 
+  test("student tutor UI answers from reviewed content and remembers only an opted-in topic", async ({ page }) => {
+    const cookie = await serializeSignedCookie(
+      "better-auth.session_token", tokens.student,
+      process.env.BETTER_AUTH_SECRET!,
+    );
+    const cookiePair = cookie.split(";")[0];
+    const cookieSeparator = cookiePair.indexOf("=");
+    await page.context().addCookies([{
+      name: cookiePair.slice(0, cookieSeparator),
+      value: cookiePair.slice(cookieSeparator + 1),
+      url: "http://localhost:3000",
+      httpOnly: true,
+      sameSite: "Lax",
+    }]);
+
+    await page.goto("http://localhost:3000/student/ai-tutor");
+    await page.getByLabel("دوره").selectOption(courseId);
+    await page.getByLabel("پرسشت").fill("معادلهٔ یک‌مجهولی را چطور حل کنم؟");
+    await page.getByRole("checkbox").check();
+    await page.getByRole("button", { name: "پرسیدن" }).click();
+
+    const chat = page.locator('section[aria-labelledby="tutor-chat-title"]');
+    await expect(chat).toContainText("مجهول را تنها بگذار");
+    await expect(chat).toContainText("منبع: معادلهٔ یک‌مجهولی");
+    await expect(chat).toContainText("موضوع در مسیر شخصی تو ثبت شد.");
+
+    await page.reload();
+    await expect(page.getByText("۱ پرسش")).toBeVisible();
+    await page.getByLabel("پرسشت").fill("یک موضوع ناشناخته دربارهٔ سیاره‌ای ساختگی");
+    await page.getByRole("button", { name: "پرسیدن" }).click();
+    await expect(chat).toContainText("برای این پرسش هنوز محتوای آموزشی آماده ندارم.");
+
+    await page.getByLabel("دوره").selectOption(educatorCourseId);
+    await page.getByLabel("پرسشت").fill("چطور رطوبت و اقلیم را در درس جغرافیا مقایسه کنم؟");
+    await page.getByRole("button", { name: "پرسیدن" }).click();
+    await expect(chat).toContainText("بررسی رطوبت و اقلیم");
+    await expect(chat).toContainText(/منبع: (?:ویدئوی مدرس مستقل|ادامهٔ درس جغرافیا)/u);
+    await page.getByRole("button", { name: "توضیح بیشتری لازم دارم" }).click();
+    await expect(chat).toContainText("برای پاسخ‌های بعدی از این ویدئو راهنمای بیشتری می‌گیرم.");
+
+    await page.reload();
+    await expect(page.getByText("مباحثی که برایشان راهنمایی بیشتری خواستی:"))
+      .toBeVisible();
+    await expect(page.getByText("اقلیم و رطوبت")).toBeVisible();
+
+    page.once("dialog", (dialog) => dialog.accept());
+    await page.getByRole("button", { name: "پاک‌کردن داده‌های مسیر شخصی" }).click();
+    await expect(page.getByText("داده‌های ثبت‌شده پاک شدند.")).toBeVisible();
+    await expect(page.getByText("مسیر آموزشی ثبت‌شدهٔ تو")).toHaveCount(0);
+    await page.reload();
+    await expect(page.getByText("مباحثی که برایشان راهنمایی بیشتری خواستی:"))
+      .toHaveCount(0);
+    await expect(page.getByText("۱ پرسش")).toHaveCount(0);
+  });
+
   test("withdrawn videos cannot be granted and provider-owned videos stay blocked", async () => {
     const institute = await client("institute");
     expect((await post(institute, permissionPath, {

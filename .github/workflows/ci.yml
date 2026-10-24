@@ -56,6 +56,13 @@ jobs:
     env:
       DATABASE_URL: postgresql://dena_test:dena_test@127.0.0.1:5432/dena_integration
       BETTER_AUTH_URL: http://localhost:3000
+      LIVEKIT_URL: wss://calls.example.test
+      LIVEKIT_API_KEY: dena-ci-test-key
+      DENA_LIVEKIT_ENABLED: "1"
+      # Token issuance is tested against a fake WSS endpoint. Room Service
+      # deletion has its focused SDK mock test; CI has no LiveKit daemon.
+      DENA_LIVEKIT_ROOM_CONTROL_ENABLED: "0"
+      DENA_LIVEKIT_QUOTA_SWEEP_URL: https://calls.example.test/api/internal/livekit-quota/sweep
       DENA_DB_INTEGRATION: "1"
       DENA_SMS_ENABLED: "1"
       DENA_MEDIA_ENABLED: "1"
@@ -97,6 +104,12 @@ jobs:
           cleanup_token=$(openssl rand -hex 32)
           echo "::add-mask::$cleanup_token"
           echo "DENA_MEDIA_CLEANUP_TOKEN=$cleanup_token" >> "$GITHUB_ENV"
+          livekit_secret=$(openssl rand -hex 32)
+          echo "::add-mask::$livekit_secret"
+          echo "LIVEKIT_API_SECRET=$livekit_secret" >> "$GITHUB_ENV"
+          quota_token=$(openssl rand -hex 32)
+          echo "::add-mask::$quota_token"
+          echo "DENA_LIVEKIT_QUOTA_WORKER_TOKEN=$quota_token" >> "$GITHUB_ENV"
       - name: Generate reviewed Drizzle migration candidate
         run: npx drizzle-kit generate
       - name: Preserve generated migration for review
@@ -114,6 +127,39 @@ jobs:
           fi
       - name: Apply migrations to disposable PostgreSQL
         run: npx drizzle-kit migrate
+      - name: Verify PostgreSQL backup and restore in disposable CI database
+        if: matrix.shard == 'operations'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client-16
+          pg_dump --version
+          node scripts/test-postgres-backup-restore.mjs
+      - name: Switch integration tests to least-privilege database role
+        run: |
+          app_password=$(openssl rand -hex 32)
+          echo "::add-mask::$app_password"
+          psql "$DATABASE_URL" --set ON_ERROR_STOP=1 --set app_password="$app_password" <<'SQL'
+          CREATE ROLE dena_app_ci LOGIN PASSWORD :'app_password';
+          GRANT CONNECT ON DATABASE dena_integration TO dena_app_ci;
+          GRANT USAGE ON SCHEMA public TO dena_app_ci;
+          GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER
+            ON ALL TABLES IN SCHEMA public TO dena_app_ci;
+          GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO dena_app_ci;
+          GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO dena_app_ci;
+          ALTER DEFAULT PRIVILEGES FOR ROLE dena_test IN SCHEMA public
+            GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON TABLES TO dena_app_ci;
+          ALTER DEFAULT PRIVILEGES FOR ROLE dena_test IN SCHEMA public
+            GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO dena_app_ci;
+          ALTER DEFAULT PRIVILEGES FOR ROLE dena_test IN SCHEMA public
+            GRANT EXECUTE ON FUNCTIONS TO dena_app_ci;
+          SQL
+          app_url="postgresql://dena_app_ci:${app_password}@127.0.0.1:5432/dena_integration"
+          role_is_superuser=$(PGPASSWORD="$app_password" psql "$app_url" --tuples-only --no-align --command "SELECT rolsuper FROM pg_roles WHERE rolname = current_user")
+          if [ "$role_is_superuser" != "f" ]; then
+            echo "Integration application role unexpectedly has elevated privileges."
+            exit 1
+          fi
+          echo "DATABASE_URL=$app_url" >> "$GITHUB_ENV"
       - name: Build for database-backed browser tests
         run: npm run build
       - name: Install Chromium

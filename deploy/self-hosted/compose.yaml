@@ -1,0 +1,121 @@
+services:
+  db:
+    image: postgres:16-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in deploy/self-hosted/.env}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in deploy/self-hosted/.env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in deploy/self-hosted/.env}
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    command:
+      - postgres
+      - -c
+      - ssl=on
+      - -c
+      - ssl_cert_file=/run/postgres-tls/server.crt
+      - -c
+      - ssl_key_file=/run/postgres-tls/server.key
+      - -c
+      - password_encryption=scram-sha-256
+    volumes:
+      - dena_postgres:/var/lib/postgresql/data
+      - ./secrets/postgres/server.crt:/run/postgres-tls/server.crt:ro
+      - ./secrets/postgres/server.key:/run/postgres-tls/server.key:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    networks: [backend]
+
+  migrate:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+      target: migrator
+    env_file: ./app.env
+    environment:
+      NODE_EXTRA_CA_CERTS: /run/secrets/postgres-ca.crt
+    volumes:
+      - ./secrets/postgres/ca.crt:/run/secrets/postgres-ca.crt:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [backend]
+    profiles: [ops]
+
+  web:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+      target: runner
+    restart: unless-stopped
+    env_file: ./app.env
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+    volumes:
+      - ./secrets/postgres/ca.crt:/run/secrets/postgres-ca.crt:ro
+    expose: ["3000"]
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/health/live').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks: [backend, edge]
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    environment:
+      DENA_DOMAIN: ${DENA_DOMAIN:?Set DENA_DOMAIN in deploy/self-hosted/.env}
+    ports:
+      - "80:80/tcp"
+      - "443:443/tcp"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+    networks: [edge]
+
+  livekit-quota-worker:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+      target: runner
+    command: ["node", "scripts/livekit-quota-worker.mjs"]
+    restart: unless-stopped
+    env_file: ./app.env
+    volumes:
+      - ./secrets/postgres/ca.crt:/run/secrets/postgres-ca.crt:ro
+    profiles: [livekit]
+    extra_hosts:
+      - "${DENA_DOMAIN}:host-gateway"
+    depends_on:
+      web:
+        condition: service_healthy
+    networks: [edge]
+
+volumes:
+  dena_postgres:
+  caddy_data:
+  caddy_config:
+
+networks:
+  backend:
+    internal: true
+  edge:

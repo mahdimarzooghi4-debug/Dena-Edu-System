@@ -5,7 +5,7 @@ import { getDb } from "../../db";
 import {
   courseLearningAssessments, coursePracticeQuestions, courses,
   privateMediaAssets, providerInstituteCollaborations, supervisionGrants,
-  verifiedEntities,
+  studentEnrollments, verifiedEntities,
 } from "../../db/schema";
 
 const providerDashboardInstitute = alias(verifiedEntities, "provider_dashboard_institute");
@@ -90,7 +90,7 @@ export async function getProviderDashboardCourses(
   const visibleIds = visible.map((course) => course.courseId);
   // Separate metadata-only queries prevent join fan-out from inflating counts.
   // None fetches student attempts, notes, answer keys or object keys.
-  const [assets, questions, assessmentRows] = await Promise.all([
+  const [assets, questions, assessmentRows, enrollmentRows] = await Promise.all([
     db.select({
       courseId: privateMediaAssets.courseId,
       readyVideos: count(privateMediaAssets.id),
@@ -112,9 +112,18 @@ export async function getProviderDashboardCourses(
       inArray(courseLearningAssessments.courseId, visibleIds),
     ).groupBy(courseLearningAssessments.courseId,
       courseLearningAssessments.reviewStatus),
+    db.select({
+      courseId: studentEnrollments.courseId,
+      activeEnrollmentCount: count(studentEnrollments.id),
+    }).from(studentEnrollments).where(and(
+      inArray(studentEnrollments.courseId, visibleIds),
+      eq(studentEnrollments.status, "active"),
+    )).groupBy(studentEnrollments.courseId),
   ]);
   const readyByCourse = new Map(assets.map((item) =>
     [item.courseId, item.readyVideos] as const));
+  const enrollmentCountByCourse = new Map(enrollmentRows.map((item) =>
+    [item.courseId, item.activeEnrollmentCount] as const));
   const reviewByCourse = new Map(questions.map((item) =>
     [item.courseId, item.reviewStatus] as const));
   const assessmentsByCourse = new Map<string, {
@@ -133,6 +142,7 @@ export async function getProviderDashboardCourses(
     courses: visible.map((course) => ({
       ...course,
       readyVideos: readyByCourse.get(course.courseId) ?? 0,
+      activeEnrollmentCount: enrollmentCountByCourse.get(course.courseId) ?? 0,
       practiceReviewStatus: reviewByCourse.get(course.courseId) ??
         ("not_created" as const),
       learningAssessmentReviews: assessmentsByCourse.get(course.courseId) ?? {

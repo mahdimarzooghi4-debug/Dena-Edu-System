@@ -10,7 +10,8 @@ type StudentSection =
   | "services"
   | "growth"
   | "elite"
-  | "account";
+  | "account"
+  | "notifications";
 
 type Props = {
   active: StudentSection;
@@ -40,10 +41,10 @@ const desktopItems: ReadonlyArray<{
   { key: "aiTutor", href: "/student/ai-tutor", label: "معلم هوشمند", icon: "sparkles" },
   { key: "courses", href: "/student/courses", label: "دوره‌های من", icon: "book" },
   { key: "assessments", href: "/student/assessments", label: "تمرین‌ها و آزمون‌ها", icon: "assessment" },
-  { key: "services", href: "/student/services", label: "خدمات مؤسسه‌ها", icon: "help" },
   { key: "growth", href: "/student/growth", label: "مسیر رشد", icon: "growth" },
   { key: "elite", href: "/student/elite-club", label: "باشگاه نخبگان", icon: "star" },
   { key: "account", href: "/student/profile", label: "پروفایل کاربری", icon: "user" },
+  { key: "services", href: "/student/services", label: "مرکز خدمات", icon: "help" },
 ];
 
 const mobileItems: ReadonlyArray<{
@@ -55,7 +56,6 @@ const mobileItems: ReadonlyArray<{
   { key: "home", href: "/student", label: "خانه", icon: "home" },
   { key: "courses", href: "/student/courses", label: "دوره‌ها", icon: "book" },
   { key: "assessments", href: "/student/assessments", label: "تمرین‌ها", icon: "assessment" },
-  { key: "services", href: "/student/services", label: "خدمات", icon: "help" },
   { key: "growth", href: "/student/growth", label: "رشد", icon: "growth" },
   { key: "account", href: "/student/profile", label: "حساب", icon: "user" },
 ];
@@ -158,6 +158,7 @@ function MobileNavigation({ active }: { active: StudentSection }) {
 
 export function StudentShell({ active, title, children }: Props) {
   const eliteActive = active === "elite";
+  const notificationsActive = active === "notifications";
   return (
     <div className="min-h-screen bg-dena-bg lg:flex">
       <aside className="hidden h-screen w-[260px] shrink-0 border-l border-dena-border bg-white lg:sticky lg:top-0 lg:flex lg:flex-col lg:px-4 lg:py-5">
@@ -168,10 +169,10 @@ export function StudentShell({ active, title, children }: Props) {
         <DesktopNavigation active={active} />
 
         <div className="mt-auto border-t border-dena-border pt-4">
-          <div className="flex min-h-[44px] items-center gap-3 rounded-xl px-4 text-sm text-dena-muted" aria-disabled="true">
+          <Link href="/support" className="flex min-h-[44px] items-center gap-3 rounded-xl px-4 text-sm text-dena-muted hover:bg-dena-bg hover:text-dena-ink">
             <Icon name="help" />
-            <span>پشتیبانی آنلاین</span>
-          </div>
+            <span>پشتیبانی فنی</span>
+          </Link>
           <div className="mt-2 flex min-h-[44px] items-center gap-3 rounded-xl px-4 text-sm text-dena-muted">
             <Icon name="user" />
             <span>دانش‌آموز دنا</span>
@@ -187,28 +188,30 @@ export function StudentShell({ active, title, children }: Props) {
       </aside>
 
       <div className="min-w-0 flex-1">
-        <header className="sticky top-0 z-30 flex min-h-[76px] items-center justify-between border-b border-dena-border bg-white/95 px-4 backdrop-blur md:px-7 lg:px-10">
-          <div className="flex items-center gap-2 lg:hidden">
-            <span className="grid size-10 place-items-center text-dena-muted" aria-label="اعلان‌ها">
+        <header className="sticky top-0 z-30 flex min-h-[60px] items-center justify-between border-b border-dena-border bg-white/95 px-4 backdrop-blur md:px-7 lg:min-h-[80px] lg:px-10">
+          <Link href="/student" className="order-1 lg:hidden" aria-label="دنا، خانه دانش‌آموز">
+            <Image src="/dena-app-logo.png" alt="دنا" width={55} height={33} priority />
+          </Link>
+          <div dir="ltr" className="order-2 flex items-center gap-2 lg:hidden">
+            <Link href="/student/notifications" className={"grid size-10 place-items-center rounded-xl hover:bg-dena-bg " + (notificationsActive ? "bg-dena-lavender text-dena-brand" : "text-dena-muted")} aria-label="اعلان‌های پشتیبانی" aria-current={notificationsActive ? "page" : undefined}>
               <Icon name="bell" />
-            </span>
-            <span
+            </Link>
+            <Link
+              href="/student/elite-club"
               className={
                 "grid size-10 place-items-center rounded-xl " +
                 (eliteActive ? "bg-dena-lavender text-dena-brand" : "text-dena-muted")
               }
               aria-label="باشگاه نخبگان"
+              aria-current={eliteActive ? "page" : undefined}
             >
               <Icon name="star" />
-            </span>
+            </Link>
           </div>
-          <h1 className="text-lg font-extrabold text-dena-ink md:text-xl">{title}</h1>
-          <Link href="/student" className="lg:hidden" aria-label="دنا، خانه دانش‌آموز">
-            <Image src="/dena-app-logo.png" alt="دنا" width={55} height={33} priority />
-          </Link>
-          <span className="hidden size-10 place-items-center text-dena-muted lg:grid" aria-label="اعلان‌ها">
+          <h1 className="hidden text-lg font-extrabold text-dena-ink md:text-xl lg:order-1 lg:block">{title}</h1>
+          <Link href="/student/notifications" className={"hidden size-10 place-items-center rounded-xl hover:bg-dena-bg lg:order-2 lg:grid " + (notificationsActive ? "bg-dena-lavender text-dena-brand" : "text-dena-muted")} aria-label="اعلان‌های پشتیبانی" aria-current={notificationsActive ? "page" : undefined}>
             <Icon name="bell" />
-          </span>
+          </Link>
         </header>
 
         <main id="main-content" className="mx-auto w-full max-w-[1180px] px-4 py-5 pb-24 md:px-7 md:py-7 lg:px-10 lg:py-10 lg:pb-10">

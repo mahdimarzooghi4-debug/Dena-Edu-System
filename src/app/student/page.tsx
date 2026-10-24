@@ -8,6 +8,9 @@ import { StudentShell } from "../../components/student/student-shell";
 import { getServerAccessContext } from "../../server/access/actor";
 import { getStudentProgressOverview } from "../../server/student/progress-overview";
 import { nextStudentCourseAction } from "../../server/student/next-action";
+import { getStudentExamCatalog } from "../../server/assessments/exam-management";
+import { StudentExamCard } from "../../components/student/student-exam-card";
+import { getStudentProfile } from "../../server/student/profile";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,8 +32,26 @@ export default async function StudentHomePage() {
   if (!actor) redirect("/login");
   if (!actor.memberships.some((entry) => entry.role === "student")) notFound();
 
-  const { courses, hasMore } = await getStudentProgressOverview(actor.userId);
+  const [progressOverview, examCatalog, profile] = await Promise.all([
+    getStudentProgressOverview(actor.userId),
+    getStudentExamCatalog(actor.userId),
+    getStudentProfile(actor.userId),
+  ]);
+  const { courses, hasMore } = progressOverview;
+  const exams = examCatalog?.exams ?? [];
   const countLabel = hasMore ? "۲۰+" : courses.length.toLocaleString("fa-IR");
+  const featuredCourse = courses[0];
+  const featuredAction = featuredCourse
+    ? nextStudentCourseAction(
+      featuredCourse.courseId,
+      featuredCourse.readyVideos,
+      featuredCourse.markedVideos,
+      featuredCourse.practice.state,
+    )
+    : null;
+  const progressPercent = (marked: number, ready: number) => ready > 0
+    ? Math.min(100, Math.round((marked / ready) * 100))
+    : 0;
 
   return (
     <StudentShell active="home" title="خانه من">
@@ -44,10 +65,10 @@ export default async function StudentHomePage() {
             id="student-home-title"
             className="mt-2 text-[26px] font-extrabold leading-relaxed text-dena-deep md:text-[31px]"
           >
-            یادگیری‌ات از همین‌جا ادامه دارد
+            سلام، {profile?.name || "به دنا خوش آمدی"} 👋
           </h2>
           <p className="mt-2 max-w-3xl text-sm leading-8 text-dena-muted">
-            فقط دوره‌هایی نمایش داده می‌شوند که ثبت‌نام فعال، انتشار معتبر و محتوای آماده دارند.
+            آماده‌ای مسیر یادگیری‌ات را ادامه بدهی؟ فقط دوره‌های مجاز و محتوای آماده نمایش داده می‌شوند.
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
             <Link href="/student/courses" className={buttonClassName()}>
@@ -58,6 +79,12 @@ export default async function StudentHomePage() {
             </Link>
             <Link href="/student/progress" className={buttonClassName("outline")}>
               پیگیری یادگیری
+            </Link>
+            <Link href="/student/assessments" className={buttonClassName("outline")}>
+              آزمون‌ها و ارزیابی‌ها
+            </Link>
+            <Link href="/student/services" className={buttonClassName("outline")}>
+              مرکز خدمات
             </Link>
           </div>
         </section>
@@ -84,6 +111,78 @@ export default async function StudentHomePage() {
             </Link>
           </div>
         </section>
+
+        {featuredCourse && featuredAction && (
+          <section aria-labelledby="student-continue-course" className="space-y-4">
+            <Card className="space-y-5 rounded-[22px] p-6 md:p-7">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-bold text-dena-brand">ادامهٔ یادگیری</p>
+                  <h2 id="student-continue-course" className="mt-1 text-xl font-extrabold text-dena-deep md:text-2xl">
+                    {featuredCourse.title}
+                  </h2>
+                  <p className="mt-2 text-sm text-dena-muted">
+                    تازه‌ترین دورهٔ ثبت‌نام‌شدهٔ قابل ادامه
+                  </p>
+                </div>
+                <span className="rounded-full bg-dena-lavender px-3 py-2 text-xs font-bold text-dena-brand">
+                  {featuredCourse.practice.state === "answered"
+                    ? "تمرین پاسخ داده شده"
+                    : featuredCourse.practice.state === "not_attempted"
+                      ? "تمرین آمادهٔ پاسخ"
+                      : "در حال یادگیری"}
+                </span>
+              </div>
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-dena-muted">
+                  <span>علامت‌های تکمیل ویدئو به انتخاب خودت</span>
+                  <span>
+                    {featuredCourse.markedVideos.toLocaleString("fa-IR")} از {featuredCourse.readyVideos.toLocaleString("fa-IR")}
+                  </span>
+                </div>
+                <div
+                  role="progressbar"
+                  aria-label="نسبت ویدئوهایی که خود دانش‌آموز تکمیل‌شده علامت زده است"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={progressPercent(featuredCourse.markedVideos, featuredCourse.readyVideos)}
+                  className="h-2.5 overflow-hidden rounded-full bg-dena-lavender"
+                >
+                  <div
+                    className="h-full rounded-full bg-dena-mint transition-[width]"
+                    style={{ width: `${progressPercent(featuredCourse.markedVideos, featuredCourse.readyVideos)}%` }}
+                  />
+                </div>
+                <p className="text-xs leading-6 text-dena-muted">
+                  این شمار خوداظهاری است و اثبات تماشا یا نمرهٔ رسمی نیست.
+                </p>
+              </div>
+              <Link href={featuredAction.href} className={buttonClassName()}>
+                {featuredAction.label}
+              </Link>
+            </Card>
+          </section>
+        )}
+
+        {exams.length > 0 && (
+          <section aria-labelledby="student-upcoming-exams" className="space-y-4">
+            <SectionHeading id="student-upcoming-exams"
+              note="فقط آزمون‌های منتشرشده و تلاش‌های خودت">
+              آزمون‌های من
+            </SectionHeading>
+            <div className="grid gap-4 md:grid-cols-2">
+              {exams.slice(0, 4).map((exam) => (
+                <StudentExamCard key={exam.id} exam={exam} />
+              ))}
+            </div>
+            {exams.length > 4 && (
+              <Link href="/student/assessments"
+                className="text-sm font-bold text-dena-brand underline-offset-4 hover:underline">
+                دیدن همهٔ آزمون‌ها
+              </Link>
+            )}
+          </section>
+        )}
 
         <section aria-labelledby="student-overview" className="space-y-4">
           <SectionHeading id="student-overview" note="فقط داده مجاز و واقعی">
@@ -149,7 +248,7 @@ export default async function StudentHomePage() {
               </Link>
             </Card>
           ) : (
-            <ul className="grid gap-4 md:grid-cols-2">
+            <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {courses.map((course) => {
                 const action = nextStudentCourseAction(
                   course.courseId,
@@ -177,6 +276,25 @@ export default async function StudentHomePage() {
                       <strong>{course.readyVideos.toLocaleString("fa-IR")}</strong>
                       {" "}ویدئوی آماده
                     </p>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-2 text-xs text-dena-muted">
+                        <span>علامت‌های تکمیل خوداظهاری</span>
+                        <span>{progressPercent(course.markedVideos, course.readyVideos).toLocaleString("fa-IR")}٪</span>
+                      </div>
+                      <div
+                        role="progressbar"
+                        aria-label={`نسبت ویدئوهای علامت‌خورده در دورهٔ ${course.title}`}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-valuenow={progressPercent(course.markedVideos, course.readyVideos)}
+                        className="h-2 overflow-hidden rounded-full bg-dena-lavender"
+                      >
+                        <div
+                          className="h-full rounded-full bg-dena-mint"
+                          style={{ width: `${progressPercent(course.markedVideos, course.readyVideos)}%` }}
+                        />
+                      </div>
+                    </div>
                     <p className="text-xs leading-7 text-dena-muted">
                       {course.practice.state === "not_attempted"
                         ? "تمرین کوتاه تأییدشده در انتظار پاسخ توست."

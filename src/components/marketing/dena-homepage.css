@@ -61,25 +61,25 @@
 .dena-hero__inner { max-width:1280px; margin:auto; display:grid; grid-template-columns:520px minmax(0,1fr); align-items:center; gap:48px; direction:ltr; }
 .dena-hero__copy { direction:rtl; text-align:right; }
 .eyebrow { display:inline-flex; color:var(--brand); background:#f0edff; border-radius:999px; padding:6px 12px; font-size:12px; font-weight:800; }
-.dena-hero h1 { max-width:720px; margin:22px 0 16px; font-size:clamp(32px,3.2vw,48px); line-height:1.55; font-weight:850; letter-spacing:-.04em; }
-.dena-hero__copy p { max-width:690px; margin:0; font-size:16px; line-height:2.1; color:var(--muted); }
-.dena-hero__actions { display:flex; justify-content:flex-start; gap:8px; margin-top:28px; }
+.dena-hero h1 { max-width:720px; margin:22px 0 16px; color:var(--deep); font-size:clamp(32px,3.2vw,48px); line-height:1.2; font-weight:850; letter-spacing:-.04em; }
+.dena-hero__copy p { max-width:690px; margin:0; font-size:18px; line-height:1.6; color:var(--muted); }
+.dena-hero__actions { display:flex; justify-content:flex-start; gap:16px; margin-top:28px; }
 .growth-preview { padding:24px; background:#fff; border:1px solid #ebe9f5; border-radius:24px; box-shadow:0 12px 30px #2b25440b; }
-.growth-preview__heading { display:flex; justify-content:space-between; align-items:center; font-size:14px; }
+.growth-preview__heading { display:flex; justify-content:space-between; align-items:center; font-size:14px; direction:ltr; }
 .growth-preview__heading strong { display:flex; align-items:center; gap:8px; }
-.growth-preview__heading i { width:8px; height:8px; background:var(--mint); border-radius:50%; }
+.growth-preview__heading i { width:8px; height:8px; background:var(--brand); border-radius:50%; }
 .growth-preview__heading span { color:var(--mint); font-size:12px; font-weight:800; }
-.growth-chart { height:100px; margin:24px 0 20px; display:flex; align-items:flex-end; justify-content:space-between; padding:0 8px; }
+.growth-chart { height:100px; margin:24px 0 20px; display:flex; align-items:flex-end; justify-content:space-between; padding:0 8px; direction:ltr; }
 .growth-chart__item { display:flex; width:40px; flex-direction:column; align-items:center; gap:5px; color:var(--muted); font-size:10px; }
 .growth-chart__item i { width:8px; border-radius:4px; background:#8d82f0; }
 .growth-chart__item:last-child i { background:var(--mint); }
-.growth-preview__cards { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
-.mini-course { min-height:155px; padding:16px; display:flex; flex-direction:column; align-items:flex-start; gap:10px; border-radius:16px; background:var(--wash); }
+.growth-preview__cards { display:grid; grid-template-columns:1fr 1fr; gap:24px; direction:ltr; }
+.mini-course { min-height:155px; padding:16px; display:flex; flex-direction:column; align-items:flex-start; gap:10px; border-radius:16px; background:var(--wash); direction:rtl; text-align:right; }
 .mini-course .pill { border-radius:50px; padding:5px 9px; background:#ebe9f5; color:var(--muted); font-size:10px; font-weight:700; }
 .mini-course strong { font-size:14px; line-height:1.6; }
 .mini-course small { color:var(--muted); font-size:10px; }
 .mini-course .progress { height:6px; width:100%; margin-top:auto; overflow:hidden; border-radius:8px; background:#e3e2ea; }
-.mini-course .progress i { display:block; height:100%; width:65%; background:var(--brand); }
+.mini-course .progress i { display:block; height:100%; width:33.333%; margin-right:auto; background:var(--brand); }
 .mini-course--next .pill { background:#f0edff; color:var(--brand); }
 .mini-course--next a { margin-top:auto; color:var(--brand); font-size:11px; font-weight:800; text-decoration:none; }
 .dena-section { padding:72px max(32px, calc((100vw - 1280px) / 2)); }
@@ -87,16 +87,19 @@
 .dena-section__heading--right { max-width:1280px; text-align:right; }
 .dena-section__heading h2,.dena-growth h2,.network-copy h2,.dena-institute-cta h2 { margin:0; font-size:clamp(24px,2.3vw,34px); line-height:1.55; font-weight:850; }
 .dena-section__heading p { margin:8px 0 0; color:var(--muted); font-size:14px; line-height:2; }
+.dena-how .dena-section__heading h2,.dena-courses .dena-section__heading h2 { font-size:32px; }
+.dena-how .dena-section__heading p,.dena-courses .dena-section__heading p { font-size:16px; }
 .dena-how { background:#f8f7fb; }
-.learning-steps { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); max-width:1280px; margin:auto; padding:32px; gap:24px; border:1px solid var(--line); border-radius:20px; background:#fff; }
-.learning-step { display:flex; flex-direction:row-reverse; gap:18px; align-items:flex-start; }
-.learning-step > div { flex:1; }
-.learning-step h3 { margin:0 0 8px; font-size:15px; }
-.learning-step p { margin:0; font-size:12px; line-height:1.9; color:var(--muted); }
-.learning-step > span { flex:none; display:grid; place-items:center; width:40px; height:40px; border-radius:50%; color:#fff; background:var(--brand); font-weight:800; }
+.learning-steps { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); max-width:1280px; margin:auto; padding:32px; gap:24px; border:1px solid var(--line); border-radius:24px; background:#fff; direction:rtl; }
+.learning-step { min-width:0; display:flex; flex-direction:row; gap:24px; align-items:center; direction:ltr; }
+.learning-step > div { flex:1; min-width:0; direction:rtl; text-align:right; }
+.learning-step h3 { margin:0 0 8px; color:var(--ink); font-size:20px; line-height:1.5; }
+.learning-step p { margin:0; font-size:14px; line-height:1.5; color:var(--muted); }
+.learning-step > span { flex:none; display:grid; place-items:center; width:40px; height:40px; border-radius:20px; color:#fff; background:var(--brand); font-size:18px; font-weight:800; }
+.learning-step__connector { flex:none; width:48px; height:2px; background:var(--brand); opacity:.2; }
 .dena-courses { background:#fff; }
 .course-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:24px; max-width:1280px; margin:auto; }
-.course-card { overflow:hidden; border:1px solid var(--line); border-radius:18px; background:#fff; box-shadow:0 8px 24px #352b6808; }
+.course-card { overflow:hidden; border:1px solid #ebe9f5; border-radius:24px; background:#fff; box-shadow:0 12px 24px #00000005; }
 .course-card__image { height:180px; position:relative; overflow:hidden; background:#dfe7df; }
 .course-card__image::before,.course-card__image::after { content:""; position:absolute; }
 .course-card__image::before { inset:0; background:linear-gradient(140deg,#dde7e1 0%,#f1e6d9 45%,#a98e72 46%,#d6c0a7 70%,#ece7dd 71%); opacity:.95; }
@@ -116,14 +119,63 @@
 .course-card__price strong { color:var(--ink); font-size:16px; }
 .course-card__price span { color:var(--muted); font-size:10px; }
 .course-card .dena-button { margin-top:auto; align-self:flex-start; min-width:150px; }
+.home-course-grid { gap:24px; }
+.home-course-card .course-card__image { height:180px; }
+.home-course-card .course-card__body { min-height:353px; padding:20px; gap:0; direction:rtl; }
+.home-course-card .course-card__badges { font-size:11px; }
+.home-course-card .course-card__badges .badge-licensed { color:#2563eb; background:#eff6ff; }
+.home-course-card .course-card__badges .badge-supervised { color:#f97316; background:#fff7ed; }
+.home-course-card h3 { width:100%; margin:18px 0 10px; font-size:20px; line-height:1.55; }
+.home-course-card p { width:100%; font-size:13px; line-height:2; }
+.home-course-card small { width:100%; }
+.home-course-card .course-card__price { margin:18px 0 0; padding-top:8px; border-top:1px solid var(--line); }
+.home-course-card .course-card__price strong { color:var(--brand); font-size:18px; }
+.home-course-card .course-card__price span { color:var(--mint); font-size:11px; font-weight:700; }
+.home-course-card .dena-button { align-self:flex-start; }
 .dena-courses__all { display:flex; width:max-content; margin:32px auto 0; }
-.dena-growth { display:grid; grid-template-columns:1fr 1fr; align-items:center; gap:72px; background:#f8f7fb; }
-.dena-growth__copy { max-width:580px; }
-.dena-growth h2 { margin:18px 0 12px; }
-.dena-growth__copy p,.network-copy p { color:var(--muted); font-size:14px; line-height:2.1; }
-.dena-growth__copy ul { padding:0 20px 0 0; color:var(--ink); font-size:13px; line-height:2.2; }
-.dena-growth__copy li::marker { color:var(--mint); }
+.dena-growth { display:flex; flex-direction:column; align-items:stretch; gap:48px; background:var(--wash); }
+.growth-intro { width:100%; max-width:1280px; margin:0 auto; display:flex; flex-direction:column; align-items:flex-start; gap:18px; direction:rtl; text-align:right; }
+.growth-intro h2 { margin:0; color:var(--deep); font-size:40px; line-height:1.4; font-weight:850; }
+.growth-intro > p { margin:0; color:var(--muted); font-size:16px; line-height:1.6; }
+.growth-summary { display:flex; flex-direction:column; gap:12px; align-items:flex-start; }
+.growth-summary p { display:flex; align-items:center; gap:8px; margin:0; color:var(--ink); font-size:14px; line-height:1.6; font-weight:700; }
+.growth-summary p + p { color:var(--muted); font-weight:400; }
+.growth-summary p span { color:var(--muted); font-size:10px; font-weight:700; }
+.growth-summary__dot { width:8px; height:8px; flex:none; border-radius:50%; }
+.growth-summary__dot--positive { background:var(--mint); }
+.growth-summary__dot--review { background:var(--brand); }
+.growth-visualization { width:100%; max-width:1280px; margin:0 auto; display:grid; grid-template-columns:620px minmax(0,1fr); align-items:center; gap:24px; direction:ltr; }
 .growth-report { padding:28px; background:#fff; border:1px solid var(--line); border-radius:22px; box-shadow:0 16px 38px #352b6809; }
+.dena-growth .growth-report { min-width:0; padding:24px; border:0; border-radius:24px; box-shadow:0 16px 24px #00000008; direction:rtl; }
+.growth-report__header { display:grid; grid-template-columns:1fr auto; align-items:center; gap:8px; direction:rtl; }
+.growth-report__header .eyebrow { grid-column:1; grid-row:1; justify-self:start; }
+.growth-report__sample { grid-column:2; grid-row:1; color:var(--muted); font-size:10px; font-weight:700; }
+.growth-report__header h3 { grid-column:1/-1; grid-row:2; margin:0; color:var(--ink); font-size:18px; font-weight:800; }
+.growth-report__header p { grid-column:1/-1; grid-row:3; margin:0; color:var(--muted); font-size:13px; }
+.growth-chart-area { display:flex; align-items:stretch; gap:12px; margin-top:20px; direction:ltr; }
+.growth-chart-area__plot { min-width:0; flex:1; height:180px; overflow:hidden; border-radius:16px; background:repeating-linear-gradient(to bottom,#f7f6fb 0,#f7f6fb 44px,#e5e7eb 45px,#f7f6fb 46px); }
+.growth-chart-area__plot svg { display:block; width:100%; height:100%; overflow:visible; }
+.growth-chart-area__line { fill:none; stroke:var(--brand); stroke-width:3; vector-effect:non-scaling-stroke; }
+.growth-chart-area__plot circle { fill:var(--brand); }
+.growth-chart-area__y-axis { width:32px; display:flex; flex-direction:column; justify-content:space-between; color:var(--muted); font-size:11px; }
+.growth-report__labels { display:flex; justify-content:space-between; margin-top:12px; color:var(--muted); font-size:11px; direction:ltr; }
+.growth-insights { min-width:0; display:flex; flex-direction:column; gap:24px; direction:rtl; }
+.growth-trend-cards { display:flex; flex-direction:column; gap:12px; }
+.growth-trend-card { min-height:56px; padding:16px; display:flex; align-items:center; justify-content:space-between; gap:12px; border-radius:12px; background:var(--wash); direction:ltr; }
+.growth-trend-card__value { flex:none; color:var(--muted); font-size:15px; font-weight:800; }
+.growth-trend-card__value.is-positive { color:var(--mint); }
+.growth-trend-card__value.is-violet { color:var(--brand); }
+.growth-trend-card > span { min-width:0; color:var(--muted); font-size:13px; text-align:center; }
+.growth-trend-card b { flex:none; display:flex; align-items:center; gap:12px; color:var(--ink); font-size:16px; direction:rtl; }
+.growth-trend-card b i { width:4px; height:24px; border-radius:2px; background:var(--brand); }
+.growth-trend-card b i.is-mint { background:var(--mint); }
+.growth-trend-card b i.is-lavender { background:#8f83f5; }
+.growth-trend-card b i.is-violet { background:var(--brand); }
+.growth-milestone { min-height:52px; padding:14px 16px; display:flex; align-items:center; justify-content:flex-start; gap:12px; color:var(--brand); border:1px solid var(--brand); border-radius:16px; background:#f3eeff; font-size:13px; }
+.growth-milestone__check { width:20px; height:20px; display:grid; place-items:center; border:2px solid var(--brand); border-radius:50%; font-size:12px; line-height:1; }
+.growth-action-card { padding:20px; display:flex; flex-direction:column; gap:6px; border-radius:16px; background:#ede9fe; line-height:1.7; }
+.growth-action-card strong { color:var(--brand); font-size:13px; }
+.growth-action-card span { color:var(--muted); font-size:12px; }
 .growth-report__top { display:flex; align-items:center; justify-content:space-between; font-weight:800; }
 .growth-report__top strong { color:#24b890; }
 .growth-report__chart { height:230px; margin-top:24px; position:relative; display:flex; align-items:flex-end; justify-content:space-around; border-bottom:1px solid var(--line); background:repeating-linear-gradient(to bottom,transparent 0,transparent 44px,#efedf5 45px); }
@@ -168,11 +220,11 @@
   .dena-nav { order:2; width:100%; overflow:auto; gap:20px; padding:8px 0 2px; scrollbar-width:none; }.dena-nav::-webkit-scrollbar{display:none}
   .dena-nav a { font-size:12px; }.dena-button { min-height:42px; padding-inline:16px; font-size:12px; }
   .dena-hero { padding:36px 18px 42px; }.dena-hero__inner { grid-template-columns:1fr; gap:36px; }.dena-hero__copy { order:0; }.growth-preview { order:1; padding:16px; }
-  .dena-hero h1 { margin:15px 0 10px; font-size:30px; }.dena-hero__copy p { font-size:13px; }.dena-hero__actions { margin-top:18px; }
+  .dena-hero h1 { margin:15px 0 10px; font-size:30px; }.dena-hero__copy p { font-size:13px; line-height:1.9; }.dena-hero__actions { margin-top:18px; }
   .dena-section { padding:48px 18px; }.dena-section__heading { margin-bottom:28px; }.dena-section__heading h2,.dena-growth h2,.network-copy h2 { font-size:24px; }
-  .learning-steps { grid-template-columns:1fr 1fr; padding:20px; gap:24px 16px; }.learning-step { gap:10px; }.learning-step h3 { font-size:13px; }.learning-step p { font-size:10px; }
-  .course-grid { grid-template-columns:1fr; max-width:460px; }.course-card__image { height:175px; }.course-card__body { min-height:320px; }
-  .dena-growth,.dena-network { grid-template-columns:1fr; gap:30px; }.dena-growth__copy { order:0; }.growth-report { order:1; padding:20px; }.growth-report__chart { height:180px; }.dena-network { text-align:center; }.network-art { width:90%;height:190px;order:1; }.network-copy { order:0; }
+  .learning-steps { grid-template-columns:1fr 1fr; padding:20px; gap:24px 16px; }.learning-step { gap:10px; }.learning-step h3 { font-size:14px; }.learning-step p { font-size:11px; }.learning-step__connector { display:none; }
+  .course-grid { grid-template-columns:1fr; max-width:460px; }.course-card__image { height:175px; }.course-card__body { min-height:320px; }.home-course-card .course-card__body { min-height:353px; }
+  .dena-growth,.dena-network { grid-template-columns:1fr; gap:30px; }.growth-intro h2 { font-size:30px; }.growth-visualization { grid-template-columns:minmax(0,1fr); gap:18px; }.dena-growth .growth-report { padding:20px; }.growth-trend-card { padding:13px; }.growth-trend-card b { font-size:14px; }.growth-trend-card > span { font-size:11px; }.dena-network { text-align:center; }.network-art { width:90%;height:190px;order:1; }.network-copy { order:0; }
   .role-grid { grid-template-columns:1fr 1fr; gap:12px; }.role-card:last-child { grid-column:1/3; }.support-grid { grid-template-columns:1fr 1fr; gap:10px; }.support-grid article { padding:15px; }
   .dena-cta { padding:42px 18px; }.dena-cta h2 { font-size:23px; }.dena-cta > div { flex-wrap:wrap; }
   .dena-institute-cta { margin:22px 18px; padding:22px; flex-direction:column; align-items:stretch; }.dena-institute-cta h2 { font-size:21px; }.dena-institute-cta__actions { flex-wrap:wrap; }

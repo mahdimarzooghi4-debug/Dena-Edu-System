@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, eq, gt, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 import { getDb } from "../../db";
 import {
   auditLogs, memberships, organizationApiKeys, organizationStudents, user, verifiedEntities,
@@ -10,7 +10,7 @@ import {
 
 export type StudentSource = "manual" | "bulk" | "api";
 export class OrganizationStudentError extends Error {
-  constructor(readonly kind: "scope_unavailable" | "duplicate" | "student_membership_blocked") {
+  constructor(readonly kind: "scope_unavailable" | "duplicate" | "student_membership_blocked" | "invalid_cursor" | "invalid_search") {
     super(kind);
   }
 }
@@ -28,7 +28,8 @@ export async function createOrganizationStudent(input: {
 }) {
   const db = getDb();
   const nationalCodeHash = nationalCodeTenantHash(input.organizationId, input.record.nationalCode);
-  return db.transaction(async (tx) => {
+  try {
+    return await db.transaction(async (tx) => {
     const [membership] = await tx.select({ id: memberships.id }).from(memberships)
       .innerJoin(verifiedEntities, and(
         eq(verifiedEntities.id, memberships.organizationId),
@@ -120,12 +121,36 @@ export async function createOrganizationStudent(input: {
       entityId: student.id,
     });
     return student;
-  });
+    });
+  } catch (error) {
+    if (isUniqueConstraintViolation(error)) throw new OrganizationStudentError("duplicate");
+    throw error;
+  }
 }
 
-export async function listOrganizationStudents(organizationIds: string[]) {
-  if (!organizationIds.length) return [];
-  return getDb().select({
+function isUniqueConstraintViolation(error: unknown): boolean {
+  let current: unknown = error;
+  for (let depth = 0; depth < 4 && current && typeof current === "object"; depth += 1) {
+    const candidate = current as { code?: unknown; cause?: unknown };
+    if (candidate.code === "23505") return true;
+    current = candidate.cause;
+  }
+  return false;
+}
+
+export async function listOrganizationStudents(
+  organizationIds: string[], options: {
+    activationPendingOnly?: boolean; cursor?: string; limit?: number; search?: string;
+  } = {},
+) {
+  const limit = Math.min(100, Math.max(1, Math.floor(options.limit ?? 50)));
+  if (!organizationIds.length) return { students: [], nextCursor: null };
+  const cursor = options.cursor ? decodeOrganizationStudentCursor(options.cursor) : null;
+  if (options.cursor && !cursor) throw new OrganizationStudentError("invalid_cursor");
+  const search = options.search?.trim();
+  if (search && search.length > 100) throw new OrganizationStudentError("invalid_search");
+  const searchPattern = search ? `%${search.replace(/[\\%_]/g, "\\$&")}%` : null;
+  const rows = await getDb().select({
     id: organizationStudents.id,
     organizationId: organizationStudents.organizationId,
     firstName: organizationStudents.firstName,
@@ -138,8 +163,50 @@ export async function listOrganizationStudents(organizationIds: string[]) {
     phoneNumberVerified: user.phoneNumberVerified,
     createdAt: organizationStudents.createdAt,
   }).from(organizationStudents).innerJoin(user, eq(user.id, organizationStudents.userId))
-    .where(inArray(organizationStudents.organizationId, organizationIds))
-    .orderBy(organizationStudents.createdAt);
+    .where(and(
+      inArray(organizationStudents.organizationId, organizationIds),
+      ...(options.activationPendingOnly ? [eq(user.phoneNumberVerified, false)] : []),
+      ...(searchPattern ? [or(
+        ilike(organizationStudents.firstName, searchPattern),
+        ilike(organizationStudents.lastName, searchPattern),
+        ilike(user.phoneNumber, searchPattern),
+        ilike(sql<string>`${organizationStudents.firstName} || ' ' || ${organizationStudents.lastName}`, searchPattern),
+      )] : []),
+      ...(cursor ? [or(
+        gt(organizationStudents.createdAt, cursor.createdAt),
+        and(eq(organizationStudents.createdAt, cursor.createdAt), gt(organizationStudents.id, cursor.id)),
+      )] : []),
+    ))
+    .orderBy(asc(organizationStudents.createdAt), asc(organizationStudents.id))
+    .limit(limit + 1);
+  const hasMore = rows.length > limit;
+  const students = hasMore ? rows.slice(0, limit) : rows;
+  const last = students.at(-1);
+  return {
+    students,
+    nextCursor: hasMore && last
+      ? encodeOrganizationStudentCursor(last.createdAt, last.id)
+      : null,
+  };
+}
+
+function encodeOrganizationStudentCursor(createdAt: Date, id: string) {
+  return Buffer.from(JSON.stringify({ createdAt: createdAt.toISOString(), id })).toString("base64url");
+}
+
+function decodeOrganizationStudentCursor(value: string): { createdAt: Date; id: string } | null {
+  try {
+    const parsed: unknown = JSON.parse(Buffer.from(value, "base64url").toString("utf8"));
+    if (!parsed || typeof parsed !== "object") return null;
+    const candidate = parsed as { createdAt?: unknown; id?: unknown };
+    if (typeof candidate.createdAt !== "string" || typeof candidate.id !== "string" ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(candidate.id)) return null;
+    const createdAt = new Date(candidate.createdAt);
+    if (!Number.isFinite(createdAt.getTime()) || createdAt.toISOString() !== candidate.createdAt) return null;
+    return { createdAt, id: candidate.id };
+  } catch {
+    return null;
+  }
 }
 
 /** Removes only the tenant roster record. The shared Dena login account and

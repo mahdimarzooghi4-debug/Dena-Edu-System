@@ -28,6 +28,25 @@ export async function enrollFreeCourse(
         eq(memberships.status, "active"),
       )).limit(1).for("share");
     if (!member) throw new StudentEnrollmentError("not_student");
+
+    // Independent affiliation revocation locks affiliation before the courses
+    // it transfers. Enroll in the same order so concurrent enrollment/revoke
+    // cannot deadlock with course -> affiliation lock inversion.
+    const [scope] = await tx.select({
+      ownerType: courses.ownerType,
+      profileId: courses.independentEducatorProfileId,
+      instituteId: courses.responsibleInstituteId,
+    }).from(courses).where(eq(courses.id, courseId)).limit(1);
+    let activeAffiliation: { id: string } | undefined;
+    if (scope?.ownerType === "independent_educator" && scope.profileId) {
+      [activeAffiliation] = await tx.select({
+        id: educatorInstituteAffiliations.id,
+      }).from(educatorInstituteAffiliations).where(and(
+        eq(educatorInstituteAffiliations.educatorProfileId, scope.profileId),
+        eq(educatorInstituteAffiliations.instituteId, scope.instituteId),
+        eq(educatorInstituteAffiliations.status, "approved"),
+      )).limit(1).for("share");
+    }
     const [course] = await tx.select().from(courses)
       .where(eq(courses.id, courseId)).limit(1).for("share");
     if (!course || course.publicationStatus !== "published") {
@@ -76,13 +95,6 @@ export async function enrollFreeCourse(
       ownerActive = Boolean(providerActive && approverActive);
     } else if (course.ownerType === "independent_educator" &&
         course.independentEducatorProfileId) {
-      const [activeAffiliation] = await tx.select({ id: educatorInstituteAffiliations.id })
-        .from(educatorInstituteAffiliations).where(and(
-          eq(educatorInstituteAffiliations.educatorProfileId,
-            course.independentEducatorProfileId),
-          eq(educatorInstituteAffiliations.instituteId, course.responsibleInstituteId),
-          eq(educatorInstituteAffiliations.status, "approved"),
-        )).limit(1).for("share");
       const [approverActive] = await tx.select({ id: memberships.id })
         .from(memberships).where(and(
           eq(memberships.userId, grant.approvedByInstituteUserId!),
@@ -90,7 +102,9 @@ export async function enrollFreeCourse(
           eq(memberships.instituteId, course.responsibleInstituteId),
           eq(memberships.status, "active"),
         )).limit(1).for("share");
-      ownerActive = Boolean(activeAffiliation && approverActive);
+      ownerActive = Boolean(activeAffiliation &&
+        scope?.profileId === course.independentEducatorProfileId &&
+        approverActive);
     }
     if (!ownerActive) {
       throw new StudentEnrollmentError("not_available");

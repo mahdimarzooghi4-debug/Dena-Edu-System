@@ -33,8 +33,8 @@ function numberText(value: number) {
 }
 
 export function MultipartPlanningForm({
-  courseId, canCreate,
-}: { courseId: string; canCreate: boolean }) {
+  courseId, canCreate, apiRoot = "/api/provider",
+}: { courseId: string; canCreate: boolean; apiRoot?: string }) {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [title, setTitle] = useState("");
   const [size, setSize] = useState("");
@@ -45,7 +45,7 @@ export function MultipartPlanningForm({
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
   const requestId = useRef<string | null>(null);
-  const path = `/api/provider/courses/${encodeURIComponent(courseId)}/multipart-plans`;
+  const path = `${apiRoot}/courses/${encodeURIComponent(courseId)}/multipart-plans`;
 
   async function refresh() {
     const response = await fetch(path, {

@@ -28,11 +28,13 @@ const emptyQuestion = (lessonAssetId: string): DraftQuestion => ({
   prompt: "", options: ["", "", "", ""], correctOption: 0, lessonAssetId,
 });
 
-export function LearningAssessmentAuthor({ courseId, lessons, assessments, canCreate }: {
+export function LearningAssessmentAuthor({ courseId, lessons, assessments, canCreate,
+  apiPath = `/api/provider/courses/${courseId}/assessments`, }: {
   courseId: string;
   lessons: Lesson[];
   assessments: Assessment[];
   canCreate: boolean;
+  apiPath?: string;
 }) {
   const [title, setTitle] = useState("");
   const [instructions, setInstructions] = useState("");
@@ -54,7 +56,7 @@ export function LearningAssessmentAuthor({ courseId, lessons, assessments, canCr
     if (busy || !canCreate) return;
     setBusy(true); setMessage("");
     try {
-      const response = await fetch(`/api/provider/courses/${courseId}/assessments`, {
+      const response = await fetch(apiPath, {
         method: "POST", credentials: "same-origin", cache: "no-store",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title, instructions, questionCount,
@@ -92,6 +94,9 @@ export function LearningAssessmentAuthor({ courseId, lessons, assessments, canCr
             <span className="rounded-full bg-white px-3 py-1 text-xs font-bold">{status[assessment.reviewStatus]}</span>
           </div>
           {assessment.reviewReason && <p className="text-sm leading-7 text-dena-muted">دلیل بازبینی: {assessment.reviewReason}</p>}
+          {assessment.reviewStatus === "rejected" && <p role="note" className="rounded-lg bg-amber-50 p-3 text-sm leading-7 text-amber-950">
+            این ارزیابی پس از تصمیم مؤسسه تغییرناپذیر است. برای ارسال محتوای اصلاح‌شده، یک ارزیابی تازه بسازید.
+          </p>}
           <details>
             <summary className="cursor-pointer text-sm font-bold text-dena-brand">مشاهدهٔ بانک سؤال و کلیدهای ثبت‌شده</summary>
             <ol className="mt-3 list-inside list-decimal space-y-3 text-sm">

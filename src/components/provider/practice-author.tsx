@@ -5,8 +5,8 @@ import { Button } from "../ui/button";
 import { DENA_LEARNING_CONCEPTS } from "../../server/ai-tutor/learning-concepts";
 
 export function PracticeAuthor({
-  courseId,
-}: { courseId: string }) {
+  courseId, apiPath = `/api/provider/courses/${courseId}/practice`,
+}: { courseId: string; apiPath?: string }) {
   const [prompt, setPrompt] = useState("");
   const [learningConceptId, setLearningConceptId] = useState<string>(
     DENA_LEARNING_CONCEPTS[0].id,
@@ -23,7 +23,7 @@ export function PracticeAuthor({
     setBusy(true); setMessage("");
     try {
       const response = await fetch(
-        `/api/provider/courses/${courseId}/practice`, {
+        apiPath, {
           method: "POST", credentials: "same-origin", cache: "no-store",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ learningConceptId, prompt, options, correctOption }),

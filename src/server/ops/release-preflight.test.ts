@@ -10,6 +10,11 @@ const good = {
   BETTER_AUTH_URL: "https://dena.example.com",
   DENA_SMS_GATEWAY_URL: "https://sms.example.com/send",
   DENA_PRIVATE_MEDIA_ORIGIN_URL: "https://private-media.example.com/",
+  LIVEKIT_URL: "wss://calls.example.com/",
+  LIVEKIT_API_KEY: "dena-stage-key",
+  LIVEKIT_API_SECRET: "livekit-" + "i".repeat(36),
+  DENA_LIVEKIT_QUOTA_WORKER_TOKEN: "quota-worker-" + "q".repeat(36),
+  DENA_LIVEKIT_QUOTA_SWEEP_URL: "https://dena.example.com/api/internal/livekit-quota/sweep",
   DENA_MEDIA_ATTESTATION_KEY_ID: "production-scanner-v1",
   BETTER_AUTH_SECRET: "auth-" + "a".repeat(36),
   DENA_SMS_GATEWAY_TOKEN: "sms-" + "b".repeat(36),
@@ -19,6 +24,8 @@ const good = {
   DENA_MEDIA_CLEANUP_TOKEN: "cleanup-" + "f".repeat(36),
   DENA_SUPPORT_ATTACHMENT_SCANNER_TOKEN: "support-scan-" + "g".repeat(36),
   DENA_SUPPORT_ATTACHMENT_SCAN_HMAC_KEY: "support-hmac-" + "h".repeat(36),
+  DENA_LIVEKIT_ENABLED: "1",
+  DENA_LIVEKIT_ROOM_CONTROL_ENABLED: "1",
   DENA_SMS_ENABLED: "1",
   DENA_MEDIA_ENABLED: "1",
   DENA_INGEST_ENABLED: "1",
@@ -78,6 +85,12 @@ describe("release preflight only validates static configuration", () => {
     const result = run({ NODE_TLS_REJECT_UNAUTHORIZED: "0" });
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("NODE_TLS_REJECT_UNAUTHORIZED:certificate_validation_disabled");
+  });
+
+  it("requires media-room shutdown controls before full release", () => {
+    const result = run({ DENA_LIVEKIT_ROOM_CONTROL_ENABLED: "0" });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("DENA_LIVEKIT_ROOM_CONTROL_ENABLED:not_enabled");
   });
 
   it.each([

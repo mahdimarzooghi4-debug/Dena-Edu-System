@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-type AdminSection = "home" | "role-applications" | "provider-collaborations" | "audit" | "support" | "question-bank" | "exams";
+type AdminSection = "home" | "role-applications" | "provider-collaborations" | "service-accounting" | "audit" | "support" | "question-bank" | "exams";
 
 type Props = {
   active: AdminSection;
@@ -18,6 +18,7 @@ const links: ReadonlyArray<{
   { key: "home", href: "/admin", label: "نمای کلی" },
   { key: "role-applications", href: "/admin/role-applications", label: "درخواست‌های نقش" },
   { key: "provider-collaborations", href: "/admin/provider-collaborations", label: "بررسی همکاری ارائه‌دهنده" },
+  { key: "service-accounting", href: "/admin/service-accounting", label: "خدمات و حسابداری" },
   { key: "question-bank", href: "/admin/question-bank", label: "بانک سؤال دنا" },
   { key: "exams", href: "/admin/exams", label: "آزمون‌های هماهنگ دنا" },
   { key: "audit", href: "/admin/audit", label: "رویدادهای سیستم" },

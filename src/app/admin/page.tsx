@@ -7,6 +7,7 @@ import { AdminShell } from "../../components/admin/admin-shell";
 import { getServerAccessContext } from "../../server/access/actor";
 import { getAdminReviewOverview } from "../../server/admin/dashboard";
 import { getAdminOverview } from "../../server/admin/overview";
+import { getAdminMediaOperationsOverview } from "../../server/admin/media-operations";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,9 +23,10 @@ export default async function AdminHomePage() {
   if (!actor) redirect("/login");
   if (!actor.memberships.some((item) => item.role === "admin")) notFound();
 
-  const [{ pendingCount, pending, hasMore }, overview] = await Promise.all([
+  const [{ pendingCount, pending, hasMore }, overview, mediaOperations] = await Promise.all([
     getAdminReviewOverview(),
     getAdminOverview(),
+    getAdminMediaOperationsOverview(),
   ]);
   const roleLabels: Record<string, string> = {
     student: "دانش‌آموز", institute: "مؤسسه", provider: "ارائه‌دهنده",
@@ -62,6 +64,9 @@ export default async function AdminHomePage() {
   const statusLabels: Record<string, string> = {
     requested: "درخواست‌شده", approved: "تأییدشده", revoked: "لغوشده",
     pending: "در انتظار بررسی", rejected: "ردشده",
+    reserved: "رزرو شده", uploading: "در حال بارگذاری", quarantined: "قرنطینه",
+    ready: "آماده", queued: "در صف پردازش", leased: "در حال پردازش",
+    done: "تکمیل", dead: "نیازمند رسیدگی",
   };
   const statusCard = (title: string, statuses: Record<string, number>) => (
     <Card key={title}>
@@ -121,6 +126,20 @@ export default async function AdminHomePage() {
           {statusCard("تمرین‌ها", overview.exercises)}
           {statusCard("ارزیابی‌های یادگیری", overview.learningAssessments)}
         </div>
+      </section>
+
+      <section className="space-y-4" aria-labelledby="admin-media-operations">
+        <SectionHeading id="admin-media-operations" note="شمارش تجمیعی؛ بدون شناسه یا متن خطا">
+          وضعیت خط لولهٔ رسانه
+        </SectionHeading>
+        <div className="grid gap-4 md:grid-cols-3">
+          {statusCard("دریافت و قرنطینه", mediaOperations.ingests)}
+          {statusCard("پردازش محتوا", mediaOperations.processing)}
+          {statusCard("پاک‌سازی", mediaOperations.cleanup)}
+        </div>
+        <p className="text-xs leading-6 text-dena-muted">
+          این شمارش‌ها وضعیت صف PostgreSQL را نشان می‌دهند؛ سلامت scanner، storage یا هشدار عملیاتی بیرونی را تأیید نمی‌کنند.
+        </p>
       </section>
 
       <section aria-labelledby="admin-recent-audit" className="space-y-4">
