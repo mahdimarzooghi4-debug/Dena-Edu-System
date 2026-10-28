@@ -184,54 +184,6 @@ export default async function StudentHomePage() {
           </section>
         )}
 
-        <section aria-labelledby="student-overview" className="space-y-4">
-          <SectionHeading id="student-overview" note="فقط داده مجاز و واقعی">
-            نمای کلی یادگیری
-          </SectionHeading>
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card className="p-[22px]">
-              <p className="text-[13px] font-medium text-dena-muted">
-                دوره‌های قابل ادامه
-              </p>
-              <p
-                className="mt-2 text-[29px] font-extrabold text-dena-brand"
-                aria-label={hasMore ? "بیش از بیست دوره" : undefined}
-              >
-                {countLabel}
-              </p>
-              <p className="mt-1 text-xs leading-6 text-dena-muted">
-                در فهرست فعلی دانش‌آموز
-              </p>
-            </Card>
-            <Card className="p-[22px]">
-              <p className="text-[13px] font-medium text-dena-muted">
-                ویدئوهای آماده در دوره‌های نمایش‌داده‌شده
-              </p>
-              <p className="mt-2 text-[29px] font-extrabold text-dena-deep">
-                {courses
-                  .reduce((sum, course) => sum + course.readyVideos, 0)
-                  .toLocaleString("fa-IR")}
-              </p>
-              <p className="mt-1 text-xs leading-6 text-dena-muted">
-                شمار محتوای آماده، نه درصد پیشرفت
-              </p>
-            </Card>
-            <Card className="p-[22px]">
-              <p className="text-[13px] font-medium text-dena-muted">
-                علامت‌های انجام‌شده توسط خودت
-              </p>
-              <p className="mt-2 text-[29px] font-extrabold text-dena-deep">
-                {courses
-                  .reduce((sum, course) => sum + course.markedVideos, 0)
-                  .toLocaleString("fa-IR")}
-              </p>
-              <p className="mt-1 text-xs leading-6 text-dena-muted">
-                خوداظهاری؛ اثبات تماشا یا نمره نیست
-              </p>
-            </Card>
-          </div>
-        </section>
-
         <section aria-labelledby="my-courses" className="space-y-4">
           <SectionHeading id="my-courses">ادامه یادگیری در دوره‌ها</SectionHeading>
           {courses.length === 0 ? (
@@ -317,18 +269,50 @@ export default async function StudentHomePage() {
           )}
         </section>
 
-        <section aria-labelledby="student-privacy-shortcut" className="space-y-4">
-          <SectionHeading id="student-privacy-shortcut">حریم خصوصی و داده</SectionHeading>
-          <Card className="flex flex-wrap items-center justify-between gap-4">
-            <p className="max-w-2xl text-sm leading-8 text-dena-muted">
-              یادداشت‌های شخصی ویدئو فقط برای خود دانش‌آموز قابل مشاهده‌اند و از گزارش‌های مؤسسه،
-              سازمان و خیر جدا نگه داشته می‌شوند.
-            </p>
-            <Link href="/student/privacy" className={buttonClassName("secondary")}>
-              مدیریت یادداشت‌های شخصی
+        <section className="grid gap-4 lg:grid-cols-2" aria-label="ادامه مسیر یادگیری">
+          <Card className="flex flex-col justify-between gap-5 rounded-[22px] p-5 md:p-6">
+            <div>
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-lg font-extrabold text-dena-deep">تمرین‌ها و آزمون‌ها</h2>
+                <span className="rounded-full bg-dena-lavender px-3 py-1 text-xs font-bold text-dena-brand">
+                  {exams.length.toLocaleString("fa-IR")} آزمون منتشرشده
+                </span>
+              </div>
+              <p className="mt-3 text-sm leading-7 text-dena-muted">
+                تمرین‌ها و آزمون‌های در دسترس از دوره‌های مجاز خودت را ببین و ادامه بده.
+              </p>
+            </div>
+            <Link href="/student/assessments" className={buttonClassName("outline")}>
+              مشاهده همه تمرین‌ها و آزمون‌ها
+            </Link>
+          </Card>
+          <Card className="flex flex-col justify-between gap-5 rounded-[22px] p-5 md:p-6">
+            <div>
+              <h2 className="text-lg font-extrabold text-dena-deep">مسیر رشد من</h2>
+              <p className="mt-3 text-sm leading-7 text-dena-muted">
+                با ادامه مسیر یادگیری، پیشرفتت به‌صورت ساده نمایش داده می‌شود.
+              </p>
+              <p className="mt-3 text-xs leading-6 text-dena-muted">
+                {progressOverview.displayedMarkedVideos.toLocaleString("fa-IR")} از {progressOverview.displayedReadyVideos.toLocaleString("fa-IR")} ویدئوی آماده را خودت تکمیل‌شده علامت زده‌ای؛ این اطلاعات خوداظهاری است.
+              </p>
+            </div>
+            <Link href="/student/growth" className={buttonClassName("outline")}>
+              مشاهده مسیر رشد
             </Link>
           </Card>
         </section>
+
+        <Card className="flex flex-wrap items-center justify-between gap-4 rounded-[22px] p-5 md:p-6">
+          <div>
+            <h2 className="text-lg font-extrabold text-dena-deep">باشگاه نخبگان</h2>
+            <p className="mt-2 text-sm leading-7 text-dena-muted">
+              با ادامه مسیر یادگیری، اطلاعات و وضعیت عضویت باشگاه را دنبال کن.
+            </p>
+          </div>
+          <Link href="/student/elite-club" className={buttonClassName("outline")}>
+            مشاهده باشگاه
+          </Link>
+        </Card>
       </div>
     </StudentShell>
   );
