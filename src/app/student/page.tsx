@@ -68,7 +68,7 @@ export default async function StudentHomePage() {
             سلام، {profile?.name || "به دنا خوش آمدی"} 👋
           </h2>
           <p className="mt-2 max-w-3xl text-sm leading-8 text-dena-muted">
-            آماده‌ای مسیر یادگیری‌ات را ادامه بدهی؟ فقط دوره‌های مجاز و محتوای آماده نمایش داده می‌شوند.
+            آماده‌ای مسیر امروزت رو ادامه بدی؟
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
             <Link href="/student/courses" className={buttonClassName()}>
@@ -97,7 +97,7 @@ export default async function StudentHomePage() {
                 معلم هوشمند
               </h2>
               <p className="mt-2 text-sm leading-8 text-dena-muted">
-                دنا در حال آماده‌سازی معلمی است که با دیتاست آموزشی خود دنا آغاز می‌کند و با ویدئوهای مجازِ دوره‌های تو، برای مسیر یادگیری خودت رشد می‌کند.
+                با داده‌های آموزشی دنا آغاز می‌شود و بعد با ویدئوهای مجاز دوره‌های تو، برای مسیر خودت رشد می‌کند. گفت‌وگو پس از آماده‌سازی و ارزیابی سرویس فعال می‌شود.
               </p>
             </div>
             <div className="flex items-center gap-2 rounded-full bg-dena-lavender px-3 py-2 text-xs font-bold text-dena-brand">
