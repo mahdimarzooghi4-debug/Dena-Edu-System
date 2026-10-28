@@ -89,6 +89,5 @@ export function StudentExamCard({
           ? "دفعات مجاز شما به پایان رسیده است."
           : new Date() < exam.startsAt ? "آزمون هنوز شروع نشده است." : "بازهٔ شرکت در آزمون بسته شده است."}
     </p>}
-    {message && <p role="status" className="text-sm text-red-700">{message}</p>}
   </article>;
 }
