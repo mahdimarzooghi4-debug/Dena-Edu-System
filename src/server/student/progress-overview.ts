@@ -27,9 +27,9 @@ function tehranWeekStart(now: Date) {
   const offsetText = new Intl.DateTimeFormat("en-US", {
     timeZone: "Asia/Tehran", timeZoneName: "longOffset",
   }).formatToParts(now).find((item) => item.type === "timeZoneName")?.value ?? "GMT+00:00";
-  const offset = offsetText.match(/^GMT([+-])(\\d{2}):(\\d{2})$/);
-  const offsetMinutes = offset
-    ? (offset[1] === "-" ? -1 : 1) * (Number(offset[2]) * 60 + Number(offset[3]))
+  const offsetParts = offsetText.slice(4).split(":").map(Number);
+  const offsetMinutes = offsetParts.length === 2 && offsetParts.every(Number.isFinite)
+    ? (offsetText[3] === "-" ? -1 : 1) * (offsetParts[0] * 60 + offsetParts[1])
     : 0;
   return new Date(localMidnight - daysSinceSaturday * 24 * 60 * 60 * 1000 - offsetMinutes * 60 * 1000);
 }
