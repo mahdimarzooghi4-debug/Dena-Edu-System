@@ -255,7 +255,7 @@ function GrowthDemo() {
   );
 }
 
-function GenericDfunction GenericDemo({ section }: { section: keyof typeof pages }) {
+function GenericDemo({ section }: { section: keyof typeof pages }) {
   if (section === "growth") return <GrowthDemo />;
 
   const contents: Partial<Record<keyof typeof pages, { title: string; description: string; values: string[] }>> = {
