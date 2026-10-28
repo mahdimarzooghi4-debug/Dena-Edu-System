@@ -7,8 +7,8 @@ const catalogCourses = [
   { id:"physics-tenth", title:"فیزیک دهم (مکانیک)", provider:"گروه ماز", teacher:"دکتر رضا علوی", sessions:"۲۰ جلسه", hours:"۱۵ ساعت محتوای آموزشی", price:"۳,۲۰۰,۰۰۰ تومان", supervised:true, image:"physics" },
   { id:"math-tenth", title:"ریاضی دهم تجربی و ریاضی", provider:"مؤسسه آموزشی نمونه", teacher:"استاد علیرضا احمدی", sessions:"۲۴ جلسه", hours:"۱۸ ساعت محتوای آموزشی", price:"۳,۸۰۰,۰۰۰ تومان", supervised:false, image:"math" },
   { id:"biology-tenth", title:"زیست‌شناسی دهم (پایه و مفاهیم)", provider:"آکادمی علوم فردا", teacher:"دکتر سارا حسینی", sessions:"۳۲ جلسه", hours:"۲۶ ساعت محتوای آموزشی", price:"۴,۵۰۰,۰۰۰ تومان", supervised:false, image:"biology" },
-  { id:"arabic-tenth", title:"عربی دهم (ترجمه و قواعد)", provider:"گروه آموزشی مبین", teacher:"استاد محمد کریمی", sessions:"۱۶ جلسه", hours:"۱۲ ساعت محتوای آموزشی", price:"۲,۶۰۰,۰۰۰ تومان", supervised:true, image:"arabic" },
-  { id:"literature-tenth", title:"ادبیات فارسی دهم", provider:"آموزشگاه اندیشه", teacher:"استاد نرگس رضایی", sessions:"۱۸ جلسه", hours:"۱۴ ساعت محتوای آموزشی", price:"۲,۹۰۰,۰۰۰ تومان", supervised:false, image:"literature" },
+  { id:"arabic-tenth", title:"عربی دهم (ترجمه و قواعد)", provider:"گروه آموزشی مبین", teacher:"استاد محمد کریمی", sessions:"۱۶ جلسه", hours:"۱۲ ساعت محتوای آموزشی", price:"۱,۹۰۰,۰۰۰ تومان", supervised:true, image:"arabic" },
+  { id:"literature-tenth", title:"ادبیات فارسی دهم (آرایه‌ها و قرابت)", provider:"مؤسسه فرهنگ و ادب", teacher:"دکتر حسن رضایی", sessions:"۱۸ جلسه", hours:"۱۴ ساعت محتوای آموزشی", price:"۲,۱۰۰,۰۰۰ تومان", supervised:false, image:"literature" },
 ];
 
 function Eyebrow({ children }: { children: React.ReactNode }) { return <span className="eyebrow">{children}</span>; }
@@ -37,7 +37,7 @@ export function DenaCourseCatalogPage() {
           <div className={`course-card__image course-card__image--${course.image}`} role="img" aria-label={`تصویر دورهٔ ${course.title}`}><span className="course-card__image-label">پایه دهم · آموزش آفلاین</span></div>
           <div className="course-card__body">
             <div className="course-card__badges"><span>{course.sessions}</span><span className={course.supervised?"badge-supervised":"badge-licensed"}>{course.supervised?"ارائه‌دهنده تحت نظارت":"مؤسسه آموزشی دارای مجوز"}</span></div>
-            <h2>{course.title}</h2><p>ارائه‌دهنده: {course.provider}<br />مدرس: {course.teacher}</p><small>پایه دهم · {course.hours}</small>
+            <h2>{course.title}</h2><p>ارائه‌دهنده: {course.provider}<br />مدرس: {course.teacher}{course.id==="arabic-tenth"&&<><br />مؤسسه ناظر: آموزشگاه اندیشه</>}</p><small>پایه دهم | {course.hours}</small>
             <div className="course-card__price"><strong>{course.price}</strong><span>۴ قسط مساوی، بدون افزایش قیمت</span></div>
             <Link className="dena-button dena-button--outline" href={`/courses/${course.id}`}>مشاهده دوره</Link>
           </div>
@@ -45,7 +45,7 @@ export function DenaCourseCatalogPage() {
       </div>
       <p className="content-disclaimer">قیمت‌ها و عنوان‌های این صفحه نمونه‌اند. جزئیات قطعی هر دوره را ارائه‌دهندهٔ مسئول اعلام می‌کند.</p>
     </section>
-    <section className="dena-section trust-strip"><h2>قبل از انتخاب، جزئیات هر دوره را ببین</h2><div className="trust-cards"><article>هویت ارائه‌دهنده و مؤسسهٔ ناظر روشن است</article><article>ساختار جلسات و محتوای دوره مشخص است</article><article>شرایط ارزیابی و پشتیبانی دوره اعلام می‌شود</article></div></section>
+    <section className="dena-section trust-strip"><h2>قبل از انتخاب دوره، اطلاعاتش را شفاف ببین</h2><div className="trust-cards"><article><h3>محتوا و ساختار دوره قابل بررسی</h3><p>سرفصل‌ها، جلسات آموزشی و زمان یادگیری پیش از شروع مشخص و شفاف برنامه‌ریزی شده است.</p></article><article><h3>قیمت و شرایط پرداخت روشن</h3><p>شفافیت قیمت دوره‌ها و گزینه‌های پرداخت چندمرحله‌ای برای تسهیل فرآیند ثبت‌نام مهیاست.</p></article><article><h3>ارائه‌دهنده مشخص</h3><p>وضعیت هر ارائه‌دهنده مشخص است؛ برای ارائه‌دهندگان تحت نظارت، نام مؤسسهٔ ناظر هم نمایش داده می‌شود.</p></article></div></section>
   </DenaPublicLayout>;
 }
 
