@@ -14,6 +14,26 @@ import { listedFreeCourse } from "./entitlement";
  * Counts cover up to 20 most recently enrolled accessible courses, not all
  * historical courses. No third-party identities or object storage keys.
  */
+function tehranWeekStart(now: Date) {
+  const dateParts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Tehran", year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(now);
+  const part = (type: string) => dateParts.find((item) => item.type === type)?.value ?? "";
+  const year = Number(part("year"));
+  const month = Number(part("month"));
+  const day = Number(part("day"));
+  const localMidnight = Date.UTC(year, month - 1, day);
+  const daysSinceSaturday = (new Date(localMidnight).getUTCDay() + 1) % 7;
+  const offsetText = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Tehran", timeZoneName: "longOffset",
+  }).formatToParts(now).find((item) => item.type === "timeZoneName")?.value ?? "GMT+00:00";
+  const offset = offsetText.match(/^GMT([+-])(\\d{2}):(\\d{2})$/);
+  const offsetMinutes = offset
+    ? (offset[1] === "-" ? -1 : 1) * (Number(offset[2]) * 60 + Number(offset[3]))
+    : 0;
+  return new Date(localMidnight - daysSinceSaturday * 24 * 60 * 60 * 1000 - offsetMinutes * 60 * 1000);
+}
+
 export async function getStudentProgressOverview(studentUserId: string) {
   const db = getDb();
   const rows = await db.select({
@@ -59,7 +79,7 @@ export async function getStudentProgressOverview(studentUserId: string) {
       visibleRows.map((row) => row.courseId)),
     eq(coursePracticeQuestions.reviewStatus, "approved"),
   )) : [];
-  const weekCutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const weekCutoff = tehranWeekStart(new Date());
   const [weeklyVideoRow] = visibleRows.length ? await db.select({
     total: count(studentVideoCompletions.id),
   }).from(studentVideoCompletions).innerJoin(privateMediaAssets, and(
