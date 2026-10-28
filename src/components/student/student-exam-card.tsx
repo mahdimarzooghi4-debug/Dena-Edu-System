@@ -8,7 +8,7 @@ export type StudentExamCardData = {
   examType: "institute_planned" | "dena_coordinated"; courseId: string | null; courseTitle: string | null;
   questionCount: number; attemptNumber: number | null;
   attemptStatus: "in_progress" | "submitted" | "expired" | null;
-  attemptId: string | null; correctCount: number | null;
+  attemptId: string | null; latestAttemptId: string | null; correctCount: number | null;
   totalPoints: number | null; earnedPoints: number | null; canStart: boolean;
 };
 const displayDate = (value: Date) => new Intl.DateTimeFormat("fa-IR", {
