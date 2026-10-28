@@ -52,7 +52,6 @@ export default async function StudentAssessmentsPage({
     ? query.status as typeof allowedStatuses[number] : "all";
   const courseId = courseResult.courses.some((course) => course.courseId === query.courseId)
     ? query.courseId ?? "" : "";
-  const courseTitle = courseResult.courses.find((course) => course.courseId === courseId)?.title;
   const assessmentState = (assessment: (typeof assessmentGroups)[number]["assessment"]) => {
     const latest = assessment.attempts.at(-1);
     if (latest?.outcome === "completed") return "done";
