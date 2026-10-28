@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { StudentShell } from "@/components/student/student-shell";
@@ -10,7 +11,7 @@ export const metadata: Metadata = { title: "باشگاه نخبگان | دنا",
 
 const opportunities = [
   { title: "حمایت تدریس", description: "فرصت‌های فعالیت اعضای باشگاه به‌عنوان پشتیبان تحصیلی در آموزشگاه‌ها." },
-  { title: "حمایت آموزشی", description: "آموزش‌ها و فرصت‌های غیردرسی برای رشد و توسعه اعضای باشگاه." },
+  { title: "حمایت آموزشی", description: "آموزش‌ها و فرصت‌های غیردرسی برای رشد و توسعه اعضای باشگاه.", href: "/student/elite-club/educational-support" },
   { title: "حمایت کسب‌وکار", description: "فرصت‌ها و حمایت‌های مرتبط با مسیرهای کسب‌وکار اعضای باشگاه." },
   { title: "حمایت رفاهی", description: "حمایت‌ها و خدمات رفاهی تعریف‌شده برای اعضای باشگاه." },
 ];
@@ -44,7 +45,10 @@ export default async function StudentEliteClubPage() {
             {opportunities.map((item) => <Card key={item.title} className="flex h-full flex-col rounded-[22px] p-5 md:p-6">
               <h3 className="font-extrabold text-dena-deep">{item.title}</h3>
               <p className="mt-2 flex-1 text-sm leading-7 text-dena-muted">{item.description}</p>
-              <span className="mt-4 w-fit rounded-full bg-dena-bg px-3 py-1.5 text-xs font-bold text-dena-muted">اطلاعات فرصت هنوز متصل نیست</span>
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                <span className="w-fit rounded-full bg-dena-bg px-3 py-1.5 text-xs font-bold text-dena-muted">اطلاعات فرصت هنوز متصل نیست</span>
+                {item.href && <Link href={item.href} className="text-sm font-bold text-dena-brand hover:underline">مشاهده جزئیات</Link>}
+              </div>
             </Card>)}
           </div>
         </section>
