@@ -191,12 +191,82 @@ function TeamMember({ course, roleId, conversation }: { course: DemoCourse; role
 }
 
 function AiTutor() {
-  return <div className="space-y-6">
-    <section className="rounded-[22px] bg-dena-lavender p-6 md:p-8"><p className="text-sm font-bold text-dena-brand">همراه یادگیری دنا</p><h2 className="mt-2 text-2xl font-extrabold text-dena-deep">معلم هوشمند</h2><p className="mt-2 text-sm leading-7 text-dena-muted">این گفت‌وگو برای نمایش رابط است و به مدل هوش مصنوعی یا اطلاعات واقعی دانش‌آموز وصل نیست.</p></section>
-    <Card className="space-y-4 rounded-[22px] p-6"><p className="w-fit max-w-[90%] rounded-2xl bg-dena-bg p-4 text-sm leading-7">چطور عدد منفی را در عدد منفی ضرب کنم؟</p><p className="mr-auto w-fit max-w-[90%] rounded-2xl bg-dena-lavender p-4 text-sm leading-7">در ضرب دو عدد منفی، حاصل مثبت می‌شود. برای نمونه، (−۳) × (−۲) = ۶. این پاسخ یک نمونهٔ نمایشی است.</p><div className="border-t border-dena-border pt-4"><p className="text-xs text-dena-muted">ارسال پرسش در نسخهٔ نمایشی فعال نیست.</p></div></Card>
-  </div>;
-}
+  const learningStages = [
+    {
+      number: "۱",
+      title: "آموزش آغازین با دیتاست دنا",
+      status: "مرحلهٔ پایه",
+      description: "نسخهٔ آغازین معلم دنا با داده‌های آموزشی دیتاست دنا شروع می‌شود.",
+    },
+    {
+      number: "۲",
+      title: "یادگیری از ویدئوهای دوره",
+      status: "جست‌وجوی رونوشت",
+      description: "برای ویدئوهای دارای مجوز، رونوشت دستی جست‌وجو می‌شود و فقط محتوای دوره‌های مجاز همان دانش‌آموز در دسترس است. فایل خام ویدئو پردازش نمی‌شود.",
+    },
+    {
+      number: "۳",
+      title: "تمرین متناسب با مسیر تو",
+      status: "پیشنهاد تمرین",
+      description: "با فعال‌کردن ثبت موضوع، تمرین همان مبحث پیشنهاد می‌شود. ذخیرهٔ نتیجه رضایت جداگانه می‌خواهد؛ متن پرسش و پاسخ برای بازخورد ویدئو ذخیره نمی‌شود.",
+    },
+  ] as const;
 
+  return (
+    <div className="space-y-6">
+      <section className="rounded-[22px] bg-dena-lavender p-6 md:p-8">
+        <p className="text-sm font-bold text-dena-brand">همراه یادگیری دنا</p>
+        <h2 className="mt-2 text-2xl font-extrabold text-dena-deep">معلم هوشمند، در مسیر یادگیری تو</h2>
+        <p className="mt-2 max-w-3xl text-sm leading-8 text-dena-muted">
+          نسخهٔ آغازین در پنل اصلی فعال است و پاسخ را از دیتاست دنا یا بخش مرتبطِ رونوشت دستیِ ویدئوی مجاز پیدا می‌کند. اگر محتوای مرتبطی نباشد، پاسخ ساخته نمی‌شود.
+        </p>
+        <span className="mt-4 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-bold text-dena-ink">
+          <span className="size-2 rounded-full bg-emerald-500" aria-hidden="true" />
+          نسخهٔ آغازین در پنل اصلی فعال است
+        </span>
+      </section>
+
+      <Card className="space-y-4 rounded-[22px] p-6">
+        <h3 className="font-extrabold text-dena-deep">نمونهٔ گفت‌وگو</h3>
+        <p className="w-fit max-w-[90%] rounded-2xl bg-dena-bg p-4 text-sm leading-7">
+          چطور عدد منفی را در عدد منفی ضرب کنم؟
+        </p>
+        <p className="mr-auto w-fit max-w-[90%] rounded-2xl bg-dena-lavender p-4 text-sm leading-7">
+          در ضرب دو عدد منفی، حاصل مثبت می‌شود. برای نمونه، (−۳) × (−۲) = ۶.
+        </p>
+        <p className="border-t border-dena-border pt-3 text-xs leading-6 text-dena-muted">
+          این گفت‌وگو فقط نمونهٔ رابط است؛ از این پیش‌نمایش پرسشی به مدل ارسال یا سابقه‌ای ذخیره نمی‌شود.
+        </p>
+      </Card>
+
+      <section className="space-y-4">
+        <SectionHeading id="demo-ai-growth" note="بر اساس وضعیت فعلی معلم دنا">
+          معلم هوشمند چطور پاسخ می‌دهد و رشد می‌کند؟
+        </SectionHeading>
+        <ol className="grid gap-4 lg:grid-cols-3">
+          {learningStages.map((stage) => (
+            <li key={stage.number}>
+              <Card className="h-full space-y-4 p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="grid size-9 place-items-center rounded-full bg-dena-lavender text-sm font-extrabold text-dena-brand">
+                    {stage.number}
+                  </span>
+                  <span className="rounded-full bg-dena-bg px-3 py-1.5 text-xs font-semibold text-dena-muted">
+                    {stage.status}
+                  </span>
+                </div>
+                <div>
+                  <h3 className="font-extrabold leading-7 text-dena-ink">{stage.title}</h3>
+                  <p className="mt-2 text-sm leading-7 text-dena-muted">{stage.description}</p>
+                </div>
+              </Card>
+            </li>
+          ))}
+        </ol>
+      </section>
+    </div>
+  );
+}
 function GrowthDemo() {
   const attempts = [
     { label: "تلاش ۱", percent: 40 },
