@@ -192,7 +192,7 @@ export default async function StudentCourseDetailPage({
                   <h2 id="course-assessments-title" className="text-lg font-extrabold text-dena-deep">تمرین‌ها و آزمون‌های این دوره</h2>
                   <p className="mt-1 text-sm text-dena-muted">فعالیت‌های آموزشی مرتبط را دنبال کن.</p>
                 </div>
-                <Link href="/student/assessments" className="text-sm font-bold text-dena-brand hover:underline">
+                <Link href={`/student/assessments?courseId=${encodeURIComponent(courseId)}`} className="text-sm font-bold text-dena-brand hover:underline">
                   مشاهده همه
                 </Link>
               </div>
@@ -209,7 +209,7 @@ export default async function StudentCourseDetailPage({
                         "تمرین و آزمون‌های منتشرشده را در فهرست فعالیت‌ها ببین."}
                   </p>
                 </div>
-                <Link href="/student/assessments" className={buttonClassName("outline")}>رفتن به فعالیت‌ها</Link>
+                <Link href={`/student/assessments?courseId=${encodeURIComponent(courseId)}`} className={buttonClassName("outline")}>رفتن به فعالیت‌ها</Link>
               </Card>
             </section>
 
