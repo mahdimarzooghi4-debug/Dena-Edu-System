@@ -21,14 +21,14 @@ export const metadata: Metadata = {
 
 export default async function CourseWatchPage({
   params,
-}: { params: Promise<{ courseId: string }> }) {
+}: { params: Promise<{ courseId: string }>; searchParams: Promise<{ video?: string }> }) {
   if (!process.env.DATABASE_URL || !process.env.BETTER_AUTH_SECRET ||
       !process.env.BETTER_AUTH_URL) redirect("/login");
   const actor = await getServerAccessContext();
   if (!actor) redirect("/login");
   if (!actor.memberships.some((membership) => membership.role === "student")) notFound();
 
-  const { courseId } = await params;
+  const [{ courseId }, { video: initialVideoId }] = await Promise.all([params, searchParams]);
   if (!z.uuid().safeParse(courseId).success ||
       !await hasStudentEntitlement(actor.userId, courseId)) notFound();
 
@@ -54,7 +54,7 @@ export default async function CourseWatchPage({
             پخش محتوای خصوصی در این محیط هنوز فعال نشده است؛ پس از آماده‌شدن مجوز پخش، جلسه‌ها در فهرست این صفحه نمایش داده می‌شوند.
           </Card>
         )}
-        <VideoProgress courseId={courseId} courseTitle={detail.title}
+        <VideoProgress courseId={courseId} initialVideoId={initialVideoId} courseTitle={detail.title}
           providerName={providerName} teacherName={teacherName} videos={videos} />
         <p className="text-xs leading-7 text-dena-muted">
           دسترسی به هر ویدئو در هر درخواست دوباره با نشست دانش‌آموز، ثبت‌نام فعال و وضعیت نظارت همان دوره بررسی می‌شود.
