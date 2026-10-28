@@ -4,10 +4,8 @@ import type { ReactNode } from "react";
 
 type StudentSection =
   | "home"
-  | "aiTutor"
   | "courses"
   | "assessments"
-  | "services"
   | "growth"
   | "elite"
   | "account"
@@ -43,13 +41,11 @@ const desktopItems: ReadonlyArray<{
   icon: IconName;
 }> = [
   { key: "home", href: "/student", label: "خانه من", icon: "home" },
-  { key: "aiTutor", href: "/student/ai-tutor", label: "معلم هوشمند", icon: "sparkles" },
   { key: "courses", href: "/student/courses", label: "دوره‌های من", icon: "book" },
   { key: "assessments", href: "/student/assessments", label: "تمرین‌ها و آزمون‌ها", icon: "assessment" },
   { key: "growth", href: "/student/growth", label: "مسیر رشد", icon: "growth" },
   { key: "elite", href: "/student/elite-club", label: "باشگاه نخبگان", icon: "star" },
   { key: "account", href: "/student/profile", label: "پروفایل کاربری", icon: "user" },
-  { key: "services", href: "/student/services", label: "مرکز خدمات", icon: "help" },
 ];
 
 const mobileItems: ReadonlyArray<{
@@ -176,7 +172,7 @@ export function StudentShell({ active, title, children, demo = false }: Props) {
         <div className="mt-auto border-t border-dena-border pt-4">
           <Link href={demo ? "/preview/support" : "/support"} className="flex min-h-[44px] items-center gap-3 rounded-xl px-4 text-sm text-dena-muted hover:bg-dena-bg hover:text-dena-ink">
             <Icon name="help" />
-            <span>پشتیبانی فنی</span>
+            <span>پشتیبانی آنلاین</span>
           </Link>
           <div className="mt-2 flex min-h-[44px] items-center gap-3 rounded-xl px-4 text-sm text-dena-muted">
             <Icon name="user" />
