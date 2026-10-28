@@ -613,20 +613,20 @@ test.describe("free enrollment and private video access must stay course-scoped"
         name: "جست‌وجوی عنوان دوره",
       }).fill("آزمایش صفحه‌بندی");
       await page.getByRole("button", { name: "جست‌وجو" }).click();
-      await expect(page.locator("ul > li").filter({
+      await expect(page.locator("#available-courses ul > li").filter({
         hasText: "آزمایش صفحه‌بندی",
       })).toHaveCount(20);
       await page.getByRole("button", {
         name: "نمایش دوره‌های بیشتر",
       }).click();
-      await expect(page.locator("ul > li").filter({
+      await expect(page.locator("#available-courses ul > li").filter({
         hasText: "آزمایش صفحه‌بندی",
       })).toHaveCount(40);
       await page.getByRole("checkbox", {
         name: "فقط ثبت‌نام‌های من",
       }).check();
       await page.getByRole("button", { name: "جست‌وجو" }).click();
-      await expect(page.locator("ul > li").filter({
+      await expect(page.locator("#available-courses ul > li").filter({
         hasText: "آزمایش صفحه‌بندی",
       })).toHaveCount(1);
       await expect(page.getByRole("link", {
