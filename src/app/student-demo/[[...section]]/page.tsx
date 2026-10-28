@@ -5,6 +5,7 @@ import { StudentShell } from "@/components/student/student-shell";
 import { Card } from "@/components/ui/card";
 import { buttonClassName } from "@/components/ui/button";
 import { SectionHeading } from "@/components/ui/section-heading";
+import { DemoPracticeCard } from "@/components/student-demo/practice-card";
 
 type StudentSection =
   | "home" | "aiTutor" | "courses" | "assessments" | "growth"
@@ -206,13 +207,13 @@ function GenericDemo({ section }: { section: keyof typeof pages }) {
   };
   const content = contents[section];
   if (!content) return null;
-  return <div className="space-y-6"><section className="rounded-[22px] bg-dena-lavender p-6"><h2 className="text-2xl font-extrabold text-dena-deep">{content.title}</h2><p className="mt-2 text-sm leading-7 text-dena-muted">{content.description}</p></section><div className="grid gap-4">{content.values.map((value) => <Card key={value}><p className="text-sm font-semibold text-dena-ink">{value}</p></Card>)}</div></div>;
+  return <div className="space-y-6"><section className="rounded-[22px] bg-dena-lavender p-6"><h2 className="text-2xl font-extrabold text-dena-deep">{content.title}</h2><p className="mt-2 text-sm leading-7 text-dena-muted">{content.description}</p></section><div className="grid gap-4">{content.values.map((value, index) => <Card key={value} className="space-y-3"><p className="text-sm font-semibold text-dena-ink">{value}</p>{section === "assessments" && index === 0 && <Link href="/student-demo/assessments/math-7-practice" className={buttonClassName("outline")}>شروع تمرین نمونه</Link>}</Card>)}</div></div>;
 }
 
 export default async function StudentDemoPage({ params }: { params: Promise<{ section?: string[] }> }) {
   const { section: path = [] } = await params;
   const pageKey = path.length ? path.join("/") : "home";
-  const page = pages[path[0] === "courses" ? "courses" : pageKey];
+  const page = pages[path[0] === "courses" ? "courses" : path[0] === "assessments" ? "assessments" : pageKey];
   if (!page) notFound();
 
   const course = path[0] === "courses" ? demoCourses.find((item) => item.id === path[1]) : undefined;
@@ -230,6 +231,7 @@ export default async function StudentDemoPage({ params }: { params: Promise<{ se
   } else if (isCoursePath && path[2] === "team" && path.length === 3 && course) content = <CourseTeam course={course} />;
   else if (isCoursePath && path[2] === "team" && path.length === 4 && course) content = <TeamMember course={course} roleId={path[3]} conversation={false} />;
   else if (isCoursePath && path[2] === "team" && path.length === 5 && path[4] === "conversation" && course) content = <TeamMember course={course} roleId={path[3]} conversation />;
+  else if (path[0] === "assessments" && path[1] === "math-7-practice" && path.length === 2) content = <DemoPracticeCard />;
   else if (pageKey === "ai-tutor") content = <AiTutor />;
   else if (path.length === 1) content = <GenericDemo section={pageKey as keyof typeof pages} />;
   else notFound();
