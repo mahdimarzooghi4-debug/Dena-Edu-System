@@ -70,7 +70,7 @@ export default async function StudentAssessmentsPage({
       (status === "done" && course.practice.state === "answered") ||
       (status === "ready" && course.practice.state === "not_attempted")));
   const visibleExams = (examResult?.exams ?? []).filter((exam) =>
-    (!courseId || exam.courseTitle === courseTitle) &&
+    (!courseId || exam.courseId === courseId) &&
     (status === "all" || examState(exam) === status));
   const statusHref = (nextStatus: typeof allowedStatuses[number]) => {
     const params = new URLSearchParams();
