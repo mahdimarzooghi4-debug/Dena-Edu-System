@@ -7,6 +7,7 @@ import { buttonClassName } from "@/components/ui/button";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { DemoPracticeCard } from "@/components/student-demo/practice-card";
 import { StudentDemoServiceCenter } from "@/components/student-demo/service-center";
+import { StudentDemoSupportNotifications } from "@/components/student-demo/support-notifications";
 
 type StudentSection =
   | "home" | "aiTutor" | "courses" | "assessments" | "growth"
@@ -329,6 +330,7 @@ function GrowthDemo() {
 function GenericDemo({ section }: { section: keyof typeof pages }) {
   if (section === "growth") return <GrowthDemo />;
   if (section === "services") return <StudentDemoServiceCenter />;
+  if (section === "notifications") return <StudentDemoSupportNotifications />;
 
   const contents: Partial<Record<keyof typeof pages, { title: string; description: string; values: string[] }>> = {
     assessments: { title: "تمرین‌ها و آزمون‌ها", description: "فعالیت‌های زیر برای نمایش رابط ساخته شده‌اند.", values: ["تمرین نمونهٔ ریاضی · در انتظار پاسخ", "آزمون نمونهٔ علوم · شنبه، ساعت ۱۰:۰۰", "مرور درس چهارم · تکمیل‌شده"] },
@@ -344,7 +346,7 @@ function GenericDemo({ section }: { section: keyof typeof pages }) {
     },
     profile: { title: "پروفایل کاربری", description: "مشخصات حساب واقعی در حالت دمو نمایش داده نمی‌شود.", values: ["دانش‌آموز نمونه", "پایهٔ هفتم · نمونه", "حساب نمایشی و بدون اتصال"] },
     services: { title: "مرکز خدمات", description: "درخواست‌های خدماتی در این دمو ثبت نمی‌شوند.", values: ["خدمات آموزشی", "راهنمای استفاده از دنا", "پشتیبانی فنی"] },
-    notifications: { title: "اعلان‌ها", description: "اعلان‌های زیر نمونه هستند.", values: ["یک درس تازه به دورهٔ نمونه اضافه شد", "تمرین نمونه آمادهٔ مشاهده است"] },
+    notifications: { title: "اعلان‌ها", description: "این بخش در نسخهٔ فعلی پنل، اعلان‌های درخواست‌های پشتیبانی را نشان می‌دهد.", values: [] },
   };
   const content = contents[section];
   if (!content) return null;
