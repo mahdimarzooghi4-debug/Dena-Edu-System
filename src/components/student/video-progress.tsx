@@ -9,7 +9,7 @@ type Video = { assetId: string; title: string; completed: boolean; note: string 
 
 /** Player workspace matching the student learning screen; completion stays self-reported. */
 export function VideoProgress({
-  courseId, courseTitle, providerName, teacherName, videos,
+  courseId, courseTitle, providerName, teacherName, videos, initialVideoId,
 }: {
   courseId: string;
   courseTitle: string;
@@ -18,7 +18,7 @@ export function VideoProgress({
   videos: Video[];
 }) {
   const [items, setItems] = useState(videos);
-  const [selectedId, setSelectedId] = useState(videos[0]?.assetId ?? "");
+  const [selectedId, setSelectedId] = useState(initialVideoId && videos.some((video) => video.assetId === initialVideoId) ? initialVideoId : videos[0]?.assetId ?? "");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
