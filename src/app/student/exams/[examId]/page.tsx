@@ -40,7 +40,9 @@ export default async function StudentExamDetailsPage({
             {exam.examType === "dena_coordinated" ? "آزمون هماهنگ دنا" : "آزمون برنامه‌ریزی‌شده"}
           </p>
           <h1 className="mt-2 text-2xl font-extrabold leading-10 text-dena-deep md:text-3xl">{exam.title}</h1>
-          <p className="mt-2 text-sm text-dena-muted">دوره مرتبط: {exam.courseTitle ?? "آزمون هماهنگ دنا"}</p>
+          <p className="mt-2 text-sm text-dena-muted">دوره مرتبط: {exam.courseId && exam.courseTitle
+            ? <Link href={"/student/courses/" + encodeURIComponent(exam.courseId)} className="font-bold text-dena-brand hover:underline">{exam.courseTitle}</Link>
+            : "آزمون هماهنگ دنا"}</p>
         </header>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-2xl bg-dena-bg p-4"><p className="text-xs text-dena-muted">وضعیت</p>
