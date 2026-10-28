@@ -239,8 +239,6 @@ export default async function StudentCourseDetailPage({
                 </ol>
               )}
             </section>
-          </>
-
           <section aria-labelledby="course-team-title" className="space-y-3">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
@@ -297,6 +295,7 @@ export default async function StudentCourseDetailPage({
               </div>
             )}
           </section>
+          </>
         )}
 
         <Card className="rounded-[22px] border-dashed p-5">
