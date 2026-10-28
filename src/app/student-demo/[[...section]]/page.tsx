@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { StudentShell } from "@/components/student/student-shell";
 import { Card } from "@/components/ui/card";
@@ -218,7 +219,7 @@ export default async function StudentDemoPage({ params }: { params: Promise<{ se
   const isCoursePath = path[0] === "courses";
   if (isCoursePath && path.length > 1 && !course) notFound();
 
-  let content;
+  let content: ReactNode;
   if (pageKey === "home") content = <Home />;
   else if (pageKey === "courses" && path.length === 1) content = <CourseList />;
   else if (isCoursePath && path.length === 2 && course) content = <CourseDetail course={course} />;
