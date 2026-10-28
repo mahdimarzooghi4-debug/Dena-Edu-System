@@ -25,7 +25,7 @@ export default async function StudentProfilePage() {
   return (
     <StudentShell active="account" title="پروفایل کاربری">
       <div className="space-y-6">
-        <section className="rounded-[22px] bg-dena-lavender px-6 py-7 md:px-8">
+        <section className="hidden rounded-[22px] bg-dena-lavender px-6 py-7 md:px-8 lg:block">
           <p className="text-sm font-bold text-dena-brand">پروفایل کاربری</p>
           <h1 className="mt-2 text-2xl font-extrabold text-dena-deep md:text-3xl">اطلاعات حساب و مشخصات ثبت‌شده‌ات را مدیریت کن</h1>
           <div className="mt-5 flex items-center gap-3">
@@ -34,7 +34,20 @@ export default async function StudentProfilePage() {
           </div>
         </section>
 
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(280px,1fr)]">
+        <section className="space-y-5 lg:hidden" aria-label="پروفایل و گزینه‌های حساب">
+          <div className="py-4 text-center">
+            <span className="mx-auto grid size-[72px] place-items-center rounded-full bg-dena-lavender text-2xl font-extrabold text-dena-brand" aria-hidden="true">{profile.name.trim().slice(0, 1) || "م"}</span>
+            <h1 className="mt-4 text-xl font-extrabold text-dena-deep">{profile.name}</h1>
+            <p className="mt-1 text-sm text-dena-muted">پروفایل دانش‌آموز</p>
+          </div>
+          <div className="divide-y divide-dena-border border-y border-dena-border">
+            <Link href="/account" className="flex min-h-14 items-center justify-between py-3 text-sm font-semibold text-dena-deep">ویرایش پروفایل<span aria-hidden="true">‹</span></Link>
+            <Link href="/student/privacy" className="flex min-h-14 items-center justify-between py-3 text-sm font-semibold text-dena-deep">حریم خصوصی و داده‌ها<span aria-hidden="true">‹</span></Link>
+            <Link href="/account" className="flex min-h-14 items-center justify-between py-3 text-sm font-semibold text-red-600">خروج از حساب<span aria-hidden="true">↗</span></Link>
+          </div>
+        </section>
+
+        <div className="hidden gap-5 lg:grid lg:grid-cols-[minmax(0,1.5fr)_minmax(280px,1fr)]">
           <Card className="rounded-[22px] p-6 md:p-8">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div><h2 className="text-xl font-extrabold text-dena-deep">اطلاعات شخصی</h2><p className="mt-1 text-sm text-dena-muted">مشخصات ثبت‌شده برای ورود و استفاده از حساب دنا</p></div>
@@ -54,7 +67,7 @@ export default async function StudentProfilePage() {
           </Card>
         </div>
 
-        <Card className="rounded-[22px] p-5"><p className="text-sm leading-7 text-dena-muted">اطلاعات تحصیلی مانند پایه و رشته در این حساب ثبت نشده است؛ تا زمان ثبت اطلاعات معتبر، این صفحه آن‌ها را حدس نمی‌زند.</p></Card>
+        <Card className="hidden rounded-[22px] p-5 lg:block"><p className="text-sm leading-7 text-dena-muted">اطلاعات تحصیلی مانند پایه و رشته در این حساب ثبت نشده است؛ تا زمان ثبت اطلاعات معتبر، این صفحه آن‌ها را حدس نمی‌زند.</p></Card>
       </div>
     </StudentShell>
   );
