@@ -485,7 +485,7 @@ export async function getStudentExamCatalog(studentUserId: string) {
       examType: exam.courseTitle ? "institute_planned" as const : "dena_coordinated" as const,
       courseTitle: exam.courseTitle, questionCount: exam.questionCount,
       attemptNumber: attempt?.attemptNumber ?? null, attemptStatus: attempt?.status ?? null,
-      attemptId: inProgress ? attempt.id : null, correctCount: attempt?.correctCount ?? null,
+      attemptId: inProgress ? attempt.id : null, latestAttemptId: attempt?.id ?? null, correctCount: attempt?.correctCount ?? null,
       totalPoints: attempt?.totalPoints ?? null, earnedPoints: attempt?.earnedPoints ?? null,
       canStart: exam.status === "published" && now >= exam.startsAt && now < exam.endsAt &&
         (inProgress || (attempt?.attemptNumber ?? 0) < exam.attemptLimit),
