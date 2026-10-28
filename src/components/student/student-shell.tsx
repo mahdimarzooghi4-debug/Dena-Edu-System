@@ -4,6 +4,8 @@ import type { ReactNode } from "react";
 
 type StudentSection =
   | "home"
+  | "aiTutor"
+  | "services"
   | "courses"
   | "assessments"
   | "growth"
