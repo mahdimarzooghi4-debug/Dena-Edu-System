@@ -1095,7 +1095,9 @@ test.describe("free enrollment and private video access must stay course-scoped"
     await page.getByRole("link", {
       name: "مشاهده مسیر رشد",
     }).click();
-    await expect(page).toHaveURL(/\/student\/progress$/);
+    await expect(page).toHaveURL(/\/student\/growth$/);
+    await expect(page.locator("#student-growth-courses")).toBeVisible();
+    await page.goto("http://localhost:3000/student/progress");
     await expect(page.getByRole("heading", {
       name: "پیگیری شخصی به تفکیک دوره",
     })).toBeVisible();
