@@ -33,7 +33,7 @@ export default async function StudentEliteClubPage() {
         <Card className="rounded-[22px] border-dena-border p-6 md:p-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div><p className="text-sm font-bold text-dena-brand">وضعیت من در باشگاه</p><h2 className="mt-2 text-xl font-extrabold text-dena-deep">وضعیت عضویت در دسترس نیست</h2></div>
-            <span className="rounded-full bg-dena-bg px-4 py-2 text-sm font-bold text-dena-muted">در انتظار فعال‌سازی</span>
+            <span className="rounded-full bg-dena-bg px-4 py-2 text-sm font-bold text-dena-muted">اطلاعات عضویت متصل نیست</span>
           </div>
           <p className="mt-3 max-w-3xl text-sm leading-8 text-dena-muted">وضعیت ثبت‌نام، ارزیابی و عضویت باید از سامانه رسمی باشگاه دریافت شود. اتصال این بخش هنوز فعال نیست؛ بنابراین عضویت یا نتیجه‌ای برای حساب تو ثبت‌شده فرض نمی‌شود.</p>
         </Card>
@@ -44,7 +44,7 @@ export default async function StudentEliteClubPage() {
             {opportunities.map((item) => <Card key={item.title} className="flex h-full flex-col rounded-[22px] p-5 md:p-6">
               <h3 className="font-extrabold text-dena-deep">{item.title}</h3>
               <p className="mt-2 flex-1 text-sm leading-7 text-dena-muted">{item.description}</p>
-              <span className="mt-4 w-fit rounded-full bg-dena-bg px-3 py-1.5 text-xs font-bold text-dena-muted">هنوز فرصت فعالی ثبت نشده</span>
+              <span className="mt-4 w-fit rounded-full bg-dena-bg px-3 py-1.5 text-xs font-bold text-dena-muted">اطلاعات فرصت هنوز متصل نیست</span>
             </Card>)}
           </div>
         </section>
