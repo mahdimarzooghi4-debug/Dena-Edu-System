@@ -10,6 +10,8 @@ import { StudentShell } from "../../../../components/student/student-shell";
 import { getServerAccessContext } from "../../../../server/access/actor";
 import { getStudentCourseDetail } from "../../../../server/student/course-detail";
 import { getStudentCourseTeam } from "../../../../server/student/course-team";
+import { getStudentVideoProgress } from "../../../../server/student/video-progress";
+import { getStudentProgressOverview } from "../../../../server/student/progress-overview";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -68,9 +70,16 @@ export default async function StudentCourseDetailPage({
   if (!detail) notFound();
 
   const enrolled = detail.enrollmentStatus === "active";
-  const team = enrolled
-    ? await getStudentCourseTeam(actor.userId, courseId) ?? []
-    : [];
+  const [team, videos, progressOverview] = enrolled
+    ? await Promise.all([
+      getStudentCourseTeam(actor.userId, courseId),
+      getStudentVideoProgress(actor.userId, courseId),
+      getStudentProgressOverview(actor.userId),
+    ]).then(([members, readyVideos, overview]) => [members ?? [], readyVideos, overview] as const)
+    : [[], [], null] as const;
+  const courseProgress = progressOverview?.courses.find((course) => course.courseId === courseId);
+  const completedVideos = videos.filter((video) => video.completed).length;
+  const videoProgress = videos.length ? Math.round(completedVideos / videos.length * 100) : 0;
 
   return (
     <StudentShell active="courses" title="جزئیات دوره">
@@ -149,6 +158,91 @@ export default async function StudentCourseDetailPage({
         </Card>
 
         {enrolled && (
+          <>
+            <Card className="space-y-4 rounded-[22px] p-5 md:p-6">
+              <div className="flex items-center justify-between gap-4">
+                <h2 className="text-lg font-extrabold text-dena-deep">خلاصه پیشرفت</h2>
+                <span className="text-sm font-bold text-dena-brand">{videoProgress.toLocaleString("fa-IR")}٪</span>
+              </div>
+              <div className="h-2.5 overflow-hidden rounded-full bg-dena-lavender" role="progressbar"
+                aria-label="نسبت جلساتی که خود دانش‌آموز تکمیل‌شده علامت زده است"
+                aria-valuemin={0} aria-valuemax={100} aria-valuenow={videoProgress}>
+                <div className="h-full rounded-full bg-dena-mint" style={{ width: `${videoProgress}%` }} />
+              </div>
+              <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-dena-muted">
+                <span>{completedVideos.toLocaleString("fa-IR")} جلسه تکمیل‌شده</span>
+                <span>{videos.length.toLocaleString("fa-IR")} جلسهٔ آماده</span>
+              </div>
+              <p className="text-xs leading-6 text-dena-muted">
+                درصد پیشرفت بر پایهٔ علامت‌های اختیاری خودت است و اثبات تماشا یا نمرهٔ رسمی نیست.
+              </p>
+              {videos[0] && (() => {
+                const nextVideo = videos.find((video) => !video.completed) ?? videos[0];
+                return <Link id="next-unmarked-video" href={`/student/courses/${courseId}/watch?video=${encodeURIComponent(nextVideo.assetId)}`}
+                  className={buttonClassName()}>
+                  <span>ادامه یادگیری</span>
+                  <span className="sr-only">جلسه بعدی: {nextVideo.title}</span>
+                </Link>;
+              })()}
+            </Card>
+
+            <section aria-labelledby="course-assessments-title" className="space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 id="course-assessments-title" className="text-lg font-extrabold text-dena-deep">تمرین‌ها و آزمون‌های این دوره</h2>
+                  <p className="mt-1 text-sm text-dena-muted">فعالیت‌های آموزشی مرتبط را دنبال کن.</p>
+                </div>
+                <Link href={`/student/assessments?courseId=${encodeURIComponent(courseId)}`} className="text-sm font-bold text-dena-brand hover:underline">
+                  مشاهده همه
+                </Link>
+              </div>
+              <Card className="flex flex-wrap items-center justify-between gap-3 rounded-[18px] p-5">
+                <div>
+                  <p className="font-bold text-dena-ink">
+                    {courseProgress?.practice.state === "answered" ? "تمرین انجام‌شده" :
+                      courseProgress?.practice.state === "not_attempted" ? "تمرین آماده انجام" :
+                        "تمرین یا آزمون دوره"}
+                  </p>
+                  <p className="mt-2 text-sm text-dena-muted">
+                    {courseProgress?.practice.state === "answered" ? "پاسخ تمرین در حساب خودت ثبت شده است." :
+                      courseProgress?.practice.state === "not_attempted" ? "تمرین تأییدشده در انتظار پاسخ توست." :
+                        "تمرین و آزمون‌های منتشرشده را در فهرست فعالیت‌ها ببین."}
+                  </p>
+                </div>
+                <Link href={`/student/assessments?courseId=${encodeURIComponent(courseId)}`} className={buttonClassName("outline")}>رفتن به فعالیت‌ها</Link>
+              </Card>
+            </section>
+
+            <section aria-labelledby="course-content-title" className="space-y-3">
+              <div>
+                <h2 id="course-content-title" className="text-lg font-extrabold text-dena-deep">محتوای دوره</h2>
+                <p className="mt-1 text-sm text-dena-muted">جلسه‌های آماده و مجاز همین دوره.</p>
+              </div>
+              {videos.length === 0 ? (
+                <Card className="rounded-[18px] p-5 text-sm leading-7 text-dena-muted">
+                  جلسهٔ آماده‌ای برای نمایش وجود ندارد.
+                </Card>
+              ) : (
+                <ol className="space-y-2">
+                  {videos.map((video, index) => (
+                    <li key={video.assetId}>
+                      <Link href={`/student/courses/${courseId}/watch?video=${encodeURIComponent(video.assetId)}`}
+                        className="flex flex-wrap items-center justify-between gap-3 rounded-[18px] border border-dena-border bg-white p-4 transition hover:border-dena-brand">
+                        <span>
+                          <span className="block text-xs text-dena-muted">
+                            {video.completed ? "تکمیل‌شده" : index === videos.findIndex((item) => !item.completed) ? "جلسه جاری" : "شروع‌نشده"}
+                          </span>
+                          <span className="mt-1 block font-bold text-dena-ink">
+                            جلسهٔ {(index + 1).toLocaleString("fa-IR")} — {video.title}
+                          </span>
+                        </span>
+                        <span className="text-sm font-bold text-dena-brand">مشاهده جلسه ←</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </section>
           <section aria-labelledby="course-team-title" className="space-y-3">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
@@ -205,6 +299,7 @@ export default async function StudentCourseDetailPage({
               </div>
             )}
           </section>
+          </>
         )}
 
         <Card className="rounded-[22px] border-dashed p-5">

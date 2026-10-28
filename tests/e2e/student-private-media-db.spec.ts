@@ -613,20 +613,20 @@ test.describe("free enrollment and private video access must stay course-scoped"
         name: "جست‌وجوی عنوان دوره",
       }).fill("آزمایش صفحه‌بندی");
       await page.getByRole("button", { name: "جست‌وجو" }).click();
-      await expect(page.locator("ul > li").filter({
+      await expect(page.locator("#available-courses ul > li").filter({
         hasText: "آزمایش صفحه‌بندی",
       })).toHaveCount(20);
       await page.getByRole("button", {
         name: "نمایش دوره‌های بیشتر",
       }).click();
-      await expect(page.locator("ul > li").filter({
+      await expect(page.locator("#available-courses ul > li").filter({
         hasText: "آزمایش صفحه‌بندی",
       })).toHaveCount(40);
       await page.getByRole("checkbox", {
         name: "فقط ثبت‌نام‌های من",
       }).check();
       await page.getByRole("button", { name: "جست‌وجو" }).click();
-      await expect(page.locator("ul > li").filter({
+      await expect(page.locator("#available-courses ul > li").filter({
         hasText: "آزمایش صفحه‌بندی",
       })).toHaveCount(1);
       await expect(page.getByRole("link", {
@@ -1088,14 +1088,16 @@ test.describe("free enrollment and private video access must stay course-scoped"
       new RegExp(`/student/courses/${ids.live}/watch$`),
     );
     await page.goto("http://localhost:3000/student");
-    await expect(page.getByRole("heading", { name: "نمای کلی یادگیری" })).toBeVisible();
+    await expect(page.locator("#student-home-title")).toBeVisible();
     await expect(page.locator("#student-continue-course")).toHaveText(
       "دوره رایگان با محتوای خصوصی",
     );
     await page.getByRole("link", {
-      name: "پیگیری یادگیری",
+      name: "مشاهده مسیر رشد",
     }).click();
-    await expect(page).toHaveURL(/\/student\/progress$/);
+    await expect(page).toHaveURL(/\/student\/growth$/);
+    await expect(page.locator("#student-growth-courses")).toBeVisible();
+    await page.goto("http://localhost:3000/student/progress");
     await expect(page.getByRole("heading", {
       name: "پیگیری شخصی به تفکیک دوره",
     })).toBeVisible();

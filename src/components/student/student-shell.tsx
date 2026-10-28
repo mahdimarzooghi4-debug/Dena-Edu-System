@@ -5,9 +5,9 @@ import type { ReactNode } from "react";
 type StudentSection =
   | "home"
   | "aiTutor"
+  | "services"
   | "courses"
   | "assessments"
-  | "services"
   | "growth"
   | "elite"
   | "account"
@@ -17,7 +17,12 @@ type Props = {
   active: StudentSection;
   title: string;
   children: ReactNode;
+  demo?: boolean;
 };
+
+function hrefFor(href: string, demo: boolean) {
+  return demo ? href.replace(/^\/student(?=\/|$)/, "/student-demo") : href;
+}
 
 type IconName =
   | "home"
@@ -38,13 +43,11 @@ const desktopItems: ReadonlyArray<{
   icon: IconName;
 }> = [
   { key: "home", href: "/student", label: "خانه من", icon: "home" },
-  { key: "aiTutor", href: "/student/ai-tutor", label: "معلم هوشمند", icon: "sparkles" },
   { key: "courses", href: "/student/courses", label: "دوره‌های من", icon: "book" },
   { key: "assessments", href: "/student/assessments", label: "تمرین‌ها و آزمون‌ها", icon: "assessment" },
   { key: "growth", href: "/student/growth", label: "مسیر رشد", icon: "growth" },
   { key: "elite", href: "/student/elite-club", label: "باشگاه نخبگان", icon: "star" },
   { key: "account", href: "/student/profile", label: "پروفایل کاربری", icon: "user" },
-  { key: "services", href: "/student/services", label: "مرکز خدمات", icon: "help" },
 ];
 
 const mobileItems: ReadonlyArray<{
@@ -95,7 +98,7 @@ function Icon({ name, className = "size-5" }: { name: IconName; className?: stri
   }
 }
 
-function DesktopNavigation({ active }: { active: StudentSection }) {
+function DesktopNavigation({ active, demo }: { active: StudentSection; demo: boolean }) {
   return (
     <nav aria-label="منوی دانش‌آموز" className="mt-7">
       <ul className="space-y-2">
@@ -104,7 +107,7 @@ function DesktopNavigation({ active }: { active: StudentSection }) {
           return (
             <li key={item.key}>
               <Link
-                href={item.href}
+                href={hrefFor(item.href, demo)}
                 aria-current={selected ? "page" : undefined}
                 className={
                   "flex min-h-[46px] items-center gap-3 rounded-xl px-4 text-sm transition-colors " +
@@ -124,7 +127,7 @@ function DesktopNavigation({ active }: { active: StudentSection }) {
   );
 }
 
-function MobileNavigation({ active }: { active: StudentSection }) {
+function MobileNavigation({ active, demo }: { active: StudentSection; demo: boolean }) {
   return (
     <nav
       aria-label="منوی پایین دانش‌آموز"
@@ -136,7 +139,7 @@ function MobileNavigation({ active }: { active: StudentSection }) {
           return (
             <li key={item.key}>
               <Link
-                href={item.href}
+                href={hrefFor(item.href, demo)}
                 aria-current={selected ? "page" : undefined}
                 className={
                   "flex min-h-[52px] flex-col items-center justify-center gap-1 rounded-xl px-1 text-[11px] transition-colors " +
@@ -156,29 +159,29 @@ function MobileNavigation({ active }: { active: StudentSection }) {
   );
 }
 
-export function StudentShell({ active, title, children }: Props) {
+export function StudentShell({ active, title, children, demo = false }: Props) {
   const eliteActive = active === "elite";
   const notificationsActive = active === "notifications";
   return (
     <div className="min-h-screen bg-dena-bg lg:flex">
       <aside className="hidden h-screen w-[260px] shrink-0 border-l border-dena-border bg-white lg:sticky lg:top-0 lg:flex lg:flex-col lg:px-4 lg:py-5">
-        <Link href="/student" aria-label="دنا، خانه دانش‌آموز" className="inline-flex px-3">
+        <Link href={hrefFor("/student", demo)} aria-label="دنا، خانه دانش‌آموز" className="inline-flex px-3">
           <Image src="/dena-app-logo.png" alt="دنا" width={84} height={48} priority />
         </Link>
 
-        <DesktopNavigation active={active} />
+        <DesktopNavigation active={active} demo={demo} />
 
         <div className="mt-auto border-t border-dena-border pt-4">
-          <Link href="/support" className="flex min-h-[44px] items-center gap-3 rounded-xl px-4 text-sm text-dena-muted hover:bg-dena-bg hover:text-dena-ink">
+          <Link href={demo ? "/preview/support" : "/support"} className="flex min-h-[44px] items-center gap-3 rounded-xl px-4 text-sm text-dena-muted hover:bg-dena-bg hover:text-dena-ink">
             <Icon name="help" />
-            <span>پشتیبانی فنی</span>
+            <span>پشتیبانی آنلاین</span>
           </Link>
           <div className="mt-2 flex min-h-[44px] items-center gap-3 rounded-xl px-4 text-sm text-dena-muted">
             <Icon name="user" />
             <span>دانش‌آموز دنا</span>
           </div>
           <Link
-            href="/account"
+            href={demo ? "/" : "/account"}
             className="mt-4 flex min-h-[44px] items-center gap-3 rounded-xl px-4 text-sm font-semibold text-red-600 hover:bg-red-50"
           >
             <Icon name="logout" />
@@ -189,15 +192,15 @@ export function StudentShell({ active, title, children }: Props) {
 
       <div className="min-w-0 flex-1">
         <header className="sticky top-0 z-30 flex min-h-[60px] items-center justify-between border-b border-dena-border bg-white/95 px-4 backdrop-blur md:px-7 lg:min-h-[80px] lg:px-10">
-          <Link href="/student" className="order-1 lg:hidden" aria-label="دنا، خانه دانش‌آموز">
+          <Link href={hrefFor("/student", demo)} className="order-1 lg:hidden" aria-label="دنا، خانه دانش‌آموز">
             <Image src="/dena-app-logo.png" alt="دنا" width={55} height={33} priority />
           </Link>
           <div dir="ltr" className="order-2 flex items-center gap-2 lg:hidden">
-            <Link href="/student/notifications" className={"grid size-10 place-items-center rounded-xl hover:bg-dena-bg " + (notificationsActive ? "bg-dena-lavender text-dena-brand" : "text-dena-muted")} aria-label="اعلان‌های پشتیبانی" aria-current={notificationsActive ? "page" : undefined}>
+            <Link href={hrefFor("/student/notifications", demo)} className={"grid size-10 place-items-center rounded-xl hover:bg-dena-bg " + (notificationsActive ? "bg-dena-lavender text-dena-brand" : "text-dena-muted")} aria-label="اعلان‌های پشتیبانی" aria-current={notificationsActive ? "page" : undefined}>
               <Icon name="bell" />
             </Link>
             <Link
-              href="/student/elite-club"
+              href={hrefFor("/student/elite-club", demo)}
               className={
                 "grid size-10 place-items-center rounded-xl " +
                 (eliteActive ? "bg-dena-lavender text-dena-brand" : "text-dena-muted")
@@ -209,7 +212,7 @@ export function StudentShell({ active, title, children }: Props) {
             </Link>
           </div>
           <h1 className="hidden text-lg font-extrabold text-dena-ink md:text-xl lg:order-1 lg:block">{title}</h1>
-          <Link href="/student/notifications" className={"hidden size-10 place-items-center rounded-xl hover:bg-dena-bg lg:order-2 lg:grid " + (notificationsActive ? "bg-dena-lavender text-dena-brand" : "text-dena-muted")} aria-label="اعلان‌های پشتیبانی" aria-current={notificationsActive ? "page" : undefined}>
+          <Link href={hrefFor("/student/notifications", demo)} className={"hidden size-10 place-items-center rounded-xl hover:bg-dena-bg lg:order-2 lg:grid " + (notificationsActive ? "bg-dena-lavender text-dena-brand" : "text-dena-muted")} aria-label="اعلان‌های پشتیبانی" aria-current={notificationsActive ? "page" : undefined}>
             <Icon name="bell" />
           </Link>
         </header>
@@ -219,7 +222,7 @@ export function StudentShell({ active, title, children }: Props) {
         </main>
       </div>
 
-      <MobileNavigation active={active} />
+      <MobileNavigation active={active} demo={demo} />
     </div>
   );
 }

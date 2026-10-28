@@ -53,11 +53,11 @@ export function SupportNotifications() {
 
   return (
     <section aria-labelledby="support-notification-heading" className="space-y-3">
-      <h2 id="support-notification-heading" className="text-lg font-bold">اعلان‌های پشتیبانی</h2>
+      <h2 id="support-notification-heading" className="text-lg font-bold">اعلان‌های اخیر</h2>
       {error && <p role="alert" className="text-sm text-red-700">اعلان‌ها بارگذاری یا به‌روزرسانی نشدند.</p>}
       {loaded && items.length === 0 ? (
         <p className="rounded-xl border border-dena-border bg-white p-4 text-sm text-dena-muted">
-          اعلان تازه‌ای نداری.
+          اعلان جدیدی نداری. همه‌چیز بروز است؛ پیام‌های تازهٔ پشتیبانی اینجا نمایش داده می‌شوند.
         </p>
       ) : (
         <ul className="space-y-2">

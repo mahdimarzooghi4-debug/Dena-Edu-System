@@ -114,6 +114,10 @@ export default async function CourseTeamMemberPage({
                 درخواست جلسه فقط زمانی فعال است که مؤسسه مسئول این امکان را
                 برای همین پشتیبان و همین دوره روشن کرده باشد.
               </p>
+              <Link href={`/student/courses/${encodeURIComponent(courseId)}/team/${encodeURIComponent(teamMemberId)}/problem-solving`}
+                className={buttonClassName("outline")}>
+                مشاهده فهرست جلسه‌ها و درخواست‌ها
+              </Link>
 
               {problemSolving.requestsEnabled ? (
                 <div className="mt-5">

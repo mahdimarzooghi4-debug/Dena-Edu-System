@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { StudentShell } from "@/components/student/student-shell";
@@ -17,13 +18,16 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function StudentAssessmentsPage() {
+export default async function StudentAssessmentsPage({
+  searchParams,
+}: { searchParams: Promise<{ courseId?: string; status?: string }> }) {
   if (!process.env.DATABASE_URL || !process.env.BETTER_AUTH_SECRET ||
       !process.env.BETTER_AUTH_URL) redirect("/login");
   const actor = await getServerAccessContext();
   if (!actor) redirect("/login");
   if (!actor.memberships.some((entry) => entry.role === "student")) notFound();
 
+  const query = await searchParams;
   const [overview, courseResult, examResult] = await Promise.all([
     getStudentProgressOverview(actor.userId),
     getStudentDashboardCourses(actor.userId),
@@ -43,11 +47,80 @@ export default async function StudentAssessmentsPage() {
     } })),
   );
   const practices = overview.courses.filter((course) => course.practice.state !== "not_available");
+  const allowedStatuses = ["all", "done", "pending", "ready"] as const;
+  const status = allowedStatuses.includes(query.status as typeof allowedStatuses[number])
+    ? query.status as typeof allowedStatuses[number] : "all";
+  const courseId = courseResult.courses.some((course) => course.courseId === query.courseId)
+    ? query.courseId ?? "" : "";
+  const assessmentState = (assessment: (typeof assessmentGroups)[number]["assessment"]) => {
+    const latest = assessment.attempts.at(-1);
+    if (latest?.outcome === "completed") return "done";
+    if (latest?.status === "in_progress" || latest?.outcome === "needs_review") return "pending";
+    return "ready";
+  };
+  const examState = (exam: NonNullable<typeof examResult>["exams"][number]) =>
+    exam.attemptStatus === "submitted" ? "done" : exam.canStart ? "ready" : "pending";
+  const visibleAssessments = assessmentGroups.filter(({ course, assessment }) =>
+    (!courseId || course.courseId === courseId) &&
+    (status === "all" || assessmentState(assessment) === status));
+  const visiblePractices = practices.filter((course) =>
+    (!courseId || course.courseId === courseId) &&
+    (status === "all" ||
+      (status === "done" && course.practice.state === "answered") ||
+      (status === "ready" && course.practice.state === "not_attempted")));
+  const visibleExams = (examResult?.exams ?? []).filter((exam) =>
+    (!courseId || exam.courseId === courseId) &&
+    (status === "all" || examState(exam) === status));
+  const statusHref = (nextStatus: typeof allowedStatuses[number]) => {
+    const params = new URLSearchParams();
+    if (courseId) params.set("courseId", courseId);
+    if (nextStatus !== "all") params.set("status", nextStatus);
+    const queryString = params.toString();
+    return `/student/assessments${queryString ? `?${queryString}` : ""}`;
+  };
 
   return (
     <StudentShell active="assessments" title="تمرین‌ها و آزمون‌ها">
       <div className="space-y-6">
-        {(examResult?.exams.length ?? 0) > 0 && (
+        <section className="rounded-[22px] bg-dena-lavender px-6 py-7 md:px-8">
+          <p className="text-sm font-bold text-dena-brand">تمرین‌ها و آزمون‌ها</p>
+          <h2 className="mt-2 text-2xl font-extrabold text-dena-deep md:text-3xl">
+            فعالیت‌های آموزشی دوره‌هایت را اینجا دنبال کن.
+          </h2>
+          <p className="mt-2 max-w-3xl text-sm leading-8 text-dena-muted">
+            ارزیابی‌های تأییدشدهٔ هر دوره و تمرین‌های فعال همین‌جا نمایش داده می‌شوند.
+            آزمون سراسری یک فرایند جداگانه است و در این بخش شبیه‌سازی نمی‌شود.
+          </p>
+        </section>
+
+        <form action="/student/assessments" method="get" className="rounded-[22px] border border-dena-border bg-white p-4 md:p-5">
+          <input type="hidden" name="status" value={status} />
+          <div className="flex flex-wrap items-end gap-4">
+            <label className="min-w-56 flex-1 text-sm font-bold text-dena-deep">
+              دوره
+              <select name="courseId" defaultValue={courseId}
+                className="mt-2 min-h-11 w-full rounded-xl border border-dena-border bg-white px-3 text-sm font-normal">
+                <option value="">همه دوره‌ها</option>
+                {courseResult.courses.map((course) => <option key={course.courseId} value={course.courseId}>{course.title}</option>)}
+              </select>
+            </label>
+            <button type="submit" className="min-h-11 rounded-xl bg-dena-brand px-5 text-sm font-bold text-white">اعمال فیلتر</button>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2" aria-label="فیلتر وضعیت فعالیت">
+            {([
+              ["all", "همه"],
+              ["ready", "آماده انجام"],
+              ["pending", "در انتظار"],
+              ["done", "انجام‌شده"],
+            ] as const).map(([value, label]) => <Link key={value} href={statusHref(value)}
+              aria-current={status === value ? "page" : undefined}
+              className={`rounded-full px-4 py-2 text-sm font-bold ${status === value ? "bg-dena-brand text-white" : "border border-dena-border bg-white text-dena-muted"}`}>
+              {label}
+            </Link>)}
+          </div>
+        </form>
+
+        {visibleExams.length > 0 && (
           <section className="space-y-4" aria-labelledby="scheduled-exams-title">
             <div>
               <p className="text-sm font-bold text-dena-brand">دو مدل آزمون مستقل از ارزیابی یادگیری</p>
@@ -56,26 +129,17 @@ export default async function StudentAssessmentsPage() {
               </h2>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
-              {examResult!.exams.map((exam) => <StudentExamCard key={exam.id} exam={exam} />)}
+              {visibleExams.map((exam) => <StudentExamCard key={exam.id} exam={exam} />)}
             </div>
           </section>
         )}
-        <section className="rounded-[22px] bg-dena-lavender px-6 py-7 md:px-8">
-          <p className="text-sm font-bold text-dena-brand">ارزیابی‌های من</p>
-          <h2 className="mt-2 text-2xl font-extrabold text-dena-deep md:text-3xl">
-            تمرین‌ها و ارزیابی‌های قابل دسترس
-          </h2>
-          <p className="mt-2 max-w-3xl text-sm leading-8 text-dena-muted">
-            ارزیابی‌های تأییدشدهٔ هر دوره و تمرین‌های فعال همین‌جا نمایش داده می‌شوند.
-            آزمون سراسری یک فرایند جداگانه است و در این بخش شبیه‌سازی نمی‌شود.
-          </p>
-        </section>
 
-        {assessmentGroups.length > 0 && (
+
+        {visibleAssessments.length > 0 && (
           <section className="space-y-4" aria-labelledby="learning-assessments-title">
             <h2 id="learning-assessments-title" className="text-xl font-extrabold text-dena-deep">ارزیابی یادگیری دوره</h2>
             <div className="grid gap-4 md:grid-cols-2">
-              {assessmentGroups.map(({ course, assessment }) => (
+              {visibleAssessments.map(({ course, assessment }) => (
                 <div key={assessment.id} className="space-y-2">
                   <p className="px-1 text-xs font-bold text-dena-muted">دوره: {course.title}</p>
                   <LearningAssessmentCard courseId={course.courseId} assessment={assessment} />
@@ -85,11 +149,11 @@ export default async function StudentAssessmentsPage() {
           </section>
         )}
 
-        {practices.length > 0 && (
+        {visiblePractices.length > 0 && (
           <section className="space-y-4" aria-labelledby="course-practices-title">
             <h2 id="course-practices-title" className="text-xl font-extrabold text-dena-deep">تمرین‌های دوره</h2>
             <ul className="grid gap-4 md:grid-cols-2">
-              {practices.map((course) => (
+              {visiblePractices.map((course) => (
                 <li key={course.courseId}>
                   <Card className="h-full rounded-[22px] p-6">
                     <p className="text-xs font-bold text-dena-brand">تمرین دوره</p>
@@ -111,7 +175,7 @@ export default async function StudentAssessmentsPage() {
           </section>
         )}
 
-        {assessmentGroups.length === 0 && practices.length === 0 && (
+        {visibleAssessments.length === 0 && visiblePractices.length === 0 && visibleExams.length === 0 && (
           <Card className="rounded-[22px] p-6">
             <h2 className="text-lg font-extrabold">فعلاً ارزیابی قابل دسترسی ندارید</h2>
             <p className="mt-2 text-sm leading-7 text-dena-muted">
