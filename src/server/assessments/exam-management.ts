@@ -432,6 +432,9 @@ export async function getStudentExamCatalog(studentUserId: string) {
       endsAt: assessmentExams.endsAt, durationMinutes: assessmentExams.durationMinutes,
       attemptLimit: assessmentExams.attemptLimit, status: assessmentExams.status,
       questionCount: assessmentExamQuestions.id,
+      courseId: sql.raw("NULL").mapWith({
+        mapFromDriverValue: (value) => value === null ? null : String(value),
+      }),
       courseTitle: sql.raw("NULL").mapWith({
         mapFromDriverValue: (value) => value === null ? null : String(value),
       }),
@@ -450,7 +453,7 @@ export async function getStudentExamCatalog(studentUserId: string) {
         instructions: assessmentExams.instructions, startsAt: assessmentExams.startsAt,
         endsAt: assessmentExams.endsAt, durationMinutes: assessmentExams.durationMinutes,
         attemptLimit: assessmentExams.attemptLimit, status: assessmentExams.status,
-        questionCount: assessmentExamQuestions.id, courseTitle: courses.title,
+        questionCount: assessmentExamQuestions.id, courseId: assessmentExams.courseId, courseTitle: courses.title,
       }).from(assessmentExams).innerJoin(courses, eq(courses.id, assessmentExams.courseId))
         .leftJoin(assessmentExamQuestions, eq(assessmentExamQuestions.examId, assessmentExams.id))
         .where(and(
@@ -475,7 +478,7 @@ export async function getStudentExamCatalog(studentUserId: string) {
     const attempt = latestAttempt.get(exam.id);
     const inProgress = attempt?.status === "in_progress";
     return {
-      id: exam.id, title: exam.title, instructions: exam.instructions,
+      id: exam.id, title: exam.title, instructions: exam.instructions, courseId: exam.courseId,
       startsAt: exam.startsAt, endsAt: exam.endsAt,
       durationMinutes: exam.durationMinutes, attemptLimit: exam.attemptLimit,
       status: exam.status,
