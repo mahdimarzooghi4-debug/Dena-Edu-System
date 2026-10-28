@@ -83,6 +83,17 @@ export default async function StudentAssessmentsPage({
   return (
     <StudentShell active="assessments" title="تمرین‌ها و آزمون‌ها">
       <div className="space-y-6">
+        <section className="rounded-[22px] bg-dena-lavender px-6 py-7 md:px-8">
+          <p className="text-sm font-bold text-dena-brand">تمرین‌ها و آزمون‌ها</p>
+          <h2 className="mt-2 text-2xl font-extrabold text-dena-deep md:text-3xl">
+            فعالیت‌های آموزشی دوره‌هایت را اینجا دنبال کن.
+          </h2>
+          <p className="mt-2 max-w-3xl text-sm leading-8 text-dena-muted">
+            ارزیابی‌های تأییدشدهٔ هر دوره و تمرین‌های فعال همین‌جا نمایش داده می‌شوند.
+            آزمون سراسری یک فرایند جداگانه است و در این بخش شبیه‌سازی نمی‌شود.
+          </p>
+        </section>
+
         <form action="/student/assessments" method="get" className="rounded-[22px] border border-dena-border bg-white p-4 md:p-5">
           <input type="hidden" name="status" value={status} />
           <div className="flex flex-wrap items-end gap-4">
@@ -123,16 +134,7 @@ export default async function StudentAssessmentsPage({
             </div>
           </section>
         )}
-        <section className="rounded-[22px] bg-dena-lavender px-6 py-7 md:px-8">
-          <p className="text-sm font-bold text-dena-brand">تمرین‌ها و آزمون‌ها</p>
-          <h2 className="mt-2 text-2xl font-extrabold text-dena-deep md:text-3xl">
-            فعالیت‌های آموزشی دوره‌هایت را اینجا دنبال کن.
-          </h2>
-          <p className="mt-2 max-w-3xl text-sm leading-8 text-dena-muted">
-            ارزیابی‌های تأییدشدهٔ هر دوره و تمرین‌های فعال همین‌جا نمایش داده می‌شوند.
-            آزمون سراسری یک فرایند جداگانه است و در این بخش شبیه‌سازی نمی‌شود.
-          </p>
-        </section>
+
 
         {visibleAssessments.length > 0 && (
           <section className="space-y-4" aria-labelledby="learning-assessments-title">
