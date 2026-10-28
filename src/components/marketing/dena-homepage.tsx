@@ -185,7 +185,7 @@ export function DenaHomepage() {
         <div className="network-copy">
           <span className="eyebrow">همراهی در مسیر یادگیری</span>
           <h2>استعدادها در کنار هم شکوفا می‌شوند</h2>
-          <p>دانش‌آموز، مؤسسه، ارائه‌دهنده و حامی در یک مسیر روشن و مسئولانه کنار هم قرار می‌گیرند.</p>
+          <p>دنا یک بازارگاه جدا از فرایند یادگیری نیست؛ بلکه بستری یکپارچه برای اتصال دانش‌آموز، مؤسسات آموزشی، ارائه‌دهندگان و حامیان است. مسئولیت آموزش، ارزیابی و همراهی تحصیلی با مؤسسه یا ارائه‌دهندهٔ مربوط است و دنا بستر اتصال و پیگیری مسیر یادگیری را فراهم می‌کند.</p>
           <Link className="dena-button dena-button--primary" href="#roles">آشنایی با دنا</Link>
         </div>
       </section>
@@ -226,7 +226,7 @@ export function DenaHomepage() {
       </section>
 
       <section className="dena-section dena-institute-cta">
-        <div><span className="eyebrow">همکاری با دنا</span><h2>مؤسسهٔ آموزشی هستید؟ به اکوسیستم ما بپیوندید</h2><p>دوره‌های خود را ساختارمند ارائه کنید و مسیر یادگیری دانش‌آموزان را همراهی کنید.</p></div>
+        <div><span className="eyebrow">همکاری با دنا</span><h2>مؤسسهٔ آموزشی هستید؟ به اکوسیستم دنا بپیوندید</h2><p>دوره‌های آفلاین خود را با هویت مؤسسه منتشر کنید؛ قیمت‌گذاری، ارزیابی و همراهی آموزشی را مدیریت کنید و مسیر رشد دانش‌آموزان را در یک بستر یکپارچه دنبال کنید.</p></div>
         <div className="dena-institute-cta__actions"><Link className="dena-button dena-button--primary" href="/institutes/request">ثبت‌نام مؤسسه</Link><Link className="dena-button dena-button--outline" href="/institutes/collaboration">دربارهٔ همکاری</Link></div>
       </section>
 
