@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, max } from "drizzle-orm";
 import { getDb } from "../../db";
 import {
   coursePracticeQuestions, courses, privateMediaAssets, studentEnrollments,
@@ -22,6 +22,7 @@ export async function getStudentProgressOverview(studentUserId: string) {
     enrolledAt: studentEnrollments.enrolledAt,
     readyVideos: count(privateMediaAssets.id),
     markedVideos: count(studentVideoCompletions.id),
+    lastVideoActivityAt: max(studentVideoCompletions.completedAt),
   }).from(studentEnrollments)
     .innerJoin(courses, eq(courses.id, studentEnrollments.courseId))
     .innerJoin(supervisionGrants, eq(supervisionGrants.courseId, courses.id))
@@ -58,6 +59,20 @@ export async function getStudentProgressOverview(studentUserId: string) {
       visibleRows.map((row) => row.courseId)),
     eq(coursePracticeQuestions.reviewStatus, "approved"),
   )) : [];
+  const weekCutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const [weeklyVideoRow] = visibleRows.length ? await db.select({
+    total: count(studentVideoCompletions.id),
+  }).from(studentVideoCompletions).innerJoin(privateMediaAssets, and(
+    eq(privateMediaAssets.id, studentVideoCompletions.assetId),
+    eq(privateMediaAssets.status, "ready"),
+  )).where(and(
+    eq(studentVideoCompletions.studentUserId, studentUserId),
+    inArray(privateMediaAssets.courseId, visibleRows.map((row) => row.courseId)),
+    gte(studentVideoCompletions.completedAt, weekCutoff),
+  )) : [{ total: 0 }];
+  const weeklyPractices = new Set(approved.filter((row) =>
+    row.submittedAt !== null && row.submittedAt >= weekCutoff,
+  ).map((row) => row.courseId)).size;
   const practiceByCourse = new Map(approved.map((row) =>
     [row.courseId, row] as const));
   const visible = visibleRows.map((row) => {
@@ -78,6 +93,9 @@ export async function getStudentProgressOverview(studentUserId: string) {
       title: row.title,
       readyVideos: row.readyVideos,
       markedVideos: row.markedVideos,
+      lastActivityAt: [row.lastVideoActivityAt, practice?.submittedAt ?? null]
+        .filter((value): value is Date => value !== null)
+        .sort((a, b) => b.getTime() - a.getTime())[0]?.toISOString() ?? null,
       practice: practiceResult,
     };
   });
@@ -90,5 +108,7 @@ export async function getStudentProgressOverview(studentUserId: string) {
       row.practice.state !== "not_available").length,
     displayedAnsweredPractices: visible.filter((row) =>
       row.practice.state === "answered").length,
+    weeklyMarkedVideos: weeklyVideoRow.total,
+    weeklyAnsweredPractices: weeklyPractices,
   };
 }
