@@ -62,6 +62,7 @@ export function StudentDemoServiceCenter() {
   const [view, setView] = useState<"catalog" | "orders">("catalog");
   const [orders, setOrders] = useState<DemoOrder[]>([]);
   const [message, setMessage] = useState("");
+  const [nextOrderNumber, setNextOrderNumber] = useState(1);
 
   function requestService(service: Service) {
     if (orders.some((order) => order.serviceId === service.id && order.status !== "cancelled")) {
@@ -70,12 +71,13 @@ export function StudentDemoServiceCenter() {
       return;
     }
     const order: DemoOrder = {
-      id: `demo-${service.id}-${Date.now()}`,
+      id: `demo-${service.id}-${nextOrderNumber}`,
       serviceId: service.id,
       title: service.title,
       priceToman: service.priceToman,
       status: service.guardianConsentRequired ? "awaiting_guardian_consent" : "awaiting_payment",
     };
+    setNextOrderNumber((current) => current + 1);
     setOrders((current) => [order, ...current]);
     setMessage(service.guardianConsentRequired
       ? "درخواست نمونه فقط در همین صفحه ایجاد شد و تا تأیید مؤسسه دربارهٔ رضایت سرپرست متوقف می‌ماند."
