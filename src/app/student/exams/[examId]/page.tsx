@@ -66,6 +66,16 @@ export default async function StudentExamDetailsPage({
           هر پاسخ پس از انتخاب ذخیره می‌شود. با پایان زمان، پاسخ‌های ذخیره‌شده ثبت می‌شوند.
           {exam.attemptNumber !== null && <> تلاش {exam.attemptNumber.toLocaleString("fa-IR")} از {exam.attemptLimit.toLocaleString("fa-IR")}.</>}
         </p>
+        {exam.attemptStatus && exam.attemptStatus !== "in_progress" && exam.latestAttemptId && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-dena-lavender p-4">
+            <p className="text-sm font-bold text-dena-deep">
+              {exam.attemptStatus === "expired" ? "زمان تلاش قبلی پایان یافت" : "نتیجهٔ آخرین تلاش"}:
+              {" "}{exam.earnedPoints ?? 0} از {exam.totalPoints ?? exam.questionCount} امتیاز
+            </p>
+            <Link href={"/student/exams/" + encodeURIComponent(exam.id) + "/attempt/" + encodeURIComponent(exam.latestAttemptId)}
+              className="text-sm font-bold text-dena-brand hover:underline">دیدن نتیجه</Link>
+          </div>
+        )}
         {exam.attemptId ? <Link href={"/student/exams/" + encodeURIComponent(exam.id) + "/attempt/" + encodeURIComponent(exam.attemptId)}
           className="inline-flex min-h-11 items-center rounded-xl bg-dena-brand px-5 text-sm font-bold text-white hover:bg-dena-deep">ادامه آزمون</Link>
           : canStart ? <StudentExamStartAction examId={exam.id}
