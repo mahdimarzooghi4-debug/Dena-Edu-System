@@ -196,7 +196,68 @@ function AiTutor() {
   </div>;
 }
 
-function GenericDemo({ section }: { section: keyof typeof pages }) {
+function GrowthDemo() {
+  const attempts = [
+    { label: "تلاش ۱", percent: 40 },
+    { label: "تلاش ۲", percent: 60 },
+    { label: "تلاش ۳", percent: 50 },
+    { label: "تلاش ۴", percent: 75 },
+  ];
+  const chartPoints = attempts.map((attempt, index) => ({
+    ...attempt,
+    x: 36 + index * 88,
+    y: 164 - attempt.percent * 1.2,
+  }));
+  const line = chartPoints.map((point) => `${point.x},${point.y}`).join(" ");
+
+  return (
+    <Card className="space-y-4 rounded-[22px] p-6 md:p-8">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-bold text-dena-brand">ریاضی پایه هفتم · ارزیابی نمونه</p>
+          <h2 className="mt-2 text-xl font-extrabold text-dena-deep">روند پاسخ‌های درست</h2>
+          <p className="mt-2 text-sm leading-7 text-dena-muted">درصد پاسخ درست در تلاش‌های همین ارزیابی</p>
+        </div>
+        <div className="rounded-xl bg-dena-lavender px-4 py-3">
+          <p className="text-xs text-dena-muted">آخرین تلاش</p>
+          <p className="mt-1 text-xl font-extrabold text-dena-brand">۷۵٪</p>
+        </div>
+      </div>
+      <div className="overflow-x-auto">
+        <svg
+          viewBox="0 0 390 210"
+          role="img"
+          aria-label="روند پاسخ درست در چهار تلاش از همین ارزیابی: ۴۰، ۶۰، ۵۰ و ۷۵ درصد"
+          className="min-w-[350px] w-full"
+        >
+          {[44, 104, 164].map((y, index) => (
+            <g key={y}>
+              <line x1="28" y1={y} x2="370" y2={y} className="stroke-dena-border" strokeDasharray="4 6" />
+              <text x="378" y={y + 4} textAnchor="end" className="fill-dena-muted text-[11px]">
+                {index === 0 ? "۱۰۰٪" : index === 1 ? "۵۰٪" : "۰٪"}
+              </text>
+            </g>
+          ))}
+          <polyline points={line} className="fill-none stroke-dena-brand" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+          {chartPoints.map((point) => (
+            <g key={point.label}>
+              <circle cx={point.x} cy={point.y} r="6" className="fill-dena-mint stroke-white" strokeWidth="2" />
+              <text x={point.x} y="192" textAnchor="middle" className="fill-dena-muted text-[11px]">{point.label}</text>
+            </g>
+          ))}
+        </svg>
+      </div>
+      <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs leading-6 text-amber-950">
+        اعداد نمودار نمونه‌اند. در نسخهٔ واقعی، هر روند فقط برای همان ارزیابی نمایش داده می‌شود؛ این درصد نمرهٔ رسمی یا اثبات یادگیری نیست و تفاوت نسخه‌های سؤال می‌تواند بر روند اثر بگذارد.
+      </p>
+      <Link href="/student-demo/assessments" className={buttonClassName("outline")}>رفتن به تمرین‌ها و آزمون‌ها</Link>
+    </Card>
+  );
+}
+
+function GenericDfunction GenericDemo({ section }: { section: keyof typeof pages }) {
+  if (section === "growth") return <GrowthDemo />;
+
   const contents: Partial<Record<keyof typeof pages, { title: string; description: string; values: string[] }>> = {
     assessments: { title: "تمرین‌ها و آزمون‌ها", description: "فعالیت‌های زیر برای نمایش رابط ساخته شده‌اند.", values: ["تمرین نمونهٔ ریاضی · در انتظار پاسخ", "آزمون نمونهٔ علوم · شنبه، ساعت ۱۰:۰۰", "مرور درس چهارم · تکمیل‌شده"] },
     growth: { title: "مسیر رشد", description: "نمایش خلاصهٔ فعالیت درسی با داده‌های آزمایشی.", values: ["ریاضی پایه هفتم · ۸ از ۱۲ درس", "علوم تجربی پایه هفتم · ۵ از ۱۰ درس", "یادآوری: این درصدها واقعی نیستند"] },
