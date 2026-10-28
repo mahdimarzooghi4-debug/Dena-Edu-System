@@ -39,7 +39,7 @@ export default async function CourseWatchPage({
     getStudentCourseTeam(actor.userId, courseId),
   ]);
   const enabled = Boolean(configuredPrivateMediaOrigin());
-  const teacherName = team.find((member) => member.role === "teacher")?.name ?? null;
+  const teacherName = (team ?? []).find((member) => member.role === "teacher")?.name ?? null;
   const providerName = detail.providerName ?? detail.responsibleInstituteName;
 
   return (
