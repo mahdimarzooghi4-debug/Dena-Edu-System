@@ -1088,12 +1088,12 @@ test.describe("free enrollment and private video access must stay course-scoped"
       new RegExp(`/student/courses/${ids.live}/watch$`),
     );
     await page.goto("http://localhost:3000/student");
-    await expect(page.getByRole("heading", { name: "ادامه یادگیری در دوره‌ها" })).toBeVisible();
+    await expect(page.locator("#student-home-title")).toBeVisible();
     await expect(page.locator("#student-continue-course")).toHaveText(
       "دوره رایگان با محتوای خصوصی",
     );
     await page.getByRole("link", {
-      name: "پیگیری یادگیری",
+      name: "مشاهده مسیر رشد",
     }).click();
     await expect(page).toHaveURL(/\/student\/progress$/);
     await expect(page.getByRole("heading", {
