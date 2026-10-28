@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "../ui/button";
@@ -88,6 +89,10 @@ export function StudentExamAttempt({ examId, attempt }: { examId: string; attemp
     <h2 className="mt-2 text-xl font-extrabold text-dena-deep">نتیجهٔ شما</h2>
     <p className="mt-3 text-lg">{attempt.earnedPoints ?? 0} از {attempt.totalPoints ?? attempt.questions.length} امتیاز</p>
     <p className="mt-2 text-sm text-dena-muted">تعداد پاسخ درست: {attempt.correctCount ?? 0}</p>
+    <div className="mt-5 flex flex-wrap gap-4">
+      <Link href={"/student/exams/" + encodeURIComponent(examId)} className="text-sm font-bold text-dena-brand hover:underline">بازگشت به جزئیات آزمون</Link>
+      <Link href="/student/growth" className="text-sm font-bold text-dena-brand hover:underline">رفتن به مسیر رشد</Link>
+    </div>
   </section>;
 
   const minutes = Math.floor(seconds / 60);
