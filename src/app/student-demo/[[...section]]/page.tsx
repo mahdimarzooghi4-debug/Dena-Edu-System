@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { buttonClassName } from "@/components/ui/button";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { DemoPracticeCard } from "@/components/student-demo/practice-card";
+import { StudentDemoServiceCenter } from "@/components/student-demo/service-center";
 
 type StudentSection =
   | "home" | "aiTutor" | "courses" | "assessments" | "growth"
@@ -257,6 +258,7 @@ function GrowthDemo() {
 
 function GenericDemo({ section }: { section: keyof typeof pages }) {
   if (section === "growth") return <GrowthDemo />;
+  if (section === "services") return <StudentDemoServiceCenter />;
 
   const contents: Partial<Record<keyof typeof pages, { title: string; description: string; values: string[] }>> = {
     assessments: { title: "تمرین‌ها و آزمون‌ها", description: "فعالیت‌های زیر برای نمایش رابط ساخته شده‌اند.", values: ["تمرین نمونهٔ ریاضی · در انتظار پاسخ", "آزمون نمونهٔ علوم · شنبه، ساعت ۱۰:۰۰", "مرور درس چهارم · تکمیل‌شده"] },
