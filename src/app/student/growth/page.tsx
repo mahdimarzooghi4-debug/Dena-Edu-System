@@ -6,6 +6,7 @@ import { StudentShell } from "../../../components/student/student-shell";
 import { getServerAccessContext } from "../../../server/access/actor";
 import { getStudentAssessmentGrowth } from "../../../server/student/growth-trend";
 import { getStudentProgressOverview } from "../../../server/student/progress-overview";
+import { getStudentExamCatalog } from "../../../server/assessments/exam-management";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -109,10 +110,13 @@ export default async function StudentGrowthPage() {
   if (!actor) redirect("/login");
   if (!actor.memberships.some((entry) => entry.role === "student")) notFound();
 
-  const [series, progress] = await Promise.all([
+  const [series, progress, examCatalog] = await Promise.all([
     getStudentAssessmentGrowth(actor.userId),
     getStudentProgressOverview(actor.userId),
+    getStudentExamCatalog(actor.userId),
   ]);
+  const completedExams = examCatalog?.exams.filter((exam) =>
+    exam.attemptStatus === "submitted" || exam.attemptStatus === "expired") ?? [];
   return (
     <StudentShell active="growth" title="مسیر رشد">
       <div className="space-y-6">
@@ -168,6 +172,32 @@ export default async function StudentGrowthPage() {
             علامت تکمیل فقط انتخاب خود دانش‌آموز است و زمان تماشا، یادگیری یا نمرهٔ رسمی را اثبات نمی‌کند.
           </p>
         </section>
+
+        {completedExams.length > 0 && (
+          <section className="space-y-4" aria-labelledby="student-growth-exams">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2 id="student-growth-exams" className="text-xl font-extrabold text-dena-deep">نتایج آزمون‌های برنامه‌ریزی‌شده</h2>
+                <p className="mt-1 text-sm text-dena-muted">آخرین نتیجهٔ ثبت‌شدهٔ هر آزمون در این بخش پیوند دارد.</p>
+              </div>
+              <Link href="/student/assessments" className="text-sm font-bold text-dena-brand hover:underline">همه آزمون‌ها</Link>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              {completedExams.slice(0, 4).map((exam) => (
+                <Card key={exam.id} className="space-y-3 rounded-[22px] p-5">
+                  <p className="text-xs font-bold text-dena-brand">{exam.courseTitle ?? "آزمون هماهنگ دنا"}</p>
+                  <h3 className="font-extrabold text-dena-deep">{exam.title}</h3>
+                  <p className="text-sm text-dena-muted">
+                    {exam.attemptStatus === "expired" ? "زمان آزمون به پایان رسید" : "نتیجهٔ آخرین تلاش"}
+                    {exam.earnedPoints !== null && <> · {exam.earnedPoints} از {exam.totalPoints ?? exam.questionCount} امتیاز</>}
+                  </p>
+                  <Link href={"/student/exams/" + encodeURIComponent(exam.id)}
+                    className="text-sm font-bold text-dena-brand hover:underline">مشاهده آزمون و نتیجه</Link>
+                </Card>
+              ))}
+            </div>
+          </section>
+        )}
 
         {series.length === 0 ? (
           <Card className="space-y-3 rounded-[22px] p-6 md:p-8">
