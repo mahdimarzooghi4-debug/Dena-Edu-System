@@ -21,6 +21,7 @@ export const metadata: Metadata = {
 
 export default async function CourseWatchPage({
   params,
+  searchParams,
 }: { params: Promise<{ courseId: string }>; searchParams: Promise<{ video?: string }> }) {
   if (!process.env.DATABASE_URL || !process.env.BETTER_AUTH_SECRET ||
       !process.env.BETTER_AUTH_URL) redirect("/login");
