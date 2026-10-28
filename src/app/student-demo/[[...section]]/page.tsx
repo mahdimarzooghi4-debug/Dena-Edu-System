@@ -5,69 +5,197 @@ import { Card } from "@/components/ui/card";
 import { buttonClassName } from "@/components/ui/button";
 import { SectionHeading } from "@/components/ui/section-heading";
 
-const pages = {
-  home: { title: "خانه من", active: "home" as const },
-  courses: { title: "دوره‌های من", active: "courses" as const },
-  assessments: { title: "تمرین‌ها و آزمون‌ها", active: "assessments" as const },
-  growth: { title: "مسیر رشد", active: "growth" as const },
-  "elite-club": { title: "باشگاه نخبگان", active: "elite" as const },
-  profile: { title: "پروفایل کاربری", active: "account" as const },
-  services: { title: "مرکز خدمات", active: "services" as const },
-  notifications: { title: "اعلان‌ها", active: "notifications" as const },
+type StudentSection =
+  | "home" | "aiTutor" | "courses" | "assessments" | "growth"
+  | "elite" | "account" | "services" | "notifications";
+
+type DemoCourse = {
+  id: string;
+  title: string;
+  provider: string;
+  done: number;
+  total: number;
+  lessons: string[];
 };
 
-const demoCourses = [
-  { title: "ریاضی پایه هفتم", provider: "مؤسسهٔ نمونهٔ دنا", done: 8, total: 12 },
-  { title: "علوم تجربی پایه هفتم", provider: "مؤسسهٔ نمونهٔ دنا", done: 5, total: 10 },
+const demoCourses: DemoCourse[] = [
+  {
+    id: "math-7",
+    title: "ریاضی پایه هفتم",
+    provider: "مؤسسهٔ نمونهٔ دنا",
+    done: 8,
+    total: 12,
+    lessons: ["عددهای صحیح", "عددهای گویا", "جبر و معادله", "هندسه و ترسیم"],
+  },
+  {
+    id: "science-7",
+    title: "علوم تجربی پایه هفتم",
+    provider: "مؤسسهٔ نمونهٔ دنا",
+    done: 5,
+    total: 10,
+    lessons: ["تجربه و تفکر", "اندازه‌گیری در علوم", "اتم‌ها و مواد", "انرژی و تبدیل‌ها"],
+  },
 ];
 
+const teamRoles = [
+  { id: "teacher", title: "مدرس", name: "خانم رضایی", detail: "آموزش و محتوای دوره" },
+  { id: "supporter", title: "پشتیبان تحصیلی", name: "آقای محمدی", detail: "رفع اشکال و پیگیری یادگیری" },
+  { id: "counselor", title: "مشاور", name: "خانم احمدی", detail: "راهنمایی در چارچوب خدمات مؤسسه" },
+] as const;
+
+const pages: Record<string, { title: string; active: StudentSection }> = {
+  home: { title: "خانه من", active: "home" },
+  courses: { title: "دوره‌های من", active: "courses" },
+  "ai-tutor": { title: "معلم هوشمند", active: "aiTutor" },
+  assessments: { title: "تمرین‌ها و آزمون‌ها", active: "assessments" },
+  growth: { title: "مسیر رشد", active: "growth" },
+  "elite-club": { title: "باشگاه نخبگان", active: "elite" },
+  profile: { title: "پروفایل کاربری", active: "account" },
+  services: { title: "مرکز خدمات", active: "services" },
+  notifications: { title: "اعلان‌ها", active: "notifications" },
+};
+
 function DemoNotice() {
-  return <div className="mb-5 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
-    حالت نمایش اپ دانش‌آموز · داده‌ها نمونه‌اند و هیچ حساب یا پروندهٔ واقعی متصل نیست.
-  </div>;
+  return (
+    <div className="mb-5 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
+      حالت نمایش اپ دانش‌آموز · داده‌ها نمونه‌اند و هیچ حساب یا پروندهٔ واقعی متصل نیست.
+    </div>
+  );
 }
 
 function Home() {
-  return <div className="space-y-7">
-    <section className="rounded-[22px] bg-dena-lavender px-6 py-7 md:px-8">
-      <p className="text-sm font-bold text-dena-brand">خانه من در دنا</p>
-      <h2 className="mt-2 text-[26px] font-extrabold leading-relaxed text-dena-deep md:text-[31px]">سلام، دانش‌آموز نمونه 👋</h2>
-      <p className="mt-2 max-w-3xl text-sm leading-8 text-dena-muted">یادگیری‌ات را از همین‌جا ادامه بده؛ دوره‌ها و فعالیت‌های این صفحه برای نمایش رابط ساخته شده‌اند.</p>
-      <div className="mt-5 flex flex-wrap gap-3">
-        <Link href="/student-demo/courses" className={buttonClassName()}>دوره‌های من</Link>
-        <Link href="/student-demo/growth" className={buttonClassName("outline")}>مسیر رشد</Link>
-        <Link href="/student-demo/assessments" className={buttonClassName("outline")}>تمرین‌ها و آزمون‌ها</Link>
-      </div>
-    </section>
-    <section className="space-y-4">
-      <SectionHeading id="demo-learning-overview" note="اطلاعات آزمایشی برای نمایش رابط">نمای کلی یادگیری</SectionHeading>
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="p-[22px]"><p className="text-[13px] text-dena-muted">دوره‌های من</p><p className="mt-2 text-[29px] font-extrabold text-dena-brand">۲</p><p className="mt-1 text-xs text-dena-muted">دورهٔ نمونه</p></Card>
-        <Card className="p-[22px]"><p className="text-[13px] text-dena-muted">تمرین‌های باز</p><p className="mt-2 text-[29px] font-extrabold text-dena-deep">۳</p><p className="mt-1 text-xs text-dena-muted">فعالیت نمونه</p></Card>
-        <Card className="p-[22px]"><p className="text-[13px] text-dena-muted">میانگین فعالیت</p><p className="mt-2 text-[29px] font-extrabold text-dena-deep">۶۵٪</p><p className="mt-1 text-xs text-dena-muted">عدد نمایشی</p></Card>
-      </div>
-    </section>
-    <section className="space-y-4">
-      <SectionHeading id="demo-courses" note="محتوا و پیشرفت صرفاً نمونه است">ادامهٔ یادگیری</SectionHeading>
-      <div className="grid gap-4 md:grid-cols-2">
-        {demoCourses.map((course) => <Card key={course.title} className="space-y-4 rounded-[22px] p-6">
-          <div><p className="text-sm font-bold text-dena-brand">{course.provider}</p><h3 className="mt-2 text-lg font-extrabold text-dena-deep">{course.title}</h3></div>
-          <div className="flex justify-between text-xs text-dena-muted"><span>درس‌های تکمیل‌شده</span><span>{course.done} از {course.total}</span></div>
-          <div className="h-2.5 overflow-hidden rounded-full bg-dena-lavender"><div className="h-full rounded-full bg-dena-mint" style={{ width: `${Math.round(course.done / course.total * 100)}%` }} /></div>
-          <Link href="/student-demo/courses" className={buttonClassName("outline")}>دیدن دوره‌ها</Link>
-        </Card>)}
-      </div>
-    </section>
-    <Card className="border-dena-lavender"><h2 className="font-bold text-dena-deep">آزمون پیش رو</h2><p className="mt-2 text-sm leading-7 text-dena-muted">آزمون نمونهٔ ریاضی · شنبه، ساعت ۱۰:۰۰</p><Link href="/student-demo/assessments" className="mt-4 inline-flex text-sm font-bold text-dena-brand">مشاهدهٔ تمرین‌ها و آزمون‌ها ←</Link></Card>
-  </div>;
+  return (
+    <div className="space-y-7">
+      <section className="rounded-[22px] bg-dena-lavender px-6 py-7 md:px-8">
+        <p className="text-sm font-bold text-dena-brand">خانه من در دنا</p>
+        <h2 className="mt-2 text-[26px] font-extrabold leading-relaxed text-dena-deep md:text-[31px]">
+          سلام، دانش‌آموز نمونه 👋
+        </h2>
+        <p className="mt-2 max-w-3xl text-sm leading-8 text-dena-muted">
+          یادگیری‌ات را از همین‌جا ادامه بده؛ دوره‌ها و فعالیت‌های این صفحه برای نمایش رابط ساخته شده‌اند.
+        </p>
+        <div className="mt-5 flex flex-wrap gap-3">
+          <Link href="/student-demo/courses" className={buttonClassName()}>دوره‌های من</Link>
+          <Link href="/student-demo/ai-tutor" className={buttonClassName("outline")}>معلم هوشمند</Link>
+          <Link href="/student-demo/growth" className={buttonClassName("outline")}>مسیر رشد</Link>
+          <Link href="/student-demo/assessments" className={buttonClassName("outline")}>تمرین‌ها و آزمون‌ها</Link>
+        </div>
+      </section>
+      <section className="space-y-4">
+        <SectionHeading id="demo-learning-overview" note="اطلاعات آزمایشی برای نمایش رابط">نمای کلی یادگیری</SectionHeading>
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card className="p-[22px]"><p className="text-[13px] text-dena-muted">دوره‌های من</p><p className="mt-2 text-[29px] font-extrabold text-dena-brand">۲</p><p className="mt-1 text-xs text-dena-muted">دورهٔ نمونه</p></Card>
+          <Card className="p-[22px]"><p className="text-[13px] text-dena-muted">تمرین‌های باز</p><p className="mt-2 text-[29px] font-extrabold text-dena-deep">۳</p><p className="mt-1 text-xs text-dena-muted">فعالیت نمونه</p></Card>
+          <Card className="p-[22px]"><p className="text-[13px] text-dena-muted">میانگین فعالیت</p><p className="mt-2 text-[29px] font-extrabold text-dena-deep">۶۵٪</p><p className="mt-1 text-xs text-dena-muted">عدد نمایشی</p></Card>
+        </div>
+      </section>
+      <section className="space-y-4">
+        <SectionHeading id="demo-courses" note="محتوا و پیشرفت صرفاً نمونه است">ادامهٔ یادگیری</SectionHeading>
+        <div className="grid gap-4 md:grid-cols-2">
+          {demoCourses.map((course) => (
+            <Card key={course.id} className="space-y-4 rounded-[22px] p-6">
+              <div><p className="text-sm font-bold text-dena-brand">{course.provider}</p><h3 className="mt-2 text-lg font-extrabold text-dena-deep">{course.title}</h3></div>
+              <div className="flex justify-between text-xs text-dena-muted"><span>درس‌های تکمیل‌شده</span><span>{course.done} از {course.total}</span></div>
+              <div className="h-2.5 overflow-hidden rounded-full bg-dena-lavender"><div className="h-full rounded-full bg-dena-mint" style={{ width: `${Math.round(course.done / course.total * 100)}%` }} /></div>
+              <Link href={`/student-demo/courses/${course.id}`} className={buttonClassName("outline")}>بازکردن دوره</Link>
+            </Card>
+          ))}
+        </div>
+      </section>
+      <Card className="border-dena-lavender"><h2 className="font-bold text-dena-deep">آزمون پیش رو</h2><p className="mt-2 text-sm leading-7 text-dena-muted">آزمون نمونهٔ ریاضی · شنبه، ساعت ۱۰:۰۰</p><Link href="/student-demo/assessments" className="mt-4 inline-flex text-sm font-bold text-dena-brand">مشاهدهٔ تمرین‌ها و آزمون‌ها ←</Link></Card>
+    </div>
+  );
 }
 
 function CourseList() {
-  return <div className="space-y-6"><section className="rounded-[22px] bg-dena-lavender p-6"><h2 className="text-2xl font-extrabold text-dena-deep">دوره‌های من</h2><p className="mt-2 text-sm text-dena-muted">فهرست دوره‌ها در این دموی نمایشی نمونه است.</p></section><div className="grid gap-4 md:grid-cols-2">{demoCourses.map((course) => <Card key={course.title} className="space-y-4"><div><p className="text-xs font-bold text-dena-brand">{course.provider}</p><h3 className="mt-2 font-extrabold">{course.title}</h3></div><p className="text-sm text-dena-muted">{course.total} درس · {course.done} درس تکمیل‌شده در دادهٔ نمونه</p><Link href="/student-demo" className={buttonClassName()}>بازگشت به خانه</Link></Card>)}</div></div>;
+  return (
+    <div className="space-y-6">
+      <section className="rounded-[22px] bg-dena-lavender p-6">
+        <h2 className="text-2xl font-extrabold text-dena-deep">دوره‌های من</h2>
+        <p className="mt-2 text-sm text-dena-muted">فهرست و جزئیات این دوره‌ها در این دموی نمایشی نمونه‌اند.</p>
+      </section>
+      <div className="grid gap-4 md:grid-cols-2">
+        {demoCourses.map((course) => (
+          <Card key={course.id} className="space-y-4 rounded-[22px] p-6">
+            <div><p className="text-xs font-bold text-dena-brand">{course.provider}</p><h3 className="mt-2 font-extrabold">{course.title}</h3></div>
+            <p className="text-sm text-dena-muted">{course.total} درس · {course.done} درس تکمیل‌شده در دادهٔ نمونه</p>
+            <Link href={`/student-demo/courses/${course.id}`} className={buttonClassName()}>جزئیات دوره و درس‌ها</Link>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CourseDetail({ course }: { course: DemoCourse }) {
+  return (
+    <div className="space-y-6">
+      <Link href="/student-demo/courses" className="text-sm font-bold text-dena-brand hover:underline">بازگشت به دوره‌های من</Link>
+      <Card className="space-y-5 rounded-[22px] p-6 md:p-8">
+        <div><p className="text-sm font-bold text-dena-brand">{course.provider}</p><h2 className="mt-2 text-2xl font-extrabold text-dena-deep">{course.title}</h2><p className="mt-2 text-sm text-dena-muted">صفحهٔ جزئیات نمونه · {course.done} از {course.total} درس انجام‌شده</p></div>
+        <Link href={`/student-demo/courses/${course.id}/team`} className={buttonClassName("outline")}>تیم آموزشی دوره</Link>
+      </Card>
+      <section className="space-y-4">
+        <SectionHeading id="demo-lessons" note="درس‌ها برای نمایش ساخته شده‌اند">فهرست درس‌ها</SectionHeading>
+        <ol className="space-y-3">
+          {course.lessons.map((lesson, index) => (
+            <li key={lesson}><Link href={`/student-demo/courses/${course.id}/lessons/${index + 1}`} className="flex items-center justify-between gap-4 rounded-2xl border border-dena-border bg-white p-4 hover:border-dena-brand"><span><span className="text-xs text-dena-muted">درس {index + 1}</span><span className="mt-1 block font-bold text-dena-ink">{lesson}</span></span><span className="text-sm font-bold text-dena-brand">مشاهده ←</span></Link></li>
+          ))}
+        </ol>
+      </section>
+    </div>
+  );
+}
+
+function LessonDetail({ course, lessonNumber }: { course: DemoCourse; lessonNumber: number }) {
+  const lesson = course.lessons[lessonNumber - 1];
+  if (!lesson) notFound();
+  return (
+    <div className="space-y-5">
+      <Link href={`/student-demo/courses/${course.id}`} className="text-sm font-bold text-dena-brand hover:underline">بازگشت به دوره</Link>
+      <Card className="space-y-4 rounded-[22px] p-6 md:p-8">
+        <p className="text-xs font-bold text-dena-brand">{course.title} · درس {lessonNumber}</p>
+        <h2 className="text-2xl font-extrabold text-dena-deep">{lesson}</h2>
+        <div className="grid aspect-video place-items-center rounded-[22px] bg-dena-deep text-white"><div className="text-center"><span className="text-4xl">▶</span><p className="mt-3 text-sm">ویدئوی نمونه؛ پخش در این دمو فعال نیست.</p></div></div>
+        <p className="text-sm leading-7 text-dena-muted">این صفحه فقط برای مرور چیدمان درس است و محتوای آموزشی واقعی ندارد.</p>
+      </Card>
+    </div>
+  );
+}
+
+function CourseTeam({ course }: { course: DemoCourse }) {
+  return (
+    <div className="space-y-5">
+      <Link href={`/student-demo/courses/${course.id}`} className="text-sm font-bold text-dena-brand hover:underline">بازگشت به جزئیات دوره</Link>
+      <section className="rounded-[22px] bg-dena-lavender p-6"><p className="text-sm font-bold text-dena-brand">{course.title}</p><h2 className="mt-2 text-2xl font-extrabold text-dena-deep">تیم آموزشی دوره</h2><p className="mt-2 text-sm leading-7 text-dena-muted">اعضا و راه‌های ارتباطی زیر نمونه‌اند و به افراد واقعی وصل نیستند.</p></section>
+      <div className="grid gap-4 md:grid-cols-3">
+        {teamRoles.map((member) => <Card key={member.id} className="space-y-4 rounded-[22px] p-5"><div><p className="text-xs font-bold text-dena-brand">{member.title}</p><h3 className="mt-2 text-lg font-extrabold">{member.name}</h3><p className="mt-2 text-sm text-dena-muted">{member.detail}</p></div><Link href={`/student-demo/courses/${course.id}/team/${member.id}`} className={buttonClassName("outline")}>مشاهده و ارتباط</Link></Card>)}
+      </div>
+    </div>
+  );
+}
+
+function TeamMember({ course, roleId, conversation }: { course: DemoCourse; roleId: string; conversation: boolean }) {
+  const member = teamRoles.find((item) => item.id === roleId);
+  if (!member) notFound();
+  return (
+    <div className="space-y-5">
+      <Link href={`/student-demo/courses/${course.id}/team`} className="text-sm font-bold text-dena-brand hover:underline">بازگشت به تیم آموزشی</Link>
+      <Card className="space-y-4 rounded-[22px] p-6 md:p-8"><p className="text-sm font-bold text-dena-brand">{member.title} · {course.title}</p><h2 className="text-2xl font-extrabold text-dena-deep">{member.name}</h2><p className="text-sm leading-7 text-dena-muted">{member.detail}. این عضو فقط در محدودهٔ همین دوره نمایش داده می‌شود.</p><Link href={`/student-demo/courses/${course.id}/team/${member.id}/conversation`} className={buttonClassName()}>گفت‌وگو</Link></Card>
+      {conversation && <Card className="space-y-4 rounded-[22px] p-6"><h3 className="font-extrabold">گفت‌وگوی نمونه</h3><div className="space-y-3 text-sm leading-7"><p className="w-fit max-w-[85%] rounded-2xl bg-dena-bg p-4">سلام، برای این مبحث راهنمایی می‌خواهم.</p><p className="mr-auto w-fit max-w-[85%] rounded-2xl bg-dena-lavender p-4">سلام! لطفاً بگو کدام بخش درس برایت دشوار است.</p></div><p className="border-t border-dena-border pt-3 text-xs text-dena-muted">پیام‌ها نمونه‌اند؛ ارسال پیام در حالت نمایش فعال نیست.</p></Card>}
+    </div>
+  );
+}
+
+function AiTutor() {
+  return <div className="space-y-6">
+    <section className="rounded-[22px] bg-dena-lavender p-6 md:p-8"><p className="text-sm font-bold text-dena-brand">همراه یادگیری دنا</p><h2 className="mt-2 text-2xl font-extrabold text-dena-deep">معلم هوشمند</h2><p className="mt-2 text-sm leading-7 text-dena-muted">این گفت‌وگو برای نمایش رابط است و به مدل هوش مصنوعی یا اطلاعات واقعی دانش‌آموز وصل نیست.</p></section>
+    <Card className="space-y-4 rounded-[22px] p-6"><p className="w-fit max-w-[90%] rounded-2xl bg-dena-bg p-4 text-sm leading-7">چطور عدد منفی را در عدد منفی ضرب کنم؟</p><p className="mr-auto w-fit max-w-[90%] rounded-2xl bg-dena-lavender p-4 text-sm leading-7">در ضرب دو عدد منفی، حاصل مثبت می‌شود. برای نمونه، (−۳) × (−۲) = ۶. این پاسخ یک نمونهٔ نمایشی است.</p><div className="border-t border-dena-border pt-4"><p className="text-xs text-dena-muted">ارسال پرسش در نسخهٔ نمایشی فعال نیست.</p></div></Card>
+  </div>;
 }
 
 function GenericDemo({ section }: { section: keyof typeof pages }) {
-  const contents: Record<string, { title: string; description: string; values: string[] }> = {
+  const contents: Partial<Record<keyof typeof pages, { title: string; description: string; values: string[] }>> = {
     assessments: { title: "تمرین‌ها و آزمون‌ها", description: "فعالیت‌های زیر برای نمایش رابط ساخته شده‌اند.", values: ["تمرین نمونهٔ ریاضی · در انتظار پاسخ", "آزمون نمونهٔ علوم · شنبه، ساعت ۱۰:۰۰", "مرور درس چهارم · تکمیل‌شده"] },
     growth: { title: "مسیر رشد", description: "نمایش خلاصهٔ فعالیت درسی با داده‌های آزمایشی.", values: ["ریاضی پایه هفتم · ۸ از ۱۲ درس", "علوم تجربی پایه هفتم · ۵ از ۱۰ درس", "یادآوری: این درصدها واقعی نیستند"] },
     "elite-club": { title: "باشگاه نخبگان", description: "پوستهٔ نمایشی باشگاه دانش‌آموزان.", values: ["برنامه‌های علمی", "رویدادهای آموزشی", "جزئیات عضویت در نسخهٔ عملیاتی"] },
@@ -83,10 +211,32 @@ function GenericDemo({ section }: { section: keyof typeof pages }) {
 export default async function StudentDemoPage({ params }: { params: Promise<{ section?: string[] }> }) {
   const { section: path = [] } = await params;
   const pageKey = path.length ? path.join("/") : "home";
-  if (!(pageKey in pages)) notFound();
-  const page = pages[pageKey as keyof typeof pages];
-  return <StudentShell active={page.active} title={page.title} demo>
-    <DemoNotice />
-    {pageKey === "home" ? <Home /> : pageKey === "courses" ? <CourseList /> : <GenericDemo section={pageKey as keyof typeof pages} />}
-  </StudentShell>;
+  const page = pages[path[0] === "courses" ? "courses" : pageKey];
+  if (!page) notFound();
+
+  const course = path[0] === "courses" ? demoCourses.find((item) => item.id === path[1]) : undefined;
+  const isCoursePath = path[0] === "courses";
+  if (isCoursePath && path.length > 1 && !course) notFound();
+
+  let content;
+  if (pageKey === "home") content = <Home />;
+  else if (pageKey === "courses" && path.length === 1) content = <CourseList />;
+  else if (isCoursePath && path.length === 2 && course) content = <CourseDetail course={course} />;
+  else if (isCoursePath && path[2] === "lessons" && path.length === 4 && course) {
+    const lessonNumber = Number(path[3]);
+    if (!Number.isInteger(lessonNumber) || lessonNumber < 1) notFound();
+    content = <LessonDetail course={course} lessonNumber={lessonNumber} />;
+  } else if (isCoursePath && path[2] === "team" && path.length === 3 && course) content = <CourseTeam course={course} />;
+  else if (isCoursePath && path[2] === "team" && path.length === 4 && course) content = <TeamMember course={course} roleId={path[3]} conversation={false} />;
+  else if (isCoursePath && path[2] === "team" && path.length === 5 && path[4] === "conversation" && course) content = <TeamMember course={course} roleId={path[3]} conversation />;
+  else if (pageKey === "ai-tutor") content = <AiTutor />;
+  else if (path.length === 1) content = <GenericDemo section={pageKey as keyof typeof pages} />;
+  else notFound();
+
+  const title = pageKey === "ai-tutor" ? "معلم هوشمند" :
+    isCoursePath && path[2] === "team" ? path[3] ? "تیم آموزشی دوره" : "تیم آموزشی دوره" :
+    isCoursePath && path[2] === "lessons" ? "درس دوره" :
+    course ? course.title : page.title;
+
+  return <StudentShell active={page.active} title={title} demo><DemoNotice />{content}</StudentShell>;
 }
