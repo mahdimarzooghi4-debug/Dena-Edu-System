@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Card } from "../../../components/ui/card";
 import { StudentShell } from "../../../components/student/student-shell";
@@ -121,10 +122,7 @@ export default async function StudentGrowthPage() {
             روند یادگیری‌ات را در طول زمان ببین
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-8 text-dena-muted">
-            درصد پاسخ درست از تلاش‌های ثبت‌شدهٔ خودت محاسبه می‌شود و فقط در
-            همان ارزیابی مقایسه می‌شود. برای مقایسه، فرض شده نسخه‌های تصادفی
-            سؤال‌ها دشواری هم‌تراز دارند؛ این روند به‌تنهایی اثبات یادگیری یا
-            نمرهٔ رسمی نیست.
+پیشرفت جلسات آموزشی، تمرین‌ها، نتایج آزمون‌ها و عملکرد درسی در کنار هم نمایش داده می‌شوند. نمودار ارزیابی‌ها فقط تلاش‌های ثبت‌شدهٔ خودت را در همان ارزیابی مقایسه می‌کند و نمرهٔ رسمی نیست.
           </p>
         </section>
 
