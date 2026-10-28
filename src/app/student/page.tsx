@@ -51,7 +51,7 @@ async function loadHomeCourse(studentId: string, course: {
   const videos = entitled ? await getStudentVideoProgress(studentId, course.courseId) : [];
   const firstUnmarked = videos.findIndex((video) => !video.completed);
   const currentIndex = firstUnmarked >= 0 ? firstUnmarked : Math.max(0, videos.length - 1);
-  return { ...course, detail, entitled, videos, currentVideo: videos[currentIndex] ?? null, currentIndex };
+  return { ...course, detail, entitled, videos, currentVideo: videos[currentIndex] ?? null, currentIndex, totalVideos: detail?.readyVideoCount ?? course.readyVideos };
 }
 
 function examActivityLabel(exam: StudentExamCardData) {
@@ -120,7 +120,7 @@ export default async function StudentHomePage() {
               {featuredCourse.currentVideo ? <div className="space-y-1">
                 <span className="inline-flex rounded-full bg-dena-lavender px-3 py-1.5 text-sm font-bold text-dena-brand">{featuredCourse.currentVideo.title}</span>
                 <p className="text-sm text-dena-muted">
-                  جلسه { (featuredCourse.currentIndex + 1).toLocaleString("fa-IR") } از {featuredCourse.videos.length.toLocaleString("fa-IR")}
+                  جلسه { (featuredCourse.currentIndex + 1).toLocaleString("fa-IR") } از {featuredCourse.totalVideos.toLocaleString("fa-IR")}
                 </p>
               </div> : <p className="text-sm text-dena-muted">جلسهٔ آماده‌ای برای ادامه وجود ندارد.</p>}
             </div>
@@ -174,7 +174,7 @@ export default async function StudentHomePage() {
                     <div>
                       <h3 className="font-extrabold text-dena-deep">{course.title}</h3>
                       <p className="mt-1 text-xs text-dena-muted">
-                        جلسه {course.videos.length ? (course.currentIndex + 1).toLocaleString("fa-IR") : "—"} از {course.videos.length.toLocaleString("fa-IR")}
+                        جلسه {course.videos.length ? (course.currentIndex + 1).toLocaleString("fa-IR") : "—"} از {course.totalVideos.toLocaleString("fa-IR")}
                       </p>
                     </div>
                     <p className="min-h-6 text-sm text-dena-deep">{course.currentVideo?.title ?? "جلسهٔ آماده‌ای برای نمایش نیست"}</p>
@@ -216,10 +216,12 @@ export default async function StudentHomePage() {
               این هفته: {progress.weeklyMarkedVideos.toLocaleString("fa-IR")} جلسه را خودت تکمیل‌شده علامت زدی / {progress.weeklyAnsweredPractices.toLocaleString("fa-IR")} تمرین پاسخ دادی
             </p>
             <p className="mt-2 text-xs leading-6 text-dena-muted">علامت جلسه خوداظهاری است؛ تماشای کامل یا یادگیری را اثبات نمی‌کند.</p>
-            <div className="mt-5 rounded-full bg-dena-lavender p-1" aria-hidden="true">
-              <div className="h-2 rounded-full bg-dena-brand" style={{ width: progress.weeklyMarkedVideos + progress.weeklyAnsweredPractices > 0 ? "100%" : "0%" }} />
+            <div className="mt-5 space-y-2">
+              <div role="progressbar" aria-label="درصد جلسه‌هایی که در دوره‌های در دسترس خودت تکمیل‌شده علامت زده‌ای" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progressPercent(progress.displayedMarkedVideos, progress.displayedReadyVideos)} className="h-2 overflow-hidden rounded-full bg-dena-lavender">
+                <div className="h-full rounded-full bg-dena-brand" style={{ width: `${progressPercent(progress.displayedMarkedVideos, progress.displayedReadyVideos)}%` }} />
+              </div>
+              <p className="text-xs font-semibold text-dena-brand">پیشرفت کلی دوره‌ها</p>
             </div>
-            <p className="mt-2 text-xs font-semibold text-dena-brand">پیشرفت این هفته</p>
           </section>
         </div>
 
