@@ -176,10 +176,14 @@ export default async function StudentCourseDetailPage({
               <p className="text-xs leading-6 text-dena-muted">
                 درصد پیشرفت بر پایهٔ علامت‌های اختیاری خودت است و اثبات تماشا یا نمرهٔ رسمی نیست.
               </p>
-              {videos[0] && <Link href={`/student/courses/${courseId}/watch?video=${encodeURIComponent(videos.find((video) => !video.completed)?.assetId ?? videos[0].assetId)}`}
-                className={buttonClassName()}>
-                ادامه یادگیری
-              </Link>}
+              {videos[0] && (() => {
+                const nextVideo = videos.find((video) => !video.completed) ?? videos[0];
+                return <Link id="next-unmarked-video" href={`/student/courses/${courseId}/watch?video=${encodeURIComponent(nextVideo.assetId)}`}
+                  className={buttonClassName()}>
+                  <span>ادامه یادگیری</span>
+                  <span className="sr-only">جلسه بعدی: {nextVideo.title}</span>
+                </Link>;
+              })()}
             </Card>
 
             <section aria-labelledby="course-assessments-title" className="space-y-3">
