@@ -8,6 +8,7 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { DemoPracticeCard } from "@/components/student-demo/practice-card";
 import { StudentDemoServiceCenter } from "@/components/student-demo/service-center";
 import { StudentDemoSupportNotifications } from "@/components/student-demo/support-notifications";
+import { EliteClubDemo } from "@/components/student-demo/elite-club";
 
 type StudentSection =
   | "home" | "aiTutor" | "courses" | "assessments" | "growth"
@@ -356,7 +357,7 @@ function GenericDemo({ section }: { section: keyof typeof pages }) {
 export default async function StudentDemoPage({ params }: { params: Promise<{ section?: string[] }> }) {
   const { section: path = [] } = await params;
   const pageKey = path.length ? path.join("/") : "home";
-  const page = pages[path[0] === "courses" ? "courses" : path[0] === "assessments" ? "assessments" : pageKey];
+  const page = pages[path[0] === "courses" ? "courses" : path[0] === "assessments" ? "assessments" : path[0] === "elite-club" ? "elite-club" : pageKey];
   if (!page) notFound();
 
   const course = path[0] === "courses" ? demoCourses.find((item) => item.id === path[1]) : undefined;
@@ -376,6 +377,7 @@ export default async function StudentDemoPage({ params }: { params: Promise<{ se
   else if (isCoursePath && path[2] === "team" && path.length === 5 && path[4] === "conversation" && course) content = <TeamMember course={course} roleId={path[3]} conversation />;
   else if (path[0] === "assessments" && path[1] === "math-7-practice" && path.length === 2) content = <DemoPracticeCard />;
   else if (pageKey === "ai-tutor") content = <AiTutor />;
+  else if (path[0] === "elite-club") content = <EliteClubDemo path={path.slice(1)} />;
   else if (path.length === 1) content = <GenericDemo section={pageKey as keyof typeof pages} />;
   else notFound();
 
