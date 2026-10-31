@@ -30,7 +30,7 @@ export default async function EducationalRequestSubmittedPage({
             </p>
           </div>
           <Link
-            href="/student-demo/elite-club/education"
+            href={`/student-demo/elite-club/education/${opportunityId}/pending`}
             className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[#5b4ce2] px-6 text-[15px] font-medium text-white hover:bg-[#4c3fd0]"
           >
             فهمیدم
