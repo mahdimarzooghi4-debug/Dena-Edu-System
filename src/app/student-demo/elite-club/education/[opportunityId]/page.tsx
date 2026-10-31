@@ -88,7 +88,7 @@ export default async function EducationalOpportunityDetailPage({
 
         <div className="flex flex-col items-center gap-3 pt-1">
           <Link
-            href={`/student-demo/elite-club/education/${opportunity.slug}/register`}
+            href={`/student-demo/elite-club/education/${opportunity.slug}/request-submitted`}
             className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[#5b4ce2] px-6 text-[15px] font-medium text-white hover:bg-[#4c3fd0] lg:w-40"
           >
             ثبت‌نام در آموزش
