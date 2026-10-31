@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "باشگاه نخبگان | دنا",
 const opportunities = [
   { title: "حمایت تدریس", description: "فرصت‌های فعالیت اعضای باشگاه به‌عنوان پشتیبان تحصیلی در آموزشگاه‌ها." },
   { title: "حمایت آموزشی", description: "آموزش‌ها و فرصت‌های غیردرسی برای رشد و توسعه اعضای باشگاه.", href: "/student/elite-club/educational-support" },
-  { title: "حمایت کسب‌وکار", description: "فرصت‌ها و حمایت‌های مرتبط با مسیرهای کسب‌وکار اعضای باشگاه." },
+  { title: "حمایت کسب‌وکار", description: "فرصت‌ها و حمایت‌های مرتبط با مسیرهای کسب‌وکار اعضای باشگاه.", href: "/student/elite-club/business-support" },
   { title: "حمایت رفاهی", description: "حمایت‌ها و خدمات رفاهی تعریف‌شده برای اعضای باشگاه.", href: "/student/elite-club/welfare-support" },
 ];
 
