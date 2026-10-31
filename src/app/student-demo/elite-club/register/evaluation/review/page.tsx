@@ -33,6 +33,12 @@ function EvaluationSuccess() {
       <p className="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-6 text-amber-900">
         این فقط نمایش پیش‌نمایش است؛ پاسخ‌ها به پروندهٔ واقعی ارسال یا ذخیره نشده‌اند.
       </p>
+      <Link
+        href="/student-demo/elite-club/evaluation/pending"
+        className="mt-6 inline-flex min-h-11 items-center justify-center rounded-xl bg-dena-brand px-6 text-sm font-semibold text-white hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dena-brand"
+      >
+        مشاهدهٔ وضعیت باشگاه
+      </Link>
     </section>
   );
 }
