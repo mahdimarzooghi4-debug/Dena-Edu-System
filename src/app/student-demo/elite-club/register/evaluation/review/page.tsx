@@ -9,6 +9,7 @@ const answers = ["۱", "۲", "۳", "۴", "۵", "۶"];
 
 export default function EliteClubEvaluationReviewPreviewPage() {
   const [notice, setNotice] = useState("");
+  const [showConfirm, setShowConfirm] = useState(false);
   return (
     <StudentShell active="elite" title="باشگاه نخبگان" demo>
       <div className="mx-auto flex min-h-[65vh] w-full max-w-3xl flex-col gap-5" dir="rtl">
@@ -50,7 +51,7 @@ export default function EliteClubEvaluationReviewPreviewPage() {
 
           <button
             type="button"
-            onClick={() => setNotice("ثبت نهایی ارزیابی در پیش‌نمایش انجام نمی‌شود و هیچ پاسخی ارسال یا ذخیره نشده است.")}
+            onClick={() => setShowConfirm(true)}
             className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-dena-brand px-6 text-sm font-medium text-white hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dena-brand"
           >
             ثبت نهایی ارزیابی
@@ -58,6 +59,47 @@ export default function EliteClubEvaluationReviewPreviewPage() {
           {notice && <p role="status" className="text-sm leading-6 text-dena-muted">{notice}</p>}
         </Card>
       </div>
+
+      {showConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-end bg-black/45"
+          onClick={() => setShowConfirm(false)}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="evaluation-submit-title"
+            className="w-full rounded-t-[24px] bg-white px-6 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mx-auto mb-5 h-1 w-9 rounded-full bg-slate-300" aria-hidden="true" />
+            <div className="mx-auto max-w-md space-y-3 text-right">
+              <h2 id="evaluation-submit-title" className="text-lg font-extrabold text-dena-ink">ارزیابی ثبت شود؟</h2>
+              <p className="text-sm leading-7 text-dena-muted">پس از ثبت نهایی، پاسخ‌های این ارزیابی ارسال می‌شوند.</p>
+              <p className="text-xs leading-6 text-amber-800">در پیش‌نمایش، پاسخی ارسال یا ذخیره نمی‌شود.</p>
+              <div className="flex flex-col gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowConfirm(false);
+                    setNotice("ارسال نهایی در پیش‌نمایش انجام نشد؛ پاسخی به پروندهٔ واقعی نرفت.");
+                  }}
+                  className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-dena-brand px-6 text-sm font-medium text-white hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dena-brand"
+                >
+                  ثبت نهایی
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(false)}
+                  className="inline-flex h-12 w-full items-center justify-center rounded-xl border border-dena-border px-6 text-sm font-medium text-dena-ink hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dena-brand"
+                >
+                  بازگشت به ارزیابی
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
     </StudentShell>
   );
 }
