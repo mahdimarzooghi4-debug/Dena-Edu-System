@@ -85,11 +85,11 @@ export default function EliteClubMemberPreviewPage() {
           <h3 id="club-supports-title" className="text-lg font-bold leading-7 text-[#2b2544]">
             حمایت‌های باشگاه
           </h3>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-5">
+          <div dir="ltr" className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-5">
             {supportCards.map((card) => (
               <article
                 key={card.slug}
-                className={`flex flex-col gap-3 rounded-xl border border-[#e5e1ed] bg-white p-4 ${card.order}`}
+                dir="rtl" className={`flex min-h-[200px] flex-col gap-3 rounded-xl border border-[#e5e1ed] bg-white p-4 md:min-h-[200px] ${card.order}`}
               >
                 <header className="flex flex-row-reverse items-center justify-between">
                   <div className="flex size-10 items-center justify-center rounded-xl bg-[#f7f6fb]">
