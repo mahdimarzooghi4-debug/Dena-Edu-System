@@ -47,6 +47,19 @@ function Registration() {
  return <div className="mx-auto max-w-3xl space-y-5"><Card className="space-y-5 rounded-[22px] p-6 md:p-8"><p className="text-sm font-bold text-dena-brand">باشگاه نخبگان</p><h2 className="text-2xl font-extrabold text-dena-deep">ثبت‌نام در باشگاه نخبگان</h2><p className="text-sm leading-8 text-dena-muted">باشگاه نخبگان دنا فضایی برای رشد استعدادها، ارتباط و هم‌افزایی و شکل‌گیری فرصت‌های تازه است.</p><div className="rounded-2xl bg-dena-lavender p-5"><h3 className="font-bold text-dena-deep">پیش از ثبت‌نام</h3><p className="mt-2 text-sm leading-7 text-dena-muted">ثبت‌نام، آغاز فرایند ارزیابی عضویت در باشگاه است. لطفاً برای پاسخ به سؤال‌های ارزیابی صبور و دقیق باشید.</p></div><div className="flex flex-wrap gap-3"><Link href="/student-demo/elite-club" className={buttonClassName("outline")}>انصراف</Link><Link href="/student-demo/elite-club/registration/confirmation" className={buttonClassName()}>ثبت‌نام و ادامه</Link></div></Card></div>;
 }
 
+function EvaluationPending() {
+ return <section className="flex min-h-[65vh] w-full flex-col items-center justify-center gap-4 px-5 py-10 text-center" dir="rtl">
+  <h2 className="text-[22px] font-extrabold leading-normal text-[#241f2e] md:text-[28px]">باشگاه نخبگان</h2>
+  <p className="text-sm leading-6 text-[#757082] md:text-base">فضایی ویژه برای فرصت‌ها و مسیرهای رشد بیشتر در دنا.</p>
+  <p className="pt-2 text-sm leading-6 text-[#757082]">ارزیابی عضویت شما هنوز تکمیل نشده است.</p>
+  <div className="w-full max-w-[500px] space-y-2 rounded-xl border border-[#f2e0b2] bg-[#fffaed] p-5 text-[#757082] md:p-6">
+   <h3 className="text-[15px] font-bold leading-normal text-[#241f2e] md:text-base">در حال ارزیابی</h3>
+   <p className="text-[13px] leading-6 md:text-sm">ثبت‌نام شما انجام شده و ارزیابی عضویت در حال انجام است.<br />پس از تکمیل ارزیابی، نتیجه در همین بخش نمایش داده می‌شود.</p>
+  </div>
+  <p className="pt-1 text-xs leading-6 text-amber-800">این وضعیت نمونه است و به پروندهٔ واقعی متصل نیست.</p>
+ </section>;
+}
+
 function EvalPage({ step }: { step: string }) {
  const flow: Record<string,{title:string;desc:string;next:string;cta:string}> = {
   evaluation:{title:"ارزیابی عضویت",desc:"این ارزیابی نمونه برای نمایش مسیر طراحی‌شده در فیگماست. پاسخ‌ها ذخیره یا به سامانه ارسال نمی‌شوند.",next:"question/1",cta:"شروع ارزیابی"},
@@ -60,6 +73,7 @@ function EvalPage({ step }: { step: string }) {
   result:{title:"نتیجهٔ ارزیابی",desc:"این نمای نمونهٔ نتیجه است. نتیجهٔ واقعی عضویت فقط باید از سرویس رسمی دریافت شود.",next:"member",cta:"بازگشت به باشگاه"},
  };
  const item=flow[step];
+ if(step==="pending") return <EvaluationPending />;
  if(!item) return <ClubHome />;
  const href=item.next==="member"?"/student-demo/elite-club/member":`/student-demo/elite-club/evaluation/${item.next}`;
  return <div className="mx-auto max-w-3xl space-y-5"><Card className="space-y-5 rounded-[22px] p-6 md:p-8"><p className="text-sm font-bold text-dena-brand">باشگاه نخبگان · فرایند عضویت</p><h2 className="text-2xl font-extrabold text-dena-deep">{item.title}</h2><p className="text-sm leading-8 text-dena-muted">{item.desc}</p>{step.startsWith("question/")&&<div className="grid gap-3 sm:grid-cols-2">{["گزینهٔ اول", "گزینهٔ دوم", "گزینهٔ سوم", "گزینهٔ چهارم"].map((x,i)=><div key={i} className="rounded-xl border border-dena-border p-4 text-sm font-semibold">{x}</div>)}</div>}<div className="h-2 overflow-hidden rounded-full bg-dena-lavender"><div className="h-full rounded-full bg-dena-brand" style={{width:step.startsWith("question/")?`${Number(step.split("/")[1])*25}%`:step==="evaluation"?"8%":"100%"}}/></div><div className="flex flex-wrap gap-3"><Link href={href} className={buttonClassName()}>{item.cta}</Link><Link href="/student-demo/elite-club" className={buttonClassName("outline")}>بازگشت به باشگاه</Link></div></Card></div>;
