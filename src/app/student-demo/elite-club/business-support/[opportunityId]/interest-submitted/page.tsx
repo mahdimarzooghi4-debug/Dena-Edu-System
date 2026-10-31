@@ -25,7 +25,7 @@ export default async function BusinessSupportInterestSubmittedPreviewPage({
         </nav>
 
         <Card className="flex flex-1 flex-col items-center justify-center gap-5 rounded-2xl border border-dena-border p-6 text-center">
-          <div className="flex size-20 items-center justify-center rounded-full bg-dena-surface-soft">
+          <div className="flex size-20 items-center justify-center rounded-full bg-[#f7f6fb]">
             <svg aria-hidden="true" viewBox="0 0 40 40" className="size-10 text-dena-brand" fill="none">
               <circle cx="20" cy="20" r="15" stroke="currentColor" strokeWidth="2" />
               <path d="m13.5 20.5 4.2 4.2 9-9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
