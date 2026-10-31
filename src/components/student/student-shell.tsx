@@ -43,6 +43,7 @@ const desktopItems: ReadonlyArray<{
   icon: IconName;
 }> = [
   { key: "home", href: "/student", label: "خانه من", icon: "home" },
+  { key: "aiTutor", href: "/student/ai-tutor", label: "معلم هوشمند", icon: "sparkles" },
   { key: "courses", href: "/student/courses", label: "دوره‌های من", icon: "book" },
   { key: "assessments", href: "/student/assessments", label: "تمرین‌ها و آزمون‌ها", icon: "assessment" },
   { key: "growth", href: "/student/growth", label: "مسیر رشد", icon: "growth" },
