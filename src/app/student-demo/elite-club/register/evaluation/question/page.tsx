@@ -11,11 +11,11 @@ export default function EliteClubEvaluationQuestionPreviewPage() {
 
   function continuePreview(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setNotice(
-      answer.trim()
-        ? "پاسخ فقط در این پیش‌نمایش باقی می‌ماند و به پروندهٔ واقعی ارسال نمی‌شود."
-        : "برای ادامه، پاسخ خود را در کادر بنویسید."
-    );
+    if (!answer.trim()) {
+      setNotice("برای ادامه، پاسخ خود را در کادر بنویسید.");
+      return;
+    }
+    window.location.assign("/student-demo/elite-club/register/evaluation/review");
   }
 
   return (
