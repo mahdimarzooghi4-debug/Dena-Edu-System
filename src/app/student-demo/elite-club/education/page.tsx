@@ -43,7 +43,7 @@ export default function StudentEducationalSupportPage() {
         <ul className="space-y-3 lg:space-y-4">
           {workshops.map((workshop) => (
             <li key={workshop.slug}>
-              <article className="flex flex-col gap-3 rounded-2xl border border-[#e5e1ed] bg-white p-4 lg:min-h-[110px] lg:flex-row lg:items-center lg:justify-between lg:rounded-[20px] lg:p-6">
+              <article dir="ltr" className="flex flex-col gap-3 rounded-2xl border border-[#e5e1ed] bg-white p-4 lg:min-h-[110px] lg:flex-row lg:items-center lg:justify-between lg:rounded-[20px] lg:p-6">
                 <div dir="ltr" className="flex items-center justify-between gap-3 lg:justify-start lg:gap-5">
                   {workshop.available ? (
                     <Link
