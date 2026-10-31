@@ -47,6 +47,13 @@ export default function StudentBusinessSupportPreviewPage() {
             <li key={opportunity.id}>
               <Card className="flex min-h-[132px] flex-wrap items-center justify-between gap-5 rounded-[20px] p-5 md:p-6">
                 <div className="flex flex-wrap items-center gap-3">
+                  {opportunity.status === "فعال" ? (
+                    <Link href={`/student-demo/elite-club/business-support/${opportunity.id}`} className="text-sm font-semibold text-dena-brand hover:underline">
+                      مشاهده جزئیات
+                    </Link>
+                  ) : (
+                    <span className="text-sm text-dena-muted">مشاهده جزئیات</span>
+                  )}
                   <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-500">نمونه نمایشی</span>
                   <span className={`rounded-full px-3 py-1.5 text-xs font-semibold ${opportunity.statusClass}`}>{opportunity.status}</span>
                 </div>
@@ -60,7 +67,7 @@ export default function StudentBusinessSupportPreviewPage() {
         </ul>
 
         <p className="text-center text-xs leading-6 text-dena-muted">
-          جزئیات و ثبت درخواست پس از اتصال به فرصت‌های واقعی سامانه در دسترس قرار می‌گیرد.
+          ثبت درخواست پس از اتصال به فرایند واقعی فرصت‌ها در دسترس قرار می‌گیرد.
         </p>
       </div>
     </StudentShell>
