@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { StudentShell } from "@/components/student/student-shell";
 
-const answers = [1, 2, 3, 4, 5, 6];
+const answers = ["۱", "۲", "۳", "۴", "۵", "۶"];
 
 export default function EliteClubEvaluationReviewPreviewPage() {
   const [notice, setNotice] = useState("");
@@ -27,7 +27,7 @@ export default function EliteClubEvaluationReviewPreviewPage() {
               <li key={number} className="rounded-xl border border-dena-border bg-white p-3 sm:p-4">
                 <div className="flex items-center justify-between gap-3">
                   <h3 className="text-sm font-bold text-dena-ink">سؤال {number} ارزیابی عضویت</h3>
-                  {number === 3 ? (
+                  {number === "۳" ? (
                     <Link href="/student-demo/elite-club/register/evaluation/question" className="shrink-0 text-xs font-bold text-dena-brand hover:underline">
                       ویرایش پاسخ
                     </Link>
