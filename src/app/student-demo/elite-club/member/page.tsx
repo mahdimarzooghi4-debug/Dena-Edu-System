@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { StudentShell } from "@/components/student/student-shell";
 
@@ -93,7 +92,7 @@ export default function EliteClubMemberPreviewPage() {
               >
                 <header className="flex flex-row-reverse items-center justify-between">
                   <div className="flex size-10 items-center justify-center rounded-xl bg-[#f7f6fb]">
-                    <Image src={card.icon} width={20} height={20} alt="" />
+                    <img src={card.icon} width={20} height={20} alt="" />
                   </div>
                   <h4 className="text-right text-base font-bold leading-6 text-[#2b2544]">
                     {card.title}
