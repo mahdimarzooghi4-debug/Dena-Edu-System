@@ -40,15 +40,13 @@ export default async function StudentWelfareSupportDetailPreviewPage({
         <p className="rounded-xl border border-dena-border bg-white px-4 py-3 text-xs leading-6 text-dena-muted">
           پیش‌نمایش فیگما · اطلاعات و وضعیت‌ها نمایشی‌اند؛ چیزی در پروندهٔ واقعی ثبت نمی‌شود.
         </p>
-
         <nav aria-label="مسیر صفحه" className="flex flex-wrap items-center gap-2 text-sm">
           <span className="font-semibold text-dena-brand">جزئیات حمایت</span>
           <span aria-hidden="true" className="text-dena-muted">←</span>
-          <Link href="/student/elite-club/welfare-support" className="text-dena-muted hover:text-dena-brand">حمایت رفاهی</Link>
+          <Link href="/student-demo/elite-club/welfare-support" className="text-dena-muted hover:text-dena-brand">حمایت رفاهی</Link>
           <span aria-hidden="true" className="text-dena-muted">←</span>
-          <Link href="/student/elite-club" className="text-dena-muted hover:text-dena-brand">باشگاه نخبگان</Link>
+          <Link href="/student-demo/elite-club" className="text-dena-muted hover:text-dena-brand">باشگاه نخبگان</Link>
         </nav>
-
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-500">نمونه نمایشی</span>
@@ -56,7 +54,6 @@ export default async function StudentWelfareSupportDetailPreviewPage({
           </div>
           <h2 className="text-xl font-extrabold text-dena-ink md:text-[28px]">{support.title}</h2>
         </header>
-
         <Card className="space-y-4 rounded-[20px] p-5 md:p-6">
           {fields.map(([label, value]) => (
             <div key={label} className="border-b border-dena-border pb-4 text-right last:border-0 last:pb-0">
@@ -65,14 +62,13 @@ export default async function StudentWelfareSupportDetailPreviewPage({
             </div>
           ))}
         </Card>
-
         <div className="flex flex-wrap items-center justify-end gap-3">
           <p className="text-xs leading-6 text-dena-muted">این نمونه فقط برای بررسی ظاهر است و درخواستی ثبت نمی‌کند.</p>
           <button type="button" disabled className="min-h-11 cursor-not-allowed rounded-xl bg-dena-brand px-5 py-2 text-sm font-bold text-white opacity-60">
             درخواست حمایت
           </button>
         </div>
-        <Link href="/student/elite-club/welfare-support" className="inline-flex text-sm font-bold text-dena-brand hover:underline">
+        <Link href="/student-demo/elite-club/welfare-support" className="inline-flex text-sm font-bold text-dena-brand hover:underline">
           بازگشت به حمایت رفاهی
         </Link>
       </div>
