@@ -86,6 +86,21 @@ function Home() {
           <Link href="/student-demo/assessments" className={buttonClassName("outline")}>تمرین‌ها و آزمون‌ها</Link>
         </div>
       </section>
+      <Card className="flex flex-col gap-4 rounded-[20px] border-dena-border p-5 md:flex-row md:items-center md:justify-between md:gap-6 md:p-6">
+        <div className="min-w-0 space-y-3">
+          <span className="inline-flex rounded-full bg-dena-lavender px-3 py-1.5 text-xs font-bold text-dena-brand">در حال آماده‌سازی</span>
+          <div>
+            <h2 className="text-lg font-extrabold text-dena-deep">معلم هوشمند</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-7 text-dena-muted">
+              با داده‌های آموزشی دنا آغاز می‌شود و بعد با ویدئوهای مجاز دوره‌های تو، برای مسیر خودت رشد می‌کند.
+            </p>
+          </div>
+          <p className="text-xs leading-6 text-dena-muted">گفت‌وگو پس از آماده‌سازی و ارزیابی سرویس فعال می‌شود.</p>
+        </div>
+        <Link href="/student-demo/ai-tutor" className={buttonClassName("outline") + " shrink-0"}>
+          آشنایی با معلم هوشمند
+        </Link>
+      </Card>
       <section className="space-y-4">
         <SectionHeading id="demo-learning-overview" note="اطلاعات آزمایشی برای نمایش رابط">نمای کلی یادگیری</SectionHeading>
         <div className="grid gap-4 md:grid-cols-3">
