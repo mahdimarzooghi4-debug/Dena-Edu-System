@@ -12,10 +12,40 @@ const demoSupport = {
     type: "(تعیین‌شده توسط سیستم)",
     provider: "(تعیین‌شده توسط سیستم)",
     description: "توضیحات این حمایت در صورت تعریف در این بخش نمایش داده می‌شود.",
-    conditions: "شرایط استفاده از این حمایت در صورت تعریف در این بخش نمایش داده می‌شود.",
-    instructions: "نحوه استفاده از این حمایت در صورت تعریف در این بخش نمایش داده می‌شود.",
+    conditions: "شرایط استفاده در صورت تعریف در این بخش نمایش داده می‌شود.",
+    instructions: "نحوه استفاده در صورت تعریف در این بخش نمایش داده می‌شود.",
   },
 } as const;
+
+function StatusBadges({ status }: { status: string }) {
+  return (
+    <div dir="ltr" className="flex shrink-0 items-center gap-1.5 lg:gap-2">
+      <span className="inline-flex h-[25px] items-center rounded-full bg-[#ededf2] px-3 text-[11px] font-semibold leading-[17px] text-[#737380] lg:h-8 lg:px-4 lg:text-[13px] lg:leading-5">
+        نمونه نمایشی
+      </span>
+      <span className="inline-flex h-[25px] items-center rounded-full bg-[#e8f8f0] px-3 text-[11px] font-semibold leading-[17px] text-[#10b981] lg:h-8 lg:px-4 lg:text-[13px] lg:leading-5">
+        {status}
+      </span>
+    </div>
+  );
+}
+
+function InfoField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="shrink-0 space-y-1.5 text-right">
+      <p className="text-[13px] font-semibold leading-5 text-[#9ca3af] lg:text-sm lg:leading-[22px]">{label}</p>
+      <p className="text-[15px] font-normal leading-[22px] text-[#1f2937] lg:text-base lg:leading-[26px]">{value}</p>
+    </div>
+  );
+}
+
+function Divider() {
+  return (
+    <div className="h-px w-full shrink-0" aria-hidden="true">
+      <img src="/icons/elite-club/divider.svg" width="326" height="1" className="h-px w-full" alt="" />
+    </div>
+  );
+}
 
 export default async function StudentWelfareSupportDetailPreviewPage({
   params,
@@ -36,41 +66,56 @@ export default async function StudentWelfareSupportDetailPreviewPage({
 
   return (
     <StudentShell active="elite" title="باشگاه نخبگان" demo>
-      <div className="space-y-4">
-        <p className="rounded-xl border border-dena-border bg-white px-4 py-3 text-xs leading-6 text-dena-muted">
-          پیش‌نمایش فیگما · اطلاعات و وضعیت‌ها نمایشی‌اند؛ چیزی در پروندهٔ واقعی ثبت نمی‌شود.
-        </p>
-        <nav aria-label="مسیر صفحه" className="flex flex-wrap items-center gap-2 text-sm">
-          <span className="font-semibold text-dena-brand">جزئیات حمایت</span>
-          <span aria-hidden="true" className="text-dena-muted">←</span>
-          <Link href="/student-demo/elite-club/welfare-support" className="text-dena-muted hover:text-dena-brand">حمایت رفاهی</Link>
-          <span aria-hidden="true" className="text-dena-muted">←</span>
-          <Link href="/student-demo/elite-club" className="text-dena-muted hover:text-dena-brand">باشگاه نخبگان</Link>
+      <div
+        dir="rtl"
+        className="mt-6 flex flex-col gap-4 p-4 lg:-mx-10 lg:-mt-10 lg:gap-4 lg:px-10 lg:pb-10 lg:pt-4"
+      >
+        <nav
+          dir="ltr"
+          aria-label="مسیر صفحه"
+          className="flex h-5 shrink-0 items-center justify-end gap-2 whitespace-nowrap lg:h-[22px] lg:justify-start"
+        >
+          <span dir="rtl" className="text-[13px] text-[#6b7280] lg:text-sm">جزئیات حمایت</span>
+          <span aria-hidden="true" className="text-xs text-[#9ca3af]">←</span>
+          <Link href="/student-demo/elite-club/welfare-support" className="text-[13px] text-[#6b7280] hover:text-[#5b4ce2] lg:text-sm">
+            حمایت رفاهی
+          </Link>
+          <span aria-hidden="true" className="text-xs text-[#9ca3af]">←</span>
+          <Link href="/student-demo/elite-club" className="text-[13px] text-[#5b4ce2] hover:underline lg:text-sm">
+            باشگاه نخبگان
+          </Link>
         </nav>
-        <header className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-500">نمونه نمایشی</span>
-            <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-600">{support.status}</span>
-          </div>
-          <h2 className="text-xl font-extrabold text-dena-ink md:text-[28px]">{support.title}</h2>
+
+        <header dir="ltr" className="flex h-[34px] shrink-0 items-center justify-between gap-2 lg:h-11">
+          <StatusBadges status={support.status} />
+          <h2 dir="rtl" className="truncate text-right text-[22px] font-bold leading-[34px] text-[#1f2937] lg:text-[28px] lg:leading-[44px]">
+            {support.title}
+          </h2>
         </header>
-        <Card className="space-y-4 rounded-[20px] p-5 md:p-6">
+
+        <Card
+          aria-label={support.title}
+          className="flex h-[435px] shrink-0 flex-col gap-3 overflow-clip rounded-[20px] border-[#e5e1ed] p-5 shadow-[0px_4px_16px_rgba(0,0,0,0.03)] lg:h-[454px] lg:gap-4 lg:p-6"
+        >
           {fields.map(([label, value]) => (
-            <div key={label} className="border-b border-dena-border pb-4 text-right last:border-0 last:pb-0">
-              <dt className="text-xs text-dena-muted">{label}</dt>
-              <dd className="mt-2 text-sm leading-7 text-dena-ink">{value}</dd>
+            <div key={label} className="contents">
+              <InfoField label={label} value={value} />
+              {label !== "نحوه استفاده" && <Divider />}
             </div>
           ))}
         </Card>
-        <div className="flex flex-wrap items-center justify-end gap-3">
-          <p className="text-xs leading-6 text-dena-muted">این نمونه فقط برای بررسی ظاهر است و درخواستی ثبت نمی‌کند.</p>
-          <button type="button" disabled className="min-h-11 cursor-not-allowed rounded-xl bg-dena-brand px-5 py-2 text-sm font-bold text-white opacity-60">
+
+        <div className="flex shrink-0 flex-col items-center gap-[10px]">
+          <Link
+            href={`/student-demo/elite-club/welfare-support/${supportId}/request-submitted`}
+            className="inline-flex h-12 w-40 items-center justify-center rounded-xl bg-[#5b4ce2] px-6 py-3 text-[15px] font-medium text-white transition-colors hover:bg-[#4c3fd0] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5b4ce2]"
+          >
             درخواست حمایت
-          </button>
+          </Link>
+          <p className="text-center text-xs leading-normal text-[#9ca3af]">
+            نوع اقدام بسته به نوع حمایت متفاوت است. (نمونه: نیازمند درخواست)
+          </p>
         </div>
-        <Link href="/student-demo/elite-club/welfare-support" className="inline-flex text-sm font-bold text-dena-brand hover:underline">
-          بازگشت به حمایت رفاهی
-        </Link>
       </div>
     </StudentShell>
   );
