@@ -124,13 +124,13 @@ function TeachingOpportunityList() {
 }
 
 function TeachingOpportunityDetail() {
-  const fields = [
+  const fields: { label: string; value: string; strong?: boolean; body?: boolean }[] = [
     { label: "عنوان فرصت همکاری", value: "پشتیبان تحصیلی ریاضی دهم", strong: true },
     { label: "آموزشگاه همکار", value: "آموزشگاه البرز" },
     { label: "حوزه آموزشی", value: "پایه دهم دوره دوم متوسطه" },
     { label: "توضیحات فرصت", value: "این فرصت برای اعضای باشگاه نخبگان جهت فعالیت به‌عنوان پشتیبان تحصیلی در آموزشگاه البرز تعریف شده است.", body: true },
     { label: "شرایط همکاری", value: "شرایط همکاری در صورت تعریف توسط آموزشگاه در این بخش نمایش داده می‌شود.", body: true },
-  ] as const;
+  ];
 
   return (
     <div dir="rtl" className="space-y-4">
