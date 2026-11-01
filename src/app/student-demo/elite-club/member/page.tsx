@@ -67,32 +67,46 @@ export default function EliteClubMemberPreviewPage() {
           </p>
         </header>
 
-        <section
-          className="space-y-3 rounded-2xl border border-[#e5e1ed] bg-white p-4"
-          aria-labelledby="membership-status-title"
-        >
-          <div className="flex flex-row-reverse items-center justify-between gap-3">
-            <span className="rounded-full bg-[#eaf9f5] px-3 py-1 text-[11px] font-bold text-[#42cfa7]">
-              عضو باشگاه
-            </span>
-            <h3 id="membership-status-title" className="text-[15px] font-bold leading-6 text-[#2b2544]">
-              وضعیت من در باشگاه
+        <div dir="ltr" className="grid gap-4 md:grid-cols-2">
+          <section
+            className="hidden min-h-[108px] flex-col justify-center gap-2 rounded-2xl border border-[#e5e1ed] bg-white p-5 md:flex"
+            aria-labelledby="club-description-title"
+          >
+            <h3 id="club-description-title" className="text-right text-[15px] font-bold leading-6 text-[#2b2544]">
+              باشگاه نخبگان چه فضایی است؟
             </h3>
-          </div>
-          <p className="text-right text-[13px] leading-5 text-[#756f83]">
-            شما عضو باشگاه نخبگان دنا هستید.
-          </p>
-        </section>
+            <p className="text-right text-[13px] leading-5 text-[#756f83]">
+              باشگاه نخبگان فضایی برای دسترسی دانش‌آموزان منتخب به فرصت‌ها و برنامه‌هایی است که در چارچوب دنا تعریف می‌شوند.
+            </p>
+          </section>
+          <section
+            dir="rtl"
+            className="space-y-3 rounded-2xl border border-[#e5e1ed] bg-white p-4 md:min-h-[108px] md:p-5"
+            aria-labelledby="membership-status-title"
+          >
+            <div className="flex flex-row-reverse items-center justify-between gap-3">
+              <span className="rounded-full bg-[#ecfdf5] px-3 py-1 text-[11px] font-bold text-[#027a48]">
+                عضو باشگاه
+              </span>
+              <h3 id="membership-status-title" className="text-[15px] font-bold leading-6 text-[#2b2544]">
+                وضعیت من در باشگاه
+              </h3>
+            </div>
+            <p className="text-right text-[13px] leading-5 text-[#756f83]">
+              شما عضو باشگاه نخبگان دنا هستید.
+            </p>
+          </section>
+        </div>
 
         <section className="space-y-3" aria-labelledby="club-supports-title">
           <h3 id="club-supports-title" className="text-lg font-bold leading-7 text-[#2b2544]">
             حمایت‌های باشگاه
           </h3>
-          <div dir="ltr" className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-5">
+          <div dir="ltr" className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
             {supportCards.map((card) => (
               <article
                 key={card.slug}
-                dir="rtl" className={`flex flex-col gap-3 rounded-xl border border-[#e5e1ed] bg-white p-4 md:min-h-[200px] ${card.order}`}
+                dir="rtl" className={`flex flex-col gap-3 rounded-xl border border-[#e5e1ed] bg-white p-4 md:min-h-[142px] md:p-4 ${card.order}`}
               >
                 <header className="flex flex-row-reverse items-center justify-between">
                   <div className="flex size-10 items-center justify-center rounded-xl bg-[#f7f6fb]">
