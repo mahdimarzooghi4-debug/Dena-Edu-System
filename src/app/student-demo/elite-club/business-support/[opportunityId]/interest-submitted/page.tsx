@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { StudentShell } from "@/components/student/student-shell";
@@ -28,7 +29,7 @@ export default async function BusinessSupportInterestSubmittedPreviewPage({
           >
             <span dir="rtl" className="text-[#6b7280]">حمایت کسب‌وکار</span>
             <span aria-hidden="true" className="text-[#9ca3af]">←</span>
-            <a href="/student-demo/elite-club" className="text-[#5b4ce2] hover:underline">باشگاه نخبگان</a>
+            <Link href="/student-demo/elite-club" className="text-[#5b4ce2] hover:underline">باشگاه نخبگان</Link>
           </nav>
           <header className="flex h-[60px] shrink-0 flex-col gap-1.5 text-right">
             <h2 className="text-[22px] font-bold leading-[34px] text-[#111827]">حمایت کسب‌وکار</h2>
