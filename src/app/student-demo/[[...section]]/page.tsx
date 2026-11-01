@@ -90,14 +90,14 @@ function Home() {
 
       <Card className="space-y-4 rounded-[22px] border-dena-border p-5 md:p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <span className="rounded-full bg-dena-lavender px-3 py-1.5 text-xs font-bold text-dena-brand">نسخهٔ آغازین فعال</span>
+          <span className="rounded-full bg-dena-lavender px-3 py-1.5 text-xs font-bold text-dena-brand">در حال آماده‌سازی</span>
           <div className="text-right">
             <h3 className="text-lg font-extrabold text-dena-deep">معلم هوشمند</h3>
-            <p className="mt-1 text-sm text-dena-muted">پاسخ‌گویی آموزشی بر پایهٔ محتوای مجاز دنا</p>
+            <p className="mt-1 text-sm text-dena-muted">با داده‌های آموزشی دنا آغاز می‌شود و بعد با ویدئوهای مجاز دوره‌های تو، برای مسیر خودت رشد می‌کند.</p>
           </div>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-4 border-t border-dena-border pt-4">
-          <p className="max-w-3xl text-xs leading-6 text-dena-muted">این پیش‌نمایش، گفت‌وگو با سرویس زنده را فعال نمی‌کند؛ می‌توانی وضعیت و مسیر معلم هوشمند را بازبینی کنی.</p>
+          <p className="max-w-3xl text-xs leading-6 text-dena-muted">گفت‌وگو پس از آماده‌سازی و ارزیابی سرویس فعال می‌شود.</p>
           <Link href="/student-demo/ai-tutor" className={buttonClassName()}>رفتن به معلم هوشمند</Link>
         </div>
       </Card>
@@ -305,14 +305,14 @@ function AiTutor() {
   return (
     <div className="space-y-6">
       <section className="rounded-[22px] bg-dena-lavender p-6 md:p-8">
-        <p className="text-sm font-bold text-dena-brand">همراه یادگیری دنا</p>
-        <h2 className="mt-2 text-2xl font-extrabold text-dena-deep">معلم هوشمند، در مسیر یادگیری تو</h2>
+        <p className="text-sm font-bold text-dena-brand">معلم هوشمند</p>
+        <h2 className="mt-2 text-2xl font-extrabold text-dena-deep">معلم هوشمند</h2>
         <p className="mt-2 max-w-3xl text-sm leading-8 text-dena-muted">
-          نسخهٔ آغازین در پنل اصلی فعال است و پاسخ را از دیتاست دنا یا بخش مرتبطِ رونوشت دستیِ ویدئوی مجاز پیدا می‌کند. اگر محتوای مرتبطی نباشد، پاسخ ساخته نمی‌شود.
+          با داده‌های آموزشی دنا آغاز می‌شود و بعد با ویدئوهای مجاز دوره‌های تو، برای مسیر خودت رشد می‌کند.
         </p>
         <span className="mt-4 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-bold text-dena-ink">
           <span className="size-2 rounded-full bg-emerald-500" aria-hidden="true" />
-          نسخهٔ آغازین در پنل اصلی فعال است
+          در حال آماده‌سازی
         </span>
       </section>
 
@@ -325,7 +325,7 @@ function AiTutor() {
           در ضرب دو عدد منفی، حاصل مثبت می‌شود. برای نمونه، (−۳) × (−۲) = ۶.
         </p>
         <p className="border-t border-dena-border pt-3 text-xs leading-6 text-dena-muted">
-          این گفت‌وگو فقط نمونهٔ رابط است؛ از این پیش‌نمایش پرسشی به مدل ارسال یا سابقه‌ای ذخیره نمی‌شود.
+          این گفت‌وگو نمونهٔ رابط است و در وضعیت فعلی پرسشی به مدل ارسال یا سابقه‌ای ذخیره نمی‌شود.
         </p>
       </Card>
 
