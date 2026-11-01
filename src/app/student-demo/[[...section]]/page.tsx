@@ -447,7 +447,53 @@ function AssessmentsDemo({ filter = "all", detail }: { filter?: string; detail?:
   if (detail) {
     const item=items.find(x=>x.id===detail);
     if(!item) notFound();
-    return <div className="space-y-5"><Link href="/student-demo/assessments" className="text-sm font-bold text-dena-brand">بازگشت به تمرین‌ها و آزمون‌ها ←</Link><Card className="space-y-5 rounded-[22px] p-6 md:p-8"><span className="w-fit rounded-full bg-dena-lavender px-3 py-1 text-xs font-bold text-dena-brand">{item.label}</span><h2 className="text-2xl font-extrabold text-dena-deep">{item.title}</h2><p className="text-sm text-dena-muted">دوره: {item.course}</p><p className="text-sm leading-7 text-dena-muted">{item.status==="ready"?"این ارزیابی نمونه آمادهٔ شروع است.":item.status==="pending"?"این فعالیت در انتظار بازبینی و فعال‌شدن است.":"نتیجهٔ نمونه برای مرور در دسترس است."}</p>{item.status==="ready"?<Link href="/student-demo/assessments/math-7-practice" className={buttonClassName()}>شروع آزمون</Link>:<p className="rounded-xl bg-dena-bg p-4 text-sm">در نسخهٔ نمایشی، پاسخ یا نتیجهٔ واقعی ثبت نمی‌شود.</p>}</Card></div>;
+    const ready=item.status==="ready";
+    return <div className="mx-auto max-w-5xl space-y-5">
+      <Card className="space-y-5 rounded-[20px] p-5 md:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <span className={`rounded-full px-3 py-2 text-xs font-bold ${ready?"bg-dena-lavender text-dena-brand":item.status==="completed"?"bg-emerald-50 text-emerald-700":"bg-amber-50 text-amber-800"}`}>{item.label}</span>
+          <div className="text-right"><h2 className="text-xl font-extrabold text-dena-deep">{item.title}</h2><p className="mt-1 text-sm text-dena-muted">{item.course}</p></div>
+        </div>
+        <div className="grid gap-3 rounded-xl bg-dena-bg p-4 sm:grid-cols-2">
+          <div className="text-right"><p className="text-xs text-dena-muted">ارائه آموزشی این دوره</p><p className="mt-1 font-bold text-dena-deep">مؤسسه آموزشی البرز</p><p className="mt-1 text-xs leading-6 text-dena-muted">محتوا و همراهی آموزشی این دوره توسط مؤسسه آموزشی البرز ارائه می‌شود.</p></div>
+          <div className="space-y-3 text-right sm:border-r sm:border-dena-border sm:pr-4"><p className="text-sm font-semibold text-dena-deep">مدرس: استاد احمدی</p><p className="text-sm text-dena-muted">دوره مرتبط: {item.course}</p><p className="text-xs text-dena-muted">آخرین فعالیت شما در این دوره امروز ثبت شده است.</p></div>
+        </div>
+      </Card>
+
+      <Card className="space-y-5 rounded-[20px] p-5 md:p-6">
+        <div className="space-y-3 text-right">
+          <h3 className="text-lg font-extrabold text-dena-deep">جزئیات آزمون</h3>
+          <p className="font-bold text-dena-deep">{item.title}</p>
+          <p className="text-sm text-dena-muted">{item.course}</p>
+        </div>
+        <div className="grid gap-3 rounded-xl border border-dena-border bg-dena-bg p-4 sm:grid-cols-2">
+          <p className="text-sm text-dena-muted">مؤسسه آموزشی البرز</p>
+          <p className="text-sm font-bold text-dena-deep sm:text-right">تابع و نمودار</p>
+          <p className="text-sm leading-7 text-dena-muted sm:col-span-2">این آزمون برای مرور مباحث فصل سوم آماده شده است. پرسش‌های این نسخه نمونه‌اند و نتیجهٔ واقعی ثبت نمی‌شود.</p>
+        </div>
+        <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {[["۱۰ پرسش","تعداد پرسش‌ها"],["حدود ۱۵ دقیقه","زمان پیشنهادی"],["آزمون یادگیری","نوع آزمون"],["چهارگزینه‌ای","ساختار"],["تصادفی","ترتیب پرسش‌ها"]].map(([value,label])=><div key={label} className="rounded-xl border border-dena-border p-4 text-right"><dd className="font-bold text-dena-deep">{value}</dd><dt className="mt-1 text-xs text-dena-muted">{label}</dt></div>)}
+        </dl>
+      </Card>
+
+      <Card className="space-y-4 rounded-[20px] p-5 md:p-6">
+        <h3 className="text-base font-extrabold text-dena-deep">پیش از شروع آزمون</h3>
+        <ul className="space-y-3 text-sm leading-7 text-dena-ink">
+          <li className="flex gap-3"><span className="text-dena-brand">✓</span><span>همهٔ پرسش‌ها چهارگزینه‌ای هستند.</span></li>
+          <li className="flex gap-3"><span className="text-dena-brand">✓</span><span>پرسش‌ها به‌صورت تصادفی برای این تلاش انتخاب می‌شوند.</span></li>
+          <li className="flex gap-3"><span className="text-dena-brand">✓</span><span>پاسخ‌ها را پیش از ارسال نهایی بررسی کن.</span></li>
+          <li className="flex gap-3"><span className="text-dena-brand">✓</span><span>اگر نتیجهٔ آزمون با انتظارت هماهنگ نبود، می‌توانی آن را با مدرس دوره مرور کنی.</span></li>
+        </ul>
+        <div className="grid gap-3 rounded-xl bg-dena-bg p-4 sm:grid-cols-2">
+          <div className="text-right"><p className="text-xs text-dena-muted">دوره مرتبط</p><p className="mt-1 font-semibold">{item.course}</p></div>
+          <div className="text-right"><p className="text-xs text-dena-muted">جلسه مرتبط</p><p className="mt-1 font-semibold">تابع و نمودار</p></div>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-dena-border pt-4">
+          <Link href="/student-demo/assessments" className="text-sm font-bold text-dena-brand hover:underline">بازگشت به تمرین‌ها و آزمون‌ها</Link>
+          {ready?<Link href="/student-demo/assessments/math-7-practice/start" className={buttonClassName()}>شروع آزمون</Link>:<span className="rounded-xl bg-dena-bg px-4 py-3 text-sm font-semibold text-dena-muted">{item.status==="completed"?"نتیجهٔ نمونه؛ پاسخ واقعی ثبت نشده":"این آزمون هنوز آمادهٔ شروع نیست"}</span>}
+        </div>
+      </Card>
+    </div>;
   }
   const filtered=filter==="all"?items:items.filter(item=>item.status===filter);
   return <div className="space-y-6">
@@ -560,7 +606,7 @@ export default async function StudentDemoPage({ params, searchParams }: { params
   else if (isCoursePath && path[2] === "team" && path.length === 4 && course) content = <TeamMember course={course} roleId={path[3]} conversation={false} />;
   else if (isCoursePath && path[2] === "team" && path.length === 5 && path[4] === "conversation" && course) content = <TeamMember course={course} roleId={path[3]} conversation />;
   else if (path[0] === "assessments" && path.length === 1) content = <AssessmentsDemo filter={filter} />;
-  else if (path[0] === "assessments" && path[1] === "math-7-practice" && path.length === 2) content = <DemoPracticeCard />;
+  else if (path[0] === "assessments" && path[1] === "math-7-practice" && path[2] === "start" && path.length === 3) content = <DemoPracticeCard />;
   else if (path[0] === "assessments" && path.length === 2) content = <AssessmentsDemo detail={path[1]} />;
   else if (path[0] === "profile" && path[1] === "edit" && path.length === 2) content = <ProfileDemo edit />;
   else if (path[0] === "profile" && path[1] && path.length === 2) content = <div className="mx-auto max-w-3xl"><Card className="space-y-4 p-6"><Link href="/student-demo/profile" className="text-sm font-bold text-dena-brand">بازگشت به پروفایل ←</Link><h2 className="text-xl font-extrabold">{path[1]==="privacy"?"حریم خصوصی و داده‌ها":"تغییر شماره موبایل"}</h2><p className="text-sm leading-7 text-dena-muted">این بخش در نسخهٔ نمایشی فقط برای مرور صفحه است و تغییری در حساب واقعی ایجاد نمی‌کند.</p></Card></div>;
