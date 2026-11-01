@@ -155,7 +155,7 @@ function CourseList({ filter = "all" }: { filter?: string }) {
             <div className="space-y-2 text-right"><h3 className="font-extrabold text-dena-deep">{course.title}</h3><p className="text-sm text-dena-muted">مؤسسه: {course.provider}</p><p className="text-sm text-dena-muted">مدرس: {course.teacher}</p></div>
             <div className="space-y-2"><div className="flex justify-between text-xs text-dena-muted"><span>{progress}٪ پیشرفت</span><span>{completed?course.total+" جلسه":`جلسه ${course.done} از ${course.total}`}</span></div><div className="h-2 overflow-hidden rounded-full bg-dena-lavender"><div className="h-full rounded-full bg-dena-mint" style={{width:`${progress}%`}}/></div></div>
             {!completed&&<div className="text-right"><p className="text-xs text-dena-muted">موضوع فعلی</p><p className="text-sm font-semibold text-dena-deep">{course.topic}</p></div>}
-            <div className="flex justify-start"><Link href={`/student-demo/courses/${course.id}`} className={buttonClassName(completed?"outline":"")}>{completed?"مشاهده دوره":"ادامه یادگیری"}</Link></div>
+            <div className="flex justify-start"><Link href={`/student-demo/courses/${course.id}`} className={completed?buttonClassName("outline"):buttonClassName()}>{completed?"مشاهده دوره":"ادامه یادگیری"}</Link></div>
           </Card>;
         })}
       </div>
