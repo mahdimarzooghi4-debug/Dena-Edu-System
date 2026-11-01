@@ -71,60 +71,115 @@ function DemoNotice() {
 }
 
 function Home() {
+  const courses = [
+    { id: "math-7", title: "ریاضی دهم", institute: "مؤسسه آموزشی البرز", progress: 33, lesson: "جلسه ۸ از ۲۴", topic: "تابع و نمودار", last: "امروز" },
+    { id: "science-7", title: "فیزیک دهم", institute: "مرکز آموزش نوین", progress: 27, lesson: "جلسه ۵ از ۱۸", topic: "فیزیک ۱", last: "دیروز" },
+    { id: "chemistry-10", title: "شیمی دهم", institute: "آکادمی علم", progress: 12, lesson: "جلسه ۲ از ۱۶", topic: "ساختار اتم", last: "۳ روز پیش" },
+  ];
+  const assessments = [
+    { title: "آزمون فصل سوم ریاضی", course: "ریاضی دهم", status: "آماده انجام", color: "bg-dena-lavender text-dena-brand", href: "/student-demo/assessments/math-7-practice" },
+    { title: "تمرین فیزیک - نور", course: "فیزیک دهم", status: "در انتظار", color: "bg-amber-50 text-amber-800", href: "/student-demo/assessments?filter=pending" },
+    { title: "آزمون فصل دوم شیمی", course: "شیمی دهم", status: "انجام‌شده", color: "bg-emerald-50 text-emerald-700", href: "/student-demo/assessments?filter=completed" },
+  ];
   return (
     <div className="space-y-7">
-      <section className="rounded-[22px] bg-dena-lavender px-6 py-7 md:px-8">
-        <p className="text-sm font-bold text-dena-brand">خانه من در دنا</p>
-        <h2 className="mt-2 text-[26px] font-extrabold leading-relaxed text-dena-deep md:text-[31px]">
-          سلام، دانش‌آموز نمونه 👋
-        </h2>
-        <p className="mt-2 max-w-3xl text-sm leading-8 text-dena-muted">
-          یادگیری‌ات را از همین‌جا ادامه بده؛ دوره‌ها و فعالیت‌های این صفحه برای نمایش رابط ساخته شده‌اند.
-        </p>
-        <div className="mt-5 flex flex-wrap gap-3">
-          <Link href="/student-demo/courses" className={buttonClassName()}>دوره‌های من</Link>
-          <Link href="/student-demo/ai-tutor" className={buttonClassName("outline")}>معلم هوشمند</Link>
-          <Link href="/student-demo/growth" className={buttonClassName("outline")}>مسیر رشد</Link>
-          <Link href="/student-demo/assessments" className={buttonClassName("outline")}>تمرین‌ها و آزمون‌ها</Link>
-        </div>
-      </section>
-      <Card className="flex flex-col gap-4 rounded-[20px] border-dena-border p-5 md:flex-row md:items-center md:justify-between md:gap-6 md:p-6">
-        <div className="min-w-0 space-y-3">
-          <span className="inline-flex rounded-full bg-dena-lavender px-3 py-1.5 text-xs font-bold text-dena-brand">در حال آماده‌سازی</span>
-          <div>
-            <h2 className="text-lg font-extrabold text-dena-deep">معلم هوشمند</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-7 text-dena-muted">
-              با داده‌های آموزشی دنا آغاز می‌شود و بعد با ویدئوهای مجاز دوره‌های تو، برای مسیر خودت رشد می‌کند.
-            </p>
+      <header className="space-y-1 text-right">
+        <h2 className="text-[26px] font-extrabold leading-relaxed text-dena-deep md:text-[31px]">سلام محمد 👋</h2>
+        <p className="text-sm leading-7 text-dena-muted">آماده‌ای مسیر امروزت رو ادامه بدی؟</p>
+      </header>
+
+      <Card className="space-y-4 rounded-[22px] border-dena-border p-5 md:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <span className="rounded-full bg-dena-lavender px-3 py-1.5 text-xs font-bold text-dena-brand">نسخهٔ آغازین فعال</span>
+          <div className="text-right">
+            <h3 className="text-lg font-extrabold text-dena-deep">معلم هوشمند</h3>
+            <p className="mt-1 text-sm text-dena-muted">پاسخ‌گویی آموزشی بر پایهٔ محتوای مجاز دنا</p>
           </div>
-          <p className="text-xs leading-6 text-dena-muted">گفت‌وگو پس از آماده‌سازی و ارزیابی سرویس فعال می‌شود.</p>
         </div>
-        <Link href="/student-demo/ai-tutor" className={buttonClassName("outline") + " shrink-0"}>
-          آشنایی با معلم هوشمند
-        </Link>
+        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-dena-border pt-4">
+          <p className="max-w-3xl text-xs leading-6 text-dena-muted">این پیش‌نمایش، گفت‌وگو با سرویس زنده را فعال نمی‌کند؛ می‌توانی وضعیت و مسیر معلم هوشمند را بازبینی کنی.</p>
+          <Link href="/student-demo/ai-tutor" className={buttonClassName()}>رفتن به معلم هوشمند</Link>
+        </div>
       </Card>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="space-y-5 rounded-[20px] p-5 md:p-6">
+          <div className="flex items-center justify-between gap-3">
+            <span className="rounded-full bg-dena-lavender px-3 py-1.5 text-xs font-bold text-dena-brand">پیشنهادی امروز</span>
+            <h3 className="font-extrabold text-dena-deep">قدم بعدی یادگیری</h3>
+          </div>
+          <div className="space-y-2 text-right">
+            <p className="text-lg font-extrabold text-dena-deep">ادامه جلسه ۸ — تابع و نمودار</p>
+            <p className="text-sm text-dena-muted">دوره مرتبط: ریاضی دهم · مؤسسه آموزشی البرز</p>
+            <p className="text-xs text-dena-muted">آخرین فعالیت: امروز</p>
+          </div>
+          <div>
+            <div className="flex justify-between text-xs text-dena-muted"><span>۳۳٪ پیشرفت</span><span>جلسه ۸ از ۲۴</span></div>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-dena-lavender"><div className="h-full rounded-full bg-dena-mint" style={{ width: "33%" }} /></div>
+          </div>
+          <Link href="/student-demo/courses/math-7/lessons/3" className={buttonClassName()}>ادامه یادگیری</Link>
+        </Card>
+
+        <Card className="space-y-5 rounded-[20px] p-5 md:p-6">
+          <div className="flex items-center justify-between gap-3">
+            <span className="rounded-full bg-dena-lavender px-3 py-1.5 text-xs font-bold text-dena-brand">آماده انجام</span>
+            <h3 className="font-extrabold text-dena-deep">آزمون فصل سوم ریاضی</h3>
+          </div>
+          <div className="space-y-2 text-right">
+            <p className="text-sm font-semibold text-dena-deep">دوره مرتبط: ریاضی دهم</p>
+            <p className="text-sm text-dena-muted">زمان پیشنهادی: امروز</p>
+          </div>
+          <Link href="/student-demo/assessments/math-7-practice" className={buttonClassName()}>شروع آزمون</Link>
+        </Card>
+      </div>
+
       <section className="space-y-4">
-        <SectionHeading id="demo-learning-overview" note="اطلاعات آزمایشی برای نمایش رابط">نمای کلی یادگیری</SectionHeading>
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card className="p-[22px]"><p className="text-[13px] text-dena-muted">دوره‌های من</p><p className="mt-2 text-[29px] font-extrabold text-dena-brand">۲</p><p className="mt-1 text-xs text-dena-muted">دورهٔ نمونه</p></Card>
-          <Card className="p-[22px]"><p className="text-[13px] text-dena-muted">تمرین‌های باز</p><p className="mt-2 text-[29px] font-extrabold text-dena-deep">۳</p><p className="mt-1 text-xs text-dena-muted">فعالیت نمونه</p></Card>
-          <Card className="p-[22px]"><p className="text-[13px] text-dena-muted">میانگین فعالیت</p><p className="mt-2 text-[29px] font-extrabold text-dena-deep">۶۵٪</p><p className="mt-1 text-xs text-dena-muted">عدد نمایشی</p></Card>
+        <div className="flex items-center justify-between gap-3">
+          <Link href="/student-demo/courses" className="text-sm font-semibold text-dena-brand hover:underline">مشاهده همه دوره‌ها ←</Link>
+          <h3 className="text-lg font-extrabold text-dena-deep">دوره‌های من</h3>
+        </div>
+        <div className="grid gap-3 md:grid-cols-3">
+          {courses.map(course => <Card key={course.id} className="space-y-4 rounded-[18px] p-4">
+            <div className="flex items-start justify-between gap-3 text-right"><div><h4 className="font-extrabold text-dena-deep">{course.title}</h4><p className="mt-1 text-xs text-dena-muted">{course.lesson}</p></div><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-dena-lavender text-sm font-bold text-dena-brand">{course.progress}٪</span></div>
+            <div className="h-2 overflow-hidden rounded-full bg-dena-lavender"><div className="h-full rounded-full bg-dena-mint" style={{ width: `${course.progress}%` }} /></div>
+            <div className="flex items-center justify-between gap-2 text-xs"><Link href={`/student-demo/courses/${course.id}`} className="font-bold text-dena-brand">ادامه ←</Link><span className="truncate text-dena-muted">{course.institute}</span></div>
+            <p className="text-xs text-dena-muted">{course.topic} · آخرین فعالیت: {course.last}</p>
+          </Card>)}
         </div>
       </section>
-      <section className="space-y-4">
-        <SectionHeading id="demo-courses" note="محتوا و پیشرفت صرفاً نمونه است">ادامهٔ یادگیری</SectionHeading>
-        <div className="grid gap-4 md:grid-cols-2">
-          {demoCourses.map((course) => (
-            <Card key={course.id} className="space-y-4 rounded-[22px] p-6">
-              <div><p className="text-sm font-bold text-dena-brand">{course.provider}</p><h3 className="mt-2 text-lg font-extrabold text-dena-deep">{course.title}</h3></div>
-              <div className="flex justify-between text-xs text-dena-muted"><span>درس‌های تکمیل‌شده</span><span>{course.done} از {course.total}</span></div>
-              <div className="h-2.5 overflow-hidden rounded-full bg-dena-lavender"><div className="h-full rounded-full bg-dena-mint" style={{ width: `${Math.round(course.done / course.total * 100)}%` }} /></div>
-              <Link href={`/student-demo/courses/${course.id}`} className={buttonClassName("outline")}>بازکردن دوره</Link>
-            </Card>
-          ))}
-        </div>
-      </section>
-      <Card className="border-dena-lavender"><h2 className="font-bold text-dena-deep">آزمون پیش رو</h2><p className="mt-2 text-sm leading-7 text-dena-muted">آزمون نمونهٔ ریاضی · شنبه، ساعت ۱۰:۰۰</p><Link href="/student-demo/assessments" className="mt-4 inline-flex text-sm font-bold text-dena-brand">مشاهدهٔ تمرین‌ها و آزمون‌ها ←</Link></Card>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="space-y-4 rounded-[20px] p-5 md:p-6">
+          <div className="flex items-center justify-between gap-3">
+            <Link href="/student-demo/assessments" className="text-sm font-semibold text-dena-brand hover:underline">مشاهده همه تمرین‌ها و آزمون‌ها ←</Link>
+            <h3 className="font-extrabold text-dena-deep">تمرین‌ها و آزمون‌ها</h3>
+          </div>
+          <div className="space-y-3">
+            {assessments.map(item => <Link key={item.title} href={item.href} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dena-border p-3 hover:border-dena-brand">
+              <span className="text-sm font-semibold text-dena-deep">{item.title}</span>
+              <span className="flex items-center gap-2"><span className="text-xs text-dena-muted">{item.course}</span><span className={`rounded-full px-3 py-1.5 text-xs font-bold ${item.color}`}>{item.status}</span></span>
+            </Link>)}
+          </div>
+        </Card>
+        <Card className="space-y-4 rounded-[20px] p-5 md:p-6">
+          <div className="flex items-center justify-between gap-3">
+            <Link href="/student-demo/growth" className="text-sm font-semibold text-dena-brand hover:underline">مشاهده مسیر رشد ←</Link>
+            <h3 className="font-extrabold text-dena-deep">مسیر رشد من</h3>
+          </div>
+          <div className="rounded-xl bg-dena-bg p-4 text-right">
+            <p className="font-semibold text-dena-deep">این هفته: ۴ جلسه آموزشی تکمیل شد / ۲ تمرین انجام شد</p>
+            <p className="mt-2 text-sm leading-6 text-dena-muted">با ادامه مسیر یادگیری، پیشرفتت به‌صورت ساده نمایش داده می‌شود.</p>
+          </div>
+          <div className="flex items-center justify-between text-sm"><span className="font-bold text-dena-brand">۴ جلسه</span><span className="text-dena-muted">پیشرفت این هفته</span></div>
+          <div className="h-2 overflow-hidden rounded-full bg-dena-lavender"><div className="h-full rounded-full bg-dena-mint" style={{ width: "68%" }} /></div>
+        </Card>
+      </div>
+
+      <Card className="flex flex-wrap items-center justify-between gap-4 rounded-[20px] p-5">
+        <Link href="/student-demo/elite-club" className="text-sm font-semibold text-dena-brand hover:underline">مشاهده باشگاه ←</Link>
+        <div className="text-right"><h3 className="font-extrabold text-dena-deep">باشگاه نخبگان</h3><p className="mt-1 text-sm text-dena-muted">با ادامه مسیر یادگیری، وضعیت عضویتت را دنبال کن.</p></div>
+      </Card>
+      <p className="text-xs leading-6 text-dena-muted">اطلاعات داشبورد نمونه است و از حساب واقعی دریافت نشده است.</p>
     </div>
   );
 }
