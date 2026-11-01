@@ -304,17 +304,19 @@ function AiTutor() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-[22px] bg-dena-lavender p-6 md:p-8">
-        <p className="text-sm font-bold text-dena-brand">معلم هوشمند</p>
-        <h2 className="mt-2 text-2xl font-extrabold text-dena-deep">معلم هوشمند</h2>
-        <p className="mt-2 max-w-3xl text-sm leading-8 text-dena-muted">
-          با داده‌های آموزشی دنا آغاز می‌شود و بعد با ویدئوهای مجاز دوره‌های تو، برای مسیر خودت رشد می‌کند.
-        </p>
-        <span className="mt-4 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-bold text-dena-ink">
-          <span className="size-2 rounded-full bg-emerald-500" aria-hidden="true" />
-          در حال آماده‌سازی
-        </span>
-      </section>
+      <Card className="space-y-4 rounded-[20px] border-dena-border p-5 md:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <span className="rounded-full bg-dena-bg px-3 py-2 text-[13px] font-bold text-dena-brand">در حال آماده‌سازی</span>
+          <div className="text-right">
+            <h2 className="text-2xl font-bold text-dena-deep">معلم هوشمند</h2>
+            <p className="mt-1 max-w-3xl text-sm leading-7 text-dena-muted">با داده‌های آموزشی دنا آغاز می‌شود و بعد با ویدئوهای مجاز دوره‌های تو، برای مسیر خودت رشد می‌کند.</p>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-dena-border pt-4">
+          <p className="text-xs leading-6 text-dena-muted">گفت‌وگو پس از آماده‌سازی و ارزیابی سرویس فعال می‌شود.</p>
+          <Link href="#demo-ai-growth" className={buttonClassName()}>آشنایی با معلم هوشمند</Link>
+        </div>
+      </Card>
 
       <Card className="space-y-4 rounded-[22px] p-6">
         <h3 className="font-extrabold text-dena-deep">نمونهٔ گفت‌وگو</h3>
