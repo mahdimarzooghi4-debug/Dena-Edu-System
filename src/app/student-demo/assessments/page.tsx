@@ -43,7 +43,7 @@ export default async function StudentDemoAssessmentsPage({ searchParams }: { sea
             <div className="flex flex-wrap items-center gap-4"><span className={`rounded-full px-3 py-2 text-xs font-bold ${rowClass(item.status)}`}>{item.label}</span><span className="text-sm text-dena-muted">{item.course}</span><span className="font-bold text-dena-deep">{item.title}</span></div>
             {item.status === "pending" ? <span className="text-xs text-dena-muted">{item.date}</span> : <Link href={`/student-demo/assessments/${item.id}`} className="rounded-lg px-4 py-2 text-sm font-semibold text-dena-brand hover:bg-dena-lavender">{item.status === "completed" ? "مشاهده نتیجه" : "شروع آزمون"}</Link>}
           </div>)}
-          {visible.length===0&&<p className="p-8 text-center text-sm text-dena-muted">در این وضعیت فعالیتی برای نمایش نیست.</p>}
+          {visible.length===0&&filter!=="ready"&&<p className="p-8 text-center text-sm text-dena-muted">در این وضعیت فعالیتی برای نمایش نیست.</p>}
         </div>
         <p className="text-xs leading-6 text-dena-muted">فعالیت‌ها نمونه‌اند؛ پاسخ و نتیجه ذخیره نمی‌شوند و نمرهٔ رسمی نیستند.</p>
       </div>
