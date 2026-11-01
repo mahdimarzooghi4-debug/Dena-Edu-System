@@ -17,35 +17,44 @@ export default async function BusinessSupportEndedPreviewPage({
 
   return (
     <StudentShell active="elite" title="باشگاه نخبگان" demo>
-      <div className="flex min-h-[65vh] flex-col gap-4">
-        <nav aria-label="مسیر صفحه" className="flex flex-wrap items-center gap-2 text-sm">
-          <Link href="/student-demo/elite-club" className="text-dena-brand hover:underline">باشگاه نخبگان</Link>
-          <span aria-hidden="true" className="text-dena-muted">←</span>
-          <Link href="/student-demo/elite-club/business-support" className="text-dena-muted hover:text-dena-brand">حمایت کسب‌وکار</Link>
-        </nav>
+      <div
+        dir="rtl"
+        className="-mt-5 flex min-h-[calc(100svh-198px)] flex-col gap-4 py-4 lg:-mx-10 lg:-mt-10 lg:min-h-[calc(100vh-174px)] lg:px-10 lg:py-4"
+      >
+        <div className="flex shrink-0 flex-col gap-3">
+          <nav
+            dir="ltr"
+            aria-label="مسیر صفحه"
+            className="flex h-[22px] items-center justify-end gap-2 whitespace-nowrap text-sm"
+          >
+            <span dir="rtl" className="text-[#6b7280]">حمایت کسب‌وکار</span>
+            <span aria-hidden="true" className="text-[#9ca3af]">←</span>
+            <Link href="/student-demo/elite-club" className="text-[#5b4ce2] hover:underline">باشگاه نخبگان</Link>
+          </nav>
+          <header className="flex h-[60px] shrink-0 flex-col gap-1.5 text-right">
+            <h2 className="text-[22px] font-bold leading-[34px] text-[#111827]">حمایت کسب‌وکار</h2>
+            <p className="text-[13px] leading-5 text-[#6b7280]">
+              فرصت‌ها و حمایت‌های مرتبط با مسیرهای کسب‌وکار اعضای باشگاه.
+            </p>
+          </header>
+        </div>
 
-        <header className="space-y-2 text-right">
-          <h2 className="text-2xl font-extrabold text-dena-ink">حمایت کسب‌وکار</h2>
-          <p className="text-sm leading-7 text-dena-muted">فرصت‌ها و حمایت‌های مرتبط با مسیرهای کسب‌وکار اعضای باشگاه.</p>
-        </header>
-
-        <Card className="flex flex-1 flex-col items-center justify-center gap-5 rounded-2xl border border-dena-border p-6 text-center">
-          <div className="flex size-20 items-center justify-center rounded-full bg-[#f7f6fb]">
-            <svg aria-hidden="true" viewBox="0 0 40 40" className="size-10 text-dena-brand" fill="none">
-              <circle cx="20" cy="20" r="14" stroke="currentColor" strokeWidth="2" />
-              <path d="M13 20h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <Card className="flex min-h-[504px] flex-1 flex-col items-center justify-center gap-5 rounded-2xl border-[#e5e1ed] p-6 text-center shadow-[0px_4px_8px_rgba(0,0,0,0.03)]">
+          <div className="flex size-20 shrink-0 items-center justify-center rounded-[40px] bg-[#f7f6fb]">
+            <svg aria-hidden="true" viewBox="0 0 40 40" className="size-10 text-[#9ca3af]" fill="none">
+              <rect x="6" y="9" width="28" height="25" rx="3" stroke="currentColor" strokeWidth="2" />
+              <path d="M13 6v6M27 6v6M6 16h28M16 23l8 8m0-8-8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
-          <div className="space-y-2 text-right">
-            <h3 className="text-base font-extrabold text-dena-ink">حمایت پایان یافته</h3>
-            <p className="text-sm leading-6 text-dena-muted">این حمایت پایان یافته است.</p>
+          <div className="flex w-full shrink-0 flex-col items-center gap-2">
+            <h3 className="w-full text-base font-bold leading-[25px] text-[#111827]">
+              حمایت پایان یافته
+            </h3>
+            <p className="w-full text-[13px] leading-5 text-[#6b7280]">
+              این حمایت پایان یافته است.
+            </p>
           </div>
-          <p className="text-xs leading-6 text-dena-muted">این وضعیت نمونهٔ نمایشی است و پایان‌یافتن حمایتی در پروندهٔ واقعی را نشان نمی‌دهد.</p>
         </Card>
-
-        <Link href="/student-demo/elite-club/business-support" className="self-start text-sm font-bold text-dena-brand hover:underline">
-          بازگشت به حمایت کسب‌وکار
-        </Link>
       </div>
     </StudentShell>
   );
