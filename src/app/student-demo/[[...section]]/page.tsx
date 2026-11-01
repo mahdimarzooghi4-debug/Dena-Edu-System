@@ -448,51 +448,82 @@ function AssessmentsDemo({ filter = "all", detail }: { filter?: string; detail?:
     const item=items.find(x=>x.id===detail);
     if(!item) notFound();
     const ready=item.status==="ready";
+    const badgeClass=ready?"bg-dena-lavender text-dena-brand":item.status==="completed"?"bg-emerald-50 text-emerald-700":"bg-amber-50 text-amber-800";
     return <div className="mx-auto max-w-5xl space-y-5">
-      <Card className="space-y-5 rounded-[20px] p-5 md:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <span className={`rounded-full px-3 py-2 text-xs font-bold ${ready?"bg-dena-lavender text-dena-brand":item.status==="completed"?"bg-emerald-50 text-emerald-700":"bg-amber-50 text-amber-800"}`}>{item.label}</span>
-          <div className="text-right"><h2 className="text-xl font-extrabold text-dena-deep">{item.title}</h2><p className="mt-1 text-sm text-dena-muted">{item.course}</p></div>
-        </div>
-        <div className="grid gap-3 rounded-xl bg-dena-bg p-4 sm:grid-cols-2">
-          <div className="text-right"><p className="text-xs text-dena-muted">ارائه آموزشی این دوره</p><p className="mt-1 font-bold text-dena-deep">مؤسسه آموزشی البرز</p><p className="mt-1 text-xs leading-6 text-dena-muted">محتوا و همراهی آموزشی این دوره توسط مؤسسه آموزشی البرز ارائه می‌شود.</p></div>
-          <div className="space-y-3 text-right sm:border-r sm:border-dena-border sm:pr-4"><p className="text-sm font-semibold text-dena-deep">مدرس: استاد احمدی</p><p className="text-sm text-dena-muted">دوره مرتبط: {item.course}</p><p className="text-xs text-dena-muted">آخرین فعالیت شما در این دوره امروز ثبت شده است.</p></div>
-        </div>
-      </Card>
+      <div className="md:hidden">
+        <Card className="space-y-5 rounded-2xl p-5">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <span className={`rounded-full px-3 py-1.5 text-xs font-bold ${badgeClass}`}>{item.label}</span>
+              <span className="rounded-full bg-dena-bg px-3 py-1.5 text-xs font-bold text-dena-brand">آزمون یادگیری</span>
+            </div>
+            <div className="space-y-1 text-right">
+              <h2 className="text-lg font-extrabold text-dena-deep">{item.title}</h2>
+              <p className="text-sm text-dena-muted">{item.course}</p>
+            </div>
+          </div>
 
-      <Card className="space-y-5 rounded-[20px] p-5 md:p-6">
-        <div className="space-y-3 text-right">
-          <h3 className="text-lg font-extrabold text-dena-deep">جزئیات آزمون</h3>
-          <p className="font-bold text-dena-deep">{item.title}</p>
-          <p className="text-sm text-dena-muted">{item.course}</p>
-        </div>
-        <div className="grid gap-3 rounded-xl border border-dena-border bg-dena-bg p-4 sm:grid-cols-2">
-          <p className="text-sm text-dena-muted">مؤسسه آموزشی البرز</p>
-          <p className="text-sm font-bold text-dena-deep sm:text-right">تابع و نمودار</p>
-          <p className="text-sm leading-7 text-dena-muted sm:col-span-2">این آزمون برای مرور مباحث فصل سوم آماده شده است. پرسش‌های این نسخه نمونه‌اند و نتیجهٔ واقعی ثبت نمی‌شود.</p>
-        </div>
-        <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {[["۱۰ پرسش","تعداد پرسش‌ها"],["حدود ۱۵ دقیقه","زمان پیشنهادی"],["آزمون یادگیری","نوع آزمون"],["چهارگزینه‌ای","ساختار"],["تصادفی","ترتیب پرسش‌ها"]].map(([value,label])=><div key={label} className="rounded-xl border border-dena-border p-4 text-right"><dd className="font-bold text-dena-deep">{value}</dd><dt className="mt-1 text-xs text-dena-muted">{label}</dt></div>)}
-        </dl>
-      </Card>
+          <div className="flex flex-wrap items-center gap-2 border-t border-dena-border pt-4">
+            <span className="rounded-full bg-dena-bg px-3 py-1.5 text-xs text-dena-muted">مؤسسه آموزشی البرز</span>
+            <span className="rounded-full bg-dena-lavender px-3 py-1.5 text-xs font-semibold text-dena-brand">تابع و نمودار</span>
+          </div>
 
-      <Card className="space-y-4 rounded-[20px] p-5 md:p-6">
-        <h3 className="text-base font-extrabold text-dena-deep">پیش از شروع آزمون</h3>
-        <ul className="space-y-3 text-sm leading-7 text-dena-ink">
-          <li className="flex gap-3"><span className="text-dena-brand">✓</span><span>همهٔ پرسش‌ها چهارگزینه‌ای هستند.</span></li>
-          <li className="flex gap-3"><span className="text-dena-brand">✓</span><span>پرسش‌ها به‌صورت تصادفی برای این تلاش انتخاب می‌شوند.</span></li>
-          <li className="flex gap-3"><span className="text-dena-brand">✓</span><span>پاسخ‌ها را پیش از ارسال نهایی بررسی کن.</span></li>
-          <li className="flex gap-3"><span className="text-dena-brand">✓</span><span>اگر نتیجهٔ آزمون با انتظارت هماهنگ نبود، می‌توانی آن را با مدرس دوره مرور کنی.</span></li>
-        </ul>
-        <div className="grid gap-3 rounded-xl bg-dena-bg p-4 sm:grid-cols-2">
-          <div className="text-right"><p className="text-xs text-dena-muted">دوره مرتبط</p><p className="mt-1 font-semibold">{item.course}</p></div>
-          <div className="text-right"><p className="text-xs text-dena-muted">جلسه مرتبط</p><p className="mt-1 font-semibold">تابع و نمودار</p></div>
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-dena-border pt-4">
-          <Link href="/student-demo/assessments" className="text-sm font-bold text-dena-brand hover:underline">بازگشت به تمرین‌ها و آزمون‌ها</Link>
-          {ready?<Link href="/student-demo/assessments/math-7-practice/start" className={buttonClassName()}>شروع آزمون</Link>:<span className="rounded-xl bg-dena-bg px-4 py-3 text-sm font-semibold text-dena-muted">{item.status==="completed"?"نتیجهٔ نمونه؛ پاسخ واقعی ثبت نشده":"این آزمون هنوز آمادهٔ شروع نیست"}</span>}
-        </div>
-      </Card>
+          <p className="text-sm leading-7 text-dena-muted">این آزمون برای مرور مباحث فصل سوم آماده شده است. پرسش‌ها به‌صورت تصادفی از بانک سؤال مؤسسه انتخاب می‌شوند.</p>
+
+          <dl className="grid grid-cols-2 gap-2 border-y border-dena-border py-4">
+            {[["۱۰ پرسش","تعداد پرسش‌ها"],["۱۵ دقیقه","زمان پیشنهادی"],["چهارگزینه‌ای","ساختار"],["تصادفی","انتخاب پرسش‌ها"]].map(([value,label])=><div key={label} className="rounded-xl bg-dena-bg p-3 text-right"><dd className="font-bold text-dena-deep">{value}</dd><dt className="mt-1 text-xs text-dena-muted">{label}</dt></div>)}
+          </dl>
+
+          <section className="space-y-3">
+            <h3 className="text-sm font-extrabold text-dena-deep">پیش از شروع آزمون</h3>
+            <ul className="space-y-3 text-[13px] leading-6 text-dena-muted">
+              <li className="flex items-start gap-2"><span className="font-bold text-dena-brand">✓</span><span>همهٔ پرسش‌ها چهارگزینه‌ای هستند.</span></li>
+              <li className="flex items-start gap-2"><span className="font-bold text-dena-brand">✓</span><span>پرسش‌ها به‌صورت تصادفی انتخاب می‌شوند.</span></li>
+              <li className="flex items-start gap-2"><span className="font-bold text-dena-brand">✓</span><span>پاسخ‌ها را پیش از ارسال نهایی بررسی کن.</span></li>
+              <li className="flex items-start gap-2"><span className="font-bold text-dena-brand">✓</span><span>اگر نتیجهٔ آزمون نیاز به تلاش دوباره داشته باشد، ابتدا جلسهٔ آموزشی مرتبط را مرور کن. تا تکمیل مرور، تلاش جدید فعال نمی‌شود.</span></li>
+            </ul>
+          </section>
+
+          <div className="space-y-3 border-t border-dena-border pt-4">
+            {ready?<Link href="/student-demo/assessments/math-7-practice/start" className={buttonClassName()+ " flex w-full justify-center"}>شروع آزمون</Link>:<div className="rounded-xl bg-dena-bg p-3 text-center text-sm font-semibold text-dena-muted">{item.status==="completed"?"نتیجهٔ نمونه؛ پاسخ واقعی ثبت نشده":"این آزمون هنوز آمادهٔ شروع نیست"}</div>}
+            <Link href="/student-demo/assessments" className="flex w-full justify-center rounded-xl border border-dena-border bg-white px-4 py-3 text-sm font-bold text-dena-brand">بازگشت به تمرین‌ها و آزمون‌ها</Link>
+          </div>
+        </Card>
+      </div>
+
+      <div className="hidden space-y-5 md:block">
+        <Card className="space-y-5 rounded-[20px] p-5 md:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <span className={`rounded-full px-3 py-2 text-xs font-bold ${badgeClass}`}>{item.label}</span>
+            <div className="text-right"><h2 className="text-xl font-extrabold text-dena-deep">{item.title}</h2><p className="mt-1 text-sm text-dena-muted">{item.course}</p></div>
+          </div>
+          <div className="grid gap-3 rounded-xl bg-dena-bg p-4 sm:grid-cols-2">
+            <div className="text-right"><p className="text-xs text-dena-muted">ارائه آموزشی این دوره</p><p className="mt-1 font-bold text-dena-deep">مؤسسه آموزشی البرز</p><p className="mt-1 text-xs leading-6 text-dena-muted">محتوا و همراهی آموزشی این دوره توسط مؤسسه آموزشی البرز ارائه می‌شود.</p></div>
+            <div className="space-y-3 text-right sm:border-r sm:border-dena-border sm:pr-4"><p className="text-sm font-semibold text-dena-deep">مدرس: استاد احمدی</p><p className="text-sm text-dena-muted">دوره مرتبط: {item.course}</p><p className="text-xs text-dena-muted">آخرین فعالیت شما در این دوره امروز ثبت شده است.</p></div>
+          </div>
+        </Card>
+
+        <Card className="space-y-5 rounded-[20px] p-5 md:p-6">
+          <div className="space-y-3 text-right"><h3 className="text-lg font-extrabold text-dena-deep">جزئیات آزمون</h3><p className="font-bold text-dena-deep">{item.title}</p><p className="text-sm text-dena-muted">{item.course}</p></div>
+          <div className="grid gap-3 rounded-xl border border-dena-border bg-dena-bg p-4 sm:grid-cols-2">
+            <p className="text-sm text-dena-muted">مؤسسه آموزشی البرز</p><p className="text-sm font-bold text-dena-deep sm:text-right">تابع و نمودار</p>
+            <p className="text-sm leading-7 text-dena-muted sm:col-span-2">این آزمون برای مرور مباحث فصل سوم آماده شده است. پرسش‌های این نسخه نمونه‌اند و نتیجهٔ واقعی ثبت نمی‌شود.</p>
+          </div>
+          <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{[["۱۰ پرسش","تعداد پرسش‌ها"],["حدود ۱۵ دقیقه","زمان پیشنهادی"],["آزمون یادگیری","نوع آزمون"],["چهارگزینه‌ای","ساختار"],["تصادفی","ترتیب پرسش‌ها"]].map(([value,label])=><div key={label} className="rounded-xl border border-dena-border p-4 text-right"><dd className="font-bold text-dena-deep">{value}</dd><dt className="mt-1 text-xs text-dena-muted">{label}</dt></div>)}</dl>
+        </Card>
+
+        <Card className="space-y-4 rounded-[20px] p-5 md:p-6">
+          <h3 className="text-base font-extrabold text-dena-deep">پیش از شروع آزمون</h3>
+          <ul className="space-y-3 text-sm leading-7 text-dena-ink">
+            <li className="flex gap-3"><span className="text-dena-brand">✓</span><span>همهٔ پرسش‌ها چهارگزینه‌ای هستند.</span></li>
+            <li className="flex gap-3"><span className="text-dena-brand">✓</span><span>پرسش‌ها به‌صورت تصادفی برای این تلاش انتخاب می‌شوند.</span></li>
+            <li className="flex gap-3"><span className="text-dena-brand">✓</span><span>پاسخ‌ها را پیش از ارسال نهایی بررسی کن.</span></li>
+            <li className="flex gap-3"><span className="text-dena-brand">✓</span><span>اگر نتیجهٔ آزمون با انتظارت هماهنگ نبود، می‌توانی آن را با مدرس دوره مرور کنی.</span></li>
+          </ul>
+          <div className="grid gap-3 rounded-xl bg-dena-bg p-4 sm:grid-cols-2"><div className="text-right"><p className="text-xs text-dena-muted">دوره مرتبط</p><p className="mt-1 font-semibold">{item.course}</p></div><div className="text-right"><p className="text-xs text-dena-muted">جلسه مرتبط</p><p className="mt-1 font-semibold">تابع و نمودار</p></div></div>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-dena-border pt-4"><Link href="/student-demo/assessments" className="text-sm font-bold text-dena-brand hover:underline">بازگشت به تمرین‌ها و آزمون‌ها</Link>{ready?<Link href="/student-demo/assessments/math-7-practice/start" className={buttonClassName()}>شروع آزمون</Link>:<span className="rounded-xl bg-dena-bg px-4 py-3 text-sm font-semibold text-dena-muted">{item.status==="completed"?"نتیجهٔ نمونه؛ پاسخ واقعی ثبت نشده":"این آزمون هنوز آمادهٔ شروع نیست"}</span>}</div>
+        </Card>
+      </div>
     </div>;
   }
   const filtered=filter==="all"?items:items.filter(item=>item.status===filter);
