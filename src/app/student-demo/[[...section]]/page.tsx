@@ -40,6 +40,8 @@ const demoCourses: DemoCourse[] = [
     total: 10,
     lessons: ["تجربه و تفکر", "اندازه‌گیری در علوم", "اتم‌ها و مواد", "انرژی و تبدیل‌ها"],
   },
+  { id: "chemistry-10", title: "شیمی دهم", provider: "مرکز علمی پژوهان", done: 8, total: 18, lessons: ["ساختار اتم", "جدول تناوبی", "پیوند شیمیایی"] },
+  { id: "biology-10", title: "زیست‌شناسی دهم", provider: "دبیرستان فرزانگان", done: 16, total: 16, lessons: ["دنیای زنده", "گوارش و جذب مواد"] },
 ];
 
 const teamRoles = [
@@ -127,13 +129,14 @@ function Home() {
   );
 }
 
-function CourseList() {
+function CourseList({ filter = "all" }: { filter?: string }) {
   const catalog = [
     { ...demoCourses[0], title: "ریاضی دهم", provider: "مؤسسه آموزشی البرز", teacher: "استاد احمدی", done: 18, total: 24, topic: "تابع و نمودار" },
     { ...demoCourses[1], title: "فیزیک دهم", provider: "آموزشگاه نور دانش", teacher: "استاد محمدی", done: 12, total: 20, topic: "نیرو و حرکت" },
     { id: "chemistry-10", title: "شیمی دهم", provider: "مرکز علمی پژوهان", teacher: "استاد رضایی", done: 8, total: 18, lessons: ["ساختار اتم", "جدول تناوبی", "پیوند شیمیایی"], topic: "ساختار اتم" },
     { id: "biology-10", title: "زیست‌شناسی دهم", provider: "دبیرستان فرزانگان", teacher: "استاد کریمی", done: 16, total: 16, lessons: ["دنیای زنده", "گوارش و جذب مواد"], topic: "تکمیل دوره" },
   ];
+  const visibleCatalog=catalog.filter(course=>filter==="all"||(filter==="completed"?course.done===course.total:course.done<course.total));
   return (
     <div className="space-y-6">
       <header className="space-y-2 text-right">
@@ -141,10 +144,10 @@ function CourseList() {
         <p className="text-sm text-dena-muted">دوره‌های آموزشی و میزان پیشرفت یادگیری‌ات را دنبال کن.</p>
       </header>
       <nav aria-label="فیلتر دوره‌ها" className="flex flex-wrap justify-start gap-2 border-b border-dena-border">
-        {[["all","همه"],["learning","در حال یادگیری"],["completed","تکمیل‌شده"]].map(([key,label])=><a key={key} href={key==="all"?"/student-demo/courses":`/student-demo/courses?filter=${key}`} className="rounded-t-lg px-4 py-3 text-sm font-semibold text-dena-muted hover:bg-dena-lavender hover:text-dena-brand">{label}</a>)}
+        {[["all","همه"],["learning","در حال یادگیری"],["completed","تکمیل‌شده"]].map(([key,label])=><a key={key} href={key==="all"?"/student-demo/courses":`/student-demo/courses?filter=${key}`} aria-current={filter===key?"page":undefined} className={`rounded-t-lg px-4 py-3 text-sm font-semibold ${filter===key?"bg-dena-lavender text-dena-brand":"text-dena-muted hover:bg-dena-lavender hover:text-dena-brand"}`}>{label}</a>)}
       </nav>
       <div className="grid gap-4 md:grid-cols-2">
-        {catalog.map((course) => {
+        {visibleCatalog.map((course) => {
           const progress=Math.round(course.done/course.total*100);
           const completed=progress===100;
           return <Card key={course.id} className="space-y-4 rounded-[20px] p-5 md:p-6">
@@ -156,6 +159,7 @@ function CourseList() {
           </Card>;
         })}
       </div>
+      {visibleCatalog.length===0&&<Card className="p-8 text-center text-sm text-dena-muted">در این وضعیت دوره‌ای برای نمایش نیست.</Card>}
       <p className="text-xs leading-6 text-dena-muted">اطلاعات این صفحه نمونهٔ نمایشی است و از پروندهٔ واقعی دریافت نشده است.</p>
     </div>
   );
@@ -426,11 +430,11 @@ function GenericDemo({ section }: { section: keyof typeof pages }) {
   return <div className="space-y-6"><section className="rounded-[22px] bg-dena-lavender p-6"><h2 className="text-2xl font-extrabold text-dena-deep">{content.title}</h2><p className="mt-2 text-sm leading-7 text-dena-muted">{content.description}</p></section><div className="grid gap-4">{content.values.map((value, index) => <Card key={value} className="space-y-3"><p className="text-sm font-semibold text-dena-ink">{value}</p>{section === "assessments" && index === 0 && <Link href="/student-demo/assessments/math-7-practice" className={buttonClassName("outline")}>شروع تمرین نمونه</Link>}</Card>)}</div></div>;
 }
 
-export default async function StudentDemoPage({ params }: { params: Promise<{ section?: string[] }> }) {
+export default async function StudentDemoPage({ params, searchParams }: { params: Promise<{ section?: string[] }>; searchParams: Promise<{ filter?: string }> }) {
   const { section: path = [] } = await params;
-  const { filter = "all" } = await (arguments[0] as { searchParams?: Promise<{ filter?: string }> }).searchParams ?? {};
+  const { filter = "all" } = await searchParams;
   const pageKey = path.length ? path.join("/") : "home";
-  const page = pages[path[0] === "courses" ? "courses" : path[0] === "assessments" ? "assessments" : path[0] === "elite-club" ? "elite-club" : pageKey];
+  const page = pages[path[0] === "elite-club" ? "elite-club" : path[0] || "home"];
   if (!page) notFound();
 
   const course = path[0] === "courses" ? demoCourses.find((item) => item.id === path[1]) : undefined;
@@ -439,7 +443,7 @@ export default async function StudentDemoPage({ params }: { params: Promise<{ se
 
   let content: ReactNode;
   if (pageKey === "home") content = <Home />;
-  else if (pageKey === "courses" && path.length === 1) content = <CourseList />;
+  else if (pageKey === "courses" && path.length === 1) content = <CourseList filter={filter} />;
   else if (isCoursePath && path.length === 2 && course) content = <CourseDetail course={course} />;
   else if (isCoursePath && path[2] === "lessons" && path.length === 4 && course) {
     const lessonNumber = Number(path[3]);
