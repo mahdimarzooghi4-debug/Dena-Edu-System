@@ -328,62 +328,33 @@ function AssessmentsDemo({ filter = "all", detail }: { filter?: string; detail?:
   </div>;
 }
 function GrowthDemo() {
-  const attempts = [
-    { label: "تلاش ۱", percent: 40 },
-    { label: "تلاش ۲", percent: 60 },
-    { label: "تلاش ۳", percent: 50 },
-    { label: "تلاش ۴", percent: 75 },
-  ];
-  const chartPoints = attempts.map((attempt, index) => ({
-    ...attempt,
-    x: 36 + index * 88,
-    y: 164 - attempt.percent * 1.2,
-  }));
-  const line = chartPoints.map((point) => `${point.x},${point.y}`).join(" ");
-
-  return (
-    <Card className="space-y-4 rounded-[22px] p-6 md:p-8">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-sm font-bold text-dena-brand">ریاضی پایه هفتم · ارزیابی نمونه</p>
-          <h2 className="mt-2 text-xl font-extrabold text-dena-deep">روند پاسخ‌های درست</h2>
-          <p className="mt-2 text-sm leading-7 text-dena-muted">درصد پاسخ درست در تلاش‌های همین ارزیابی</p>
-        </div>
-        <div className="rounded-xl bg-dena-lavender px-4 py-3">
-          <p className="text-xs text-dena-muted">آخرین تلاش</p>
-          <p className="mt-1 text-xl font-extrabold text-dena-brand">۷۵٪</p>
-        </div>
-      </div>
-      <div className="overflow-x-auto">
-        <svg
-          viewBox="0 0 390 210"
-          role="img"
-          aria-label="روند پاسخ درست در چهار تلاش از همین ارزیابی: ۴۰، ۶۰، ۵۰ و ۷۵ درصد"
-          className="min-w-[350px] w-full"
-        >
-          {[44, 104, 164].map((y, index) => (
-            <g key={y}>
-              <line x1="28" y1={y} x2="370" y2={y} className="stroke-dena-border" strokeDasharray="4 6" />
-              <text x="378" y={y + 4} textAnchor="end" className="fill-dena-muted text-[11px]">
-                {index === 0 ? "۱۰۰٪" : index === 1 ? "۵۰٪" : "۰٪"}
-              </text>
-            </g>
-          ))}
-          <polyline points={line} className="fill-none stroke-dena-brand" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-          {chartPoints.map((point) => (
-            <g key={point.label}>
-              <circle cx={point.x} cy={point.y} r="6" className="fill-dena-mint stroke-white" strokeWidth="2" />
-              <text x={point.x} y="192" textAnchor="middle" className="fill-dena-muted text-[11px]">{point.label}</text>
-            </g>
-          ))}
-        </svg>
-      </div>
-      <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs leading-6 text-amber-950">
-        اعداد نمودار نمونه‌اند. در نسخهٔ واقعی، هر روند فقط برای همان ارزیابی نمایش داده می‌شود؛ این درصد نمرهٔ رسمی یا اثبات یادگیری نیست و تفاوت نسخه‌های سؤال می‌تواند بر روند اثر بگذارد.
-      </p>
-      <Link href="/student-demo/assessments" className={buttonClassName("outline")}>رفتن به تمرین‌ها و آزمون‌ها</Link>
+  const milestones=[{title:"مرور درس تکمیل شد",label:"ارزیابی اولیه",tone:"bg-emerald-400"},{title:"نیاز به مرور",label:"فصل اول",tone:"bg-amber-400"},{title:"آزمون یادگیری",label:"فصل دوم",tone:"bg-dena-brand"},{title:"آزمون یادگیری فصل سوم",label:"اکنون",tone:"bg-dena-brand"}];
+  const courses=[{name:"ریاضی دهم",progress:33,detail:"جلسه ۸ از ۲۴ · در حال پیشرفت"},{name:"فیزیک دهم",progress:27,detail:"جلسه ۵ از ۱۸ · در حال پیشرفت"},{name:"شیمی دهم",progress:12,detail:"جلسه ۲ از ۱۶ · شروع‌شده"}];
+  const activity=[{when:"امروز",text:"جلسه ۷ ریاضی دهم تکمیل شد"},{when:"دیروز",text:"آزمون یادگیری تابع با موفقیت انجام شد"},{when:"۳ روز پیش",text:"مرور مجدد یک جلسه تکمیل شد"}];
+  return <div className="space-y-6">
+    <header className="space-y-2 text-right"><h2 className="text-2xl font-extrabold text-dena-deep">مسیر رشد من</h2><p className="text-sm text-dena-muted">پیشرفت یادگیری و قدم‌های بعدی‌ات را در یک مسیر ببین.</p></header>
+    <div className="grid gap-4 lg:grid-cols-2">
+      <Card className="space-y-5 p-5 md:p-6"><div className="flex items-center justify-between gap-3"><span className="rounded-full bg-dena-lavender px-3 py-1.5 text-xs font-bold text-dena-brand">پیشنهادی امروز</span><h3 className="font-extrabold text-dena-deep">قدم بعدی یادگیری</h3></div><div className="text-right"><p className="text-lg font-extrabold text-dena-deep">ادامه جلسه ۸ — تابع و نمودار</p><p className="mt-2 text-sm text-dena-muted">دوره مرتبط: ریاضی دهم</p></div><Link href="/student-demo/courses/math-7/lessons/3" className={buttonClassName()}>ادامه یادگیری</Link></Card>
+      <Card className="space-y-5 p-5 md:p-6"><div className="flex items-center justify-between gap-3"><span className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">در حال پیشرفت</span><h3 className="font-extrabold text-dena-deep">وضعیت فعلی شما</h3></div><div className="space-y-2 text-right"><p className="text-lg font-extrabold">ریاضی دهم</p><p className="text-sm text-dena-muted">مرحله فعلی: تابع و نمودار</p><p className="text-sm text-dena-muted">جلسه فعال: جلسه ۸ از ۲۴</p></div></Card>
+    </div>
+    <Card className="space-y-5 p-5 md:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3"><span className="rounded-lg border border-dena-border px-3 py-2 text-sm">ریاضی دهم⌄</span><h3 className="font-extrabold text-dena-deep">روند رشد من</h3></div>
+      <div className="overflow-x-auto"><svg viewBox="0 0 700 250" role="img" aria-label="روند نمونهٔ عملکرد آموزشی از امتیاز ۴۲ به ۶۸" className="min-w-[560px] w-full">
+        {[50,100,150,200].map(y=><line key={y} x1="28" y1={y} x2="680" y2={y} className="stroke-dena-border" strokeDasharray="4 6"/>)}
+        <polyline points="40,177 170,105 300,125 430,75 560,98 660,58" fill="none" stroke="currentColor" className="text-dena-brand" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+        {[[40,177],[170,105],[300,125],[430,75],[560,98],[660,58]].map(([x,y],i)=><circle key={i} cx={x} cy={y} r="7" className="fill-dena-mint stroke-white" strokeWidth="3"/>)}
+        <text x="40" y="235" className="fill-dena-muted text-[11px]">شروع دوره</text><text x="190" y="235" className="fill-dena-muted text-[11px]">مرور مجدد</text><text x="365" y="235" className="fill-dena-muted text-[11px]">فصل دوم</text><text x="600" y="235" className="fill-dena-muted text-[11px]">اکنون</text>
+      </svg></div>
+      <div className="grid gap-3 rounded-xl bg-dena-bg p-4 sm:grid-cols-3 text-right">{[["شروع دوره","۴۲"],["تغییر","+۲۶"],["اکنون","۶۸"]].map(([a,b])=><div key={a}><p className="text-xs text-dena-muted">{a}</p><p className="mt-1 text-xl font-extrabold text-dena-brand">{b}</p></div>)}</div>
+      <p className="text-xs leading-6 text-dena-muted">اعداد نمونه‌اند و برای نمایش روند هستند؛ نمرهٔ رسمی یا اثبات یادگیری نیستند.</p>
     </Card>
-  );
+    <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+      <Card className="space-y-5 p-5 md:p-6"><div className="flex items-center justify-between"><Link href="/student-demo/courses/math-7" className="text-sm font-bold text-dena-brand">مشاهده دوره ←</Link><h3 className="font-extrabold text-dena-deep">مسیر یادگیری دوره</h3></div><ol className="space-y-3">{["دامنه تابع · جلسه ۶","مفهوم تابع · جلسه ۷","تابع و نمودار · جلسه ۸","آزمون یادگیری فصل سوم · جلسه آزمون","انواع نمودار · جلسه ۹"].map((x,i)=><li key={x} className="flex items-center gap-3 rounded-xl border border-dena-border p-3"><span className={`grid size-8 place-items-center rounded-full text-xs font-bold ${i<2?"bg-emerald-50 text-emerald-700":i===2?"bg-dena-lavender text-dena-brand":"bg-dena-bg text-dena-muted"}`}>{i<2?"✓":i+6}</span><span className="text-sm font-semibold">{x}</span></li>)}</ol></Card>
+      <div className="space-y-4"><Card className="space-y-4 p-5"><h3 className="font-extrabold text-dena-deep">دوره‌های در حال رشد</h3>{courses.map(c=><div key={c.name} className="space-y-2 border-t border-dena-border pt-3"><div className="flex justify-between gap-2"><span className="text-xs text-dena-muted">{c.progress}٪ پیشرفت</span><span className="text-sm font-bold">{c.name}</span></div><p className="text-xs text-dena-muted">{c.detail}</p><div className="h-2 rounded-full bg-dena-lavender"><div className="h-2 rounded-full bg-dena-mint" style={{width:`${c.progress}%`}}/></div></div>)}</Card>
+      <Card className="space-y-3 p-5"><h3 className="font-extrabold text-dena-deep">دستاوردهای اخیر</h3>{activity.map(a=><div key={a.text} className="flex justify-between gap-3 border-t border-dena-border pt-3"><p className="text-sm">{a.text}</p><span className="shrink-0 text-xs text-dena-muted">{a.when}</span></div>)}</Card></div>
+    </div>
+    <p className="text-xs leading-6 text-dena-muted">تمام داده‌های این صفحه برای پیش‌نمایش رابط هستند.</p>
+  </div>;
 }
 
 function ProfileDemo({ edit = false }: { edit?: boolean }) {
