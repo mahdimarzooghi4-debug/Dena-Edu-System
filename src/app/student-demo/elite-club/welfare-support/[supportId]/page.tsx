@@ -32,17 +32,17 @@ function StatusBadges({ status }: { status: string }) {
 
 function InfoField({ label, value }: { label: string; value: string }) {
   return (
-    <div className="shrink-0 space-y-1.5 text-right">
+    <div className="shrink-0 space-y-1.5 text-right lg:space-y-2">
       <p className="text-[13px] font-semibold leading-5 text-[#9ca3af] lg:text-sm lg:leading-[22px]">{label}</p>
-      <p className="text-[15px] font-normal leading-[22px] text-[#1f2937] lg:text-base lg:leading-[26px]">{value}</p>
+      <p className="text-[15px] font-normal leading-[22px] text-[#1f2937] lg:text-base lg:leading-[25px]">{value}</p>
     </div>
   );
 }
 
 function Divider() {
   return (
-    <div className="h-px w-full shrink-0" aria-hidden="true">
-      <img src="/icons/elite-club/divider.svg" width="326" height="1" className="h-px w-full" alt="" />
+    <div className="relative h-0 w-full shrink-0" aria-hidden="true">
+      <img src="/icons/elite-club/divider.svg" width="326" height="1" className="absolute inset-x-0 top-0 h-px w-full" alt="" />
     </div>
   );
 }
