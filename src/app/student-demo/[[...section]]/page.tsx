@@ -610,19 +610,54 @@ function GrowthDemo() {
 
 function ProfileDemo({ edit = false }: { edit?: boolean }) {
   if(edit) return <div className="mx-auto max-w-3xl"><Card className="space-y-5 rounded-[22px] p-6 md:p-8"><Link href="/student-demo/profile" className="text-sm font-bold text-dena-brand">بازگشت به پروفایل ←</Link><h2 className="text-2xl font-extrabold text-dena-deep">ویرایش پروفایل</h2><label className="block space-y-2 text-sm"><span>نام و نام خانوادگی</span><input readOnly value="محمد علوی" className="w-full rounded-xl border border-dena-border bg-dena-bg px-4 py-3"/></label><p className="text-xs text-dena-muted">در پیش‌نمایش امکان ذخیرهٔ اطلاعات واقعی وجود ندارد.</p><button type="button" disabled className={buttonClassName()+" opacity-60"}>ذخیرهٔ تغییرات</button></Card></div>;
-  return <div className="space-y-5">
-    <header className="text-right"><h2 className="text-2xl font-extrabold text-dena-deep">پروفایل کاربری</h2><p className="mt-2 text-sm text-dena-muted">اطلاعات حساب و مشخصات ثبت‌شده‌ات را مدیریت کن.</p></header>
-    <div className="grid gap-4 lg:grid-cols-2">
-      <div className="space-y-4">
-        <Card className="space-y-4 p-5"><h3 className="font-extrabold text-dena-deep">محمد علوی</h3><p className="text-sm text-dena-muted">پایه دهم تجربی</p></Card>
-        <Card className="space-y-3 p-5"><h3 className="font-extrabold text-dena-deep">حریم خصوصی و داده‌ها</h3><p className="text-sm leading-7 text-dena-muted">مدیریت اطلاعات خصوصی و داده‌های مربوط به حساب شما بر اساس سیاست‌های دنا.</p><Link href="/student-demo/profile/privacy" className="inline-flex text-sm font-bold text-dena-brand">مشاهده تنظیمات حریم خصوصی ←</Link></Card>
-      </div>
-      <div className="space-y-4">
-        <Card className="space-y-5 p-5"><div className="flex items-center justify-between gap-3"><Link href="/student-demo/profile/edit" className={buttonClassName("outline")}>ویرایش اطلاعات</Link><h3 className="font-extrabold text-dena-deep">اطلاعات شخصی</h3></div><div className="border-t border-dena-border pt-4 text-right"><p className="text-xs text-dena-muted">نام و نام خانوادگی</p><p className="mt-1 font-semibold">محمد علوی</p></div><div className="flex items-center justify-between gap-4 border-t border-dena-border pt-4"><Link href="/student-demo/profile/change-phone" className="text-sm font-semibold text-dena-brand">تغییر شماره موبایل</Link><div className="text-right"><p className="text-xs text-dena-muted">شماره ورود به حساب</p><p className="mt-1 font-semibold">۰۹۱۲••••••••</p></div></div><p className="text-xs text-dena-muted">تغییر شماره موبایل نیاز به تأیید شماره جدید دارد.</p></Card>
-        <Card className="space-y-4 p-5"><h3 className="font-extrabold text-dena-deep">اطلاعات تحصیلی</h3><div className="flex justify-start gap-12 border-t border-dena-border pt-4 text-right"><div><p className="text-xs text-dena-muted">رشته تحصیلی</p><p className="mt-1 font-semibold">علوم تجربی</p></div><div><p className="text-xs text-dena-muted">پایه تحصیلی</p><p className="mt-1 font-semibold">پایه دهم</p></div></div></Card>
-      </div>
+  return <div>
+    <div className="space-y-4 md:hidden">
+      <header className="text-right"><h2 className="text-base font-extrabold text-dena-deep">پروفایل کاربری</h2></header>
+      <Card className="flex items-center justify-between gap-3 rounded-2xl p-4">
+        <Link href="/student-demo/profile/edit" className="shrink-0 rounded-xl border border-dena-border px-3 py-2 text-sm font-bold text-dena-brand">ویرایش</Link>
+        <div className="flex min-w-0 items-center gap-3 text-right">
+          <div className="grid size-12 shrink-0 place-items-center rounded-full bg-dena-lavender text-lg font-extrabold text-dena-brand" aria-hidden="true">م</div>
+          <div><h3 className="font-extrabold text-dena-deep">محمد علوی</h3><p className="mt-1 text-xs text-dena-muted">پایه دهم تجربی</p></div>
+        </div>
+      </Card>
+      <Card className="space-y-4 rounded-2xl p-4">
+        <h3 className="text-right font-extrabold text-dena-deep">اطلاعات شخصی</h3>
+        <div className="space-y-3 border-t border-dena-border pt-3 text-right">
+          <div><p className="text-xs text-dena-muted">نام و نام خانوادگی</p><p className="mt-1 text-sm font-semibold text-dena-deep">محمد علوی</p></div>
+          <div className="flex items-center justify-between gap-3 border-t border-dena-border pt-3">
+            <Link href="/student-demo/profile/change-phone" className="shrink-0 text-sm font-semibold text-dena-brand">تغییر شماره</Link>
+            <div><p className="text-xs text-dena-muted">شماره ورود</p><p dir="ltr" className="mt-1 text-sm font-semibold text-dena-deep">۰۹۱۲••••••••</p></div>
+          </div>
+          <p className="text-xs leading-6 text-dena-muted">تغییر شماره موبایل نیاز به تأیید شماره جدید دارد</p>
+        </div>
+      </Card>
+      <Card className="space-y-4 rounded-2xl p-4">
+        <h3 className="text-right font-extrabold text-dena-deep">اطلاعات تحصیلی</h3>
+        <div className="grid grid-cols-2 gap-3 border-t border-dena-border pt-3 text-right">
+          <div><p className="text-xs text-dena-muted">رشته</p><p className="mt-1 text-sm font-semibold text-dena-deep">تجربی</p></div>
+          <div><p className="text-xs text-dena-muted">پایه</p><p className="mt-1 text-sm font-semibold text-dena-deep">دهم</p></div>
+        </div>
+      </Card>
+      <Link href="/student-demo/profile/privacy" className="flex items-center justify-between rounded-2xl border border-dena-border bg-white p-4 text-right">
+        <span className="text-lg text-dena-muted" aria-hidden="true">‹</span><span className="text-sm font-semibold text-dena-deep">حریم خصوصی و داده‌ها</span>
+      </Link>
+      <button type="button" disabled className="w-full rounded-2xl border border-rose-200 bg-white px-4 py-3 text-sm font-bold text-rose-600 opacity-80">خروج از حساب کاربری</button>
+      <p className="text-xs leading-6 text-dena-muted">اطلاعات نمایشی است و به حساب دانش‌آموز متصل نیست.</p>
     </div>
-    <p className="text-xs text-dena-muted">اطلاعات نمایشی است و به حساب دانش‌آموز متصل نیست.</p>
+    <div className="hidden space-y-5 md:block">
+      <header className="text-right"><h2 className="text-2xl font-extrabold text-dena-deep">پروفایل کاربری</h2><p className="mt-2 text-sm text-dena-muted">اطلاعات حساب و مشخصات ثبت‌شده‌ات را مدیریت کن.</p></header>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className="space-y-4">
+          <Card className="space-y-4 p-5"><h3 className="font-extrabold text-dena-deep">محمد علوی</h3><p className="text-sm text-dena-muted">پایه دهم تجربی</p></Card>
+          <Card className="space-y-3 p-5"><h3 className="font-extrabold text-dena-deep">حریم خصوصی و داده‌ها</h3><p className="text-sm leading-7 text-dena-muted">مدیریت اطلاعات خصوصی و داده‌های مربوط به حساب شما بر اساس سیاست‌های دنا.</p><Link href="/student-demo/profile/privacy" className="inline-flex text-sm font-bold text-dena-brand">مشاهده تنظیمات حریم خصوصی ←</Link></Card>
+        </div>
+        <div className="space-y-4">
+          <Card className="space-y-5 p-5"><div className="flex items-center justify-between gap-3"><Link href="/student-demo/profile/edit" className={buttonClassName("outline")}>ویرایش اطلاعات</Link><h3 className="font-extrabold text-dena-deep">اطلاعات شخصی</h3></div><div className="border-t border-dena-border pt-4 text-right"><p className="text-xs text-dena-muted">نام و نام خانوادگی</p><p className="mt-1 font-semibold">محمد علوی</p></div><div className="flex items-center justify-between gap-4 border-t border-dena-border pt-4"><Link href="/student-demo/profile/change-phone" className="text-sm font-semibold text-dena-brand">تغییر شماره موبایل</Link><div className="text-right"><p className="text-xs text-dena-muted">شماره ورود به حساب</p><p className="mt-1 font-semibold">۰۹۱۲••••••••</p></div></div><p className="text-xs text-dena-muted">تغییر شماره موبایل نیاز به تأیید شماره جدید دارد.</p></Card>
+          <Card className="space-y-4 p-5"><h3 className="font-extrabold text-dena-deep">اطلاعات تحصیلی</h3><div className="flex justify-start gap-12 border-t border-dena-border pt-4 text-right"><div><p className="text-xs text-dena-muted">رشته تحصیلی</p><p className="mt-1 font-semibold">علوم تجربی</p></div><div><p className="text-xs text-dena-muted">پایه تحصیلی</p><p className="mt-1 font-semibold">پایه دهم</p></div></div></Card>
+        </div>
+      </div>
+      <p className="text-xs text-dena-muted">اطلاعات نمایشی است و به حساب دانش‌آموز متصل نیست.</p>
+    </div>
   </div>;
 }
 function GenericDemo({ section }: { section: keyof typeof pages }) {
