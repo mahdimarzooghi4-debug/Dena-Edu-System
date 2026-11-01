@@ -616,7 +616,7 @@ export default async function StudentDemoPage({ params, searchParams }: { params
   else notFound();
 
   const title = pageKey === "ai-tutor" ? "معلم هوشمند" :
-    path[0] === "assessments" && path[1] === "math-7-practice" && path[2] === "start" ? "آزمون نمونه" :
+    path[0] === "assessments" && path[1] === "math-7-practice" && path[2] === "start" ? "آزمون فصل سوم ریاضی" :
     isCoursePath && path[2] === "team" ? path[3] ? "تیم آموزشی دوره" : "تیم آموزشی دوره" :
     isCoursePath && path[2] === "lessons" ? "مشاهده جلسه آموزشی" :
     course ? course.title : page.title;
