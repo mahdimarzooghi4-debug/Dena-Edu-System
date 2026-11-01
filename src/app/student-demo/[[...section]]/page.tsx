@@ -128,21 +128,35 @@ function Home() {
 }
 
 function CourseList() {
+  const catalog = [
+    { ...demoCourses[0], title: "ریاضی دهم", provider: "مؤسسه آموزشی البرز", teacher: "استاد احمدی", done: 18, total: 24, topic: "تابع و نمودار" },
+    { ...demoCourses[1], title: "فیزیک دهم", provider: "آموزشگاه نور دانش", teacher: "استاد محمدی", done: 12, total: 20, topic: "نیرو و حرکت" },
+    { id: "chemistry-10", title: "شیمی دهم", provider: "مرکز علمی پژوهان", teacher: "استاد رضایی", done: 8, total: 18, lessons: ["ساختار اتم", "جدول تناوبی", "پیوند شیمیایی"], topic: "ساختار اتم" },
+    { id: "biology-10", title: "زیست‌شناسی دهم", provider: "دبیرستان فرزانگان", teacher: "استاد کریمی", done: 16, total: 16, lessons: ["دنیای زنده", "گوارش و جذب مواد"], topic: "تکمیل دوره" },
+  ];
   return (
     <div className="space-y-6">
-      <section className="rounded-[22px] bg-dena-lavender p-6">
+      <header className="space-y-2 text-right">
         <h2 className="text-2xl font-extrabold text-dena-deep">دوره‌های من</h2>
-        <p className="mt-2 text-sm text-dena-muted">فهرست و جزئیات این دوره‌ها در این دموی نمایشی نمونه‌اند.</p>
-      </section>
+        <p className="text-sm text-dena-muted">دوره‌های آموزشی و میزان پیشرفت یادگیری‌ات را دنبال کن.</p>
+      </header>
+      <nav aria-label="فیلتر دوره‌ها" className="flex flex-wrap justify-start gap-2 border-b border-dena-border">
+        {[["all","همه"],["learning","در حال یادگیری"],["completed","تکمیل‌شده"]].map(([key,label])=><a key={key} href={key==="all"?"/student-demo/courses":`/student-demo/courses?filter=${key}`} className="rounded-t-lg px-4 py-3 text-sm font-semibold text-dena-muted hover:bg-dena-lavender hover:text-dena-brand">{label}</a>)}
+      </nav>
       <div className="grid gap-4 md:grid-cols-2">
-        {demoCourses.map((course) => (
-          <Card key={course.id} className="space-y-4 rounded-[22px] p-6">
-            <div><p className="text-xs font-bold text-dena-brand">{course.provider}</p><h3 className="mt-2 font-extrabold">{course.title}</h3></div>
-            <p className="text-sm text-dena-muted">{course.total} درس · {course.done} درس تکمیل‌شده در دادهٔ نمونه</p>
-            <Link href={`/student-demo/courses/${course.id}`} className={buttonClassName()}>جزئیات دوره و درس‌ها</Link>
-          </Card>
-        ))}
+        {catalog.map((course) => {
+          const progress=Math.round(course.done/course.total*100);
+          const completed=progress===100;
+          return <Card key={course.id} className="space-y-4 rounded-[20px] p-5 md:p-6">
+            <div className="grid h-24 place-items-center rounded-xl bg-dena-lavender text-4xl text-dena-brand" aria-hidden="true">{course.title.includes("ریاضی")?"∑":course.title.includes("فیزیک")?"⚛":course.title.includes("شیمی")?"⚗":"❧"}</div>
+            <div className="space-y-2 text-right"><h3 className="font-extrabold text-dena-deep">{course.title}</h3><p className="text-sm text-dena-muted">مؤسسه: {course.provider}</p><p className="text-sm text-dena-muted">مدرس: {course.teacher}</p></div>
+            <div className="space-y-2"><div className="flex justify-between text-xs text-dena-muted"><span>{progress}٪ پیشرفت</span><span>{completed?course.total+" جلسه":`جلسه ${course.done} از ${course.total}`}</span></div><div className="h-2 overflow-hidden rounded-full bg-dena-lavender"><div className="h-full rounded-full bg-dena-mint" style={{width:`${progress}%`}}/></div></div>
+            {!completed&&<div className="text-right"><p className="text-xs text-dena-muted">موضوع فعلی</p><p className="text-sm font-semibold text-dena-deep">{course.topic}</p></div>}
+            <div className="flex justify-start"><Link href={`/student-demo/courses/${course.id}`} className={buttonClassName(completed?"outline":"")}>{completed?"مشاهده دوره":"ادامه یادگیری"}</Link></div>
+          </Card>;
+        })}
       </div>
+      <p className="text-xs leading-6 text-dena-muted">اطلاعات این صفحه نمونهٔ نمایشی است و از پروندهٔ واقعی دریافت نشده است.</p>
     </div>
   );
 }
@@ -284,6 +298,31 @@ function AiTutor() {
     </div>
   );
 }
+function AssessmentsDemo({ filter = "all", detail }: { filter?: string; detail?: string }) {
+  const items = [
+    { id: "math-7-practice", title: "آزمون فصل سوم ریاضی", course: "ریاضی دهم", status: "ready", label: "آماده انجام", date: "امروز" },
+    { id: "physics-light", title: "تمرین فیزیک — نور", course: "فیزیک دهم", status: "pending", label: "در انتظار", date: "فردا" },
+    { id: "chemistry-ch2", title: "آزمون فصل دوم شیمی", course: "شیمی دهم", status: "completed", label: "انجام‌شده", date: "۲ روز پیش" },
+  ];
+  if (detail) {
+    const item=items.find(x=>x.id===detail);
+    if(!item) notFound();
+    return <div className="space-y-5"><Link href="/student-demo/assessments" className="text-sm font-bold text-dena-brand">بازگشت به تمرین‌ها و آزمون‌ها ←</Link><Card className="space-y-5 rounded-[22px] p-6 md:p-8"><span className="w-fit rounded-full bg-dena-lavender px-3 py-1 text-xs font-bold text-dena-brand">{item.label}</span><h2 className="text-2xl font-extrabold text-dena-deep">{item.title}</h2><p className="text-sm text-dena-muted">دوره: {item.course}</p><p className="text-sm leading-7 text-dena-muted">{item.status==="ready"?"این ارزیابی نمونه آمادهٔ شروع است.":item.status==="pending"?"این فعالیت در انتظار بازبینی و فعال‌شدن است.":"نتیجهٔ نمونه برای مرور در دسترس است."}</p>{item.status==="ready"?<Link href="/student-demo/assessments/math-7-practice" className={buttonClassName()}>شروع آزمون</Link>:<p className="rounded-xl bg-dena-bg p-4 text-sm">در نسخهٔ نمایشی، پاسخ یا نتیجهٔ واقعی ثبت نمی‌شود.</p>}</Card></div>;
+  }
+  const filtered=filter==="all"?items:items.filter(item=>item.status===filter);
+  return <div className="space-y-6">
+    <header className="space-y-2 text-right"><h2 className="text-2xl font-extrabold text-dena-deep">تمرین‌ها و آزمون‌ها</h2><p className="text-sm text-dena-muted">فعالیت‌های آموزشی دوره‌هایت را اینجا دنبال کن.</p></header>
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <button type="button" className="rounded-xl border border-dena-border bg-white px-4 py-3 text-sm">همه دوره‌ها⌄</button>
+      <nav aria-label="فیلتر فعالیت‌ها" className="flex flex-wrap gap-1 rounded-xl bg-dena-bg p-1">
+        {[["completed","انجام‌شده"],["pending","در انتظار"],["ready","آماده انجام"],["all","همه"]].map(([key,label])=><Link key={key} href={key==="all"?"/student-demo/assessments":`/student-demo/assessments?filter=${key}`} className={`rounded-lg px-3 py-2 text-sm font-semibold ${filter===key?"bg-white text-dena-brand shadow-sm":"text-dena-muted"}`}>{label}</Link>)}
+      </nav>
+    </div>
+    {filter==="all"&&<Card className="flex flex-wrap items-center justify-between gap-5 rounded-[20px] bg-dena-lavender/40 p-6"><div className="text-right"><p className="text-xs text-dena-muted">زمان پیشنهادی: امروز · دوره: ریاضی دهم</p><h3 className="mt-2 text-lg font-extrabold text-dena-deep">آزمون فصل سوم ریاضی</h3><span className="mt-2 inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">آماده انجام</span></div><Link href="/student-demo/assessments/math-7-practice" className={buttonClassName()}>شروع آزمون</Link></Card>}
+    <div className="overflow-hidden rounded-[20px] border border-dena-border bg-white">{filtered.map((item,index)=><div key={item.id} className={`flex flex-wrap items-center justify-between gap-4 p-5 ${index?"border-t border-dena-border":""}`}><div className="flex flex-wrap items-center gap-4"><span className={`rounded-full px-3 py-2 text-xs font-bold ${item.status==="completed"?"bg-emerald-50 text-emerald-700":item.status==="pending"?"bg-amber-50 text-amber-800":"bg-dena-lavender text-dena-brand"}`}>{item.label}</span><span className="text-sm text-dena-muted">{item.course}</span><span className="font-bold text-dena-deep">{item.title}</span></div>{item.status==="pending"?<span className="text-xs text-dena-muted">{item.date}</span>:<Link href={`/student-demo/assessments/${item.id}`} className="rounded-lg px-4 py-2 text-sm font-semibold text-dena-brand hover:bg-dena-lavender">{item.status==="completed"?"مشاهده نتیجه":"شروع آزمون"}</Link>}</div>)}</div>
+    <p className="text-xs leading-6 text-dena-muted">فعالیت‌ها و وضعیت‌ها برای پیش‌نمایش هستند؛ نتیجهٔ واقعی ثبت نمی‌شود.</p>
+  </div>;
+}
 function GrowthDemo() {
   const attempts = [
     { label: "تلاش ۱", percent: 40 },
@@ -343,13 +382,31 @@ function GrowthDemo() {
   );
 }
 
+function ProfileDemo({ edit = false }: { edit?: boolean }) {
+  if(edit) return <div className="mx-auto max-w-3xl"><Card className="space-y-5 rounded-[22px] p-6 md:p-8"><Link href="/student-demo/profile" className="text-sm font-bold text-dena-brand">بازگشت به پروفایل ←</Link><h2 className="text-2xl font-extrabold text-dena-deep">ویرایش پروفایل</h2><label className="block space-y-2 text-sm"><span>نام و نام خانوادگی</span><input readOnly value="محمد علوی" className="w-full rounded-xl border border-dena-border bg-dena-bg px-4 py-3"/></label><p className="text-xs text-dena-muted">در پیش‌نمایش امکان ذخیرهٔ اطلاعات واقعی وجود ندارد.</p><button type="button" disabled className={buttonClassName()+" opacity-60"}>ذخیرهٔ تغییرات</button></Card></div>;
+  return <div className="space-y-5">
+    <header className="text-right"><h2 className="text-2xl font-extrabold text-dena-deep">پروفایل کاربری</h2><p className="mt-2 text-sm text-dena-muted">اطلاعات حساب و مشخصات ثبت‌شده‌ات را مدیریت کن.</p></header>
+    <div className="grid gap-4 lg:grid-cols-2">
+      <div className="space-y-4">
+        <Card className="space-y-4 p-5"><h3 className="font-extrabold text-dena-deep">محمد علوی</h3><p className="text-sm text-dena-muted">پایه دهم تجربی</p></Card>
+        <Card className="space-y-3 p-5"><h3 className="font-extrabold text-dena-deep">حریم خصوصی و داده‌ها</h3><p className="text-sm leading-7 text-dena-muted">مدیریت اطلاعات خصوصی و داده‌های مربوط به حساب شما بر اساس سیاست‌های دنا.</p><Link href="/student-demo/profile/privacy" className="inline-flex text-sm font-bold text-dena-brand">مشاهده تنظیمات حریم خصوصی ←</Link></Card>
+      </div>
+      <div className="space-y-4">
+        <Card className="space-y-5 p-5"><div className="flex items-center justify-between gap-3"><Link href="/student-demo/profile/edit" className={buttonClassName("outline")}>ویرایش اطلاعات</Link><h3 className="font-extrabold text-dena-deep">اطلاعات شخصی</h3></div><div className="border-t border-dena-border pt-4 text-right"><p className="text-xs text-dena-muted">نام و نام خانوادگی</p><p className="mt-1 font-semibold">محمد علوی</p></div><div className="flex items-center justify-between gap-4 border-t border-dena-border pt-4"><Link href="/student-demo/profile/change-phone" className="text-sm font-semibold text-dena-brand">تغییر شماره موبایل</Link><div className="text-right"><p className="text-xs text-dena-muted">شماره ورود به حساب</p><p className="mt-1 font-semibold">۰۹۱۲••••••••</p></div></div><p className="text-xs text-dena-muted">تغییر شماره موبایل نیاز به تأیید شماره جدید دارد.</p></Card>
+        <Card className="space-y-4 p-5"><h3 className="font-extrabold text-dena-deep">اطلاعات تحصیلی</h3><div className="flex justify-start gap-12 border-t border-dena-border pt-4 text-right"><div><p className="text-xs text-dena-muted">رشته تحصیلی</p><p className="mt-1 font-semibold">علوم تجربی</p></div><div><p className="text-xs text-dena-muted">پایه تحصیلی</p><p className="mt-1 font-semibold">پایه دهم</p></div></div></Card>
+      </div>
+    </div>
+    <p className="text-xs text-dena-muted">اطلاعات نمایشی است و به حساب دانش‌آموز متصل نیست.</p>
+  </div>;
+}
 function GenericDemo({ section }: { section: keyof typeof pages }) {
+  if (section === "profile") return <ProfileDemo />;
   if (section === "growth") return <GrowthDemo />;
   if (section === "services") return <StudentDemoServiceCenter />;
   if (section === "notifications") return <StudentDemoSupportNotifications />;
 
   const contents: Partial<Record<keyof typeof pages, { title: string; description: string; values: string[] }>> = {
-    assessments: { title: "تمرین‌ها و آزمون‌ها", description: "فعالیت‌های زیر برای نمایش رابط ساخته شده‌اند.", values: ["تمرین نمونهٔ ریاضی · در انتظار پاسخ", "آزمون نمونهٔ علوم · شنبه، ساعت ۱۰:۰۰", "مرور درس چهارم · تکمیل‌شده"] },
+    assessments: { title: "تمرین‌ها و آزمون‌ها", description: "فعالیت‌های آموزشی دوره‌هایت را اینجا دنبال کن.", values: [] },
     growth: { title: "مسیر رشد", description: "نمایش خلاصهٔ فعالیت درسی با داده‌های آزمایشی.", values: ["ریاضی پایه هفتم · ۸ از ۱۲ درس", "علوم تجربی پایه هفتم · ۵ از ۱۰ درس", "یادآوری: این درصدها واقعی نیستند"] },
     "elite-club": {
       title: "باشگاه نخبگان",
@@ -360,7 +417,7 @@ function GenericDemo({ section }: { section: keyof typeof pages }) {
         "تعامل‌های باشگاه پس از تعریف دامنه و مجوزها فعال می‌شوند.",
       ],
     },
-    profile: { title: "پروفایل کاربری", description: "مشخصات حساب واقعی در حالت دمو نمایش داده نمی‌شود.", values: ["دانش‌آموز نمونه", "پایهٔ هفتم · نمونه", "حساب نمایشی و بدون اتصال"] },
+    profile: { title: "پروفایل کاربری", description: "اطلاعات حساب و مشخصات ثبت‌شده‌ات را مدیریت کن.", values: [] },
     services: { title: "مرکز خدمات", description: "درخواست‌های خدماتی در این دمو ثبت نمی‌شوند.", values: ["خدمات آموزشی", "راهنمای استفاده از دنا", "پشتیبانی فنی"] },
     notifications: { title: "اعلان‌ها", description: "این بخش در نسخهٔ فعلی پنل، اعلان‌های درخواست‌های پشتیبانی را نشان می‌دهد.", values: [] },
   };
@@ -371,6 +428,7 @@ function GenericDemo({ section }: { section: keyof typeof pages }) {
 
 export default async function StudentDemoPage({ params }: { params: Promise<{ section?: string[] }> }) {
   const { section: path = [] } = await params;
+  const { filter = "all" } = await (arguments[0] as { searchParams?: Promise<{ filter?: string }> }).searchParams ?? {};
   const pageKey = path.length ? path.join("/") : "home";
   const page = pages[path[0] === "courses" ? "courses" : path[0] === "assessments" ? "assessments" : path[0] === "elite-club" ? "elite-club" : pageKey];
   if (!page) notFound();
@@ -390,7 +448,11 @@ export default async function StudentDemoPage({ params }: { params: Promise<{ se
   } else if (isCoursePath && path[2] === "team" && path.length === 3 && course) content = <CourseTeam course={course} />;
   else if (isCoursePath && path[2] === "team" && path.length === 4 && course) content = <TeamMember course={course} roleId={path[3]} conversation={false} />;
   else if (isCoursePath && path[2] === "team" && path.length === 5 && path[4] === "conversation" && course) content = <TeamMember course={course} roleId={path[3]} conversation />;
+  else if (path[0] === "assessments" && path.length === 1) content = <AssessmentsDemo filter={filter} />;
   else if (path[0] === "assessments" && path[1] === "math-7-practice" && path.length === 2) content = <DemoPracticeCard />;
+  else if (path[0] === "assessments" && path.length === 2) content = <AssessmentsDemo detail={path[1]} />;
+  else if (path[0] === "profile" && path[1] === "edit" && path.length === 2) content = <ProfileDemo edit />;
+  else if (path[0] === "profile" && path[1] && path.length === 2) content = <div className="mx-auto max-w-3xl"><Card className="space-y-4 p-6"><Link href="/student-demo/profile" className="text-sm font-bold text-dena-brand">بازگشت به پروفایل ←</Link><h2 className="text-xl font-extrabold">{path[1]==="privacy"?"حریم خصوصی و داده‌ها":"تغییر شماره موبایل"}</h2><p className="text-sm leading-7 text-dena-muted">این بخش در نسخهٔ نمایشی فقط برای مرور صفحه است و تغییری در حساب واقعی ایجاد نمی‌کند.</p></Card></div>;
   else if (pageKey === "ai-tutor") content = <AiTutor />;
   else if (path[0] === "elite-club") content = <EliteClubDemo path={path.slice(1)} />;
   else if (path.length === 1) content = <GenericDemo section={pageKey as keyof typeof pages} />;
