@@ -87,12 +87,12 @@ export default function StudentBusinessSupportPreviewPage() {
                   </div>
                 </div>
 
-                <div className="hidden h-full w-full items-center justify-between lg:flex">
+                <div dir="ltr" className="hidden h-full w-full items-center justify-between lg:flex">
                   <div dir="ltr" className="flex items-center gap-5">
                     <DetailsLink opportunity={opportunity} />
                     <StatusGroup opportunity={opportunity} />
                   </div>
-                  <h3 className="text-right text-[18px] font-bold leading-7 text-[#1f2937]">
+                  <h3 dir="rtl" className="text-right text-[18px] font-bold leading-7 text-[#1f2937]">
                     {opportunity.title}
                   </h3>
                 </div>
