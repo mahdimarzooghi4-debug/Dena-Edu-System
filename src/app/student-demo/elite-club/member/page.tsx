@@ -6,6 +6,7 @@ export const dynamic = "force-dynamic";
 const supportCards = [
   {
     slug: "education",
+    href: "education",
     title: "حمایت آموزشی",
     descriptionMobile: "فرصت‌ها و حمایت‌های مرتبط با مسیر یادگیری و آموزش.",
     descriptionDesktop: "آموزش‌ها و فرصت‌های غیردرسی برای رشد و توسعه اعضای باشگاه.",
@@ -16,6 +17,7 @@ const supportCards = [
   },
   {
     slug: "teaching",
+    href: "teaching",
     title: "حمایت تدریس",
     descriptionMobile: "فرصت‌های فعالیت اعضای باشگاه به‌عنوان پشتیبان تحصیلی در آموزشگاه‌ها.",
     descriptionDesktop: "فرصت‌های فعالیت اعضای باشگاه به‌عنوان پشتیبان تحصیلی در آموزشگاه‌ها.",
@@ -26,6 +28,7 @@ const supportCards = [
   },
   {
     slug: "welfare",
+    href: "welfare-support",
     title: "حمایت رفاهی",
     descriptionMobile: "حمایت‌ها و خدمات رفاهی تعریف‌شده برای اعضای باشگاه.",
     descriptionDesktop: "حمایت‌ها و خدمات رفاهی تعریف‌شده برای اعضای باشگاه.",
@@ -36,6 +39,7 @@ const supportCards = [
   },
   {
     slug: "business",
+    href: "business-support",
     title: "حمایت کسب‌وکار",
     descriptionMobile: "فرصت‌ها و حمایت‌های مرتبط با مسیرهای کسب‌وکار اعضای باشگاه.",
     descriptionDesktop: "فرصت‌ها و حمایت‌های مرتبط با مسیرهای کسب‌وکار اعضای باشگاه.",
@@ -114,7 +118,7 @@ export default function EliteClubMemberPreviewPage() {
                 </div>
                 <div className="flex justify-start">
                   <Link
-                    href={`/student-demo/elite-club/${card.slug}`}
+                    href={`/student-demo/elite-club/${card.href}`}
                     className="text-[13px] font-semibold text-[#5b4ce2]"
                   >
                     {card.action}
