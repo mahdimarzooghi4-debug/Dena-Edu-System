@@ -30,7 +30,7 @@ const demoCourses: DemoCourse[] = [
     provider: "مؤسسه آموزشی البرز",
     done: 18,
     total: 24,
-    lessons: ["تابع و نمودار", "دامنه تابع", "مفهوم تابع", "انواع نمودار"],
+    lessons: ["دامنه تابع", "مفهوم تابع", "تابع و نمودار", "انواع نمودار"],
   },
   {
     id: "science-7",
@@ -241,17 +241,96 @@ function CourseDetail({ course }: { course: DemoCourse }) {
 }
 
 function LessonDetail({ course, lessonNumber }: { course: DemoCourse; lessonNumber: number }) {
-  const lesson = course.lessons[lessonNumber - 1];
+  const mathLessons = ["دامنه تابع", "مفهوم تابع", "تابع و نمودار", "انواع نمودار"];
+  const lessons = course.id === "math-7" ? mathLessons : course.lessons;
+  const lesson = lessons[lessonNumber - 1];
   if (!lesson) notFound();
+
+  const courseSessions = course.id === "math-7"
+    ? [
+        { number: 6, title: "دامنه تابع", state: "completed" },
+        { number: 7, title: "مفهوم تابع", state: "completed" },
+        { number: 8, title: "تابع و نمودار", state: "current" },
+        { number: 9, title: "انواع نمودار", state: "upcoming" },
+        { number: 10, title: "تمرین نمودار", state: "upcoming" },
+      ]
+    : lessons.map((title, index) => ({ number: index + 1, title, state: index + 1 === lessonNumber ? "current" : "upcoming" }));
+  const currentSessionNumber = course.id === "math-7" ? lessonNumber + 5 : lessonNumber;
+
   return (
     <div className="space-y-5">
       <Link href={`/student-demo/courses/${course.id}`} className="text-sm font-bold text-dena-brand hover:underline">بازگشت به دوره</Link>
-      <Card className="space-y-4 rounded-[22px] p-6 md:p-8">
-        <p className="text-xs font-bold text-dena-brand">{course.title} · درس {lessonNumber}</p>
-        <h2 className="text-2xl font-extrabold text-dena-deep">{lesson}</h2>
-        <div className="grid aspect-video place-items-center rounded-[22px] bg-dena-deep text-white"><div className="text-center"><span className="text-4xl">▶</span><p className="mt-3 text-sm">ویدئوی نمونه؛ پخش در این دمو فعال نیست.</p></div></div>
-        <p className="text-sm leading-7 text-dena-muted">این صفحه فقط برای مرور چیدمان درس است و محتوای آموزشی واقعی ندارد.</p>
-      </Card>
+      <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+        <aside className="h-fit rounded-2xl border border-dena-border bg-white p-5">
+          <h2 className="mb-4 text-right text-base font-extrabold text-dena-deep">محتوای این دوره</h2>
+          <ol className="space-y-2.5">
+            {courseSessions.map((session) => {
+              const selected = session.number === currentSessionNumber;
+              const completed = session.state === "completed";
+              return (
+                <li key={session.number}>
+                  <Link
+                    href={`/student-demo/courses/${course.id}/lessons/${course.id === "math-7" ? session.number - 5 : session.number}`}
+                    aria-current={selected ? "page" : undefined}
+                    className={`flex items-center justify-between gap-3 rounded-xl border p-3 text-right transition-colors ${selected ? "border-[1.5px] border-dena-brand bg-dena-lavender/50" : "border-dena-border bg-white hover:border-dena-brand"}`}
+                  >
+                    <span className={`shrink-0 text-xs font-semibold ${selected ? "text-dena-brand" : completed ? "text-emerald-700" : "text-dena-muted"}`}>
+                      {selected ? "در حال یادگیری" : completed ? "تکمیل‌شده" : "شروع‌نشده"}
+                    </span>
+                    <span className={`text-sm font-semibold ${selected ? "text-dena-brand" : "text-dena-deep"}`}>جلسه {session.number} — {session.title}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ol>
+        </aside>
+
+        <main className="min-w-0 space-y-5">
+          <section aria-label="پخش ویدئوی آموزشی" className="overflow-hidden rounded-2xl bg-[#131124] text-white">
+            <div className="relative grid min-h-[260px] place-items-center overflow-hidden bg-[#131124] md:h-[400px]">
+              <div aria-hidden="true" className="absolute inset-0 opacity-20" style={{ backgroundImage: "linear-gradient(to right, transparent 49.8%, #aaa 50%, transparent 50.2%), linear-gradient(to bottom, transparent 49.8%, #aaa 50%, transparent 50.2%)" }} />
+              <svg aria-hidden="true" viewBox="0 0 600 220" className="absolute inset-0 m-auto h-[70%] w-[82%] opacity-25">
+                <polyline points="0,170 100,125 195,145 290,85 390,105 500,45 600,62" fill="none" stroke="#d4d0ef" strokeWidth="2" />
+              </svg>
+              <span className="absolute right-5 top-5 rounded-full bg-black/70 px-4 py-2 text-xs text-white">ادامه از ۱۸:۴۲　▶</span>
+              <div className="relative z-10 grid size-16 place-items-center rounded-full bg-white/20 text-3xl text-white ring-8 ring-white/10" aria-hidden="true">▶</div>
+              <p className="absolute bottom-20 text-sm text-white/75">ویدئوی نمونه؛ پخش در این دمو فعال نیست.</p>
+            </div>
+            <div className="space-y-3 bg-[#1c1a30] p-4">
+              <div className="relative h-1.5 rounded-full bg-[#4e4a75]" aria-label="پیشرفت نمونهٔ ویدئو">
+                <div className="h-full w-[41%] rounded-full bg-dena-brand" />
+                <span className="absolute left-[41%] top-1/2 size-3 -translate-y-1/2 rounded-full border-2 border-white bg-dena-brand" />
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4 text-xs text-white">
+                  <button type="button" disabled aria-label="پخش ویدئو" className="text-lg opacity-70">▶</button>
+                  <button type="button" disabled aria-label="رفتن به بخش بعدی" className="opacity-70">⏭</button>
+                  <span dir="ltr">۱۸:۴۲ <span className="text-white/50">/ ۴۵:۱۰</span></span>
+                </div>
+                <div className="flex items-center gap-4 text-xs text-white/80">
+                  <button type="button" disabled aria-label="صدا" className="opacity-70">◖))</button>
+                  <span className="rounded border border-white/40 px-1.5 py-0.5 text-[10px]">CC</span>
+                  <span dir="ltr">1.0x</span>
+                  <button type="button" disabled aria-label="تمام‌صفحه" className="opacity-70">⛶</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
+            <Card className="space-y-3 rounded-2xl p-5 md:p-6">
+              <p className="text-xs font-bold text-dena-brand">{course.title} · جلسه {currentSessionNumber}</p>
+              <h2 className="text-xl font-extrabold text-dena-deep">{lesson}</h2>
+              <p className="text-sm leading-7 text-dena-muted">در این جلسه با مفهوم درس آشنا می‌شوی و نکته‌های اصلی را همراه با مثال مرور می‌کنی. محتوای نمایشی به حساب واقعی متصل نیست.</p>
+            </Card>
+            <Card className="space-y-3 rounded-2xl p-5">
+              <p className="text-xs text-dena-muted">مدرس دوره</p>
+              <p className="font-bold text-dena-deep">استاد احمدی</p>
+              <p className="border-t border-dena-border pt-3 text-xs leading-6 text-dena-muted">پیشرفت جلسه در این دمو ذخیره نمی‌شود.</p>
+            </Card>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
@@ -492,7 +571,7 @@ export default async function StudentDemoPage({ params, searchParams }: { params
 
   const title = pageKey === "ai-tutor" ? "معلم هوشمند" :
     isCoursePath && path[2] === "team" ? path[3] ? "تیم آموزشی دوره" : "تیم آموزشی دوره" :
-    isCoursePath && path[2] === "lessons" ? "درس دوره" :
+    isCoursePath && path[2] === "lessons" ? "مشاهده جلسه آموزشی" :
     course ? course.title : page.title;
 
   return <StudentShell active={page.active} title={title} demo><DemoNotice />{content}</StudentShell>;
