@@ -37,6 +37,9 @@ export default async function StudentEliteClubEvaluationIntroPage() {
           <button type="button" disabled aria-describedby="evaluation-status" className="min-h-12 w-full cursor-not-allowed rounded-xl bg-dena-brand px-5 text-sm font-bold text-white opacity-60">
             شروع ارزیابی
           </button>
+          <div className="text-center">
+            <Link href="/student/elite-club/evaluation/question" className="text-sm font-bold text-dena-brand hover:underline">مشاهدهٔ پیش‌نمایش پرسش‌ها</Link>
+          </div>
           <p id="evaluation-status" role="status" className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm leading-7 text-amber-950">
             فرایند ارزیابی هنوز به سامانهٔ عضویت متصل نیست؛ پاسخ‌ها و وضعیت عضویت در این صفحه ثبت نمی‌شوند.
           </p>
