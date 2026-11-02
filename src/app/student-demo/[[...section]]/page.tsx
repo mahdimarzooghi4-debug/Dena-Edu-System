@@ -9,6 +9,7 @@ import { DemoPracticeCard } from "@/components/student-demo/practice-card";
 import { StudentDemoServiceCenter } from "@/components/student-demo/service-center";
 import { StudentDemoSupportNotifications } from "@/components/student-demo/support-notifications";
 import { EliteClubDemo } from "@/components/student-demo/elite-club";
+import { StudentFlowDemo } from "@/components/student-demo/student-flows";
 
 type StudentSection =
   | "home" | "aiTutor" | "courses" | "assessments" | "growth"
@@ -59,6 +60,7 @@ const pages: Record<string, { title: string; active: StudentSection }> = {
   "elite-club": { title: "باشگاه نخبگان", active: "elite" },
   profile: { title: "پروفایل کاربری", active: "account" },
   services: { title: "مرکز خدمات", active: "services" },
+  support: { title: "پشتیبانی آنلاین دنا", active: "services" },
   notifications: { title: "اعلان‌ها", active: "notifications" },
 };
 
@@ -736,13 +738,26 @@ export default async function StudentDemoPage({ params, searchParams }: { params
   else if (path[0] === "assessments" && path[1] === "math-7-practice" && path[2] === "start" && path.length === 3) content = <DemoPracticeCard />;
   else if (path[0] === "assessments" && path.length === 2) content = <AssessmentsDemo detail={path[1]} />;
   else if (path[0] === "profile" && path[1] === "edit" && path.length === 2) content = <ProfileDemo edit />;
+  else if (path[0] === "profile" && path[1] === "privacy" && path.length === 2) content = <StudentFlowDemo kind="privacy" />;
+  else if (path[0] === "profile" && path[1] === "change-phone") content = <StudentFlowDemo kind="change-phone" path={path.slice(2)} />;
   else if (path[0] === "profile" && path[1] && path.length === 2) content = <div className="mx-auto max-w-3xl"><Card className="space-y-4 p-6"><Link href="/student-demo/profile" className="text-sm font-bold text-dena-brand">بازگشت به پروفایل ←</Link><h2 className="text-xl font-extrabold">{path[1]==="privacy"?"حریم خصوصی و داده‌ها":"تغییر شماره موبایل"}</h2><p className="text-sm leading-7 text-dena-muted">این بخش در نسخهٔ نمایشی فقط برای مرور صفحه است و تغییری در حساب واقعی ایجاد نمی‌کند.</p></Card></div>;
+  else if (path[0] === "notifications") content = <StudentFlowDemo kind="notifications" path={path.slice(1)} />;
+  else if (path[0] === "support") content = <StudentFlowDemo kind="support" path={path.slice(1)} />;
   else if (pageKey === "ai-tutor") content = <AiTutor />;
+  else if (path[0] === "elite-club" && ["education","welfare","business"].includes(path[1] || "")) content = <StudentFlowDemo kind="club-category" path={path.slice(1)} />;
   else if (path[0] === "elite-club") content = <EliteClubDemo path={path.slice(1)} />;
   else if (path.length === 1) content = <GenericDemo section={pageKey as keyof typeof pages} />;
   else notFound();
 
-  const title = pageKey === "ai-tutor" ? "معلم هوشمند" :
+  const title = path[0] === "profile" && path[1] === "privacy" ? "حریم خصوصی و داده‌ها" :
+    path[0] === "profile" && path[1] === "change-phone" ? "تغییر شماره موبایل" :
+    path[0] === "profile" && path[1] === "edit" ? "ویرایش اطلاعات" :
+    path[0] === "support" ? path[1] === "new" ? "ثبت درخواست جدید پشتیبانی" : path[1] ? "درخواست پشتیبانی" : "پشتیبانی آنلاین دنا" :
+    path[0] === "notifications" ? "اعلان‌ها" :
+    path[0] === "elite-club" && path[1] === "education" ? "حمایت آموزشی" :
+    path[0] === "elite-club" && path[1] === "welfare" ? "حمایت رفاهی" :
+    path[0] === "elite-club" && path[1] === "business" ? "حمایت کسب‌وکار" :
+    pageKey === "ai-tutor" ? "معلم هوشمند" :
     path[0] === "assessments" && path[1] === "math-7-practice" && path[2] === "start" ? "آزمون فصل سوم ریاضی" :
     isCoursePath && path[2] === "team" ? path[3] ? "تیم آموزشی دوره" : "تیم آموزشی دوره" :
     isCoursePath && path[2] === "lessons" ? "مشاهده جلسه آموزشی" :
