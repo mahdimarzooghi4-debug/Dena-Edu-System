@@ -609,7 +609,30 @@ function GrowthDemo() {
 }
 
 function ProfileDemo({ edit = false }: { edit?: boolean }) {
-  if(edit) return <div className="mx-auto max-w-3xl"><Card className="space-y-5 rounded-[22px] p-6 md:p-8"><Link href="/student-demo/profile" className="text-sm font-bold text-dena-brand">بازگشت به پروفایل ←</Link><h2 className="text-2xl font-extrabold text-dena-deep">ویرایش پروفایل</h2><label className="block space-y-2 text-sm"><span>نام و نام خانوادگی</span><input readOnly value="محمد علوی" className="w-full rounded-xl border border-dena-border bg-dena-bg px-4 py-3"/></label><p className="text-xs text-dena-muted">در پیش‌نمایش امکان ذخیرهٔ اطلاعات واقعی وجود ندارد.</p><button type="button" disabled className={buttonClassName()+" opacity-60"}>ذخیرهٔ تغییرات</button></Card></div>;
+  if(edit) return <div>
+    <div className="mx-auto max-w-3xl space-y-4 md:hidden">
+      <header className="flex items-center justify-between gap-3"><Link href="/student-demo/profile" className="text-sm font-semibold text-dena-brand">انصراف</Link><h2 className="text-base font-extrabold text-dena-deep">ویرایش اطلاعات</h2></header>
+      <Card className="space-y-4 rounded-2xl p-4">
+        <div className="grid grid-cols-2 gap-3">
+          <label className="space-y-2 text-right text-xs font-semibold text-dena-muted"><span>نام خانوادگی</span><input readOnly value="علوی" className="w-full rounded-xl border border-dena-border bg-white px-3 py-3 text-sm font-medium text-dena-deep outline-none"/></label>
+          <label className="space-y-2 text-right text-xs font-semibold text-dena-muted"><span>نام</span><input readOnly value="محمد" className="w-full rounded-xl border border-dena-border bg-white px-3 py-3 text-sm font-medium text-dena-deep outline-none"/></label>
+        </div>
+      </Card>
+      <Card className="space-y-4 rounded-2xl p-4">
+        <div className="text-right"><h3 className="font-extrabold text-dena-deep">اطلاعات سیستمی (غیرقابل ویرایش)</h3></div>
+        <div className="space-y-3 border-t border-dena-border pt-3">
+          <div className="flex items-center justify-between gap-4 text-right"><span className="text-sm font-semibold text-dena-deep">دهم تجربی</span><span className="text-xs text-dena-muted">پایه و رشته</span></div>
+          <div className="flex items-center justify-between gap-4 border-t border-dena-border pt-3 text-right"><span dir="ltr" className="text-sm font-semibold text-dena-deep">۰۹۱۲••••••••</span><span className="text-xs text-dena-muted">شماره ورود</span></div>
+        </div>
+      </Card>
+      <div className="space-y-3">
+        <button type="button" disabled className={buttonClassName()+" h-12 w-full opacity-60"}>ذخیره تغییرات</button>
+        <Link href="/student-demo/profile" className="flex h-11 w-full items-center justify-center rounded-xl border border-dena-border bg-white text-sm font-semibold text-dena-muted">انصراف</Link>
+        <p className="text-center text-xs leading-6 text-dena-muted">این صفحه پیش‌نمایش است؛ تغییرات در حساب واقعی ذخیره نمی‌شوند.</p>
+      </div>
+    </div>
+    <div className="mx-auto hidden max-w-3xl md:block"><Card className="space-y-5 rounded-[22px] p-6 md:p-8"><Link href="/student-demo/profile" className="text-sm font-bold text-dena-brand">بازگشت به پروفایل ←</Link><h2 className="text-2xl font-extrabold text-dena-deep">ویرایش پروفایل</h2><label className="block space-y-2 text-sm"><span>نام و نام خانوادگی</span><input readOnly value="محمد علوی" className="w-full rounded-xl border border-dena-border bg-dena-bg px-4 py-3"/></label><p className="text-xs text-dena-muted">در پیش‌نمایش امکان ذخیرهٔ اطلاعات واقعی وجود ندارد.</p><button type="button" disabled className={buttonClassName()+" opacity-60"}>ذخیرهٔ تغییرات</button></Card></div>
+  </div>;
   return <div>
     <div className="space-y-4 md:hidden">
       <header className="text-right"><h2 className="text-base font-extrabold text-dena-deep">پروفایل کاربری</h2></header>
