@@ -173,7 +173,7 @@ export function StudentShell({ active, title, children, demo = false }: Props) {
         <DesktopNavigation active={active} demo={demo} />
 
         <div className="mt-auto border-t border-dena-border pt-4">
-          <Link href={demo ? "/preview/support" : "/support"} className="flex min-h-[44px] items-center gap-3 rounded-xl px-4 text-sm text-dena-muted hover:bg-dena-bg hover:text-dena-ink">
+          <Link href={demo ? "/student-demo/support" : "/support"} className="flex min-h-[44px] items-center gap-3 rounded-xl px-4 text-sm text-dena-muted hover:bg-dena-bg hover:text-dena-ink">
             <Icon name="help" />
             <span>پشتیبانی آنلاین</span>
           </Link>
