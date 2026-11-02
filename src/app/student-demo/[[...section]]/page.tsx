@@ -736,6 +736,9 @@ export default async function StudentDemoPage({ params, searchParams }: { params
   else if (isCoursePath && path[2] === "team" && path.length === 5 && path[4] === "conversation" && course) content = <TeamMember course={course} roleId={path[3]} conversation />;
   else if (path[0] === "assessments" && path.length === 1) content = <AssessmentsDemo filter={filter} />;
   else if (path[0] === "assessments" && path[1] === "math-7-practice" && path[2] === "start" && path.length === 3) content = <DemoPracticeCard />;
+  else if (path[0] === "assessments" && path[1] === "math-7-practice" && path[2] === "start" && path.length === 4 && ["review","submit-confirm","leave-confirm"].includes(path[3])) content = <DemoPracticeCard state={path[3] as "review" | "submit-confirm" | "leave-confirm"} />;
+  else if (path[0] === "assessments" && path[1] === "math-7-practice" && path[2] === "result" && path.length === 3) content = <DemoPracticeCard state="result" />;
+  else if (path[0] === "assessments" && path[1] === "national" && path.length === 2) content = <DemoPracticeCard state="national" />;
   else if (path[0] === "assessments" && path.length === 2) content = <AssessmentsDemo detail={path[1]} />;
   else if (path[0] === "profile" && path[1] === "edit" && path.length === 2) content = <ProfileDemo edit />;
   else if (path[0] === "profile" && path[1] === "privacy" && path.length === 2) content = <StudentFlowDemo kind="privacy" />;
