@@ -112,6 +112,28 @@ export default async function StudentHomePage() {
           <p className="mt-2 text-sm leading-8 text-dena-muted">آماده‌ای مسیر امروزت رو ادامه بدی؟</p>
         </section>
 
+        <Card className="space-y-4 rounded-[20px] p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0 flex-1 text-right">
+              <h2 className="text-xl font-extrabold text-dena-ink">معلم هوشمند</h2>
+              <p className="mt-2 text-sm leading-7 text-dena-muted">
+                با داده‌های آموزشی دنا آغاز شده و به پرسش‌های درسی مرتبط با دوره‌های تو پاسخ می‌دهد.
+              </p>
+            </div>
+            <span className="shrink-0 rounded-full bg-dena-bg px-3 py-2 text-xs font-bold text-dena-brand">
+              نسخهٔ آغازین فعال
+            </span>
+          </div>
+          <div className="flex flex-col items-end gap-3">
+            <p className="text-xs leading-6 text-dena-muted">
+              پاسخ‌گویی محدود به محتوای تأییدشده است و هنگام آزمون فعال می‌شود.
+            </p>
+            <Link href="/student/ai-tutor" className={buttonClassName()}>
+              ورود به معلم هوشمند
+            </Link>
+          </div>
+        </Card>
+
         {featuredCourse ? (
           <Card className="space-y-5 rounded-[22px] p-6 md:p-7">
             <div className="space-y-3">
