@@ -11,7 +11,8 @@ type StudentSection =
   | "growth"
   | "elite"
   | "account"
-  | "notifications";
+  | "notifications"
+  | "support";
 
 type Props = {
   active: StudentSection;
