@@ -47,37 +47,34 @@ function Registration() {
  return <div className="mx-auto max-w-3xl space-y-5"><Card className="space-y-5 rounded-[22px] p-6 md:p-8"><p className="text-sm font-bold text-dena-brand">باشگاه نخبگان</p><h2 className="text-2xl font-extrabold text-dena-deep">ثبت‌نام در باشگاه نخبگان</h2><p className="text-sm leading-8 text-dena-muted">باشگاه نخبگان دنا فضایی برای رشد استعدادها، ارتباط و هم‌افزایی و شکل‌گیری فرصت‌های تازه است.</p><div className="rounded-2xl bg-dena-lavender p-5"><h3 className="font-bold text-dena-deep">پیش از ثبت‌نام</h3><p className="mt-2 text-sm leading-7 text-dena-muted">ثبت‌نام، آغاز فرایند ارزیابی عضویت در باشگاه است. لطفاً برای پاسخ به سؤال‌های ارزیابی صبور و دقیق باشید.</p></div><div className="flex flex-wrap gap-3"><Link href="/student-demo/elite-club" className={buttonClassName("outline")}>انصراف</Link><Link href="/student-demo/elite-club/registration/confirmation" className={buttonClassName()}>ثبت‌نام و ادامه</Link></div></Card></div>;
 }
 
-function EvaluationPending() {
- return <section className="flex min-h-[65vh] w-full flex-col items-center justify-center gap-4 px-5 py-10 text-center" dir="rtl">
-  <h2 className="text-[22px] font-extrabold leading-normal text-[#241f2e] md:text-[28px]">باشگاه نخبگان</h2>
-  <p className="text-sm leading-6 text-[#757082] md:text-base">فضایی ویژه برای فرصت‌ها و مسیرهای رشد بیشتر در دنا.</p>
-  <p className="pt-2 text-sm leading-6 text-[#757082]">ارزیابی عضویت شما هنوز تکمیل نشده است.</p>
-  <div className="w-full max-w-[500px] space-y-2 rounded-xl border border-[#f2e0b2] bg-[#fffaed] p-5 text-[#757082] md:p-6">
-   <h3 className="text-[15px] font-bold leading-normal text-[#241f2e] md:text-base">در حال ارزیابی</h3>
-   <p className="text-[13px] leading-6 md:text-sm">ثبت‌نام شما انجام شده و ارزیابی عضویت در حال انجام است.<br />پس از تکمیل ارزیابی، نتیجه در همین بخش نمایش داده می‌شود.</p>
-  </div>
-  <p className="pt-1 text-xs leading-6 text-amber-800">این وضعیت نمونه است و به پروندهٔ واقعی متصل نیست.</p>
- </section>;
+function EvalPage({ step }: { step: string }) {
+ const questions=[
+  "معرفی کوتاهی از خود و علاقه‌مندی‌هایتان بنویسید.",
+  "به نظر شما چه مسئله‌ای در مدرسه یا جامعه نیاز به راه‌حل دارد؟",
+  "فکر می‌کنید خلاقیت و کارآفرینی چگونه می‌تواند در بهبود مسیر تحصیلی شما مؤثر باشد؟",
+  "در یک فعالیت گروهی، چه نقشی می‌توانید بر عهده بگیرید؟",
+  "برای توسعه استعدادهای خود چه برنامه‌ای دارید؟",
+  "چرا علاقه‌مند به عضویت در باشگاه نخبگان هستید؟",
+ ];
+ const questionMatch=step.match(/^question\/(\d+)$/);
+ const questionNumber=questionMatch?Number(questionMatch[1]):0;
+ const questionHref=(n:number)=>`/student-demo/elite-club/evaluation/question/${n}`;
+ const panel=(title:string,description:string,children?:React.ReactNode)=><div className="mx-auto max-w-3xl space-y-4"><Card className="space-y-4 rounded-2xl p-4 md:rounded-[22px] md:p-8"><p className="text-sm font-bold text-dena-brand">باشگاه نخبگان</p><h2 className="text-lg font-extrabold text-dena-deep md:text-2xl">{title}</h2><p className="text-sm leading-7 text-dena-muted">{description}</p>{children}</Card></div>;
+ if(step===""||step==="intro") return panel("ارزیابی باشگاه نخبگان","این ارزیابی بخشی از فرایند عضویت در باشگاه نخبگان است. به سوالات با دقت و تمرکز پاسخ دهید.",<><div className="grid gap-3 sm:grid-cols-3">{["نگاه بنیادی‌شناسه","ارتباط و هم‌افزایی","رشد استعدادها"].map((x,i)=><div key={x} className="rounded-xl bg-dena-lavender p-3 text-right"><span className="text-xs font-bold text-dena-brand">۰{i+1}</span><p className="mt-2 text-sm font-semibold text-dena-deep">{x}</p></div>)}</div><DemoClubNotice/><Link href={questionHref(1)} className={buttonClassName()+" w-full"}>شروع ارزیابی</Link></>);
+ if(questionNumber>=1&&questionNumber<=6){
+  const progress=questionNumber/6*100;
+  return panel("ارزیابی باشگاه نخبگان",`مرحله ${questionNumber.toLocaleString("fa-IR")} از ۶`,<><div className="h-2 overflow-hidden rounded-full bg-dena-lavender"><div className="h-full rounded-full bg-dena-brand" style={{width:`${progress}%`}}/></div><label className="block space-y-2 text-right"><span className="text-sm font-semibold text-dena-deep">سؤال {questionNumber.toLocaleString("fa-IR")}: {questions[questionNumber-1]}</span><span className="block text-xs leading-6 text-dena-muted">پاسخ خود را به صورت تشریحی و خلاصه در کادر زیر بنویسید.</span><textarea rows={5} placeholder="پاسخ خود را اینجا بنویسید..." className="w-full resize-y rounded-xl border border-dena-border bg-white p-3 text-sm leading-7 outline-none focus:border-dena-brand"/></label><div className="flex flex-row-reverse gap-3">{questionNumber<6?<Link href={questionHref(questionNumber+1)} className={buttonClassName()+" flex-1"}>بعدی</Link>:<Link href="/student-demo/elite-club/evaluation/review" className={buttonClassName()+" flex-1"}>مرور پاسخ‌ها</Link>}{questionNumber>1&&<Link href={questionHref(questionNumber-1)} className={buttonClassName("outline")+" flex-1"}>قبلی</Link>}</div><DemoClubNotice/></>);
+ }
+ if(step==="review") return panel("مرور پاسخ‌ها","پاسخ‌های ثبت‌شده را مرور کرده و در صورت نیاز ویرایش کنید.",<><div className="space-y-3">{questions.map((q,i)=><div key={q} className="rounded-xl border border-dena-border p-3 text-right"><div className="flex items-center justify-between gap-2"><Link href={questionHref(i+1)} className="text-xs font-bold text-dena-brand">ویرایش پاسخ</Link><h3 className="text-sm font-bold text-dena-deep">سؤال {i+1} ارزیابی عضویت</h3></div><p className="mt-2 text-xs leading-6 text-dena-muted">پاسخ داده‌شده به این سؤال به صورت خلاصه در اینجا قرار می‌گیرد...</p></div>)}</div><Link href="/student-demo/elite-club/evaluation/confirm-submit" className={buttonClassName()+" w-full"}>ثبت نهایی ارزیابی</Link><DemoClubNotice/></>);
+ if(step==="confirm-submit") return panel("ثبت نهایی ارزیابی","پس از ثبت، ارزیابی برای بررسی ارسال می‌شود. در این پیش‌نمایش پاسخ‌ها به پرونده‌ای ارسال نمی‌شوند.",<div className="flex gap-3"><Link href="/student-demo/elite-club/evaluation/review" className={buttonClassName("outline")+" flex-1"}>بازگشت</Link><Link href="/student-demo/elite-club/evaluation/submitted" className={buttonClassName()+" flex-1"}>تأیید و ثبت</Link></div>);
+ if(step==="submitted") return panel("ارزیابی شما ثبت شد","نتیجه پس از تکمیل فرایند ارزیابی در همین بخش نمایش داده می‌شود. از شکیبایی شما سپاسگزاریم.",<Link href="/student-demo/elite-club/evaluation/pending" className={buttonClassName()+" w-full"}>ادامه</Link>);
+ if(step==="pending") return panel("در حال ارزیابی","ارزیابی شما ثبت شده است. پس از تکمیل فرایند ارزیابی، نتیجه در همین بخش نمایش داده می‌شود.",<div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-right text-sm text-amber-900">در حال بررسی وضعیت عضویت</div>);
+ if(step==="completed") return panel("ارزیابی تکمیل شد","فرایند ارزیابی شما به پایان رسیده است. نتیجه در بخش زیر قابل مشاهده است.",<Link href="/student-demo/elite-club/evaluation/result" className={buttonClassName()+" w-full"}>مشاهده نتیجه</Link>);
+ if(step==="result") return panel("نتیجه ارزیابی باشگاه نخبگان","نتیجه ارزیابی شما مشخص شده است.",<><div className="rounded-xl bg-dena-lavender p-4 text-right"><p className="text-xs text-dena-muted">وضعیت عضویت</p><p className="mt-2 text-sm font-bold text-dena-deep">نتیجه از سیستم دریافت می‌شود (نمونه نمایشی)</p></div><p className="text-xs leading-6 text-dena-muted">در صورت داشتن سؤال، از طریق پشتیبانی آنلاین با ما در ارتباط باشید.</p><Link href="/student-demo/elite-club" className={buttonClassName()+" w-full"}>بازگشت به باشگاه نخبگان</Link><DemoClubNotice/></>);
+ return <ClubHome/>;
 }
 
-function EvalPage({ step }: { step: string }) {
- const flow: Record<string,{title:string;desc:string;next:string;cta:string}> = {
-  evaluation:{title:"ارزیابی عضویت",desc:"این ارزیابی نمونه برای نمایش مسیر طراحی‌شده در فیگماست. پاسخ‌ها ذخیره یا به سامانه ارسال نمی‌شوند.",next:"question/1",cta:"شروع ارزیابی"},
-  "question/1":{title:"ارزیابی عضویت · سؤال ۱ از ۳",desc:"کدام فعالیت را برای رشد مهارت‌های خود بیشتر می‌پسندید؟",next:"question/2",cta:"ثبت پاسخ و ادامه"},
-  "question/2":{title:"ارزیابی عضویت · سؤال ۲ از ۳",desc:"در یک فعالیت گروهی، معمولاً کدام نقش را ترجیح می‌دهید؟",next:"question/3",cta:"ثبت پاسخ و ادامه"},
-  "question/3":{title:"ارزیابی عضویت · سؤال ۳ از ۳",desc:"برای یادگیری یک موضوع تازه، کدام روش را انتخاب می‌کنید؟",next:"review",cta:"مرور پاسخ‌ها"},
-  review:{title:"مرور ارزیابی",desc:"پاسخ‌های نمونه آمادهٔ بررسی هستند. در نسخهٔ واقعی، این مرحله باید پیش از ارسال نهایی امکان بازبینی و اصلاح پاسخ‌ها را فراهم کند.",next:"submit",cta:"تأیید و ارسال"},
-  submit:{title:"تأیید ارسال ارزیابی",desc:"با ادامه، ارزیابی نمونه به وضعیت «ارسال‌شده» می‌رود؛ هیچ داده‌ای به سرور ارسال نمی‌شود.",next:"submitted",cta:"ارسال ارزیابی"},
-  submitted:{title:"ارزیابی ارسال شد",desc:"در طرح فیگما، پس از ثبت ارزیابی وضعیت در انتظار بررسی نمایش داده می‌شود.",next:"pending",cta:"مشاهده وضعیت"},
-  pending:{title:"ارزیابی در حال بررسی است",desc:"وضعیت نمونه: نتیجهٔ ارزیابی هنوز اعلام نشده است.",next:"result",cta:"پیش‌نمایش نتیجه"},
-  result:{title:"نتیجهٔ ارزیابی",desc:"این نمای نمونهٔ نتیجه است. نتیجهٔ واقعی عضویت فقط باید از سرویس رسمی دریافت شود.",next:"member",cta:"بازگشت به باشگاه"},
- };
- const item=flow[step];
- if(step==="pending") return <EvaluationPending />;
- if(!item) return <ClubHome />;
- const href=item.next==="member"?"/student-demo/elite-club/member":`/student-demo/elite-club/evaluation/${item.next}`;
- return <div className="mx-auto max-w-3xl space-y-5"><Card className="space-y-5 rounded-[22px] p-6 md:p-8"><p className="text-sm font-bold text-dena-brand">باشگاه نخبگان · فرایند عضویت</p><h2 className="text-2xl font-extrabold text-dena-deep">{item.title}</h2><p className="text-sm leading-8 text-dena-muted">{item.desc}</p>{step.startsWith("question/")&&<div className="grid gap-3 sm:grid-cols-2">{["گزینهٔ اول", "گزینهٔ دوم", "گزینهٔ سوم", "گزینهٔ چهارم"].map((x,i)=><div key={i} className="rounded-xl border border-dena-border p-4 text-sm font-semibold">{x}</div>)}</div>}<div className="h-2 overflow-hidden rounded-full bg-dena-lavender"><div className="h-full rounded-full bg-dena-brand" style={{width:step.startsWith("question/")?`${Number(step.split("/")[1])*25}%`:step==="evaluation"?"8%":"100%"}}/></div><div className="flex flex-wrap gap-3"><Link href={href} className={buttonClassName()}>{item.cta}</Link><Link href="/student-demo/elite-club" className={buttonClassName("outline")}>بازگشت به باشگاه</Link></div></Card></div>;
-}
+function DemoClubNotice(){return <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-6 text-amber-900">این ارزیابی فقط برای پیش‌نمایش رابط است؛ پاسخ‌ها ذخیره یا برای عضویت واقعی ارسال نمی‌شوند.</p>}
 
 function TeachingOpportunityList() {
   return (
