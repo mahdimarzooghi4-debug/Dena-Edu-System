@@ -13,7 +13,7 @@ const choices = [
 
 const initialAnswers: Record<number, string> = { 1: "five", 2: "six", 3: "seven" };
 
-export function DemoPracticeCard() {
+export function DemoPracticeCard({ state = "question" }: { state?: "question" | "review" | "submit-confirm" | "leave-confirm" | "result" | "national" }) {
   const [current, setCurrent] = useState(3);
   const [answers, setAnswers] = useState<Record<number, string>>(initialAnswers);
   const [submitted, setSubmitted] = useState(false);
@@ -67,6 +67,31 @@ export function DemoPracticeCard() {
       </div>
     );
   }
+
+  const backHref = "/student-demo/assessments/math-7-practice/start";
+  const reviewHref = backHref + "/review";
+  const resultHref = "/student-demo/assessments/math-7-practice/result";
+  const answeredIds = Object.keys(answers).map(Number).sort((a, b) => a - b);
+
+  if (state === "review") return (
+    <div dir="rtl" className="mx-auto max-w-4xl space-y-5">
+      <Card className="space-y-5 rounded-[20px] p-5 md:p-8">
+        <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm font-bold text-dena-brand">ریاضی دهم · فصل سوم</p><h2 className="mt-2 text-xl font-extrabold text-dena-deep">مرور پاسخ‌ها</h2></div><span className="rounded-full bg-dena-lavender px-3 py-2 text-xs font-bold text-dena-brand">{answeredCount.toLocaleString("fa-IR")} از ۱۰ پاسخ</span></div>
+        <p className="text-sm leading-7 text-dena-muted">پیش از پایان آزمون پاسخ‌ها را بررسی کن. می‌توانی به هر پرسش برگردی و آن را ویرایش کنی.</p>
+        <div className="grid gap-3 sm:grid-cols-2">{Array.from({length:10},(_,i)=>i+1).map(q=><div key={q} className="flex items-center justify-between gap-3 rounded-xl border border-dena-border p-4"><div><p className="text-sm font-bold text-dena-deep">پرسش {q.toLocaleString("fa-IR")}</p><p className="mt-1 text-xs text-dena-muted">{answers[q] ? "پاسخ ثبت شده" : "بدون پاسخ"}</p></div><a href={backHref+"?question="+q} className="text-sm font-bold text-dena-brand">ویرایش ←</a></div>)}</div>
+        <div className="flex flex-wrap justify-between gap-3 border-t border-dena-border pt-5"><a href={backHref} className={buttonClassName("outline")}>بازگشت به آزمون</a><a href={backHref+"/submit-confirm"} className={buttonClassName()}>پایان و ارسال آزمون</a></div>
+      </Card><p className="text-xs leading-6 text-dena-muted">این پیش‌نمایش به آزمون واقعی متصل نیست و پاسخ‌ها ذخیره نمی‌شوند.</p>
+    </div>
+  );
+
+  if (state === "submit-confirm" || state === "leave-confirm") {
+    const submitting = state === "submit-confirm";
+    return <div dir="rtl" className="mx-auto max-w-2xl"><Card className="space-y-5 rounded-[20px] p-6 text-center md:p-9"><span className="mx-auto grid size-14 place-items-center rounded-full bg-amber-50 text-2xl text-amber-700" aria-hidden="true">{submitting ? "?" : "↩"}</span><h2 className="text-xl font-extrabold text-dena-deep">{submitting ? "آزمون را ارسال می‌کنی؟" : "از آزمون خارج می‌شوی؟"}</h2><p className="text-sm leading-7 text-dena-muted">{submitting ? `به ${answeredCount.toLocaleString("fa-IR")} پرسش پاسخ داده‌ای. پس از ارسال، در آزمون واقعی امکان تغییر پاسخ‌ها وجود ندارد.` : "با خروج از آزمون، پاسخ‌های این تلاش در نسخه واقعی ممکن است از دست برود."}</p><div className="flex flex-wrap justify-center gap-3"><a href={submitting ? resultHref : backHref} className={buttonClassName()}>{submitting ? "تأیید و مشاهده نتیجه نمونه" : "بله، خروج"}</a><a href={submitting ? reviewHref : backHref} className={buttonClassName("outline")}>{submitting ? "بازگشت و بررسی" : "ادامه آزمون"}</a></div><p className="text-xs text-dena-muted">این فقط یک تعامل نمایشی است؛ نتیجه‌ای به سامانه ارسال نمی‌شود.</p></Card></div>;
+  }
+
+  if (state === "result") return <div dir="rtl" className="mx-auto max-w-3xl space-y-5"><Card className="space-y-5 rounded-[20px] p-6 md:p-9"><div className="text-center"><span className="mx-auto grid size-16 place-items-center rounded-full bg-emerald-50 text-3xl text-emerald-700" aria-hidden="true">✓</span><p className="mt-4 text-sm font-bold text-dena-brand">نتیجه آزمون نمونه</p><h2 className="mt-2 text-2xl font-extrabold text-dena-deep">آفرین، آزمون به پایان رسید</h2><p className="mt-2 text-sm leading-7 text-dena-muted">این امتیاز نمونه است و از ارزیابی واقعی یا پاسخ‌های ثبت‌شده به دست نیامده.</p></div><div className="grid gap-3 sm:grid-cols-3"><div className="rounded-xl bg-dena-bg p-4 text-center"><p className="text-xs text-dena-muted">پاسخ داده‌شده</p><p className="mt-2 text-xl font-extrabold text-dena-deep">{answeredCount.toLocaleString("fa-IR")} از ۱۰</p></div><div className="rounded-xl bg-dena-bg p-4 text-center"><p className="text-xs text-dena-muted">وضعیت</p><p className="mt-2 font-extrabold text-emerald-700">پایان‌یافته</p></div><div className="rounded-xl bg-dena-bg p-4 text-center"><p className="text-xs text-dena-muted">امتیاز نمایشی</p><p className="mt-2 text-xl font-extrabold text-dena-deep">۸۰٪</p></div></div><div className="rounded-xl border border-dena-border p-4 text-sm leading-7 text-dena-muted">برای دیدن پاسخ‌ها و بازخورد آموزشی، نتیجهٔ معتبر پس از اتصال آزمون به سامانه نمایش داده خواهد شد.</div><div className="flex flex-wrap justify-center gap-3"><a href="/student-demo/assessments" className={buttonClassName()}>بازگشت به آزمون‌ها</a><a href={backHref} className={buttonClassName("outline")}>مشاهده پاسخ‌های نمونه</a></div></Card><p className="text-xs leading-6 text-dena-muted">اطلاعات این صفحه صرفاً برای نمایش چیدمان نتیجه است.</p></div>;
+
+  if (state === "national") return <div dir="rtl" className="mx-auto max-w-3xl space-y-5"><Card className="space-y-5 rounded-[20px] p-6 md:p-8"><a href="/student-demo/assessments" className="text-sm font-bold text-dena-brand">بازگشت به تمرین‌ها و آزمون‌ها ←</a><div><p className="text-sm font-bold text-dena-brand">آزمون جامع · پایه دهم</p><h2 className="mt-2 text-2xl font-extrabold text-dena-deep">آزمون شبیه‌ساز سراسری</h2><p className="mt-2 text-sm leading-7 text-dena-muted">مرور ساختار و آمادگی آزمون جامع</p></div><div className="grid gap-3 sm:grid-cols-3">{[["تعداد پرسش","۶۰"],["زمان پاسخ‌گویی","۹۰ دقیقه"],["وضعیت","آماده‌سازی"]].map(([k,v])=><div key={k} className="rounded-xl bg-dena-bg p-4"><p className="text-xs text-dena-muted">{k}</p><p className="mt-2 font-bold text-dena-deep">{v}</p></div>)}</div><p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-900">این آزمون هنوز به مخزن پرسش‌ها و زمان‌سنج متصل نیست؛ امکان شروع واقعی فعال نشده است.</p></Card></div>;
 
   return (
     <div className="mx-auto max-w-[1160px] space-y-5">
