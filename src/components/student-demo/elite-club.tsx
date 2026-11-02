@@ -15,30 +15,68 @@ const categories = [
 const demoBanner = <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold leading-7 text-amber-900">پیش‌نمایش فیگما · اطلاعات و وضعیت‌ها نمایشی‌اند؛ چیزی در پروندهٔ واقعی ثبت نمی‌شود.</div>;
 
 function ClubHome() {
-  return <div className="space-y-6">
-    <section className="rounded-[22px] bg-dena-lavender p-6 md:p-8">
-      <p className="text-sm font-bold text-dena-brand">باشگاه نخبگان</p>
-      <h2 className="mt-2 text-2xl font-extrabold text-dena-deep">فضایی ویژه برای فرصت‌ها و مسیرهای رشد بیشتر در دنا.</h2>
-      <p className="mt-3 max-w-3xl text-sm leading-8 text-dena-muted">باشگاه نخبگان فضایی برای دسترسی دانش‌آموزان منتخب به فرصت‌ها و برنامه‌هایی است که در چارچوب دنا تعریف می‌شوند.</p>
-      <div className="mt-5 flex flex-wrap gap-3">
-        <Link href="/student-demo/elite-club/registration" className={buttonClassName()}>ثبت‌نام در باشگاه</Link>
-        <Link href="/student-demo/elite-club/member" className={buttonClassName("outline")}>پیش‌نمایش حالت عضو</Link>
-      </div>
-    </section>
-    <Card className="space-y-3 rounded-[20px] p-5 md:p-6">
-      <h3 className="font-extrabold text-dena-deep">شما هنوز در باشگاه نخبگان ثبت‌نام نکرده‌اید.</h3>
-      <p className="text-sm leading-7 text-dena-muted">برای شروع، توضیحات ثبت‌نام را ببینید و سپس به ارزیابی نمونه بروید.</p>
-      <Link href="/student-demo/elite-club/registration" className="inline-flex text-sm font-bold text-dena-brand">ثبت‌نام در باشگاه ←</Link>
+  return <div className="mx-auto max-w-3xl space-y-5">
+    <header className="space-y-2 text-right">
+      <h2 className="text-xl font-extrabold text-dena-deep md:text-2xl">باشگاه نخبگان</h2>
+      <p className="text-sm leading-7 text-dena-muted">فضایی ویژه برای فرصت‌ها و مسیرهای رشد بیشتر در دنا.</p>
+    </header>
+    <Card className="space-y-4 rounded-[20px] p-5 md:p-6">
+      <p className="text-center text-sm leading-7 text-dena-muted">شما هنوز در باشگاه نخبگان ثبت‌نام نکرده‌اید.</p>
+      <Link href="/student-demo/elite-club/registration" className={buttonClassName()+" mx-auto flex min-h-12 w-full max-w-[220px] items-center justify-center"}>
+        ثبت‌نام در باشگاه
+      </Link>
     </Card>
-    <Card className="space-y-2 rounded-[20px] p-5 md:p-6"><h3 className="font-bold text-dena-deep">باشگاه نخبگان چه فضایی است؟</h3><p className="text-sm leading-8 text-dena-muted">باشگاه نخبگان فضایی برای دسترسی دانش‌آموزان منتخب به فرصت‌ها و برنامه‌هایی است که در چارچوب دنا تعریف می‌شوند.</p></Card>
+    <Card className="space-y-2 rounded-[20px] bg-dena-lavender/70 p-5 text-right md:p-6">
+      <h3 className="font-extrabold text-dena-deep">باشگاه نخبگان چه فضایی است؟</h3>
+      <p className="text-sm leading-7 text-dena-muted">باشگاه نخبگان فضایی برای دسترسی به فرصت‌ها و برنامه‌هایی است که در چارچوب دنا تعریف می‌شوند.</p>
+    </Card>
   </div>;
 }
 
 function MemberHome() {
-  return <div className="space-y-6">
-    <section className="rounded-[22px] bg-dena-lavender p-6 md:p-8"><p className="text-sm font-bold text-dena-brand">باشگاه نخبگان</p><h2 className="mt-2 text-2xl font-extrabold text-dena-deep">فضایی ویژه برای فرصت‌ها و مسیرهای رشد بیشتر در دنا.</h2><p className="mt-2 text-sm leading-7 text-dena-muted">این صفحه، حالت عضو در طرح فیگما را برای بازبینی بصری نشان می‌دهد.</p></section>
-    <Card className="flex flex-wrap items-center justify-between gap-3 rounded-[20px] p-5"><div><h3 className="font-extrabold text-dena-deep">وضعیت من در باشگاه</h3><p className="mt-2 text-sm text-dena-muted">شما عضو باشگاه نخبگان دنا هستید.</p></div><span className="rounded-full bg-dena-mint/30 px-4 py-2 text-sm font-bold text-dena-deep">عضو باشگاه · نمونه</span></Card>
-    <section className="space-y-4"><SectionHeading id="club-supports">حمایت‌های باشگاه</SectionHeading><div className="grid gap-4 md:grid-cols-2">{categories.map((item)=><Card key={item.slug} className="space-y-4 rounded-[20px] p-5 md:p-6"><div className="flex items-start justify-between gap-3"><h3 className="font-extrabold text-dena-deep">{item.title}</h3><span className="rounded-full bg-dena-lavender px-3 py-1 text-xs font-bold text-dena-brand">{item.active ? "فرصت فعال" : "بدون فرصت فعال"}</span></div><p className="text-sm leading-7 text-dena-muted">{item.description}</p><Link href={`/student-demo/elite-club/${item.slug}`} className={buttonClassName("outline")}>مشاهده فرصت‌ها</Link></Card>)}</div></section>
+  const iconByCategory: Record<(typeof categories)[number]["slug"], string> = {
+    teaching: "/icons/elite-club/presentation.svg",
+    education: "/icons/elite-club/book-open.svg",
+    business: "/icons/elite-club/briefcase.svg",
+    welfare: "/icons/elite-club/heart.svg",
+  };
+  return <div className="space-y-4">
+    <header className="space-y-1.5 text-right">
+      <h2 className="text-xl font-extrabold text-dena-deep md:text-2xl">باشگاه نخبگان</h2>
+      <p className="text-sm leading-7 text-dena-muted">فضایی ویژه برای فرصت‌ها و مسیرهای رشد بیشتر در دنا.</p>
+    </header>
+    <Card className="flex flex-wrap items-center justify-between gap-3 rounded-[20px] p-4 md:p-5">
+      <div className="text-right">
+        <h3 className="font-extrabold text-dena-deep">وضعیت من در باشگاه</h3>
+        <p className="mt-2 text-sm text-dena-muted">شما عضو باشگاه نخبگان دنا هستید.</p>
+      </div>
+      <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">عضو باشگاه · نمونه</span>
+    </Card>
+    <section className="space-y-3" aria-labelledby="club-supports">
+      <SectionHeading id="club-supports">حمایت‌های باشگاه</SectionHeading>
+      <div className="space-y-3">
+        {categories.map((item) => (
+          <Card key={item.slug} className="space-y-3 rounded-[20px] p-4 md:p-5">
+            <div className="flex items-start justify-between gap-3">
+              <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-dena-bg">
+                <img src={iconByCategory[item.slug]} width={22} height={22} alt="" />
+              </span>
+              <div className="min-w-0 flex-1 text-right">
+                <h3 className="font-extrabold text-dena-deep">{item.title}</h3>
+                <p className="mt-2 text-sm leading-7 text-dena-muted">{item.description}</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <span className="inline-flex items-center gap-2 text-xs font-bold text-emerald-700">
+                <span className="size-2 rounded-full bg-emerald-500" aria-hidden="true" />
+                {item.active ? "فعال · نمونه" : "بدون فرصت فعال"}
+              </span>
+              <Link href={`/student-demo/elite-club/${item.slug}`} className="text-sm font-bold text-dena-brand hover:underline">مشاهده فرصت‌ها</Link>
+            </div>
+          </Card>
+        ))}
+      </div>
+    </section>
     <Link href="/student-demo/elite-club" className="inline-flex text-sm font-bold text-dena-brand">نمایش حالت ثبت‌نام‌نشده</Link>
   </div>;
 }
