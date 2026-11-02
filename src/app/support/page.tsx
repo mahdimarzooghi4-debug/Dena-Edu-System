@@ -5,6 +5,7 @@ import { Card } from "../../components/ui/card";
 import { buttonClassName } from "../../components/ui/button";
 import { TicketCreateForm } from "../../components/support/ticket-create-form";
 import { SupportNotifications } from "../../components/support/support-notifications";
+import { StudentShell } from "../../components/student/student-shell";
 import { getServerAccessContext } from "../../server/access/actor";
 import { listRequesterTechnicalSupportTickets } from "../../server/support/tickets";
 
@@ -18,49 +19,79 @@ const statusLabels: Record<string, string> = {
 
 export default async function SupportPage({
   searchParams,
-}: { searchParams: Promise<{ cursor?: string }> }) {
+}: { searchParams: Promise<{ cursor?: string; new?: string }> }) {
   if (!process.env.DATABASE_URL || !process.env.BETTER_AUTH_SECRET ||
       !process.env.BETTER_AUTH_URL) redirect("/login");
   const actor = await getServerAccessContext();
   if (!actor) redirect("/login");
-  const { cursor } = await searchParams;
+  const { cursor, new: createNew } = await searchParams;
   const result = await listRequesterTechnicalSupportTickets(actor.userId, cursor);
   if (!result) notFound();
   if (result.invalidCursor) redirect("/support");
   const { tickets } = result;
 
-  return (
-    <main id="main-content" className="min-h-screen bg-dena-bg px-5 py-8 md:px-8">
-      <div className="mx-auto max-w-4xl space-y-7">
-        <header className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-extrabold text-dena-deep">پشتیبانی فنی دنا</h1>
-            <p className="mt-2 text-sm leading-7 text-dena-muted">درخواست‌های فنی این حساب در یک گفت‌وگوی خصوصی پیگیری می‌شوند.</p>
-          </div>
-          <Link href="/account" className={buttonClassName("secondary")}>
-            بازگشت به حساب من
+  if (createNew === "1") {
+    return (
+      <StudentShell active="support" title="پشتیبانی آنلاین">
+        <div className="mx-auto max-w-3xl space-y-5">
+          <Link href="/support" className="text-sm font-semibold text-dena-brand hover:underline">
+            بازگشت به پشتیبانی
           </Link>
-        </header>
-        <Card>
-          <h2 className="mb-5 text-lg font-bold">درخواست تازه</h2>
-          <TicketCreateForm />
-        </Card>
-        <SupportNotifications />
-        <section aria-labelledby="support-ticket-list" className="space-y-4">
-          <h2 id="support-ticket-list" className="text-lg font-bold">درخواست‌های من</h2>
-          {tickets.length === 0 ? (
-            <Card><p className="text-sm leading-7 text-dena-muted">هنوز درخواستی ثبت نشده است.</p></Card>
-          ) : tickets.map((ticket) => (
-            <Card key={ticket.id}>
-              <Link href={`/support/${ticket.id}`} className="font-bold text-dena-brand underline-offset-4 hover:underline">
-                {ticket.subject}
-              </Link>
-              <p className="mt-2 text-xs text-dena-muted">
-                {statusLabels[ticket.status] ?? "نامشخص"} · آخرین به‌روزرسانی: {ticket.updatedAt.toLocaleString("fa-IR")}
+          <Card className="space-y-5 rounded-[22px] p-5 md:p-7">
+            <header className="space-y-2 text-right">
+              <h2 className="text-xl font-extrabold text-dena-deep">ثبت درخواست جدید پشتیبانی</h2>
+              <p className="text-sm leading-7 text-dena-muted">
+                موضوع و شرح مشکل را بنویس تا تیم دنا بتواند پیگیری کند.
               </p>
-              <p className="mt-1 text-xs text-dena-muted">
+            </header>
+            <TicketCreateForm />
+          </Card>
+        </div>
+      </StudentShell>
+    );
+  }
+
+  return (
+    <StudentShell active="support" title="پشتیبانی آنلاین">
+      <div className="space-y-5">
+        <Card className="rounded-[22px] p-5 md:p-7">
+          <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="max-w-2xl text-right">
+              <h2 className="text-xl font-extrabold text-dena-deep">پشتیبانی آنلاین دنا</h2>
+              <p className="mt-2 text-sm leading-7 text-dena-muted">
+                برای مسائل فنی و استفاده از دنا می‌توانی از این بخش با پشتیبانی در ارتباط باشی.
+              </p>
+            </div>
+            <Link href="/support?new=1" className={buttonClassName()}>
+              درخواست جدید
+            </Link>
+          </div>
+        </Card>
+
+        <SupportNotifications />
+
+        <section aria-labelledby="support-ticket-list" className="space-y-4">
+          <h2 id="support-ticket-list" className="text-lg font-extrabold text-dena-deep">درخواست‌های من</h2>
+          {tickets.length === 0 ? (
+            <Card className="rounded-[22px] p-5">
+              <p className="text-sm leading-7 text-dena-muted">هنوز درخواست پشتیبانی ثبت نکرده‌ای.</p>
+            </Card>
+          ) : tickets.map((ticket) => (
+            <Card key={ticket.id} className="rounded-[20px] p-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <Link href={`/support/${ticket.id}`} className="font-bold text-dena-ink underline-offset-4 hover:text-dena-brand hover:underline">
+                  {ticket.subject}
+                </Link>
+                <span className="rounded-full bg-dena-lavender px-3 py-1 text-xs font-bold text-dena-brand">
+                  {statusLabels[ticket.status] ?? "نامشخص"}
+                </span>
+              </div>
+              <p className="mt-2 text-xs leading-6 text-dena-muted">
+                آخرین به‌روزرسانی: {ticket.updatedAt.toLocaleString("fa-IR")}
+              </p>
+              <p className="mt-1 text-xs leading-6 text-dena-muted">
                 مهلت پاسخ: {ticket.firstRespondedAt ? "پاسخ داده شده" : ticket.firstResponseDueAt.toLocaleString("fa-IR", { timeZone: "Asia/Tehran" })}
-                {ticket.status === "waiting_requester" ? " · زمان SLA حل تا پاسخ شما متوقف است" : ticket.status !== "resolved" && ticket.status !== "closed" ? <> · مهلت حل: {ticket.resolutionDueAt.toLocaleString("fa-IR", { timeZone: "Asia/Tehran" })}</> : null}
+                {ticket.status === "waiting_requester" ? " · زمان رسیدگی تا پاسخ شما متوقف است" : ticket.status !== "resolved" && ticket.status !== "closed" ? <> · مهلت حل: {ticket.resolutionDueAt.toLocaleString("fa-IR", { timeZone: "Asia/Tehran" })}</> : null}
               </p>
             </Card>
           ))}
@@ -79,6 +110,6 @@ export default async function SupportPage({
           </nav>
         </section>
       </div>
-    </main>
+    </StudentShell>
   );
 }
