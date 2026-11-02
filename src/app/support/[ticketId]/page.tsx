@@ -6,6 +6,7 @@ import { Card } from "../../../components/ui/card";
 import { TicketReplyForm } from "../../../components/support/ticket-reply-form";
 import { TicketOperationsForm } from "../../../components/support/ticket-operations-form";
 import { TicketAttachments } from "../../../components/support/ticket-attachments";
+import { StudentShell } from "../../../components/student/student-shell";
 import { getServerAccessContext } from "../../../server/access/actor";
 import { readTechnicalSupportTicket } from "../../../server/support/tickets";
 import { listSupportTicketAttachments, supportAttachmentUploadAvailable } from "../../../server/support/attachments";
@@ -39,51 +40,81 @@ export default async function SupportTicketPage({ params }: Props) {
   const canReply = actor.memberships.some((membership) =>
     membership.role === "admin" && membership.canHandleTechnicalSupport,
   );
+  const isStudent = actor.memberships.some((membership) => membership.role === "student");
 
-  return (
-    <main id="main-content" className="min-h-screen bg-dena-bg px-5 py-8 md:px-8">
-      <div className="mx-auto max-w-4xl space-y-6">
-        <Link href={canReply ? "/admin/support" : "/support"}
-          className="text-sm font-semibold text-dena-brand underline-offset-4 hover:underline">
-          {canReply ? "بازگشت به صندوق ادمین" : "بازگشت به پشتیبانی"}
-        </Link>
-        <header>
-          <h1 className="mt-4 text-2xl font-extrabold text-dena-deep">{ticket.subject}</h1>
-          <p className="mt-2 text-xs text-dena-muted">ثبت‌شده در {ticket.createdAt.toLocaleString("fa-IR")}</p>
-          <p className="mt-2 text-sm text-dena-muted">
-            وضعیت: {statusLabels[ticket.status] ?? "نامشخص"}
-            {canReply && <> · اولویت: {priorityLabels[ticket.priority] ?? "نامشخص"}</>}
-          </p>
-        </header>
+  const conversation = (
+    <div className="space-y-5">
+      <Link href={canReply ? "/admin/support" : "/support"}
+        className="text-sm font-semibold text-dena-brand underline-offset-4 hover:underline">
+        {canReply ? "بازگشت به صندوق ادمین" : "بازگشت به پشتیبانی"}
+      </Link>
+
+      <Card className="rounded-[22px] p-5 md:p-7">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-extrabold text-dena-deep">{ticket.subject}</h2>
+            <p className="mt-2 text-xs text-dena-muted">
+              ثبت‌شده در {ticket.createdAt.toLocaleString("fa-IR")}
+            </p>
+          </div>
+          <span className="rounded-full bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800">
+            {statusLabels[ticket.status] ?? "نامشخص"}
+          </span>
+        </div>
         {canReply && (
-          <Card>
-            <h2 className="mb-4 text-lg font-bold">رسیدگی به تیکت</h2>
-            <TicketOperationsForm ticketId={ticket.id}
-              initialStatus={ticket.status as "new" | "in_progress" | "waiting_requester" | "resolved" | "closed"}
-              initialPriority={ticket.priority as "low" | "normal" | "high" | "urgent"} />
-          </Card>
+          <p className="mt-3 text-sm text-dena-muted">
+            اولویت: {priorityLabels[ticket.priority] ?? "نامشخص"}
+          </p>
         )}
-        <section aria-label="گفت‌وگوی تیکت" className="space-y-3">
-          {ticket.messages.map((message) => (
-            <Card key={message.id} className={message.fromSupport ? "border-dena-brand/30" : ""}>
+      </Card>
+
+      {canReply && (
+        <Card className="rounded-[22px] p-5 md:p-6">
+          <h2 className="mb-4 text-lg font-bold">رسیدگی به تیکت</h2>
+          <TicketOperationsForm ticketId={ticket.id}
+            initialStatus={ticket.status as "new" | "in_progress" | "waiting_requester" | "resolved" | "closed"}
+            initialPriority={ticket.priority as "low" | "normal" | "high" | "urgent"} />
+        </Card>
+      )}
+
+      <section aria-label="گفت‌وگوی تیکت" className="space-y-3">
+        {ticket.messages.map((message) => (
+          <div key={message.id} className={message.fromSupport ? "flex justify-start" : "flex justify-end"}>
+            <Card className={"w-fit max-w-[88%] rounded-[22px] p-4 md:max-w-[76%] " +
+              (message.fromSupport ? "border-dena-border bg-white" : "border-transparent bg-dena-lavender")}>
               <p className="mb-2 text-xs font-bold text-dena-muted">
                 {message.fromSupport ? "پشتیبانی دنا" : "شما"} · {message.createdAt.toLocaleString("fa-IR")}
               </p>
               <p className="whitespace-pre-wrap text-sm leading-7">{message.body}</p>
             </Card>
-          ))}
-        </section>
-        <Card>
-          <TicketAttachments ticketId={ticket.id} attachments={attachments}
-            uploadAvailable={supportAttachmentUploadAvailable()}
-            remainingSlots={Math.max(0, 3 - attachments.filter((item) => item.status !== "failed").length)} />
-        </Card>
-        <Card>
-          <h2 className="mb-4 text-lg font-bold">افزودن پیام</h2>
-          <TicketReplyForm ticketId={ticket.id} />
-        </Card>
-        {canReply && <p className="text-xs text-dena-muted">این حساب مجوز اپراتوری پشتیبانی دارد.</p>}
-      </div>
+          </div>
+        ))}
+      </section>
+
+      <Card className="rounded-[22px] p-5 md:p-6">
+        <TicketAttachments ticketId={ticket.id} attachments={attachments}
+          uploadAvailable={supportAttachmentUploadAvailable()}
+          remainingSlots={Math.max(0, 3 - attachments.filter((item) => item.status !== "failed").length)} />
+      </Card>
+      <Card className="rounded-[22px] p-5 md:p-6">
+        <h2 className="mb-4 text-lg font-bold">افزودن پیام</h2>
+        <TicketReplyForm ticketId={ticket.id} />
+      </Card>
+      {canReply && <p className="text-xs text-dena-muted">این حساب مجوز اپراتوری پشتیبانی دارد.</p>}
+    </div>
+  );
+
+  if (isStudent && !canReply) {
+    return (
+      <StudentShell active="support" title="پشتیبانی آنلاین">
+        <div className="mx-auto max-w-3xl">{conversation}</div>
+      </StudentShell>
+    );
+  }
+
+  return (
+    <main id="main-content" className="min-h-screen bg-dena-bg px-5 py-8 md:px-8">
+      <div className="mx-auto max-w-4xl">{conversation}</div>
     </main>
   );
 }
