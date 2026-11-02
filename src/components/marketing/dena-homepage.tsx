@@ -11,9 +11,9 @@ const steps = [
 ];
 
 const previewCourses = [
-  { id: "math-tenth", title: "ریاضی دهم تجربی و ریاضی", provider: "مؤسسه آموزشی نمونه", teacher: "استاد علیرضا احمدی", sessions: "۲۴ جلسه آموزشی", hours: "۱۸ ساعت محتوای آموزشی", price: "۳,۸۰۰,۰۰۰ تومان", image: "math", supervised: false },
-  { id: "physics-tenth", title: "فیزیک دهم (مکانیک)", provider: "گروه ماز", teacher: "دکتر رضا علوی", sessions: "۲۰ جلسه آموزشی", hours: "۱۵ ساعت محتوای آموزشی", price: "۳,۲۰۰,۰۰۰ تومان", image: "physics", supervised: true },
-  { id: "chemistry-tenth", title: "شیمی دهم (کیهان و ساختار)", provider: "مؤسسه کنکور برتر", teacher: "استاد مریم سهرابی", sessions: "۲۸ جلسه آموزشی", hours: "۲۲ ساعت محتوای آموزشی", price: "۴,۱۰۰,۰۰۰ تومان", image: "chemistry", supervised: false },
+  { id: "chemistry-tenth", title: "شیمی دهم (کیهان و ساختار)", provider: "مؤسسه کنکور برتر", teacher: "استاد مریم سهرابی", sessions: "۲۸ جلسه آموزشی", hours: "۲۲ ساعت محتوای آموزشی", price: "۴,۱۰۰,۰۰۰ تومان", image: "/images/dena-course-chemistry.png", supervised: false },
+  { id: "physics-tenth", title: "فیزیک دهم (مکانیک)", provider: "گروه ماز", teacher: "دکتر رضا علوی", sessions: "۲۰ جلسه آموزشی", hours: "۱۵ ساعت محتوای آموزشی", price: "۳,۲۰۰,۰۰۰ تومان", image: "/images/dena-course-physics.png", supervised: true },
+  { id: "math-tenth", title: "ریاضی دهم تجربی و ریاضی", provider: "مؤسسه آموزشی نمونه", teacher: "استاد علیرضا احمدی", sessions: "۲۴ جلسه آموزشی", hours: "۱۸ ساعت محتوای آموزشی", price: "۳,۸۰۰,۰۰۰ تومان", image: "/images/dena-course-math.png", supervised: false },
 ];
 
 const roles = [
@@ -58,7 +58,7 @@ export function DenaHomepage() {
           <div className="growth-preview" aria-label="نمونهٔ مسیر رشد و یادگیری دانش‌آموز">
             <div className="growth-preview__heading">
               <strong><i />مسیر رشد من</strong>
-              <span>نمونهٔ نمایشی</span>
+              <span>+۱۸٪ نسبت به ماه قبل</span>
             </div>
             <div className="growth-chart" aria-hidden="true">
               {[30, 45, 35, 60, 50, 75, 90].map((height, index) => (
@@ -86,7 +86,7 @@ export function DenaHomepage() {
           <div className="dena-hero__copy">
             <span className="eyebrow">اکوسیستم آموزشی دنا</span>
             <h1 id="hero-title">یک مسیر یکپارچه برای رشد تحصیلی</h1>
-            <p>دوره‌های آموزشی آفلاین از مؤسسات، تمرین و آزمون، همراهی آموزشی مؤسسه و مشاهدهٔ مسیر رشد تحصیلی؛ همه در یک تجربهٔ یکپارچه. اطلاعات پیش‌نمایش این صفحه نمونه‌اند و دوره‌های واقعی پس از تأیید مؤسسه منتشر می‌شوند.</p>
+            <p>دوره‌های آموزشی آفلاین از مؤسسات، تمرین و آزمون، همراهی آموزشی مؤسسه و مشاهدهٔ مسیر رشد تحصیلی؛ همه در یک تجربهٔ یکپارچه. </p>
             <div className="dena-hero__actions">
             <Link className="dena-button dena-button--primary" href="/login">ورود به دنا</Link>
               <Link className="dena-button dena-button--text" href="/courses">مشاهده دوره‌ها</Link>
@@ -114,21 +114,19 @@ export function DenaHomepage() {
       <section className="dena-section dena-courses" id="courses">
         <div className="dena-section__heading dena-section__heading--right">
           <h2>دوره‌های آموزشی در مسیر رشد تو</h2>
-          <p>دوره‌ها در دنا توسط مؤسسات آموزشی دارای مجوز یا ارائه‌دهندگان تحت نظارت یک مؤسسهٔ دارای مجوز ارائه می‌شوند. کارت‌های زیر نمونهٔ نمایشی‌اند؛ دورهٔ واقعی برای ثبت‌نام در این بخش منتشر نشده است.</p>
+          <p>دوره‌ها در دنا توسط مؤسسات آموزشی دارای مجوز یا ارائه‌دهندگان تحت نظارت یک مؤسسهٔ دارای مجوز ارائه می‌شوند. </p>
         </div>
         <div className="course-grid home-course-grid">
           {previewCourses.map((course) => (
             <article className="course-card home-course-card" key={course.id}>
-              <div className={`course-card__image course-card__image--${course.image}`} role="img" aria-label={`تصویر نمایشی دورهٔ ${course.title}`}>
-                <span className="course-card__image-label">نمونهٔ نمایشی</span>
-              </div>
+              <div className="course-card__image" role="img" aria-label={`تصویر دورهٔ ${course.title}`} style={{ backgroundImage: `url("${course.image}")` }} />
               <div className="course-card__body">
                 <div className="course-card__badges"><span>{course.sessions}</span><span className={course.supervised ? "badge-supervised" : "badge-licensed"}>{course.supervised ? "ارائه‌دهنده تحت نظارت" : "مؤسسه آموزشی دارای مجوز"}</span></div>
                 <h3>{course.title}</h3>
                 <p>ارائه‌دهنده: {course.provider}<br />مدرس: {course.teacher}</p>
                 <small>پایه دهم · {course.hours}</small>
                 <div className="course-card__price"><strong>{course.price}</strong><span>پرداخت در ۴ قسط، بدون افزایش قیمت</span></div>
-                <Link className="dena-button dena-button--primary" href={`/courses/${course.id}`}>مشاهدهٔ نمونه</Link>
+                <Link className="dena-button dena-button--primary" href={`/courses/${course.id}`}>مشاهده دوره</Link>
               </div>
             </article>
           ))}

@@ -100,8 +100,8 @@
 .dena-courses { background:#fff; }
 .course-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:24px; max-width:1280px; margin:auto; }
 .course-card { overflow:hidden; border:1px solid #ebe9f5; border-radius:24px; background:#fff; box-shadow:0 12px 24px #00000005; }
-.course-card__image { height:180px; position:relative; overflow:hidden; background:#dfe7df; }
-.course-card__image::before,.course-card__image::after { content:""; position:absolute; }
+.course-card__image { height:180px; position:relative; overflow:hidden; background-color:#dfe7df; background-position:center; background-repeat:no-repeat; background-size:cover; }
+.course-card__image::before,.course-card__image::after { display:none; content:none; }
 .course-card__image::before { inset:0; background:linear-gradient(140deg,#dde7e1 0%,#f1e6d9 45%,#a98e72 46%,#d6c0a7 70%,#ece7dd 71%); opacity:.95; }
 .course-card__image::after { height:70px; width:170px; bottom:0; right:20%; border-radius:45% 45% 0 0; background:linear-gradient(90deg,#a56f4d,#e6d2b8 32%,#b8966e 33%,#ebdec9 70%,#98724f); box-shadow:0 -38px 0 -25px #fff8; }
 .course-card__image--physics::before { background:linear-gradient(120deg,#d5d9ce 0%,#f2eee5 38%,#baaa91 39%,#e7dfd2 69%,#b2b2a1 70%); }
