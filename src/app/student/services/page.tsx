@@ -54,7 +54,7 @@ export default async function StudentServicesPage() {
       </Card> : <ul className="grid gap-4 md:grid-cols-2">
         {catalog.services.map((service) => <li key={service.id}><Card className="h-full space-y-4">
           <div><p className="text-xs font-bold text-dena-brand">{service.instituteName} · {categoryLabel[service.category] ?? "خدمت آموزشی"}</p>
-            <h3 className="mt-2 text-lg font-extrabold text-dena-deep">{service.title}</h3></div>
+            <h3 className="mt-2 text-lg font-extrabold text-dena-deep"><Link href={`/student/services/${service.id}`} className="hover:text-dena-brand hover:underline">{service.title}</Link></h3></div>
           <p className="text-sm leading-7 text-dena-muted">{service.description}</p>
           <dl className="grid gap-3 rounded-xl bg-dena-bg p-4 text-sm">
             <div className="flex items-center justify-between gap-4"><dt className="text-dena-muted">هزینهٔ اعلام‌شده</dt><dd className="font-extrabold text-dena-deep">{service.priceToman.toLocaleString("fa-IR")} تومان</dd></div>
