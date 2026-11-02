@@ -126,7 +126,7 @@ export default async function StudentHomePage() {
           </div>
           <div className="flex flex-col items-end gap-3">
             <p className="text-xs leading-6 text-dena-muted">
-              پاسخ‌گویی محدود به محتوای تأییدشده است و هنگام آزمون فعال می‌شود.
+              پاسخ‌گویی محدود به محتوای تأییدشده است و هنگام آزمون غیرفعال می‌شود.
             </p>
             <Link href="/student/ai-tutor" className={buttonClassName()}>
               ورود به معلم هوشمند
