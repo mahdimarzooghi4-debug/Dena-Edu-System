@@ -20,28 +20,24 @@ export default async function StudentWelfareSupportPage() {
 
   return (
     <StudentShell active="elite" title="باشگاه نخبگان">
-      <div className="space-y-6">
-        <nav aria-label="مسیر صفحه" className="flex flex-wrap items-center gap-2 text-sm">
+      <div className="space-y-5">
+        <nav aria-label="مسیر صفحه" className="flex items-center gap-2 text-sm">
           <Link href="/student/elite-club" className="font-semibold text-dena-brand hover:underline">باشگاه نخبگان</Link>
           <span aria-hidden="true" className="text-dena-muted">←</span>
           <span className="text-dena-muted">حمایت رفاهی</span>
         </nav>
-
-        <header className="space-y-2">
+        <header className="space-y-2 text-right">
           <h2 className="text-2xl font-extrabold text-dena-deep md:text-[28px]">حمایت رفاهی</h2>
-          <p className="text-sm leading-7 text-dena-muted">
-            خدمات و حمایت‌های رفاهی تعریف‌شده برای اعضای باشگاه.
-          </p>
+          <p className="text-sm leading-7 text-dena-muted">خدمات و حمایت‌های رفاهی تعریف‌شده برای اعضای باشگاه.</p>
         </header>
-
-        <Card className="rounded-[20px] border-dena-border p-6 text-center md:p-8">
-          <h3 className="font-extrabold text-dena-deep">فعلاً حمایت رفاهی برای نمایش منتشر نشده است</h3>
-          <p className="mx-auto mt-2 max-w-2xl text-sm leading-7 text-dena-muted">
-            حمایت‌های جدید باشگاه پس از انتشار در این بخش نمایش داده می‌شوند. در حال حاضر موردی از سامانه برای حساب تو ثبت نشده است.
-          </p>
-          <Link href="/student/elite-club" className="mt-5 inline-flex min-h-11 items-center rounded-xl border border-dena-brand bg-white px-4 py-2 text-sm font-bold text-dena-brand hover:bg-dena-lavender">
-            بازگشت به باشگاه نخبگان
-          </Link>
+        <Card className="flex min-h-[205px] flex-col items-center justify-center rounded-[22px] px-5 py-7 text-center">
+          <div className="grid size-16 place-items-center rounded-2xl bg-[#f4f4f6] text-[#8a8994]" aria-hidden="true">
+            <svg viewBox="0 0 32 32" className="size-8" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 8a2 2 0 0 1 2-2h8l3 4h9a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8Z" />
+            </svg>
+          </div>
+          <h3 className="mt-5 font-extrabold text-dena-ink">حمایتی تعریف نشده است</h3>
+          <p className="mt-2 text-sm leading-7 text-dena-muted">در حال حاضر حمایت رفاهی فعالی وجود ندارد.</p>
         </Card>
       </div>
     </StudentShell>
