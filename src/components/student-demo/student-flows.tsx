@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { buttonClassName } from "@/components/ui/button";
@@ -10,7 +11,7 @@ const base = "/student-demo";
 function PageTitle({ title, subtitle }: { title: string; subtitle?: string }) {
   return <header className="space-y-1 text-right"><h2 className="text-base font-extrabold text-dena-deep md:text-2xl">{title}</h2>{subtitle && <p className="text-xs leading-6 text-dena-muted md:text-sm md:leading-7">{subtitle}</p>}</header>;
 }
-function SectionTitle({ children }: { children: React.ReactNode }) {
+function SectionTitle({ children }: { children: ReactNode }) {
   return <h3 className="text-right text-sm font-extrabold text-dena-deep md:text-base">{children}</h3>;
 }
 function DemoNote({ children = "این صفحه پیش‌نمایش است و اطلاعات به حساب واقعی متصل نیست." }: { children?: string }) {
