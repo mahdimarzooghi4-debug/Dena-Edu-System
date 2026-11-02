@@ -46,6 +46,9 @@ export default async function StudentEliteClubRegistrationPage() {
             ثبت‌نام، آغاز فرایند ارزیابی عضویت در باشگاه است. لطفاً برای پاسخ به سؤال‌های ارزیابی آماده باشید.
           </p>
         </Card>
+        <p className="text-center text-sm text-dena-muted">
+          <Link href="/student/elite-club/evaluation" className="font-bold text-dena-brand hover:underline">پیش‌نمایش صفحهٔ ارزیابی</Link>
+        </p>
         <p id="registration-status" role="status" className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm leading-7 text-amber-950">
           اتصال ثبت‌نام باشگاه به سامانه هنوز فعال نشده است؛ برای جلوگیری از ثبت‌نام غیرواقعی، ادامهٔ فرم فعلاً غیرفعال است.
         </p>
