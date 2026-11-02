@@ -42,6 +42,9 @@ export function ClubEvaluationPreview() {
         </ol>
         <div className="space-y-3">
           <button type="button" disabled aria-describedby="club-evaluation-preview-note" className="min-h-12 w-full cursor-not-allowed rounded-xl bg-dena-brand px-5 text-sm font-bold text-white opacity-60">ثبت نهایی ارزیابی</button>
+          <div className="text-center">
+            <a href="/student/elite-club/evaluation/status/submitted" className="text-sm font-bold text-dena-brand hover:underline">مشاهدهٔ پیش‌نمایش حالت پس از ثبت</a>
+          </div>
           <p id="club-evaluation-preview-note" role="status" className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm leading-7 text-amber-950">این پیش‌نمایش به سامانهٔ ارزیابی متصل نیست؛ پاسخ‌ها فقط تا زمان بازبودن همین صفحه نگه داشته می‌شوند و ارسال یا ذخیره نمی‌شوند.</p>
         </div>
       </div>
