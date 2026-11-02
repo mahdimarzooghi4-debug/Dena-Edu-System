@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { buttonClassName } from "@/components/ui/button";
@@ -12,6 +13,55 @@ const choices = [
 ];
 
 const initialAnswers: Record<number, string> = { 1: "five", 2: "six", 3: "seven" };
+
+const questionRows = [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]];
+
+function QuestionMap({
+  current,
+  answers,
+  answeredCount,
+  goToQuestion,
+  compact = false,
+}: {
+  current: number;
+  answers: Record<number, string>;
+  answeredCount: number;
+  goToQuestion: (question: number) => void;
+  compact?: boolean;
+}) {
+  return (
+    <div className={compact ? "space-y-3" : "space-y-4"}>
+      {!compact && <h2 className="text-base font-extrabold text-dena-deep">نقشه پرسش‌ها</h2>}
+      <div className="space-y-2">
+        {questionRows.map((row) => (
+          <div key={row[0]} dir="rtl" className="flex flex-wrap gap-2">
+            {row.map((question) => {
+              const active = question === current;
+              const answered = Boolean(answers[question]);
+              return (
+                <button
+                  key={question}
+                  type="button"
+                  onClick={() => goToQuestion(question)}
+                  aria-label={`رفتن به پرسش ${question.toLocaleString("fa-IR")}`}
+                  aria-current={active ? "step" : undefined}
+                  className={`grid size-10 place-items-center rounded-full border text-sm font-bold transition-colors ${active ? "border-dena-brand bg-dena-brand text-white" : answered ? "border-dena-brand bg-dena-lavender text-dena-brand" : "border-dena-border bg-white text-dena-muted hover:border-dena-brand"}`}
+                >
+                  {question.toLocaleString("fa-IR")}
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+      <div className="border-t border-dena-border pt-3 text-sm leading-7 text-dena-muted">
+        <p>{answeredCount.toLocaleString("fa-IR")} پرسش پاسخ‌داده‌شده</p>
+        <p>{(10 - answeredCount).toLocaleString("fa-IR")} پرسش بدون پاسخ</p>
+      </div>
+    </div>
+  );
+}
+
 
 export function DemoPracticeCard({ state = "question" }: { state?: "question" | "review" | "submit-confirm" | "leave-confirm" | "result" | "national" }) {
   const [current, setCurrent] = useState(3);
@@ -32,53 +82,16 @@ export function DemoPracticeCard({ state = "question" }: { state?: "question" | 
     setShowMap(false);
   }
 
-  const questionRows = [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]];
-
-  function QuestionMap({ compact = false }: { compact?: boolean }) {
-    return (
-      <div className={compact ? "space-y-3" : "space-y-4"}>
-        {!compact && <h2 className="text-base font-extrabold text-dena-deep">نقشه پرسش‌ها</h2>}
-        <div className="space-y-2">
-          {questionRows.map((row) => (
-            <div key={row[0]} dir="rtl" className="flex flex-wrap gap-2">
-              {row.map((question) => {
-                const active = question === current;
-                const answered = Boolean(answers[question]);
-                return (
-                  <button
-                    key={question}
-                    type="button"
-                    onClick={() => goToQuestion(question)}
-                    aria-label={`رفتن به پرسش ${question.toLocaleString("fa-IR")}`}
-                    aria-current={active ? "step" : undefined}
-                    className={`grid size-10 place-items-center rounded-full border text-sm font-bold transition-colors ${active ? "border-dena-brand bg-dena-brand text-white" : answered ? "border-dena-brand bg-dena-lavender text-dena-brand" : "border-dena-border bg-white text-dena-muted hover:border-dena-brand"}`}
-                  >
-                    {question.toLocaleString("fa-IR")}
-                  </button>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-        <div className="border-t border-dena-border pt-3 text-sm leading-7 text-dena-muted">
-          <p>{answeredCount.toLocaleString("fa-IR")} پرسش پاسخ‌داده‌شده</p>
-          <p>{(10 - answeredCount).toLocaleString("fa-IR")} پرسش بدون پاسخ</p>
-        </div>
-      </div>
-    );
-  }
-
   const backHref = "/student-demo/assessments/math-7-practice/start";
   const reviewHref = backHref + "/review";
   const resultHref = "/student-demo/assessments/math-7-practice/result";
-  const answeredIds = Object.keys(answers).map(Number).sort((a, b) => a - b);
 
   if (state === "review") return (
     <div dir="rtl" className="mx-auto max-w-4xl space-y-5">
       <Card className="space-y-5 rounded-[20px] p-5 md:p-8">
         <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm font-bold text-dena-brand">ریاضی دهم · فصل سوم</p><h2 className="mt-2 text-xl font-extrabold text-dena-deep">مرور پاسخ‌ها</h2></div><span className="rounded-full bg-dena-lavender px-3 py-2 text-xs font-bold text-dena-brand">{answeredCount.toLocaleString("fa-IR")} از ۱۰ پاسخ</span></div>
         <p className="text-sm leading-7 text-dena-muted">پیش از پایان آزمون پاسخ‌ها را بررسی کن. می‌توانی به هر پرسش برگردی و آن را ویرایش کنی.</p>
-        <div className="grid gap-3 sm:grid-cols-2">{Array.from({length:10},(_,i)=>i+1).map(q=><div key={q} className="flex items-center justify-between gap-3 rounded-xl border border-dena-border p-4"><div><p className="text-sm font-bold text-dena-deep">پرسش {q.toLocaleString("fa-IR")}</p><p className="mt-1 text-xs text-dena-muted">{answers[q] ? "پاسخ ثبت شده" : "بدون پاسخ"}</p></div><a href={backHref+"?question="+q} className="text-sm font-bold text-dena-brand">ویرایش ←</a></div>)}</div>
+        <div className="grid gap-3 sm:grid-cols-2">{Array.from({length:10},(_,i)=>i+1).map(q=><div key={q} className="flex items-center justify-between gap-3 rounded-xl border border-dena-border p-4"><div><p className="text-sm font-bold text-dena-deep">پرسش {q.toLocaleString("fa-IR")}</p><p className="mt-1 text-xs text-dena-muted">{answers[q] ? "پاسخ ثبت شده" : "بدون پاسخ"}</p></div><Link href={backHref+"?question="+q} className="text-sm font-bold text-dena-brand">ویرایش ←</Link></div>)}</div>
         <div className="flex flex-wrap justify-between gap-3 border-t border-dena-border pt-5"><a href={backHref} className={buttonClassName("outline")}>بازگشت به آزمون</a><a href={backHref+"/submit-confirm"} className={buttonClassName()}>پایان و ارسال آزمون</a></div>
       </Card><p className="text-xs leading-6 text-dena-muted">این پیش‌نمایش به آزمون واقعی متصل نیست و پاسخ‌ها ذخیره نمی‌شوند.</p>
     </div>
@@ -97,7 +110,7 @@ export function DemoPracticeCard({ state = "question" }: { state?: "question" | 
     <div className="mx-auto max-w-[1160px] space-y-5">
       <div dir="ltr" className="grid gap-6 lg:grid-cols-[380px_minmax(0,720px)] lg:justify-center">
         <aside dir="rtl" className="order-2 hidden space-y-5 lg:block lg:order-1">
-          <Card className="rounded-2xl p-5"><QuestionMap /></Card>
+          <Card className="rounded-2xl p-5"><QuestionMap current={current} answers={answers} answeredCount={answeredCount} goToQuestion={goToQuestion} /></Card>
           <Card className="space-y-2 rounded-2xl p-5">
             <h3 className="text-sm font-bold text-dena-deep">نکته تلاش آزمون</h3>
             <p className="text-[13px] leading-6 text-dena-muted">پرسش‌های این تلاش به‌صورت تصادفی از بانک سؤال مؤسسه انتخاب شده‌اند. با تمرکز کامل پاسخ بده.</p>
@@ -156,7 +169,7 @@ export function DemoPracticeCard({ state = "question" }: { state?: "question" | 
             >
               {showMap ? "بستن نقشه پرسش‌ها" : "مشاهده نقشه پرسش‌ها"} <span aria-hidden="true">{showMap ? "⌃" : "⌄"}</span>
             </button>
-            {showMap && <div className="rounded-2xl border border-dena-border bg-white p-4 lg:hidden"><QuestionMap compact /></div>}
+            {showMap && <div className="rounded-2xl border border-dena-border bg-white p-4 lg:hidden"><QuestionMap compact current={current} answers={answers} answeredCount={answeredCount} goToQuestion={goToQuestion} /></div>}
 
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-dena-border pt-5">
               <button type="button" onClick={() => goToQuestion(Math.min(10, current + 1))} disabled={current === 10} className={buttonClassName()}>
