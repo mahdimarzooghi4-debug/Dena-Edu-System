@@ -8,7 +8,6 @@ import { StudentShell } from "@/components/student/student-shell";
 import { getServerAccessContext } from "@/server/access/actor";
 import { getStudentCourseTeamMember } from "@/server/student/course-team";
 import { getStudentProblemSolving } from "@/server/student/problem-solving";
-import { ProblemSolvingRequestForm } from "@/components/student/problem-solving-request-form";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -63,139 +62,120 @@ export default async function CourseTeamMemberPage({
 
   return (
     <StudentShell active="courses" title={label}>
-      <div className="space-y-6">
+      <div className="space-y-4">
         <Link
           href={`/student/courses/${courseId}`}
-          className="text-sm font-bold text-dena-brand hover:underline"
+          className="hidden text-sm font-bold text-dena-brand hover:underline md:inline-flex"
         >
           بازگشت به جزئیات دوره
         </Link>
 
-        <Card className="rounded-[22px] p-6 md:p-8">
-          <p className="text-sm font-bold text-dena-brand">{label}</p>
-          <h2 className="mt-2 text-2xl font-extrabold">{member.name}</h2>
-          <dl className="mt-6 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl bg-dena-bg p-4">
-              <dt className="text-xs text-dena-muted">دوره</dt>
-              <dd className="mt-2 font-bold">{member.courseTitle}</dd>
-            </div>
-            <div className="rounded-2xl bg-dena-bg p-4">
-              <dt className="text-xs text-dena-muted">نقش در این دوره</dt>
-              <dd className="mt-2 font-bold">{label}</dd>
-            </div>
-          </dl>
+        {member.role === "academic_supporter" && problemSolving ? (
+          <>
+            <Card className="rounded-[22px] px-5 py-3.5">
+              <h2 className="text-lg font-extrabold text-dena-deep">{label}</h2>
+              <p className="mt-1 text-sm text-dena-muted">{member.courseTitle}</p>
+            </Card>
 
-          <p className="mt-5 text-sm leading-8 text-dena-muted">
-            ارتباط با این عضو فقط در چارچوب همین دوره انجام می‌شود و اطلاعات
-            تماس شخصی او در این بخش نمایش داده نمی‌شود.
-          </p>
-
-          {member.role !== "teacher" ? (
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link
-                href={`/student/courses/${courseId}/team/${teamMemberId}/conversation`}
-                className={buttonClassName()}
-              >
-                مشاهده گفت‌وگو
-              </Link>
-            </div>
-          ) : (
-            <p className="mt-5 rounded-xl bg-dena-bg p-4 text-sm leading-7 text-dena-muted">
-              مسیر ارتباط مستقیم با مدرس در این نسخه تعریف نشده است.
-            </p>
-          )}
-        </Card>
-
-        {member.role === "academic_supporter" && problemSolving && (
-          <div className="space-y-4">
-            <Card className="rounded-[22px] p-6">
-              <h2 className="text-lg font-extrabold">جلسات رفع اشکال</h2>
-              <p className="mt-2 text-sm leading-8 text-dena-muted">
-                درخواست جلسه فقط زمانی فعال است که مؤسسه مسئول این امکان را
-                برای همین پشتیبان و همین دوره روشن کرده باشد.
-              </p>
-              <Link href={`/student/courses/${encodeURIComponent(courseId)}/team/${encodeURIComponent(teamMemberId)}/problem-solving`}
-                className={buttonClassName("outline")}>
-                مشاهده فهرست جلسه‌ها و درخواست‌ها
-              </Link>
-
-              {problemSolving.requestsEnabled ? (
-                <div className="mt-5">
-                  <ProblemSolvingRequestForm
-                    courseId={courseId}
-                    teamMemberId={teamMemberId}
-                  />
+            <Card className="space-y-4 rounded-[22px] p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-extrabold text-dena-deep">{member.name}</h2>
+                  <p className="mt-1 text-sm text-dena-muted">پشتیبان آموزشی دورهٔ {member.courseTitle}</p>
                 </div>
-              ) : (
-                <p className="mt-5 rounded-xl bg-dena-bg p-4 text-sm leading-7 text-dena-muted">
-                  درخواست جلسه رفع اشکال در حال حاضر برای این پشتیبان فعال نیست.
-                </p>
-              )}
+                <span className="shrink-0 rounded-full bg-dena-lavender px-3 py-1.5 text-xs font-bold text-dena-brand">{label}</span>
+              </div>
+              <p className="text-sm leading-7 text-dena-muted">
+                ارتباط فقط در چارچوب همین دوره انجام می‌شود و اطلاعات تماس شخصی نمایش داده نمی‌شود.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <Link href={`/student/courses/${courseId}/team/${teamMemberId}/conversation`}
+                  className={`${buttonClassName("outline")} min-h-11`}>گفت‌وگو</Link>
+                {problemSolving.requestsEnabled ? (
+                  <Link href={`/student/courses/${courseId}/team/${teamMemberId}/problem-solving/request`}
+                    className={`${buttonClassName()} min-h-11`}>درخواست رفع اشکال</Link>
+                ) : (
+                  <span aria-disabled="true" className="inline-flex min-h-11 items-center justify-center rounded-xl bg-dena-bg px-3 text-center text-xs font-bold text-dena-muted">درخواست غیرفعال</span>
+                )}
+              </div>
             </Card>
 
-            <Card className="rounded-[22px] p-6">
-              <h3 className="text-base font-extrabold">درخواست‌های شما</h3>
-              {problemSolving.requests.length === 0 ? (
-                <p className="mt-3 text-sm text-dena-muted">
-                  هنوز درخواستی ثبت نکرده‌اید.
-                </p>
-              ) : (
-                <ul className="mt-4 space-y-3">
-                  {problemSolving.requests.map((request) => (
-                    <li
-                      key={request.id}
-                      className="rounded-2xl border border-dena-border p-4"
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <p className="font-bold">{request.subject}</p>
-                          {request.description && (
-                            <p className="mt-2 text-sm leading-7 text-dena-muted">
-                              {request.description}
-                            </p>
-                          )}
-                        </div>
-                        <span className="rounded-full bg-dena-bg px-3 py-1 text-xs font-bold text-dena-deep">
-                          {requestStatusLabel[request.status]}
-                        </span>
-                      </div>
-                      <time className="mt-3 block text-xs text-dena-muted">
-                        {request.createdAt.toLocaleString("fa-IR")}
-                      </time>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Card>
-
-            <Card className="rounded-[22px] p-6">
-              <h3 className="text-base font-extrabold">جلسه‌های ثبت‌شده</h3>
+            <Card className="rounded-[22px] p-4 sm:p-5">
+              <h2 className="mb-4 text-base font-extrabold text-dena-deep">جلسات رفع اشکال</h2>
               {problemSolving.sessions.length === 0 ? (
-                <p className="mt-3 text-sm text-dena-muted">
-                  جلسه رفع اشکالی برای شما ثبت نشده است.
-                </p>
+                <p className="rounded-2xl bg-dena-bg p-4 text-sm leading-7 text-dena-muted">هنوز جلسه‌ای برای این دوره ثبت نشده است.</p>
               ) : (
-                <ul className="mt-4 space-y-3">
-                  {problemSolving.sessions.map((session) => (
-                    <li
-                      key={session.id}
-                      className="rounded-2xl border border-dena-border p-4"
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <p className="font-bold">{session.subject}</p>
-                        <span className="rounded-full bg-dena-bg px-3 py-1 text-xs font-bold text-dena-deep">
-                          {sessionStatusLabel[session.status]}
-                        </span>
-                      </div>
-                      <time className="mt-3 block text-sm font-semibold text-dena-deep">
-                        {session.scheduledAt.toLocaleString("fa-IR")}
-                      </time>
-                    </li>
-                  ))}
+                <ul className="space-y-3">
+                  {problemSolving.sessions.map((session) => {
+                    const statusClass = session.status === "scheduled"
+                      ? "bg-amber-100 text-amber-800"
+                      : session.status === "held"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-dena-bg text-dena-muted";
+                    return (
+                      <li key={session.id}>
+                        <Link href={`/student/courses/${courseId}/team/${teamMemberId}/problem-solving/sessions/${session.id}`}
+                          className="block rounded-2xl border border-dena-border bg-dena-bg p-3 transition-colors hover:border-dena-brand/50">
+                          <div className="flex items-start justify-between gap-3">
+                            <span className="text-sm font-bold leading-6 text-dena-deep">{session.subject}</span>
+                            <span className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold ${statusClass}`}>{sessionStatusLabel[session.status]}</span>
+                          </div>
+                          <time className="mt-2 block text-xs text-dena-muted">
+                            {session.scheduledAt.toLocaleString("fa-IR", { timeZone: "Asia/Tehran", dateStyle: "short", timeStyle: "short" })}
+                          </time>
+                        </Link>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
+              {problemSolving.requests.length > 0 && (
+                <details className="mt-4 border-t border-dena-border pt-3">
+                  <summary className="cursor-pointer text-sm font-bold text-dena-brand">درخواست‌های شما ({problemSolving.requests.length.toLocaleString("fa-IR")})</summary>
+                  <ul className="mt-3 space-y-2">
+                    {problemSolving.requests.map((request) => (
+                      <li key={request.id} className="rounded-xl border border-dena-border p-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <span className="text-sm font-bold text-dena-deep">{request.subject}</span>
+                          <span className="shrink-0 rounded-full bg-dena-lavender px-2.5 py-1 text-[11px] font-bold text-dena-brand">{requestStatusLabel[request.status]}</span>
+                        </div>
+                        <time className="mt-2 block text-xs text-dena-muted">{request.createdAt.toLocaleString("fa-IR", { timeZone: "Asia/Tehran" })}</time>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
             </Card>
-          </div>
+          </>
+        ) : (
+          <Card className="rounded-[22px] p-6 md:p-8">
+            <p className="text-sm font-bold text-dena-brand">{label}</p>
+            <h2 className="mt-2 text-2xl font-extrabold">{member.name}</h2>
+            <dl className="mt-6 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-2xl bg-dena-bg p-4">
+                <dt className="text-xs text-dena-muted">دوره</dt>
+                <dd className="mt-2 font-bold">{member.courseTitle}</dd>
+              </div>
+              <div className="rounded-2xl bg-dena-bg p-4">
+                <dt className="text-xs text-dena-muted">نقش در این دوره</dt>
+                <dd className="mt-2 font-bold">{label}</dd>
+              </div>
+            </dl>
+            <p className="mt-5 text-sm leading-8 text-dena-muted">
+              ارتباط با این عضو فقط در چارچوب همین دوره انجام می‌شود و اطلاعات تماس شخصی او در این بخش نمایش داده نمی‌شود.
+            </p>
+            {member.role !== "teacher" ? (
+              <div className="mt-6 flex flex-wrap gap-3">
+                <Link href={`/student/courses/${courseId}/team/${teamMemberId}/conversation`} className={buttonClassName()}>
+                  مشاهده گفت‌وگو
+                </Link>
+              </div>
+            ) : (
+              <p className="mt-5 rounded-xl bg-dena-bg p-4 text-sm leading-7 text-dena-muted">
+                مسیر ارتباط مستقیم با مدرس در این نسخه تعریف نشده است.
+              </p>
+            )}
+          </Card>
         )}
 
         {member.role === "counselor" && (
