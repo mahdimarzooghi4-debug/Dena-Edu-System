@@ -147,6 +147,30 @@ export default async function CourseTeamMemberPage({
               )}
             </Card>
           </>
+        ) : member.role === "counselor" ? (
+          <>
+            <Card className="flex h-[78px] flex-col items-start justify-center rounded-[16px] px-4 text-right md:h-auto md:rounded-[22px] md:px-6 md:py-5">
+              <h2 className="text-[18px] font-bold leading-7 text-dena-deep">مشاور</h2>
+              <p className="text-[12px] leading-5 text-dena-muted">{member.courseTitle}</p>
+            </Card>
+
+            <Card className="h-[170px] rounded-[16px] p-[15px] md:h-auto md:rounded-[22px] md:p-6">
+              <div className="flex h-7 items-center justify-between gap-3">
+                <h2 className="min-w-0 truncate text-[18px] font-bold leading-7 text-dena-deep">{member.name}</h2>
+                <span className="inline-flex h-7 w-[118px] shrink-0 items-center justify-center rounded-full bg-[#ede9fe] text-[11px] font-semibold leading-5 text-dena-brand">مشاور</span>
+              </div>
+              <p className="mt-1 text-[12px] leading-5 text-dena-muted">{member.courseTitle}</p>
+              <p className="mt-2 text-[12px] leading-[18px] text-dena-muted md:mt-4 md:text-sm md:leading-7">
+                ارتباط با مشاور فقط در چارچوب همین دوره انجام می‌شود.
+              </p>
+              <Link
+                href={`/student/courses/${courseId}/team/${teamMemberId}/conversation`}
+                className={`${buttonClassName("outline")} mt-3 h-9 min-h-9 w-[120px] rounded-full border-dena-brand px-3 py-1 text-[13px] font-bold text-dena-brand md:mt-5`}
+              >
+                گفت‌وگو
+              </Link>
+            </Card>
+          </>
         ) : (
           <Card className="rounded-[22px] p-6 md:p-8">
             <p className="text-sm font-bold text-dena-brand">{label}</p>
@@ -175,16 +199,6 @@ export default async function CourseTeamMemberPage({
                 مسیر ارتباط مستقیم با مدرس در این نسخه تعریف نشده است.
               </p>
             )}
-          </Card>
-        )}
-
-        {member.role === "counselor" && (
-          <Card className="rounded-[22px] p-6">
-            <h2 className="text-lg font-extrabold">تعامل با مشاور</h2>
-            <p className="mt-2 text-sm leading-8 text-dena-muted">
-              نوع خدمات مشاور توسط مؤسسه تعریف می‌شود. دنا در این مرحله
-              مسئولیت یا نوع جلسه‌ای فراتر از گفت‌وگوی مجاز دوره فرض نمی‌کند.
-            </p>
           </Card>
         )}
       </div>
