@@ -165,7 +165,7 @@ export default async function CourseTeamMemberPage({
               </p>
               <Link
                 href={`/student/courses/${courseId}/team/${teamMemberId}/conversation`}
-                className={`${buttonClassName("outline")} mt-3 h-9 min-h-9 w-[120px] rounded-full border-dena-brand px-3 py-1 text-[13px] font-bold text-dena-brand md:mt-5`}
+                className={`${buttonClassName("outline", "h-9 min-h-9 w-[120px] rounded-full border-dena-brand px-3 py-1 text-[13px] font-bold text-dena-brand")} mt-3 md:mt-5`}
               >
                 گفت‌وگو
               </Link>
