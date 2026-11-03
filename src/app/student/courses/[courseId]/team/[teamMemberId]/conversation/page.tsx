@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 function roleLabel(role: "teacher" | "academic_supporter" | "counselor") {
   if (role === "teacher") return "مدرس";
   if (role === "academic_supporter") return "پشتیبان تحصیلی";
-  return "مشاور";
+  return "مشاور دوره";
 }
 
 function messageTime(value: Date) {
@@ -55,10 +55,13 @@ export default async function CourseConversationPage({
   if (!conversation || !courseTitle) notFound();
 
   const label = roleLabel(conversation.member.role);
+  const heading = conversation.member.role === "counselor"
+    ? `${conversation.member.name} — مشاور دوره`
+    : `${conversation.member.name} — ${label}`;
 
   return (
     <StudentShell active="courses" title="گفت‌وگوی دوره">
-      <div className="mx-auto max-w-2xl space-y-4">
+      <div className="-mt-1 mx-auto max-w-2xl space-y-4 md:mt-0">
         <Link
           href={`/student/courses/${courseId}/team/${teamMemberId}`}
           className="hidden text-sm font-bold text-dena-brand hover:underline md:inline-flex"
@@ -66,48 +69,43 @@ export default async function CourseConversationPage({
           بازگشت به {label}
         </Link>
 
-        <Card className="rounded-[22px] px-5 py-3.5">
-          <h2 className="text-lg font-extrabold text-dena-deep">
-            {conversation.member.name} — {label}
-          </h2>
-          <p className="mt-1 text-sm text-dena-muted">{courseTitle}</p>
+        <Card className="flex h-[78px] flex-col items-start justify-center rounded-[16px] px-4 text-right md:h-auto md:rounded-[22px] md:px-6 md:py-5">
+          <h1 className="text-[18px] font-bold leading-7 text-dena-deep">{heading}</h1>
+          <p className="text-[12px] leading-5 text-dena-muted">{courseTitle}</p>
         </Card>
 
-        {conversation.messages.length === 0 ? (
-          <Card className="flex min-h-36 items-center justify-center rounded-[22px] p-5 text-center">
-            <p className="text-sm font-bold text-dena-muted">هنوز پیامی در این گفت‌وگو نیست.</p>
-          </Card>
-        ) : (
-          <section aria-label="پیام‌های گفت‌وگو" className="flex min-h-44 flex-col gap-4 py-1">
-            {conversation.messages.map((message) => {
-              const fromStudent = message.sender === "student";
-              return (
-                <article
-                  key={message.id}
-                  className={
-                    "max-w-[78%] rounded-[20px] px-4 py-3 text-sm leading-7 " +
-                    (fromStudent
-                      ? "self-start bg-dena-lavender text-dena-deep"
-                      : "self-end border border-dena-border bg-white text-dena-ink")
-                  }
+        <section aria-label="پیام‌های گفت‌وگو" className="flex flex-col gap-4">
+          {conversation.messages.length === 0 ? (
+            <article className="flex min-h-[104px] w-[248px] max-w-full self-end flex-col justify-between rounded-[14px] border border-dena-border bg-white p-4 text-right md:w-fit md:max-w-[78%]">
+              <p className="text-[12px] leading-5 text-dena-deep">
+                هنوز پیامی در این گفت‌وگو نیست. پیام خود را در چارچوب همین دوره بنویسید.
+              </p>
+            </article>
+          ) : conversation.messages.map((message) => {
+            const fromStudent = message.sender === "student";
+            return (
+              <article
+                key={message.id}
+                className={
+                  "flex min-h-[82px] w-[248px] max-w-full flex-col justify-between self-end rounded-[14px] border p-4 text-right md:w-fit md:max-w-[78%] " +
+                  (fromStudent
+                    ? "border-[#ede9fe] bg-[#ede9fe] text-dena-deep md:self-start"
+                    : "border-dena-border bg-white text-dena-ink md:self-end")
+                }
+              >
+                <p className="whitespace-pre-wrap text-[12px] leading-5">{message.body}</p>
+                <time
+                  dateTime={message.createdAt.toISOString()}
+                  className="mt-2 block text-[10px] leading-4 text-dena-muted"
                 >
-                  <p className="whitespace-pre-wrap">{message.body}</p>
-                  <time
-                    dateTime={message.createdAt.toISOString()}
-                    className="mt-1 block text-[10px] leading-4 text-dena-muted"
-                  >
-                    {messageTime(message.createdAt)}
-                  </time>
-                </article>
-              );
-            })}
-          </section>
-        )}
+                  {messageTime(message.createdAt)}
+                </time>
+              </article>
+            );
+          })}
 
-        <CourseConversationComposer
-          courseId={courseId}
-          teamMemberId={teamMemberId}
-        />
+          <CourseConversationComposer courseId={courseId} teamMemberId={teamMemberId} />
+        </section>
       </div>
     </StudentShell>
   );
