@@ -88,6 +88,9 @@ export function LiveKitCallRoom({ callId }: Props) {
 
   async function join() {
     if (!confirmed || busy || connected) return;
+    previewStreamRef.current?.getTracks().forEach((track) => track.stop());
+    previewStreamRef.current = null;
+    if (previewRef.current) previewRef.current.srcObject = null;
     setBusy(true);
     setMessage("");
     let cameraFallback = false;
