@@ -4,13 +4,13 @@ import { getServerAccessContext } from "../../../../../server/access/actor";
 import { validSameOrigin } from "../../../../../server/access/role-application-contracts";
 import {
   cancelInstituteServiceCall, endInstituteServiceCall,
-  InstituteServiceCallError, startInstituteServiceCall,
+  InstituteServiceCallError, recordInstituteServiceCallNoShow, startInstituteServiceCall,
 } from "../../../../../server/institute/service-calls";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 const noStore = { "Cache-Control": "private, no-store, max-age=0" };
-const inputSchema = z.object({ action: z.enum(["start", "end", "cancel"]) }).strict();
+const inputSchema = z.object({ action: z.enum(["start", "end", "cancel", "no_show"]) }).strict();
 
 export async function POST(request: NextRequest,
   { params }: { params: Promise<{ callId: string }> }) {
@@ -35,7 +35,9 @@ export async function POST(request: NextRequest,
       ? await startInstituteServiceCall(actor.userId, callId)
       : parsed.data.action === "end"
         ? await endInstituteServiceCall(actor.userId, callId)
-        : await cancelInstituteServiceCall(actor.userId, callId);
+        : parsed.data.action === "cancel"
+          ? await cancelInstituteServiceCall(actor.userId, callId)
+          : await recordInstituteServiceCallNoShow(actor.userId, callId);
     return NextResponse.json({ call: result }, { headers: noStore });
   } catch (error) {
     if (!(error instanceof InstituteServiceCallError)) throw error;

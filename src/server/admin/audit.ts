@@ -54,6 +54,7 @@ export const auditActions = [
   "student.service_call.ended",
   "institute.service_call.follow_up.published",
   "institute.service_call.cancelled",
+  "institute.service_call.no_show",
   "provider.collaboration.requested",
   "provider.collaboration.withdrawn",
   "institute.provider_collaboration.accepted",

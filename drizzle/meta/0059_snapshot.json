@@ -1,6 +1,6 @@
 {
-  "id": "f5a98ffb-5794-4c61-8d51-2fd5cb906ce2",
-  "prevId": "a68b2684-ade4-40a9-9f7e-44ae734b28de",
+  "id": "c7dc517d-c653-45e9-a0f6-461c7ce1ff4e",
+  "prevId": "f5a98ffb-5794-4c61-8d51-2fd5cb906ce2",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -3967,6 +3967,18 @@
           "primaryKey": false,
           "notNull": false
         },
+        "no_show_at": {
+          "name": "no_show_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "no_show_by_user_id": {
+          "name": "no_show_by_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "connected_seconds": {
           "name": "connected_seconds",
           "type": "integer",
@@ -4069,6 +4081,19 @@
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
+        "dena_institute_service_calls_no_show_by_user_id_user_id_fk": {
+          "name": "dena_institute_service_calls_no_show_by_user_id_user_id_fk",
+          "tableFrom": "dena_institute_service_calls",
+          "tableTo": "user",
+          "columnsFrom": [
+            "no_show_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
         "dena_institute_service_calls_created_by_user_id_user_id_fk": {
           "name": "dena_institute_service_calls_created_by_user_id_user_id_fk",
           "tableFrom": "dena_institute_service_calls",
@@ -4089,7 +4114,7 @@
       "checkConstraints": {
         "dena_institute_service_call_state_ck": {
           "name": "dena_institute_service_call_state_ck",
-          "value": "\n    (status = 'scheduled' AND started_at IS NULL AND ended_at IS NULL)\n    OR (status = 'started' AND started_at IS NOT NULL AND ended_at IS NULL)\n    OR (status = 'ended' AND started_at IS NOT NULL AND ended_at >= started_at)\n    OR (status = 'cancelled' AND started_at IS NULL AND ended_at IS NULL)\n  "
+          "value": "\n    (status = 'scheduled' AND started_at IS NULL AND ended_at IS NULL\n      AND no_show_at IS NULL AND no_show_by_user_id IS NULL)\n    OR (status = 'started' AND started_at IS NOT NULL AND ended_at IS NULL\n      AND no_show_at IS NULL AND no_show_by_user_id IS NULL)\n    OR (status = 'ended' AND started_at IS NOT NULL AND ended_at >= started_at\n      AND no_show_at IS NULL AND no_show_by_user_id IS NULL)\n    OR (status = 'cancelled' AND started_at IS NULL AND ended_at IS NULL\n      AND ((no_show_at IS NULL AND no_show_by_user_id IS NULL)\n        OR (no_show_at IS NOT NULL AND no_show_by_user_id IS NOT NULL)))\n  "
         },
         "dena_institute_service_call_connected_seconds_ck": {
           "name": "dena_institute_service_call_connected_seconds_ck",

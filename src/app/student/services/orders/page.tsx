@@ -87,6 +87,9 @@ export default async function StudentServiceOrdersPage() {
               <div><dt className="text-xs text-dena-muted">زمان ثبت</dt><dd className="mt-1 font-bold text-dena-deep">{dateFormatter.format(order.createdAt)}</dd></div>
             </dl>
 
+            {order.status === "paid" && order.calls.length === 0 && <div className="rounded-xl border border-dena-lavender bg-dena-bg p-4 text-sm leading-7 text-dena-muted">
+              هنوز نوبتی برای این خدمت ثبت نشده است. پس از زمان‌بندی توسط مؤسسه، جزئیات آن اینجا نمایش داده می‌شود.
+            </div>}
             {order.calls.length > 0 && <section aria-label="زمان جلسه‌های خدمت" className="space-y-2 rounded-xl border border-dena-lavender p-4">
               <h4 className="text-sm font-extrabold text-dena-deep">زمان جلسه</h4>
               {order.calls.map((call) => <div key={call.id} className="space-y-3 border-b border-dena-border py-3 last:border-0">
@@ -119,9 +122,13 @@ export default async function StudentServiceOrdersPage() {
                 </section> : call.status === "ended" && <div className="rounded-xl border border-dena-lavender bg-dena-bg p-4 text-sm leading-7 text-dena-muted">
                   پیگیری جلسه هنوز توسط مشاور منتشر نشده است. یادداشت خصوصی مشاور نمایش داده نمی‌شود.
                 </div>}
-                {call.status === "cancelled" && <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm leading-7 text-rose-800">
-                  این نوبت لغو شده است. برای وضعیت بازپرداخت، جزئیات درخواست خدمت را بررسی کنید.
-                </div>}
+                {call.status === "cancelled" && (call.noShowAt
+                  ? <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm leading-7 text-amber-950">
+                    عدم حضور برای این نوبت توسط مؤسسه ثبت شده است. این ثبت دستی است و به‌تنهایی سهمیه یا بازپرداخت را تغییر نمی‌دهد.
+                  </div>
+                  : <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm leading-7 text-rose-800">
+                    این نوبت لغو شده است. برای وضعیت بازپرداخت، جزئیات درخواست خدمت را بررسی کنید.
+                  </div>)}
               </div>)}
               {order.calls.filter((call) => call.status === "started").map((call) =>
                 <LiveKitCallRoom key={call.id} callId={call.id} />)}
