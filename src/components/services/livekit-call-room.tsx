@@ -2,12 +2,15 @@
 
 import { ConnectionState, Room, RoomEvent, VideoPresets } from "livekit-client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type Props = { callId: string; messageHref?: string };
 
 export function LiveKitCallRoom({ callId, messageHref }: Props) {
+  const router = useRouter();
   const roomRef = useRef<Room | null>(null);
+  const activeCallRef = useRef(false);
   const localRef = useRef<HTMLDivElement>(null);
   const remoteRef = useRef<HTMLDivElement>(null);
   const mobileRemoteRef = useRef<HTMLDivElement>(null);
@@ -24,6 +27,8 @@ export function LiveKitCallRoom({ callId, messageHref }: Props) {
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [audioOnly, setAudioOnly] = useState(false);
   const [connectionLabel, setConnectionLabel] = useState("آمادهٔ ورود");
+  const [reconnecting, setReconnecting] = useState(false);
+  const [reconnectFailed, setReconnectFailed] = useState(false);
   const [connectedAt, setConnectedAt] = useState<number | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [message, setMessage] = useState("");
@@ -147,8 +152,11 @@ export function LiveKitCallRoom({ callId, messageHref }: Props) {
     }
   }
 
-  async function join() {
-    if (!confirmed || busy || connected) return;
+  async function join(options: { retry?: boolean; audioOnly?: boolean } = {}) {
+    if (!confirmed || busy || (connected && !options.retry)) return;
+    const joinAudioOnly = options.audioOnly ?? audioOnly;
+    setReconnectFailed(false);
+    setReconnecting(Boolean(options.retry));
     previewStreamRef.current?.getTracks().forEach((track) => track.stop());
     previewStreamRef.current = null;
     if (previewRef.current) previewRef.current.srcObject = null;
@@ -164,6 +172,7 @@ export function LiveKitCallRoom({ callId, messageHref }: Props) {
         body: "{}",
       });
       if (!response.ok) {
+        if (options.retry) setReconnectFailed(true);
         setMessage(response.status === 503
           ? "سرویس تماس هنوز برای این محیط تنظیم نشده است."
           : "ورود به جلسه مجاز نیست؛ وضعیت پرداخت، رضایت و شروع جلسه را بررسی کنید.");
@@ -190,18 +199,35 @@ export function LiveKitCallRoom({ callId, messageHref }: Props) {
       room.on(RoomEvent.TrackUnsubscribed, (track) => {
         track.detach().forEach((element) => element.remove());
       });
-      room.on(RoomEvent.Reconnecting, () => setConnectionLabel("در حال اتصال مجدد…"));
-      room.on(RoomEvent.Reconnected, () => setConnectionLabel("متصل"));
+      room.on(RoomEvent.Reconnecting, () => {
+        setReconnectFailed(false);
+        setReconnecting(true);
+        setConnectionLabel("در حال اتصال مجدد…");
+      });
+      room.on(RoomEvent.Reconnected, () => {
+        activeCallRef.current = true;
+        setConnected(true);
+        setReconnectFailed(false);
+        setReconnecting(false);
+        setConnectionLabel("متصل");
+      });
       room.on(RoomEvent.ConnectionStateChanged, (state) => {
         if (state === ConnectionState.Connected) setConnectionLabel("متصل");
         if (state === ConnectionState.Disconnected) setConnectionLabel("ارتباط قطع شد");
       });
       room.on(RoomEvent.Disconnected, () => {
+        if (roomRef.current !== room) return;
+        const wasActive = activeCallRef.current;
+        activeCallRef.current = false;
         setConnected(false);
+        setReconnecting(false);
+        if (wasActive) {
+          setReconnectFailed(true);
+          setConnectionLabel("اتصال قطع شد");
+        }
         setRemoteConnected(false);
         setMicrophoneEnabled(false);
         setCameraEnabled(false);
-        setConnectedAt(null);
         localRef.current?.replaceChildren();
         remoteRef.current?.replaceChildren();
         mobileRemoteRef.current?.replaceChildren();
@@ -211,7 +237,7 @@ export function LiveKitCallRoom({ callId, messageHref }: Props) {
       await room.connect(credentials.url, credentials.token);
       await room.localParticipant.setMicrophoneEnabled(true);
       setMicrophoneEnabled(true);
-      if (!audioOnly) {
+      if (!joinAudioOnly) {
         try {
           await room.localParticipant.setCameraEnabled(true, {
             resolution: VideoPresets.h360.resolution,
@@ -223,21 +249,40 @@ export function LiveKitCallRoom({ callId, messageHref }: Props) {
           cameraFallback = true;
         }
       }
+      activeCallRef.current = true;
       setConnected(true);
-      setConnectedAt(Date.now());
+      setConnectedAt((current) => current ?? Date.now());
+      setReconnectFailed(false);
+      setReconnecting(false);
       setConnectionLabel("متصل");
       setMessage(cameraFallback
         ? "دوربین در دسترس نبود؛ جلسه با صدا ادامه پیدا می‌کند."
-        : audioOnly ? "با صدا به جلسه متصل شدید." : "به جلسه متصل شدید.");
+        : joinAudioOnly ? "با صدا به جلسه متصل شدید." : "به جلسه متصل شدید.");
     } catch {
+      activeCallRef.current = false;
       roomRef.current?.disconnect();
       roomRef.current = null;
       setConnected(false);
+      setReconnecting(false);
+      setReconnectFailed(true);
       setConnectionLabel("اتصال برقرار نشد");
       setMessage("اتصال برقرار نشد یا اجازهٔ میکروفن داده نشد؛ مجوز مرورگر و شبکه را بررسی کنید. می‌توانید جلسه را فقط با صدا امتحان کنید.");
     } finally {
       setBusy(false);
     }
+  }
+
+  function retryConnection(onlyAudio: boolean) {
+    const previousRoom = roomRef.current;
+    roomRef.current = null;
+    activeCallRef.current = false;
+    previousRoom?.disconnect();
+    setAudioOnly(onlyAudio);
+    setConnected(false);
+    setReconnectFailed(false);
+    setReconnecting(true);
+    setConnectionLabel("در حال اتصال مجدد…");
+    void join({ retry: true, audioOnly: onlyAudio });
   }
 
   async function endCall() {
@@ -258,6 +303,7 @@ export function LiveKitCallRoom({ callId, messageHref }: Props) {
           : "پایان تماس انجام نشد؛ ممکن است جلسه قبلاً پایان یافته باشد.");
         return;
       }
+      activeCallRef.current = false;
       roomRef.current?.disconnect();
       roomRef.current = null;
       localRef.current?.replaceChildren();
@@ -265,13 +311,14 @@ export function LiveKitCallRoom({ callId, messageHref }: Props) {
       mobileRemoteRef.current?.replaceChildren();
       remoteAudioRef.current?.replaceChildren();
       setConnected(false);
+      setReconnectFailed(false);
+      setReconnecting(false);
       setMicrophoneEnabled(false);
       setCameraEnabled(false);
       setConnectedAt(null);
       setElapsedSeconds(0);
       setEndConfirm(false);
-      setConnectionLabel("جلسه پایان یافت");
-      setMessage("جلسه برای هر دو طرف پایان یافت.");
+      router.refresh();
     } catch {
       setMessage("ارتباط برقرار نشد؛ جلسه هنوز پایان‌یافته اعلام نشده است.");
     } finally {
@@ -313,7 +360,22 @@ export function LiveKitCallRoom({ callId, messageHref }: Props) {
   }
 
   return <section aria-label="تماس زندهٔ جلسه" className="space-y-3">
-    {!connected && <div className="space-y-3">
+    {(reconnecting || reconnectFailed) && <div className="flex h-[430px] flex-col items-center rounded-[16px] bg-[#17132b] px-5 py-8 text-center text-white">
+      <div className="grid size-16 place-items-center rounded-full bg-[#3a2436] text-[#f26c70]">
+        <svg viewBox="0 0 24 24" fill="none" className="size-8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2 8.8a15 15 0 0 1 17.4-3.1M5 12a10 10 0 0 1 7.6-2.4M8.5 15.4a5 5 0 0 1 4.2-.8M2 2l20 20" /><path d="M12 19h.01" /></svg>
+      </div>
+      <h3 className="mt-5 text-lg font-extrabold">اتصال قطع شد</h3>
+      <p className="mt-2 max-w-[280px] text-xs leading-6 text-white/70">پیام‌ها و فایل‌ها محفوظ‌اند. دوباره تلاش کنید.</p>
+      <span className="mt-5 rounded-full bg-[#4b3822] px-3 py-1.5 text-[11px] font-bold text-[#f3c26b]" aria-live="polite">
+        {busy ? "در حال تلاش مجدد…" : reconnecting ? "در حال اتصال مجدد…" : "ارتباط برقرار نشد"}
+      </span>
+      <div className="mt-auto grid w-full gap-2 pt-6">
+        <button type="button" onClick={() => retryConnection(false)} disabled={busy} className="h-12 rounded-xl bg-dena-brand text-sm font-bold text-white disabled:opacity-50">شروع مسیر</button>
+        <button type="button" onClick={() => retryConnection(true)} disabled={busy} className="h-12 rounded-xl border border-white/20 bg-white/[0.04] text-sm font-bold text-white disabled:opacity-50">ادامه فقط با صدا</button>
+      </div>
+    </div>}
+
+    {!connected && !reconnecting && !reconnectFailed && <div className="space-y-3">
       <div className="flex items-center gap-3 rounded-lg border-r-[3px] border-amber-600 bg-amber-50 p-3.5">
         <div className="min-w-0 flex-1">
           <p className="text-xs font-extrabold text-amber-800">ضبط پیش‌فرض غیرفعال است</p>
@@ -387,7 +449,7 @@ export function LiveKitCallRoom({ callId, messageHref }: Props) {
       </div>}
     </div>}
 
-    {connected && <div className="relative h-[500px] overflow-hidden rounded-2xl bg-[#17132b] p-[14px] text-white md:hidden">
+    {connected && !reconnecting && !reconnectFailed && <div className="relative h-[500px] overflow-hidden rounded-2xl bg-[#17132b] p-[14px] text-white md:hidden">
       <div className="absolute inset-0" ref={mobileRemoteRef} aria-label="تصویر مشاور" />
       <div className="relative z-10 flex items-center justify-between">
         <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${connectionLabel === "متصل" ? "bg-[#d9f8ef] text-[#24886b]" : "bg-amber-100 text-amber-900"}`}>{connectionLabel}</span>
@@ -419,7 +481,7 @@ export function LiveKitCallRoom({ callId, messageHref }: Props) {
       </div>
     </div>}
 
-    {connected && <div className="hidden overflow-hidden rounded-[14px] bg-[#17132b] p-3 text-white sm:p-5 md:block">
+    {connected && !reconnecting && !reconnectFailed && <div className="hidden overflow-hidden rounded-[14px] bg-[#17132b] p-3 text-white sm:p-5 md:block">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div><p className="text-sm font-extrabold">جلسهٔ مشاوره در دنا</p><p className="mt-1 text-xs text-white/60">تماس امن در همین محیط</p></div>
         <div className="flex items-center gap-2">
