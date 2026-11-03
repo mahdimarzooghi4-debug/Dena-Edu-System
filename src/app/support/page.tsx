@@ -76,8 +76,6 @@ export default async function SupportPage({
           </div>
         </Card>
 
-        <SupportNotifications />
-
         <section aria-labelledby="support-ticket-list" className="space-y-4">
           <h2 id="support-ticket-list" className="text-lg font-extrabold text-dena-deep">درخواست‌های من</h2>
           {tickets.length === 0 ? (
