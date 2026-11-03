@@ -14,7 +14,7 @@ export const metadata: Metadata = { title: "جزئیات جلسه رفع اشک�
 const labels = { scheduled: "برنامه‌ریزی‌شده", held: "برگزارشده", cancelled: "لغوشده" } as const;
 const dateOptions: Intl.DateTimeFormatOptions = {
   calendar: "persian",
-  numberingSystem: "arab",
+  numberingSystem: "arabext",
   year: "numeric",
   month: "2-digit",
   day: "2-digit",
@@ -27,7 +27,7 @@ const dateTime = (value: Date) => new Intl.DateTimeFormat("fa-IR", {
 }).format(value);
 const sessionDate = (value: Date) => new Intl.DateTimeFormat("fa-IR", dateOptions).format(value);
 const sessionTime = (value: Date) => new Intl.DateTimeFormat("fa-IR", {
-  numberingSystem: "arab",
+  numberingSystem: "arabext",
   hour: "2-digit",
   minute: "2-digit",
   hourCycle: "h23",
@@ -52,24 +52,24 @@ export default async function ProblemSolvingSessionDetailsPage({
   const statusClass = session.status === "scheduled"
     ? "border-[#fff7d6] bg-[#fff7d6] text-[#b47800]"
     : session.status === "held"
-      ? "border-emerald-100 bg-emerald-50 text-emerald-700"
-      : "border-dena-border bg-dena-bg text-dena-muted";
+      ? "border-[#e0f8ef] bg-[#e0f8ef] text-[#2f8f6a]"
+      : "border-[#ede9fe] bg-[#ede9fe] text-[#5b4ce2]";
 
   return <StudentShell active="courses" title="جزئیات جلسه رفع اشکال">
     <div className="-mt-1 mx-auto max-w-2xl space-y-4 md:mt-0 md:space-y-5">
       <Link href={listHref} className="hidden text-sm font-bold text-dena-brand hover:underline md:inline-flex">بازگشت به جلسات رفع اشکال</Link>
       <Card className="flex h-[78px] flex-col items-start justify-center rounded-[16px] px-4 text-right md:h-auto md:rounded-[22px] md:px-6 md:py-5">
-        <h1 className="text-[18px] font-bold leading-7 text-dena-deep">{session.subject}</h1>
+        <h1 className="text-[18px] font-bold leading-7 text-dena-deep">جزئیات جلسه رفع اشکال</h1>
         <p className="text-[12px] leading-5 text-dena-muted">{session.courseTitle}</p>
       </Card>
 
       <Card className="h-[412px] rounded-[16px] p-[15px] md:h-auto md:space-y-5 md:rounded-[22px] md:p-6">
         <div className="flex h-7 items-center justify-between gap-2">
           <h2 className="min-w-0 truncate text-[17px] font-bold leading-7 text-dena-deep">{session.subject}</h2>
-          <span className={`shrink-0 rounded-full border px-3 py-1 text-[11px] font-semibold leading-[18px] ${statusClass}`}>{labels[session.status]}</span>
+          <span className={"shrink-0 rounded-full border px-3 py-1 text-[11px] font-semibold leading-[18px] " + statusClass}>{labels[session.status]}</span>
         </div>
 
-        <dl className="mt-6 grid gap-y-[34px] md:mt-0 md:grid-cols-2 md:gap-3">
+        <dl className="mt-[27px] grid gap-y-[34px] md:mt-0 md:grid-cols-2 md:gap-3">
           <div className="flex h-5 items-center text-right md:h-auto md:rounded-xl md:bg-dena-bg md:p-4">
             <dt className="w-[96px] shrink-0 text-[12px] leading-5 text-dena-muted md:w-auto">پشتیبان</dt>
             <dd className="w-[214px] shrink-0 text-[13px] font-semibold leading-5 text-dena-deep md:w-auto md:flex-1 md:text-sm">{session.supporterName}</dd>
@@ -92,7 +92,7 @@ export default async function ProblemSolvingSessionDetailsPage({
           </div>
         </dl>
 
-        <section className="mt-[38px] h-[92px] rounded-[12px] border border-dena-border bg-[#f7f6fb] px-3 py-2 md:mt-0 md:h-auto md:rounded-xl md:p-4">
+        <section className="mt-[32px] h-[92px] rounded-[12px] border border-dena-border bg-[#f7f6fb] px-3 py-2 md:mt-0 md:h-auto md:rounded-xl md:p-4">
           <h3 className="text-[13px] font-bold leading-[22px] text-dena-deep">اطلاعات جلسه</h3>
           <p className="mt-1 text-[11px] leading-5 text-dena-muted md:text-sm md:leading-7">
             جزئیات جلسه فقط در صورت ثبت توسط آموزشگاه نمایش داده می‌شود.
