@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "../ui/button";
+import Link from "next/link";\nimport { Button } from "../ui/button";
 
 export function TicketCreateForm() {
   const router = useRouter();
@@ -38,13 +38,13 @@ export function TicketCreateForm() {
   return (
     <form onSubmit={submit} className="space-y-4">
       <label className="block space-y-2 text-sm font-semibold">
-        <span>موضوع</span>
+        <span>موضوع درخواست</span>
         <input name="subject" required minLength={3} maxLength={120}
           className="min-h-12 w-full rounded-xl border border-dena-border px-4 outline-none focus:border-dena-brand"
-          autoComplete="off" />
+          autoComplete="off" placeholder="موضوع خود را وارد کنید..." />
       </label>
       <label className="block space-y-2 text-sm font-semibold">
-        <span>شرح درخواست</span>
+        <span>پیام شما</span>
         <textarea name="body" required maxLength={5000} rows={5}
           className="w-full resize-y rounded-xl border border-dena-border px-4 py-3 leading-7 outline-none focus:border-dena-brand" />
       </label>
@@ -52,7 +52,7 @@ export function TicketCreateForm() {
         برای حفاظت از حریم خصوصی، رمز، کد ورود، شمارهٔ کارت یا یادداشت خصوصی آموزشی را ننویسید.
       </p>
       {error && <p role="alert" className="text-sm font-semibold text-red-700">{error}</p>}
-      <Button type="submit" disabled={busy}>{busy ? "در حال ثبت…" : "ثبت درخواست"}</Button>
+      <div className="flex flex-row gap-3 pt-1">\n        <Link href="/support" className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl border border-dena-border px-4 text-sm font-bold text-dena-deep hover:bg-dena-bg">انصراف</Link>\n        <Button type="submit" disabled={busy} className="flex-1">{busy ? "در حال ثبت…" : "ارسال درخواست"}</Button>\n      </div>
     </form>
   );
 }
