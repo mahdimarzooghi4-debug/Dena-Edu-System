@@ -1,51 +1,40 @@
-import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
-import { Card } from "@/components/ui/card";
+import Image from "next/image";
 import { StudentShell } from "@/components/student/student-shell";
-import { getServerAccessContext } from "@/server/access/actor";
 
-export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = {
-  title: "فرصت‌های پشتیبان تحصیلی | باشگاه نخبگان دنا",
-  robots: { index: false, follow: false },
-};
 
-export default async function StudentTeachingSupportPage() {
-  if (!process.env.DATABASE_URL || !process.env.BETTER_AUTH_SECRET || !process.env.BETTER_AUTH_URL) redirect("/login");
-  const actor = await getServerAccessContext();
-  if (!actor) redirect("/login");
-  if (!actor.memberships.some((entry) => entry.role === "student")) notFound();
+export default function StudentTeachingSupportPage() {
+  return <StudentShell active="elite" title="باشگاه نخبگان">
+    <div dir="rtl" className="mx-auto w-full max-w-[720px] space-y-5">
+      <nav aria-label="مسیر صفحه" className="flex items-center gap-2 text-xs text-dena-muted">
+        <span className="font-semibold text-dena-brand">حمایت تدریس</span>
+        <span aria-hidden="true">‹</span>
+        <Link href="/student/elite-club" className="hover:text-dena-brand">باشگاه نخبگان</Link>
+      </nav>
+      <header className="space-y-1.5 text-right">
+        <h2 className="text-xl font-extrabold text-dena-deep md:text-[28px]">فرصت‌های پشتیبانی تحصیلی</h2>
+        <p className="text-xs leading-6 text-dena-muted md:text-sm">فرصت‌های فعال همکاری آموزشی در این بخش نمایش داده می‌شوند.</p>
+      </header>
 
-  return (
-    <StudentShell active="elite" title="باشگاه نخبگان">
-      <div className="space-y-5">
-        <nav aria-label="مسیر صفحه" className="flex items-center gap-2 text-sm">
-          <Link href="/student/elite-club" className="font-semibold text-dena-brand hover:underline">باشگاه نخبگان</Link>
-          <span aria-hidden="true" className="text-dena-muted">←</span>
-          <span className="text-dena-muted">حمایت تدریس</span>
-        </nav>
-        <header className="space-y-2 text-right">
-          <h2 className="text-2xl font-extrabold text-dena-deep md:text-[28px]">فرصت‌های پشتیبان تحصیلی</h2>
-          <p className="text-sm leading-7 text-dena-muted">فرصت‌های همکاری آموزشی اعضای باشگاه در این بخش نمایش داده می‌شوند.</p>
-        </header>
-        <Card className="flex min-h-[240px] flex-col items-center justify-center rounded-[22px] px-5 py-8 text-center">
-          <div className="grid size-16 place-items-center rounded-2xl bg-dena-bg text-dena-muted" aria-hidden="true">
-            <svg viewBox="0 0 32 32" className="size-8" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 8a2 2 0 0 1 2-2h8l3 4h9a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8Z" />
-              <path d="M10 16h12M10 20h8" />
-            </svg>
-          </div>
-          <h3 className="mt-4 font-extrabold text-dena-deep">در حال حاضر فرصتی برای نمایش نیست</h3>
-          <p className="mt-2 max-w-lg text-sm leading-7 text-dena-muted">
-            فرصت‌های پشتیبان تحصیلی هنوز به حساب دانش‌آموز متصل نشده‌اند. پس از انتشار فرصت فعال، جزئیات و امکان اعلام علاقه‌مندی در همین صفحه قرار می‌گیرد.
-          </p>
-          <Link href="/student/elite-club" className="mt-5 rounded-xl border border-dena-border px-4 py-2 text-sm font-bold text-dena-brand hover:bg-dena-bg">
-            بازگشت به باشگاه نخبگان
-          </Link>
-        </Card>
-      </div>
-    </StudentShell>
-  );
+      <article className="space-y-4 rounded-[20px] border border-dena-border bg-white p-4 md:p-6">
+        <div className="flex items-center justify-between gap-3">
+          <span className="shrink-0 rounded-full bg-[#e8f8f0] px-3 py-1 text-[11px] font-bold text-[#13845f]">فرصت فعال</span>
+          <h3 className="text-right text-sm font-extrabold text-dena-deep md:text-base">پشتیبان تحصیلی ریاضی</h3>
+        </div>
+        <div className="space-y-2 border-b border-dena-border pb-4 text-right text-xs text-dena-muted">
+          <p className="flex items-center justify-start gap-2"><Image src="/figma/elite-club/map-pin.svg" alt="" width={16} height={16} />آموزشگاه البرز</p>
+          <p className="flex items-center justify-start gap-2"><Image src="/figma/elite-club/book-open.svg" alt="" width={16} height={16} />درس: ریاضی دهم</p>
+        </div>
+        <Link href="/student/elite-club/teaching-support/alborz-math-10" className="inline-flex items-center gap-2 text-xs font-bold text-dena-brand hover:underline">
+          مشاهده جزئیات <Image src="/figma/elite-club/arrow-left.svg" alt="" width={16} height={16} />
+        </Link>
+      </article>
+
+      <p className="flex items-center justify-between gap-2 rounded-xl bg-dena-lavender px-4 py-3 text-[11px] leading-5 text-dena-muted">
+        سایر فرصت‌ها پس از انتشار نمایش داده می‌شوند.
+        <span aria-hidden="true" className="font-bold text-dena-brand">ⓘ</span>
+      </p>
+    </div>
+  </StudentShell>;
 }

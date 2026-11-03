@@ -86,7 +86,7 @@ export default async function StudentEliteClubEvaluationStatusPage({
               {memberBenefits.map((benefit) => <li key={benefit} className="rounded-lg border border-dena-border bg-white px-3 py-1.5 text-xs text-dena-ink">{benefit}</li>)}
             </ul>
             <p className="w-full rounded-xl bg-dena-lavender/50 px-4 py-3 text-xs leading-6 text-dena-brand">در صورت داشتن سؤال، از طریق پشتیبانی آنلاین با ما در ارتباط باشید.</p>
-            <Link href="/student/elite-club" className="inline-flex min-h-12 items-center justify-center rounded-xl bg-dena-brand px-5 text-sm font-bold text-white hover:bg-dena-brand/90">ورود به باشگاه نخبگان</Link>
+            <Link href="/student/elite-club/member" className="inline-flex min-h-12 items-center justify-center rounded-xl bg-dena-brand px-5 text-sm font-bold text-white hover:bg-dena-brand/90">ورود به باشگاه نخبگان</Link>
             <Link href="/student/elite-club/evaluation/status/result" className="text-xs font-bold text-dena-brand hover:underline">دیدن پیش‌نمایش نتیجه عمومی</Link>
           </>
         )}
