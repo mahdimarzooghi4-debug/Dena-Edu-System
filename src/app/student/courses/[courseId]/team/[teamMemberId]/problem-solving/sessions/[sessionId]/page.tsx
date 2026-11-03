@@ -70,21 +70,21 @@ export default async function ProblemSolvingSessionDetailsPage({
         </div>
 
         <dl className="mt-6 grid gap-y-[34px] md:mt-0 md:grid-cols-2 md:gap-3">
-          <div className="flex h-5 items-center text-right md:rounded-xl md:bg-dena-bg md:p-4">
+          <div className="flex h-5 items-center text-right md:h-auto md:rounded-xl md:bg-dena-bg md:p-4">
             <dt className="w-[96px] shrink-0 text-[12px] leading-5 text-dena-muted md:w-auto">پشتیبان</dt>
             <dd className="w-[214px] shrink-0 text-[13px] font-semibold leading-5 text-dena-deep md:w-auto md:flex-1 md:text-sm">{session.supporterName}</dd>
           </div>
-          <div className="flex h-5 items-center text-right md:rounded-xl md:bg-dena-bg md:p-4">
+          <div className="flex h-5 items-center text-right md:h-auto md:rounded-xl md:bg-dena-bg md:p-4">
             <dt className="w-[96px] shrink-0 text-[12px] leading-5 text-dena-muted md:w-auto">دوره</dt>
             <dd className="w-[214px] shrink-0 text-[13px] font-semibold leading-5 text-dena-deep md:w-auto md:flex-1 md:text-sm">{session.courseTitle}</dd>
           </div>
-          <div className="flex h-5 items-center text-right md:rounded-xl md:bg-dena-bg md:p-4">
+          <div className="flex h-5 items-center text-right md:h-auto md:rounded-xl md:bg-dena-bg md:p-4">
             <dt className="w-[96px] shrink-0 text-[12px] leading-5 text-dena-muted md:w-auto">تاریخ</dt>
             <dd className="w-[214px] shrink-0 text-[13px] font-semibold leading-5 text-dena-deep md:w-auto md:flex-1 md:text-sm">
               <time dateTime={session.scheduledAt.toISOString()}>{sessionDate(session.scheduledAt)}</time>
             </dd>
           </div>
-          <div className="flex h-5 items-center text-right md:rounded-xl md:bg-dena-bg md:p-4">
+          <div className="flex h-5 items-center text-right md:h-auto md:rounded-xl md:bg-dena-bg md:p-4">
             <dt className="w-[96px] shrink-0 text-[12px] leading-5 text-dena-muted md:w-auto">زمان</dt>
             <dd className="w-[214px] shrink-0 text-[13px] font-semibold leading-5 text-dena-deep md:w-auto md:flex-1 md:text-sm">
               <time dateTime={session.scheduledAt.toISOString()}>{sessionTime(session.scheduledAt)}</time>
