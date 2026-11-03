@@ -24,10 +24,10 @@ const labels: Record<Notification["kind"], string> = {
 function relativeTime(value: string) {
   const minutes = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 60_000));
   if (minutes < 1) return "همین حالا";
-  if (minutes < 60) return \`\${minutes.toLocaleString("fa-IR")} دقیقه پیش\`;
+  if (minutes < 60) return `${minutes.toLocaleString("fa-IR")} دقیقه پیش`;
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return \`\${hours.toLocaleString("fa-IR")} ساعت پیش\`;
-  return \`\${Math.floor(hours / 24).toLocaleString("fa-IR")} روز پیش\`;
+  if (hours < 24) return `${hours.toLocaleString("fa-IR")} ساعت پیش`;
+  return `${Math.floor(hours / 24).toLocaleString("fa-IR")} روز پیش`;
 }
 
 function BellIcon() {
@@ -53,7 +53,7 @@ export function SupportNotifications() {
   }, []);
 
   async function markRead(id: string) {
-    const response = await fetch(\`/api/support/notifications/\${id}\`, {
+    const response = await fetch(`/api/support/notifications/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({}),
@@ -83,10 +83,10 @@ export function SupportNotifications() {
         <ul className="divide-y divide-dena-border overflow-hidden rounded-[22px] border border-dena-border bg-white">
           {items.slice(0, 10).map((item) => (
             <li key={item.id} className="flex items-start gap-3 px-4 py-4 sm:px-5">
-              <span className={\`mt-1.5 size-2 shrink-0 rounded-full \${item.readAt ? "bg-transparent" : "bg-dena-brand"}\`} aria-label={item.readAt ? "خوانده‌شده" : "خوانده‌نشده"} />
+              <span className={`mt-1.5 size-2 shrink-0 rounded-full ${item.readAt ? "bg-transparent" : "bg-dena-brand"}`} aria-label={item.readAt ? "خوانده‌شده" : "خوانده‌نشده"} />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-bold leading-6 text-dena-deep">{labels[item.kind]}</p>
-                <Link href={\`/support/\${item.ticketId}\`} className="mt-1 inline-block text-sm text-dena-brand underline-offset-4 hover:underline">{item.subject}</Link>
+                <Link href={`/support/${item.ticketId}`} className="mt-1 inline-block text-sm text-dena-brand underline-offset-4 hover:underline">{item.subject}</Link>
                 <p className="mt-1 text-xs text-dena-muted">{relativeTime(item.createdAt)}</p>
               </div>
               {!item.readAt && <button type="button" onClick={() => void markRead(item.id)} className="shrink-0 rounded-lg px-2 py-1 text-xs font-bold text-dena-brand hover:bg-dena-lavender focus-visible:outline focus-visible:outline-2 focus-visible:outline-dena-brand">خواندم</button>}
