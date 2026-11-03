@@ -11,7 +11,16 @@ import { listRequesterTechnicalSupportTickets } from "../../server/support/ticke
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "پشتیبانی فنی | دنا", robots: { index: false, follow: false } };
-function relativeTime(value: Date) {\n  const minutes = Math.max(0, Math.floor((Date.now() - value.getTime()) / 60_000));\n  if (minutes < 1) return "همین حالا";\n  if (minutes < 60) return `${minutes.toLocaleString("fa-IR")} دقیقه پیش`;\n  const hours = Math.floor(minutes / 60);\n  if (hours < 24) return `${hours.toLocaleString("fa-IR")} ساعت پیش`;\n  return `${Math.floor(hours / 24).toLocaleString("fa-IR")} روز پیش`;\n}\n\nconst statusLabels: Record<string, string> = {
+function relativeTime(value: Date) {
+  const minutes = Math.max(0, Math.floor((Date.now() - value.getTime()) / 60_000));
+  if (minutes < 1) return "همین حالا";
+  if (minutes < 60) return `${minutes.toLocaleString("fa-IR")} دقیقه پیش`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours.toLocaleString("fa-IR")} ساعت پیش`;
+  return `${Math.floor(hours / 24).toLocaleString("fa-IR")} روز پیش`;
+}
+
+const statusLabels: Record<string, string> = {
   new: "جدید", in_progress: "در حال رسیدگی", waiting_requester: "منتظر پاسخ شما",
   resolved: "حل‌شده", closed: "بسته",
 };
