@@ -17,7 +17,7 @@ function LockIcon() {
 
 function maskPhoneNumber(phoneNumber: string | null) {
   if (!phoneNumber) return "ثبت نشده";
-  const digits = phoneNumber.replace(/\\D/g, "");
+  const digits = phoneNumber.replace(/\D/g, "");
   if (digits.length < 7) return "ثبت نشده";
   return `${digits.slice(0, 4)}${"•".repeat(Math.max(3, digits.length - 7))}${digits.slice(-3)}`;
 }
