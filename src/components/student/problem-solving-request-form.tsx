@@ -62,7 +62,7 @@ export function ProblemSolvingRequestForm({
   }
 
   return (
-    <div className="space-y-0">
+    <div className="flex flex-col items-stretch">
       <label className="block">
         <span className="block h-[22px] text-[13px] font-bold leading-[22px] text-dena-deep">موضوع درخواست</span>
         <input
