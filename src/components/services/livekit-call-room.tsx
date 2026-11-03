@@ -172,7 +172,10 @@ export function LiveKitCallRoom({ callId, messageHref }: Props) {
         body: "{}",
       });
       if (!response.ok) {
-        if (options.retry) setReconnectFailed(true);
+        if (options.retry) {
+          setReconnectFailed(true);
+          setReconnecting(false);
+        }
         setMessage(response.status === 503
           ? "سرویس تماس هنوز برای این محیط تنظیم نشده است."
           : "ورود به جلسه مجاز نیست؛ وضعیت پرداخت، رضایت و شروع جلسه را بررسی کنید.");
