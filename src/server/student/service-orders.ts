@@ -20,7 +20,7 @@ export class StudentServiceOrderError extends Error {
     "order_pending_exists" | "idempotency_conflict") { super(kind); }
 }
 
-export async function getStudentServiceOrders(studentUserId: string) {
+export async function getStudentServiceOrders(studentUserId: string, orderId?: string) {
   const db = getDb();
   const [activeStudent] = await db.select({ id: memberships.id }).from(memberships)
     .where(and(eq(memberships.userId, studentUserId), eq(memberships.role, "student"),
@@ -41,9 +41,15 @@ export async function getStudentServiceOrders(studentUserId: string) {
   }).from(instituteServiceOrders).innerJoin(verifiedEntities, and(
     eq(verifiedEntities.id, instituteServiceOrders.instituteId),
     eq(verifiedEntities.role, "institute"),
-  )).where(eq(instituteServiceOrders.studentUserId, studentUserId))
-    .orderBy(desc(instituteServiceOrders.createdAt), desc(instituteServiceOrders.id)).limit(100);
+  )).where(and(eq(instituteServiceOrders.studentUserId, studentUserId),
+    ...(orderId ? [eq(instituteServiceOrders.id, orderId)] : [])))
+    .orderBy(desc(instituteServiceOrders.createdAt), desc(instituteServiceOrders.id)).limit(orderId ? 1 : 100);
   return addInstituteServiceCallSchedules(await addRecordedServiceTimeBalances(orders));
+}
+
+export async function getStudentServiceOrder(studentUserId: string, orderId: string) {
+  const [order] = await getStudentServiceOrders(studentUserId, orderId);
+  return order ?? null;
 }
 
 export async function createStudentServiceOrder(

@@ -1,7 +1,7 @@
 import { StudentShell } from "../../../../components/student/student-shell";
 
 export default function StudentServiceOrdersLoading() {
-  return <StudentShell active="services" title="درخواست‌های خدمات من">
+  return <StudentShell active="services" title="درخواست‌های خدمات من" mobileNav="service" mobileServiceActive="orders">
     <div role="status" aria-live="polite" className="space-y-5">
       <div className="rounded-[22px] bg-dena-lavender p-6 md:p-8">
         <div className="h-4 w-32 animate-pulse rounded bg-white/80" />

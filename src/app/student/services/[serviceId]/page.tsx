@@ -60,7 +60,7 @@ export default async function StudentServiceDetailPage({
   ];
 
   return (
-    <StudentShell active="services" title="مرکز خدمات">
+    <StudentShell active="services" title="مرکز خدمات" mobileNav="service" mobileServiceActive="center">
       <div className="mx-auto w-full max-w-[704px] space-y-5">
         <nav aria-label="مسیر صفحه" className="text-[10px] text-dena-muted">
           <Link href="/student" className="hover:text-dena-brand hover:underline">خانه من</Link>

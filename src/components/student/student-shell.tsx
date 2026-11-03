@@ -19,6 +19,8 @@ type Props = {
   title: string;
   children: ReactNode;
   demo?: boolean;
+  mobileNav?: "student" | "service";
+  mobileServiceActive?: "center" | "orders" | "home";
 };
 
 function hrefFor(href: string, demo: boolean) {
@@ -129,7 +131,30 @@ function DesktopNavigation({ active, demo }: { active: StudentSection; demo: boo
   );
 }
 
-function MobileNavigation({ active, demo }: { active: StudentSection; demo: boolean }) {
+function MobileNavigation({ active, demo, variant = "student", serviceActive = "center" }: {
+  active: StudentSection;
+  demo: boolean;
+  variant?: "student" | "service";
+  serviceActive?: "center" | "orders" | "home";
+}) {
+  if (variant === "service") {
+    const serviceItems = [
+      { key: "center", href: "/student/services", label: "مرکز خدمات" },
+      { key: "orders", href: "/student/services/orders", label: "خدمات من" },
+      { key: "home", href: "/student", label: "خانه" },
+    ] as const;
+    return <nav aria-label="ناوبری خدمات دانش‌آموز" className="fixed inset-x-0 bottom-0 z-40 border-t border-dena-border bg-white px-2 pb-[max(.55rem,env(safe-area-inset-bottom))] pt-1.5 md:hidden">
+      <ul className="mx-auto grid max-w-[430px] grid-cols-3">
+        {serviceItems.map((item) => {
+          const selected = serviceActive === item.key;
+          return <li key={item.key}><Link href={hrefFor(item.href, demo)} aria-current={selected ? "page" : undefined}
+            className={`flex min-h-[30px] items-center justify-center px-2 text-[9px] font-medium ${selected ? "text-dena-brand" : "text-dena-muted"}`}>
+            {item.label}
+          </Link></li>;
+        })}
+      </ul>
+    </nav>;
+  }
   return (
     <nav
       aria-label="منوی پایین دانش‌آموز"
@@ -161,7 +186,7 @@ function MobileNavigation({ active, demo }: { active: StudentSection; demo: bool
   );
 }
 
-export function StudentShell({ active, title, children, demo = false }: Props) {
+export function StudentShell({ active, title, children, demo = false, mobileNav = "student", mobileServiceActive = "center" }: Props) {
   const eliteActive = active === "elite";
   const notificationsActive = active === "notifications";
   return (
@@ -193,7 +218,12 @@ export function StudentShell({ active, title, children, demo = false }: Props) {
       </aside>
 
       <div className="min-w-0 flex-1">
-        <header className="sticky top-0 z-30 flex min-h-[60px] items-center justify-between border-b border-dena-border bg-white/95 px-4 backdrop-blur md:px-7 lg:min-h-[80px] lg:px-10">
+        <header className={`sticky top-0 z-30 flex min-h-[60px] items-center justify-between border-b border-dena-border bg-white/95 px-4 backdrop-blur md:px-7 lg:min-h-[80px] lg:px-10 ${mobileNav === "service" ? "max-md:min-h-[47px]" : ""}`}>
+          {mobileNav === "service" ? <div dir="rtl" className="flex w-full items-center justify-between md:hidden">
+            <h1 className="text-xs font-extrabold text-dena-ink">{title}</h1>
+            <Link href={hrefFor("/student/notifications", demo)} className="grid size-8 place-items-center rounded-lg text-dena-muted"
+              aria-label="اعلان‌ها"><Icon name="bell" className="size-4" /></Link>
+          </div> : <>
           <Link href={hrefFor("/student", demo)} className="order-1 lg:hidden" aria-label="دنا، خانه دانش‌آموز">
             <Image src="/dena-app-logo.png" alt="دنا" width={55} height={33} priority />
           </Link>
@@ -217,6 +247,12 @@ export function StudentShell({ active, title, children, demo = false }: Props) {
           <Link href={hrefFor("/student/notifications", demo)} className={"hidden size-10 place-items-center rounded-xl hover:bg-dena-bg lg:order-2 lg:grid " + (notificationsActive ? "bg-dena-lavender text-dena-brand" : "text-dena-muted")} aria-label="اعلان‌های پشتیبانی" aria-current={notificationsActive ? "page" : undefined}>
             <Icon name="bell" />
           </Link>
+          </>}
+          {mobileNav === "service" && <div className="hidden w-full items-center justify-between md:flex">
+            <h1 className="text-lg font-extrabold text-dena-ink md:text-xl">{title}</h1>
+            <Link href={hrefFor("/student/notifications", demo)} className="grid size-10 place-items-center rounded-xl text-dena-muted hover:bg-dena-bg"
+              aria-label="اعلان‌ها"><Icon name="bell" /></Link>
+          </div>}
         </header>
 
         <main id="main-content" className="mx-auto w-full max-w-[1180px] px-4 py-5 pb-24 md:px-7 md:py-7 lg:px-10 lg:py-10 lg:pb-10">
@@ -224,7 +260,7 @@ export function StudentShell({ active, title, children, demo = false }: Props) {
         </main>
       </div>
 
-      <MobileNavigation active={active} demo={demo} />
+      <MobileNavigation active={active} demo={demo} variant={mobileNav} serviceActive={mobileServiceActive} />
     </div>
   );
 }

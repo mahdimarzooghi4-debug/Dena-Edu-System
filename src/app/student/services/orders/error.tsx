@@ -4,7 +4,7 @@ import Link from "next/link";
 import { StudentShell } from "../../../../components/student/student-shell";
 
 export default function StudentServiceOrdersError({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
-  return <StudentShell active="services" title="درخواست‌های خدمات من">
+  return <StudentShell active="services" title="درخواست‌های خدمات من" mobileNav="service" mobileServiceActive="orders">
     <section role="alert" className="mx-auto max-w-lg rounded-2xl border border-rose-200 bg-white p-6 text-center shadow-sm">
       <span aria-hidden="true" className="mx-auto grid size-12 place-items-center rounded-full bg-rose-50 text-xl font-bold text-rose-700">×</span>
       <h2 className="mt-4 text-lg font-extrabold text-dena-deep">دریافت اطلاعات نوبت انجام نشد</h2>

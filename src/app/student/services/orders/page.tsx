@@ -38,7 +38,7 @@ export default async function StudentServiceOrdersPage() {
 
   const orders = await getStudentServiceOrders(actor.userId);
 
-  return <StudentShell active="services" title="درخواست‌های خدمات من">
+  return <StudentShell active="services" title="درخواست‌های خدمات من" mobileNav="service" mobileServiceActive="orders">
     <div className="space-y-6">
       <section className="flex flex-wrap items-center justify-between gap-4 rounded-[22px] bg-dena-lavender px-6 py-7 md:px-8">
         <div>
@@ -144,6 +144,10 @@ export default async function StudentServiceOrdersPage() {
               className="inline-flex min-h-11 items-center justify-center rounded-xl border border-dena-brand bg-white px-4 py-2 text-sm font-bold text-dena-brand">
               پیام امن به مشاور
             </Link>}
+            <Link href={`/student/services/orders/${order.id}`}
+              className="inline-flex min-h-11 items-center justify-center rounded-xl bg-dena-brand px-4 py-2 text-sm font-bold text-white">
+              جزئیات مشاوره
+            </Link>
           </Card>
         </li>)}
       </ul>}

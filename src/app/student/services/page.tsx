@@ -65,7 +65,7 @@ export default async function StudentServicesPage({
   for (const order of orders) if (!orderByService.has(order.serviceId)) orderByService.set(order.serviceId, order);
 
   return (
-    <StudentShell active="services" title="مرکز خدمات">
+    <StudentShell active="services" title="مرکز خدمات" mobileNav="service" mobileServiceActive="center">
       <div className="mx-auto w-full max-w-[704px] space-y-6">
         <section className="space-y-2 text-right">
           <nav aria-label="مسیر صفحه" className="text-[10px] text-dena-muted">
