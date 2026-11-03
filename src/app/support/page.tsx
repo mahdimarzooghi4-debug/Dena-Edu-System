@@ -79,8 +79,10 @@ export default async function SupportPage({
         <section aria-labelledby="support-ticket-list" className="space-y-4">
           <h2 id="support-ticket-list" className="text-lg font-extrabold text-dena-deep">درخواست‌های من</h2>
           {tickets.length === 0 ? (
-            <Card className="rounded-[22px] p-5">
-              <p className="text-sm leading-7 text-dena-muted">هنوز درخواست پشتیبانی ثبت نکرده‌ای.</p>
+            <Card className="flex min-h-48 flex-col items-center justify-center rounded-[22px] p-6 text-center">
+              <h3 className="text-base font-extrabold text-dena-deep">هنوز درخواستی ثبت نکرده‌ای</h3>
+              <p className="mt-2 text-sm leading-7 text-dena-muted">اگر در استفاده از دنا به کمکی نیاز داری، درخواستت را برای پشتیبانی بفرست.</p>
+              <Link href="/support?new=1" className={`${buttonClassName()} mt-4`}>ثبت درخواست جدید</Link>
             </Card>
           ) : tickets.map((ticket) => (
             <Card key={ticket.id} className="rounded-[20px] p-4 sm:p-5">
@@ -95,10 +97,7 @@ export default async function SupportPage({
               <p className="mt-2 text-xs leading-6 text-dena-muted">
                 {relativeTime(ticket.updatedAt)}
               </p>
-              <p className="mt-1 text-xs leading-6 text-dena-muted">
-                مهلت پاسخ: {ticket.firstRespondedAt ? "پاسخ داده شده" : ticket.firstResponseDueAt.toLocaleString("fa-IR", { timeZone: "Asia/Tehran" })}
-                {ticket.status === "waiting_requester" ? " · زمان رسیدگی تا پاسخ شما متوقف است" : ticket.status !== "resolved" && ticket.status !== "closed" ? <> · مهلت حل: {ticket.resolutionDueAt.toLocaleString("fa-IR", { timeZone: "Asia/Tehran" })}</> : null}
-              </p>
+
             </Card>
           ))}
           <nav className="flex flex-wrap justify-between gap-3" aria-label="صفحه‌بندی درخواست‌های من">
