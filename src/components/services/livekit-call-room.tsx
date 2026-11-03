@@ -245,7 +245,7 @@ export function LiveKitCallRoom({ callId }: Props) {
       <span>می‌دانم با ورود به جلسه، صدا و در صورت روشن‌بودن دوربین، تصویرم برای افراد حاضر در اتاق پخش می‌شود.</span>
     </label>}
     {!connected && <label className="flex items-center gap-2 text-sm text-dena-deep">
-      <input type="checkbox" checked={audioOnly} onChange={(event) => setAudioOnly(event.target.checked)}
+      <input type="checkbox" checked={audioOnly} onChange={(event) => { previewStreamRef.current?.getTracks().forEach((track) => track.stop()); previewStreamRef.current = null; if (previewRef.current) previewRef.current.srcObject = null; setDeviceCheck("idle"); setAudioOnly(event.target.checked); }}
         disabled={busy} className="size-4 accent-dena-brand" />
       <span>ورود فقط با صدا</span>
     </label>}
