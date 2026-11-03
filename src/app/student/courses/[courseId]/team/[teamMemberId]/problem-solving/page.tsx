@@ -78,18 +78,18 @@ export default async function ProblemSolvingSessionsPage({
                       href={base(courseId, teamMemberId) + "/problem-solving/sessions/" + encodeURIComponent(session.id)}
                       className="flex h-[72px] items-center justify-between gap-3 rounded-[12px] border border-dena-border bg-dena-bg px-3 md:h-auto md:rounded-2xl md:p-3"
                     >
-                      <span className="min-w-0 flex-1 text-right text-[14px] font-bold leading-6 text-dena-deep">{session.subject}</span>
-                      <div className="flex shrink-0 flex-col items-end">
-                        <span className={"flex shrink-0 items-center justify-center rounded-full text-[11px] font-semibold " + statusClass}>
-                          {sessionStatus[session.status]}
-                        </span>
+                      <div className="min-w-0 flex-1 text-right">
+                        <span className="block truncate text-[14px] font-bold leading-6 text-dena-deep">{session.subject}</span>
                         <time
-                          className="mt-0.5 text-[11px] leading-[18px] text-dena-muted"
+                          className="mt-0.5 block text-[11px] leading-[18px] text-dena-muted"
                           dateTime={session.scheduledAt.toISOString()}
                         >
                           {dateTime(session.scheduledAt, session.status === "scheduled")}
                         </time>
                       </div>
+                      <span className={"flex shrink-0 items-center justify-center rounded-full text-[11px] font-semibold " + statusClass}>
+                        {sessionStatus[session.status]}
+                      </span>
                     </Link>
                   </li>
                 );
