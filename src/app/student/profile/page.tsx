@@ -42,6 +42,7 @@ export default async function StudentProfilePage() {
           </div>
           <div className="divide-y divide-dena-border border-y border-dena-border">
             <Link href="/account" className="flex min-h-14 items-center justify-between py-3 text-sm font-semibold text-dena-deep">ویرایش پروفایل<span aria-hidden="true">‹</span></Link>
+            {profile.phoneNumber && profile.phoneNumberVerified && <Link href="/student/profile/phone-change" className="flex min-h-14 items-center justify-between py-3 text-sm font-semibold text-dena-deep">تغییر شماره موبایل<span aria-hidden="true">‹</span></Link>}
             <Link href="/student/privacy" className="flex min-h-14 items-center justify-between py-3 text-sm font-semibold text-dena-deep">حریم خصوصی و داده‌ها<span aria-hidden="true">‹</span></Link>
             <Link href="/account" className="flex min-h-14 items-center justify-between py-3 text-sm font-semibold text-red-600">خروج از حساب<span aria-hidden="true">↗</span></Link>
           </div>
