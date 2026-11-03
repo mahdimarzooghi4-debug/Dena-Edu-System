@@ -33,35 +33,20 @@ export default async function ProblemSolvingRequestPage({
   const sessionsHref = base(courseId, teamMemberId) + "/problem-solving";
 
   return <StudentShell active="courses" title="درخواست جلسه رفع اشکال">
-    <div className="space-y-6">
-      <Link href={sessionsHref} className="text-sm font-bold text-dena-brand hover:underline">بازگشت به جلسات رفع اشکال</Link>
-      <Card className="rounded-[22px] p-6 md:p-7">
-        <h1 className="text-xl font-extrabold text-dena-deep">درخواست جلسه رفع اشکال</h1>
-        <p className="mt-2 text-sm text-dena-muted">{member.courseTitle} · پشتیبان تحصیلی: {member.name}</p>
+    <div className="-mt-1 mx-auto max-w-2xl space-y-4 md:mt-0 md:space-y-5">
+      <Link href={sessionsHref} className="hidden text-sm font-bold text-dena-brand hover:underline md:inline-flex">بازگشت به جلسات رفع اشکال</Link>
+      <Card className="flex h-[78px] flex-col items-start justify-center rounded-[16px] px-4 text-right md:h-auto md:rounded-[22px] md:px-6 md:py-5">
+        <h1 className="text-[18px] font-bold leading-7 text-dena-deep">درخواست جلسه رفع اشکال</h1>
+        <p className="text-[12px] leading-5 text-dena-muted">{member.courseTitle}</p>
       </Card>
-      <Card className="space-y-5 rounded-[22px] p-5 md:p-7">
-        {data.requestsEnabled ? <>
-          <div>
-            <h2 className="font-bold text-dena-deep">موضوع درخواست</h2>
-            <p className="mt-2 text-sm leading-7 text-dena-muted">
-              موضوع و توضیح کوتاه را بنویس. ثبت درخواست زمان جلسه را قطعی نمی‌کند؛ مؤسسه زمان را پس از بررسی تعیین می‌کند.
-            </p>
+
+      <Card className="h-[470px] rounded-[16px] p-[15px] md:h-auto md:rounded-[22px] md:p-6">
+        {data.requestsEnabled ? <ProblemSolvingRequestForm courseId={courseId} teamMemberId={teamMemberId} /> : (
+          <div role="status" className="rounded-xl bg-dena-bg p-5 text-sm leading-7 text-dena-muted">
+            درخواست جلسه در حال حاضر برای این پشتیبان و این دوره فعال نیست.
           </div>
-          <ProblemSolvingRequestForm courseId={courseId} teamMemberId={teamMemberId} />
-        </> : <div role="status" className="rounded-xl bg-dena-bg p-5 text-sm leading-7 text-dena-muted">
-          درخواست جلسه در حال حاضر برای این پشتیبان و این دوره فعال نیست.
-        </div>}
+        )}
       </Card>
-      {data.requests.length > 0 && <Card className="space-y-3 rounded-[22px] p-5">
-        <h2 className="font-extrabold text-dena-deep">وضعیت درخواست‌های ثبت‌شده</h2>
-        <ul className="space-y-2">{data.requests.map((request) => <li key={request.id}
-          className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-dena-bg p-4 text-sm">
-          <span className="font-bold text-dena-deep">{request.subject}</span>
-          <span className="text-dena-muted">{request.status === "submitted" ? "ثبت‌شده" :
-            request.status === "under_review" ? "در حال بررسی" :
-              request.status === "scheduled" ? "جلسه تعیین شد" : "قابل انجام نیست"}</span>
-        </li>)}</ul>
-      </Card>}
     </div>
   </StudentShell>;
 }
