@@ -20,7 +20,11 @@ export function ProblemSolvingRequestForm({
   async function submit() {
     const trimmedSubject = subject.trim();
     const trimmedDescription = description.trim();
-    if (busy || trimmedSubject.length < 3) return;
+    if (busy) return;
+    if (trimmedSubject.length < 3) {
+      setMessage("موضوع درخواست باید دست‌کم ۳ نویسه داشته باشد.");
+      return;
+    }
 
     setBusy(true);
     setMessage("");
@@ -58,40 +62,49 @@ export function ProblemSolvingRequestForm({
   }
 
   return (
-    <div className="space-y-4">
-      <label className="block space-y-2">
-        <span className="text-sm font-bold">موضوع درخواست</span>
+    <div className="space-y-0">
+      <label className="block">
+        <span className="block h-[22px] text-[13px] font-bold leading-[22px] text-dena-deep">موضوع درخواست</span>
         <input
           value={subject}
           onChange={(event) => setSubject(event.target.value)}
           maxLength={160}
-          className="min-h-12 w-full rounded-xl border border-dena-border bg-white px-4 text-sm outline-none focus:border-dena-brand"
+          placeholder="مثلاً: سؤال درباره نمودار تابع درجه دو"
+          className="mt-[10px] h-[54px] w-full rounded-[16px] border border-dena-border bg-white px-4 text-[11px] text-dena-deep outline-none placeholder:text-dena-muted focus:border-dena-brand"
         />
       </label>
 
-      <label className="block space-y-2">
-        <span className="text-sm font-bold">توضیح کوتاه</span>
+      <label className="mt-5 block">
+        <span className="block h-[22px] text-[13px] font-bold leading-[22px] text-dena-deep">توضیح کوتاه</span>
         <textarea
           value={description}
           onChange={(event) => setDescription(event.target.value)}
           maxLength={1000}
           rows={4}
-          className="w-full resize-y rounded-xl border border-dena-border bg-white px-4 py-3 text-sm leading-7 outline-none focus:border-dena-brand"
+          placeholder="در صورت نیاز، توضیح کوتاهی درباره موضوع رفع اشکال بنویسید."
+          className="mt-[10px] h-[118px] w-full resize-none rounded-[16px] border border-dena-border bg-white px-4 py-3 text-[11px] leading-6 text-dena-deep outline-none placeholder:text-dena-muted focus:border-dena-brand"
         />
       </label>
 
+      <p className="mt-5 h-5 text-[11px] leading-5 text-dena-muted">
+        ثبت درخواست به معنای تعیین قطعی جلسه نیست.
+      </p>
+
       <Button
         type="button"
-        disabled={busy || subject.trim().length < 3}
+        disabled={busy}
         onClick={() => void submit()}
-        className="disabled:opacity-50"
+        className="mt-[18px] h-[42px] min-h-[42px] w-full rounded-full px-5 py-2 text-[13px] font-bold disabled:opacity-60"
       >
         {busy ? "در حال ثبت…" : "ثبت درخواست"}
       </Button>
 
-      <div role="status" aria-live="polite" className="text-sm leading-7 text-dena-muted">
+      <div role="status" aria-live="polite" className="mt-2 text-xs leading-6 text-dena-muted">
         {message}
       </div>
+      <p className="mt-2 h-[42px] text-[11px] leading-[21px] text-dena-muted">
+        زمان جلسه در صورت تعیین، در همین بخش نمایش داده می‌شود.
+      </p>
     </div>
   );
 }
