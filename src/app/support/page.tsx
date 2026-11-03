@@ -4,7 +4,6 @@ import { notFound, redirect } from "next/navigation";
 import { Card } from "../../components/ui/card";
 import { buttonClassName } from "../../components/ui/button";
 import { TicketCreateForm } from "../../components/support/ticket-create-form";
-import { SupportNotifications } from "../../components/support/support-notifications";
 import { StudentShell } from "../../components/student/student-shell";
 import { getServerAccessContext } from "../../server/access/actor";
 import { listRequesterTechnicalSupportTickets } from "../../server/support/tickets";
@@ -12,7 +11,7 @@ import { listRequesterTechnicalSupportTickets } from "../../server/support/ticke
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "پشتیبانی فنی | دنا", robots: { index: false, follow: false } };
-const statusLabels: Record<string, string> = {
+function relativeTime(value: Date) {\n  const minutes = Math.max(0, Math.floor((Date.now() - value.getTime()) / 60_000));\n  if (minutes < 1) return "همین حالا";\n  if (minutes < 60) return `${minutes.toLocaleString("fa-IR")} دقیقه پیش`;\n  const hours = Math.floor(minutes / 60);\n  if (hours < 24) return `${hours.toLocaleString("fa-IR")} ساعت پیش`;\n  return `${Math.floor(hours / 24).toLocaleString("fa-IR")} روز پیش`;\n}\n\nconst statusLabels: Record<string, string> = {
   new: "جدید", in_progress: "در حال رسیدگی", waiting_requester: "منتظر پاسخ شما",
   resolved: "حل‌شده", closed: "بسته",
 };
@@ -77,7 +76,7 @@ export default async function SupportPage({
               <p className="text-sm leading-7 text-dena-muted">هنوز درخواست پشتیبانی ثبت نکرده‌ای.</p>
             </Card>
           ) : tickets.map((ticket) => (
-            <Card key={ticket.id} className="rounded-[20px] p-5">
+            <Card key={ticket.id} className="rounded-[20px] p-4 sm:p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <Link href={`/support/${ticket.id}`} className="font-bold text-dena-ink underline-offset-4 hover:text-dena-brand hover:underline">
                   {ticket.subject}
@@ -87,7 +86,7 @@ export default async function SupportPage({
                 </span>
               </div>
               <p className="mt-2 text-xs leading-6 text-dena-muted">
-                آخرین به‌روزرسانی: {ticket.updatedAt.toLocaleString("fa-IR")}
+                {relativeTime(ticket.updatedAt)}
               </p>
               <p className="mt-1 text-xs leading-6 text-dena-muted">
                 مهلت پاسخ: {ticket.firstRespondedAt ? "پاسخ داده شده" : ticket.firstResponseDueAt.toLocaleString("fa-IR", { timeZone: "Asia/Tehran" })}
