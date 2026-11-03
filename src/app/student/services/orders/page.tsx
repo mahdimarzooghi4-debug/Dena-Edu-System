@@ -133,6 +133,10 @@ export default async function StudentServiceOrdersPage() {
               order={order}
               allowRetry={false}
             />
+            {order.status === "paid" && <Link href={`/service-orders/${order.id}/messages`}
+              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-dena-brand bg-white px-4 py-2 text-sm font-bold text-dena-brand">
+              پیام امن به مشاور
+            </Link>}
           </Card>
         </li>)}
       </ul>}
