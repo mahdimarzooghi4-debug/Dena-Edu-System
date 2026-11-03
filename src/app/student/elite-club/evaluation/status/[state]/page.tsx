@@ -107,7 +107,7 @@ export default async function StudentEliteClubEvaluationStatusPage({
             <Link href="/student" className="inline-flex min-h-12 w-full items-center justify-center rounded-xl border border-dena-border bg-white px-5 text-sm font-bold text-dena-deep hover:bg-slate-50">بازگشت به خانه</Link>
             <Link href="/student/elite-club/evaluation/status/member-result" className="text-xs font-bold text-dena-brand hover:underline">دیدن پیش‌نمایش نتیجه عضویت</Link>
           </>
-        )}}
+        )}
 
         <p className="max-w-xl rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-xs leading-6 text-amber-950">
           این صفحه فقط نمایش حالت‌های طراحی است؛ وضعیت عضویت یا نتیجه‌ای برای حساب شما ثبت یا تغییر نشده است.
