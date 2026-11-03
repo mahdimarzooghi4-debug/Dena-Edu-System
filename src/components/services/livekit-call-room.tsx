@@ -43,7 +43,7 @@ export function LiveKitCallRoom({ callId }: Props) {
     for (const publication of room.localParticipant.videoTrackPublications.values()) {
       if (!publication.track || !localRef.current) continue;
       const element = publication.track.attach() as HTMLVideoElement;
-      element.className = "max-h-72 max-w-full rounded-xl bg-black object-contain";
+      element.className = "absolute inset-0 h-full w-full rounded-xl object-cover";
       element.muted = true;
       element.playsInline = true;
       localRef.current.appendChild(element);
@@ -117,7 +117,9 @@ export function LiveKitCallRoom({ callId }: Props) {
       roomRef.current = room;
       room.on(RoomEvent.TrackSubscribed, (track) => {
         const element = track.attach();
-        element.className = "max-h-72 max-w-full rounded-xl bg-black object-contain";
+        element.className = track.kind === "video"
+          ? "absolute inset-0 h-full w-full rounded-xl object-cover"
+          : "sr-only";
         if (remoteRef.current) remoteRef.current.appendChild(element);
       });
       room.on(RoomEvent.TrackUnsubscribed, (track) => {
@@ -264,37 +266,58 @@ export function LiveKitCallRoom({ callId }: Props) {
       </div>
       {!audioOnly && deviceCheck === "ready" && <video ref={previewRef} muted playsInline aria-label="پیش‌نمایش دوربین شما" className="max-h-40 w-full rounded-lg bg-dena-deep object-contain" />}
     </div>}
-    <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-dena-bg px-3 py-2 text-sm" aria-live="polite">
-      <span className="font-bold text-dena-deep">{connectionLabel}</span>
-      {connected && <span dir="ltr" className="font-mono text-dena-muted">{formatElapsed(elapsedSeconds)}</span>}
-    </div>
-    <div className="grid gap-3 sm:grid-cols-2" aria-live="polite">
-      <div ref={localRef} aria-label="تصویر شما" className="flex min-h-24 flex-wrap gap-2" />
-      <div ref={remoteRef} aria-label="تصویر افراد حاضر در جلسه" className="flex min-h-24 flex-wrap gap-2" />
-    </div>
-    <div className="flex flex-wrap gap-2">
-      {!connected ? <button type="button" onClick={() => void join()} disabled={!confirmed || busy}
-        className="min-h-11 rounded-lg bg-dena-brand px-4 py-2 text-sm font-bold text-white disabled:opacity-50">
-        {busy ? "در حال اتصال…" : audioOnly ? "ورود به جلسه با صدا" : "ورود به جلسه"}
-      </button> : <>
+    <div className="overflow-hidden rounded-2xl bg-[#17132a] p-4 text-white sm:p-5">
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div><p className="text-sm font-extrabold">جلسهٔ مشاوره در دنا</p><p className="mt-1 text-xs text-white/60">تماس امن در همین محیط</p></div>
+        <div className="flex items-center gap-2">
+          <span className={`rounded-full px-3 py-1 text-xs font-bold ${connected ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-900"}`}>{connectionLabel}</span>
+          {connected && <span dir="ltr" className="font-mono text-xs text-white/80">{formatElapsed(elapsedSeconds)}</span>}
+        </div>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2" aria-live="polite">
+        <div className="relative aspect-video min-h-40 overflow-hidden rounded-xl bg-[#302951]">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-center">
+            <span className="grid size-14 place-items-center rounded-full bg-dena-brand text-xl font-bold">ش</span>
+            <span className="text-xs font-semibold">شما · {cameraEnabled ? "تصویر روشن" : "دوربین خاموش"}</span>
+          </div>
+          <div ref={localRef} aria-label="تصویر شما" className="absolute inset-0 overflow-hidden rounded-xl" />
+          <span className="absolute start-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-bold text-dena-deep">شما</span>
+        </div>
+        <div className="relative aspect-video min-h-40 overflow-hidden rounded-xl bg-[#302951]">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-center">
+            <span className="grid size-14 place-items-center rounded-full bg-emerald-400 text-xl font-bold text-[#17132a]">م</span>
+            <span className="text-xs font-semibold">مشاور · {connected ? "در انتظار تصویر" : "هنوز متصل نشده"}</span>
+          </div>
+          <div ref={remoteRef} aria-label="تصویر افراد حاضر در جلسه" className="absolute inset-0 overflow-hidden rounded-xl" />
+          <span className="absolute start-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-bold text-dena-deep">مشاور</span>
+        </div>
+      </div>
+      {connected && <div className="mt-4 flex flex-wrap justify-center gap-2">
         <button type="button" onClick={() => void toggleMicrophone()} disabled={busy}
-          aria-label={microphoneEnabled ? "خاموش‌کردن میکروفن" : "روشن‌کردن میکروفن"}
-          aria-pressed={microphoneEnabled}
-          className="min-h-11 rounded-lg border border-dena-line px-4 py-2 text-sm font-bold text-dena-deep disabled:opacity-50">
-          {microphoneEnabled ? "خاموش‌کردن میکروفن" : "روشن‌کردن میکروفن"}
+          aria-label={microphoneEnabled ? "خاموش‌کردن میکروفن" : "روشن‌کردن میکروفن"} aria-pressed={microphoneEnabled}
+          className={`grid size-12 place-items-center rounded-full text-xs font-bold disabled:opacity-50 ${microphoneEnabled ? "bg-white/15 text-white" : "bg-red-500 text-white"}`}>
+          {microphoneEnabled ? "میکروفن" : "بی‌صدا"}
         </button>
         <button type="button" onClick={() => void toggleCamera()} disabled={busy}
-          aria-label={cameraEnabled ? "خاموش‌کردن دوربین" : "روشن‌کردن دوربین"}
-          aria-pressed={cameraEnabled}
-          className="min-h-11 rounded-lg border border-dena-line px-4 py-2 text-sm font-bold text-dena-deep disabled:opacity-50">
-          {cameraEnabled ? "خاموش‌کردن دوربین" : "روشن‌کردن دوربین"}
+          aria-label={cameraEnabled ? "خاموش‌کردن دوربین" : "روشن‌کردن دوربین"} aria-pressed={cameraEnabled}
+          className={`grid size-12 place-items-center rounded-full text-xs font-bold disabled:opacity-50 ${cameraEnabled ? "bg-white/15 text-white" : "bg-red-500 text-white"}`}>
+          {cameraEnabled ? "دوربین" : "بدون تصویر"}
         </button>
         <button type="button" onClick={() => setEndConfirm(true)}
-          className="min-h-11 rounded-lg border border-dena-line px-4 py-2 text-sm font-bold text-dena-deep">
-          پایان جلسه
-        </button>
-      </>}
+          className="grid size-12 place-items-center rounded-full bg-red-600 text-xs font-bold text-white">پایان</button>
+      </div>}
     </div>
+    {connected && <div className="grid gap-2 sm:grid-cols-3">
+      <p className="rounded-lg border border-dena-line bg-white p-3 text-xs text-dena-deep">کیفیت اتصال: {connectionLabel === "متصل" ? "متصل" : connectionLabel}</p>
+      <p className="rounded-lg border border-dena-line bg-white p-3 text-xs text-dena-deep">میکروفن: {microphoneEnabled ? "روشن" : "خاموش"}</p>
+      <p className="rounded-lg border border-dena-line bg-white p-3 text-xs text-dena-deep">دوربین: {cameraEnabled ? "روشن" : "خاموش"}</p>
+    </div>}
+    {!connected && <div className="flex flex-wrap gap-2">
+      <button type="button" onClick={() => void join()} disabled={!confirmed || busy}
+        className="min-h-11 rounded-xl bg-dena-brand px-5 py-2 text-sm font-bold text-white disabled:opacity-50">
+        {busy ? "در حال اتصال…" : audioOnly ? "ورود به جلسه با صدا" : "شروع مسیر"}
+      </button>
+    </div>}
     {connected && endConfirm && <div role="alertdialog" aria-labelledby={`end-call-title-${callId}`}
       aria-describedby={`end-call-description-${callId}`} className="space-y-3 rounded-xl border border-amber-300 bg-amber-50 p-4">
       <h6 id={`end-call-title-${callId}`} className="font-bold text-dena-deep">پایان جلسه برای هر دو نفر؟</h6>
