@@ -90,20 +90,38 @@ export default async function StudentServiceOrdersPage() {
             {order.calls.length > 0 && <section aria-label="زمان جلسه‌های خدمت" className="space-y-2 rounded-xl border border-dena-lavender p-4">
               <h4 className="text-sm font-extrabold text-dena-deep">زمان جلسه</h4>
               {order.calls.map((call) => <div key={call.id} className="space-y-3 border-b border-dena-border py-3 last:border-0">
-                <p className="text-sm text-dena-muted">
-                  {dateFormatter.format(call.scheduledAt)} · {callStatusLabel[call.status]}
-                </p>
-                {call.followUp && <section aria-label="خلاصه و پیگیری جلسه" className="space-y-2 rounded-xl bg-dena-bg p-4">
-                  <h5 className="font-bold text-dena-deep">خلاصهٔ قابل‌مشاهدهٔ جلسه</h5>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-bold text-dena-deep">
+                    {call.status === "ended" ? "جلسه پایان یافته" : call.status === "started" ? "جلسه در حال برگزاری" : callStatusLabel[call.status]}
+                  </p>
+                  <span className="rounded-full bg-dena-bg px-3 py-1 text-xs font-semibold text-dena-muted">
+                    {dateFormatter.format(call.scheduledAt)}
+                  </span>
+                </div>
+                {call.status === "ended" && <dl className="grid gap-3 rounded-xl bg-dena-bg p-4 text-sm sm:grid-cols-2">
+                  <div><dt className="text-xs text-dena-muted">مدت ثبت‌شده</dt><dd className="mt-1 font-bold text-dena-deep">{formatServiceDuration(call.connectedSeconds)}</dd></div>
+                  <div><dt className="text-xs text-dena-muted">وضعیت پیگیری</dt><dd className="mt-1 font-bold text-dena-deep">{call.followUp ? "پیگیری آماده است" : "در انتظار انتشار مشاور"}</dd></div>
+                </dl>}
+                {call.status === "scheduled" && call.scheduledAt.getTime() > Date.now() && <div className="rounded-xl border border-dena-lavender bg-white p-4">
+                  <p className="text-xs font-bold text-dena-brand">نوبت بعدی</p>
+                  <p className="mt-1 text-sm font-bold text-dena-deep">{dateFormatter.format(call.scheduledAt)}</p>
+                </div>}
+                {call.followUp ? <section aria-label="خلاصه و پیگیری جلسه" className="space-y-3 rounded-xl bg-dena-bg p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h5 className="font-bold text-dena-deep">خلاصه و گام‌های بعدی</h5>
+                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800">پیگیری آماده است</span>
+                  </div>
+                  <p className="text-xs leading-6 text-dena-muted">خلاصهٔ قابل‌مشاهده توسط مشاور منتشر شده است؛ یادداشت خصوصی او نمایش داده نمی‌شود.</p>
                   <p className="whitespace-pre-wrap text-sm leading-7 text-dena-ink">{call.followUp.summary}</p>
-                  {call.followUp.nextSteps.length > 0 && <>
-                    <h6 className="text-sm font-bold text-dena-deep">گام‌های بعدی</h6>
-                    <ol className="list-decimal space-y-1 pe-5 text-sm leading-7 text-dena-muted">
-                      {call.followUp.nextSteps.map((step, index) => <li key={`${call.id}-${index}`}>{step}</li>)}
-                    </ol>
-                  </>}
-                  <p className="text-xs text-dena-muted">یادداشت خصوصی مشاور در این بخش نمایش داده نمی‌شود.</p>
-                </section>}
+                  {call.followUp.nextSteps.length > 0 && <ol className="list-decimal space-y-1 pe-5 text-sm leading-7 text-dena-muted">
+                    {call.followUp.nextSteps.map((step, index) => <li key={`${call.id}-${index}`}>{step}</li>)}
+                  </ol>}
+                </section> : call.status === "ended" && <div className="rounded-xl border border-dena-lavender bg-dena-bg p-4 text-sm leading-7 text-dena-muted">
+                  پیگیری جلسه هنوز توسط مشاور منتشر نشده است. یادداشت خصوصی مشاور نمایش داده نمی‌شود.
+                </div>}
+                {call.status === "cancelled" && <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm leading-7 text-rose-800">
+                  این نوبت لغو شده است. برای وضعیت بازپرداخت، جزئیات درخواست خدمت را بررسی کنید.
+                </div>}
               </div>)}
               {order.calls.filter((call) => call.status === "started").map((call) =>
                 <LiveKitCallRoom key={call.id} callId={call.id} />)}
