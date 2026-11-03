@@ -44,6 +44,10 @@ export default async function StudentServiceOrderDetailPage({
   const nextCall = order.calls.find((call) => call.status === "scheduled" || call.status === "started");
   const primaryAction = nextCall?.status === "started" ? "#active-session" : "#appointment-status";
 
+  if (order.status === "awaiting_guardian_consent") {
+    redirect(`/student/services/orders/${order.id}/consent`);
+  }
+
   return <StudentShell active="services" title="جزئیات مشاوره" mobileNav="service" mobileServiceActive="orders">
     <div className="mx-auto w-full max-w-[520px] space-y-3 md:max-w-3xl md:space-y-5">
       <Card className="space-y-4 p-4 md:space-y-5 md:p-6">
