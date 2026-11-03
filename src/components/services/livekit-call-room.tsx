@@ -9,6 +9,9 @@ export function LiveKitCallRoom({ callId }: Props) {
   const roomRef = useRef<Room | null>(null);
   const localRef = useRef<HTMLDivElement>(null);
   const remoteRef = useRef<HTMLDivElement>(null);
+  const previewRef = useRef<HTMLVideoElement>(null);
+  const previewStreamRef = useRef<MediaStream | null>(null);
+  const [deviceCheck, setDeviceCheck] = useState<"idle" | "checking" | "ready" | "audio_only" | "failed">("idle");
   const [confirmed, setConfirmed] = useState(false);
   const [connected, setConnected] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -24,6 +27,7 @@ export function LiveKitCallRoom({ callId }: Props) {
   useEffect(() => () => {
     roomRef.current?.disconnect();
     roomRef.current = null;
+    previewStreamRef.current?.getTracks().forEach((track) => track.stop());
   }, []);
 
   useEffect(() => {
@@ -48,6 +52,38 @@ export function LiveKitCallRoom({ callId }: Props) {
 
   function formatElapsed(seconds: number) {
     return `${Math.floor(seconds / 60).toString().padStart(2, "0")}:${(seconds % 60).toString().padStart(2, "0")}`;
+  }
+
+  async function checkDevices() {
+    if (busy || connected) return;
+    setBusy(true);
+    setDeviceCheck("checking");
+    setMessage("");
+    previewStreamRef.current?.getTracks().forEach((track) => track.stop());
+    previewStreamRef.current = null;
+    if (previewRef.current) previewRef.current.srcObject = null;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: !audioOnly });
+      previewStreamRef.current = stream;
+      if (previewRef.current && !audioOnly) {
+        previewRef.current.srcObject = stream;
+        await previewRef.current.play().catch(() => undefined);
+      }
+      setDeviceCheck("ready");
+      setMessage(audioOnly ? "میکروفن آماده است؛ می‌توانید با صدا وارد شوید." : "میکروفن و دوربین آماده‌اند. پیش‌نمایش فقط روی دستگاه شماست.");
+    } catch {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        previewStreamRef.current = stream;
+        setDeviceCheck("audio_only");
+        setMessage("میکروفن آماده است؛ دوربین در دسترس نیست. می‌توانید جلسه را فقط با صدا ادامه دهید.");
+      } catch {
+        setDeviceCheck("failed");
+        setMessage("دسترسی به میکروفن برقرار نشد؛ مجوز مرورگر و اتصال دستگاه را بررسی کنید.");
+      }
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function join() {
@@ -213,6 +249,18 @@ export function LiveKitCallRoom({ callId }: Props) {
         disabled={busy} className="size-4 accent-dena-brand" />
       <span>ورود فقط با صدا</span>
     </label>}
+    {!connected && <div className="space-y-3 rounded-xl border border-dena-line bg-white p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div><p className="text-sm font-bold text-dena-deep">بررسی پیش از تماس</p><p className="mt-1 text-xs leading-6 text-dena-muted">میکروفن، دوربین و اتصال را پیش از شروع جلسه بررسی کنید.</p></div>
+        <button type="button" onClick={() => void checkDevices()} disabled={busy} className="min-h-10 rounded-lg border border-dena-brand px-3 py-2 text-xs font-bold text-dena-brand disabled:opacity-50">{deviceCheck === "checking" ? "در حال بررسی…" : "بررسی دستگاه‌ها"}</button>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-3">
+        <p className="rounded-lg bg-dena-bg p-3 text-xs text-dena-deep">میکروفن: {deviceCheck === "ready" || deviceCheck === "audio_only" ? "آماده" : deviceCheck === "failed" ? "در دسترس نیست" : "بررسی‌نشده"}</p>
+        <p className="rounded-lg bg-dena-bg p-3 text-xs text-dena-deep">دوربین: {audioOnly ? "ورود فقط با صدا" : deviceCheck === "ready" ? "آماده" : deviceCheck === "audio_only" ? "در دسترس نیست" : deviceCheck === "failed" ? "بررسی ناموفق" : "بررسی‌نشده"}</p>
+        <p className="rounded-lg bg-dena-bg p-3 text-xs text-dena-deep">اتصال: پس از ورود بررسی می‌شود</p>
+      </div>
+      {!audioOnly && deviceCheck === "ready" && <video ref={previewRef} muted playsInline aria-label="پیش‌نمایش دوربین شما" className="max-h-40 w-full rounded-lg bg-dena-deep object-contain" />}
+    </div>}
     <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-dena-bg px-3 py-2 text-sm" aria-live="polite">
       <span className="font-bold text-dena-deep">{connectionLabel}</span>
       {connected && <span dir="ltr" className="font-mono text-dena-muted">{formatElapsed(elapsedSeconds)}</span>}
