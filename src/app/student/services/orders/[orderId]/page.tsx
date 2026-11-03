@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
@@ -28,6 +29,9 @@ const callStatusLabel = {
 const dateFormatter = new Intl.DateTimeFormat("fa-IR", {
   dateStyle: "full", timeStyle: "short", timeZone: "Asia/Tehran",
 });
+const nextAppointmentFormatter = new Intl.DateTimeFormat("fa-IR", {
+  day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Tehran",
+});
 
 export default async function StudentServiceOrderDetailPage({
   params,
@@ -52,6 +56,48 @@ export default async function StudentServiceOrderDetailPage({
     return <StudentShell active="services" title="جلسه درون دنا" mobileNav="service" mobileServiceActive="orders">
       <div className="mx-auto w-full max-w-[520px] md:max-w-4xl">
         <LiveKitCallRoom callId={nextCall.id} messageHref={`/service-orders/${order.id}/messages`} />
+      </div>
+    </StudentShell>;
+  }
+
+  const completedCall = [...order.calls].reverse().find((call) => call.status === "ended" && call.followUp);
+  if (completedCall?.followUp) {
+    const nextAppointment = order.calls.find((call) => call.status === "scheduled" && call.scheduledAt > new Date());
+    const firstNextStep = completedCall.followUp.nextSteps[0];
+    return <StudentShell active="services" title="خلاصه پیگیری" mobileNav="service" mobileServiceActive="orders">
+      <div className="mx-auto w-full max-w-[520px] space-y-3">
+        <section aria-label="پایان موفق جلسه" className="flex flex-col items-center gap-2 py-1 text-center">
+          <span className="grid size-14 place-items-center rounded-full bg-[#d9f8ef]">
+            <Image src="/figma/student-services/check.svg" alt="" width={26} height={26} />
+          </span>
+          <h2 className="text-lg font-extrabold leading-normal text-dena-deep">جلسه با موفقیت پایان یافت</h2>
+        </section>
+
+        <section aria-label="خلاصه پیگیری" className="space-y-2.5 rounded-xl border border-dena-border bg-white p-4 shadow-[0_8px_12px_rgba(91,76,226,0.08)]">
+          <h3 className="text-[15px] font-extrabold leading-normal text-dena-deep">خلاصه پیگیری</h3>
+          <p className="text-[10px] leading-[1.7] text-dena-deep">{completedCall.followUp.summary}</p>
+
+          {firstNextStep && <div className="flex items-center gap-3 rounded-lg border-r-[3px] border-[#24886b] bg-[#d9f8ef] p-3.5">
+            <div className="min-w-0 flex-1 text-right">
+              <p className="text-xs font-extrabold text-[#24886b]">گام بعدی</p>
+              <p className="mt-1 text-[11px] leading-[1.6] text-dena-deep">{firstNextStep}</p>
+            </div>
+            <Image src="/figma/student-services/check-circle-2.svg" alt="" width={18} height={18} />
+          </div>}
+
+          <div className="flex flex-wrap gap-2">
+            {completedCall.sharedFileCount > 0 && <Link href={`/service-orders/${order.id}/messages`} className="rounded-full bg-[#eae7ff] px-2.5 py-1 text-[11px] font-bold text-dena-brand">
+              {completedCall.sharedFileCount.toLocaleString("fa-IR")} فایل مشترک
+            </Link>}
+            {nextAppointment && <span className="rounded-full bg-[#e8f0ff] px-2.5 py-1 text-[11px] font-bold text-[#3b6eea]">
+              نوبت بعدی: {nextAppointmentFormatter.format(nextAppointment.scheduledAt)}
+            </span>}
+          </div>
+        </section>
+
+        <Link href="/student/growth" className="flex h-12 w-full items-center justify-center rounded-xl bg-dena-brand px-6 py-3 text-sm font-bold text-white">
+          شروع مسیر
+        </Link>
       </div>
     </StudentShell>;
   }

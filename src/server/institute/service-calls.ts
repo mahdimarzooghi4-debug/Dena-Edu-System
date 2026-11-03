@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getDb } from "../../db";
 import {
   auditLogs, instituteServiceCalls, instituteServiceOrders, memberships,
-  serviceCallFollowUps, serviceTimeLedger, verifiedEntities,
+  serviceCallFollowUps, serviceOrderAttachments, serviceTimeLedger, verifiedEntities,
 } from "../../db/schema";
 import { auditLogRecord } from "../admin/audit";
 import type { FinancialJournalTransaction } from "../finance/ledger";
@@ -108,6 +108,14 @@ export async function addInstituteServiceCallSchedules<T extends { id: string }>
   const followUpByCall = new Map(followUps.map((item) => [item.serviceCallId, {
     summary: item.summary, nextSteps: item.nextSteps, publishedAt: item.publishedAt,
   }]));
+  const sharedFiles = await getDb().select({
+    serviceOrderId: serviceOrderAttachments.serviceOrderId,
+    count: sql<number>`count(*)::int`,
+  }).from(serviceOrderAttachments).where(and(
+    inArray(serviceOrderAttachments.serviceOrderId, orders.map((order) => order.id)),
+    eq(serviceOrderAttachments.status, "ready"),
+  )).groupBy(serviceOrderAttachments.serviceOrderId);
+  const sharedFileCountByOrder = new Map(sharedFiles.map((item) => [item.serviceOrderId, item.count]));
   const byOrder = new Map<string, typeof calls>();
   for (const call of calls) byOrder.set(call.serviceOrderId, [
     ...(byOrder.get(call.serviceOrderId) ?? []), call,
@@ -116,6 +124,7 @@ export async function addInstituteServiceCallSchedules<T extends { id: string }>
     ...order,
     calls: (byOrder.get(order.id) ?? []).map((call) => ({
       ...call,
+      sharedFileCount: sharedFileCountByOrder.get(order.id) ?? 0,
       canRecordNoShow: call.status === "scheduled" && call.scheduledAt.getTime() <= Date.now(),
       followUp: followUpByCall.get(call.id) ?? null,
     })),
