@@ -14,6 +14,7 @@ export function LiveKitCallRoom({ callId }: Props) {
   const [deviceCheck, setDeviceCheck] = useState<"idle" | "checking" | "ready" | "audio_only" | "failed">("idle");
   const [confirmed, setConfirmed] = useState(false);
   const [connected, setConnected] = useState(false);
+  const [remoteConnected, setRemoteConnected] = useState(false);
   const [busy, setBusy] = useState(false);
   const [endConfirm, setEndConfirm] = useState(false);
   const [microphoneEnabled, setMicrophoneEnabled] = useState(false);
@@ -115,6 +116,8 @@ export function LiveKitCallRoom({ callId }: Props) {
         videoCaptureDefaults: { resolution: VideoPresets.h360.resolution },
       });
       roomRef.current = room;
+      room.on(RoomEvent.ParticipantConnected, () => setRemoteConnected(true));
+      room.on(RoomEvent.ParticipantDisconnected, () => setRemoteConnected(false));
       room.on(RoomEvent.TrackSubscribed, (track) => {
         const element = track.attach();
         element.className = track.kind === "video"
@@ -133,6 +136,7 @@ export function LiveKitCallRoom({ callId }: Props) {
       });
       room.on(RoomEvent.Disconnected, () => {
         setConnected(false);
+        setRemoteConnected(false);
         setMicrophoneEnabled(false);
         setCameraEnabled(false);
         setConnectedAt(null);
@@ -286,7 +290,7 @@ export function LiveKitCallRoom({ callId }: Props) {
         <div className="relative aspect-video min-h-40 overflow-hidden rounded-xl bg-[#302951]">
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-center">
             <span className="grid size-14 place-items-center rounded-full bg-emerald-400 text-xl font-bold text-[#17132a]">م</span>
-            <span className="text-xs font-semibold">مشاور · {connected ? "در انتظار تصویر" : "هنوز متصل نشده"}</span>
+            <span className="text-xs font-semibold">مشاور · {remoteConnected ? "متصل" : connected ? "در انتظار اتصال مجدد" : "هنوز متصل نشده"}</span>
           </div>
           <div ref={remoteRef} aria-label="تصویر افراد حاضر در جلسه" className="absolute inset-0 overflow-hidden rounded-xl" />
           <span className="absolute start-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-bold text-dena-deep">مشاور</span>
