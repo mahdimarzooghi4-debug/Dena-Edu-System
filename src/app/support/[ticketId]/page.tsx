@@ -22,6 +22,15 @@ const statusLabels: Record<string, string> = {
   resolved: "حل‌شده",
   closed: "بسته",
 };
+function relativeTime(value: Date) {
+  const minutes = Math.max(0, Math.floor((Date.now() - value.getTime()) / 60_000));
+  if (minutes < 1) return "همین حالا";
+  if (minutes < 60) return String(minutes).toLocaleString("fa-IR") + " دقیقه پیش";
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return String(hours).toLocaleString("fa-IR") + " ساعت پیش";
+  return String(Math.floor(hours / 24)).toLocaleString("fa-IR") + " روز پیش";
+}
+
 const priorityLabels: Record<string, string> = {
   low: "پایین", normal: "عادی", high: "بالا", urgent: "فوری",
 };
@@ -54,7 +63,7 @@ export default async function SupportTicketPage({ params }: Props) {
           <div>
             <h2 className="text-xl font-extrabold text-dena-deep">{ticket.subject}</h2>
             <p className="mt-2 text-xs text-dena-muted">
-              ثبت‌شده در {ticket.createdAt.toLocaleString("fa-IR")}
+              ثبت‌شده در {isStudent ? relativeTime(ticket.createdAt) : ticket.createdAt.toLocaleString("fa-IR")}
             </p>
           </div>
           <span className="rounded-full bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800">
@@ -77,16 +86,20 @@ export default async function SupportTicketPage({ params }: Props) {
         </Card>
       )}
 
-      <section aria-label="گفت‌وگوی تیکت" className="space-y-3">
+      <section aria-label="گفت‌وگوی تیکت" className="space-y-4">
         {ticket.messages.map((message) => (
-          <div key={message.id} className={message.fromSupport ? "flex justify-start" : "flex justify-end"}>
-            <Card className={"w-fit max-w-[88%] rounded-[22px] p-4 md:max-w-[76%] " +
-              (message.fromSupport ? "border-dena-border bg-white" : "border-transparent bg-dena-lavender")}>
-              <p className="mb-2 text-xs font-bold text-dena-muted">
-                {message.fromSupport ? "پشتیبانی دنا" : "شما"} · {message.createdAt.toLocaleString("fa-IR")}
+          <div key={message.id} className={message.fromSupport ? "flex items-start justify-end gap-2" : "flex items-start justify-start gap-2"}>
+            {isStudent && <span aria-hidden="true" className={"mt-1 flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white " + (message.fromSupport ? "bg-dena-muted" : "bg-dena-brand")}>{message.fromSupport ? "د" : "ش"}</span>}
+            <div className="min-w-0 max-w-[88%] md:max-w-[76%]">
+              <Card className={"w-fit rounded-[22px] p-4 " +
+                (message.fromSupport ? "border-dena-border bg-white" : "border-transparent bg-dena-lavender")}>
+                {!isStudent && <p className="mb-2 text-xs font-bold text-dena-muted">{message.fromSupport ? "پشتیبانی دنا" : "شما"}</p>}
+                <p className="whitespace-pre-wrap text-sm leading-7">{message.body}</p>
+              </Card>
+              <p className={"mt-2 text-xs text-dena-muted " + (message.fromSupport ? "text-right" : "text-left")}>
+                {isStudent ? (message.fromSupport ? "پشتیبانی دنا" : "شما") + " · " + relativeTime(message.createdAt) : message.createdAt.toLocaleString("fa-IR")}
               </p>
-              <p className="whitespace-pre-wrap text-sm leading-7">{message.body}</p>
-            </Card>
+            </div>
           </div>
         ))}
       </section>
