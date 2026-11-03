@@ -48,6 +48,14 @@ export default async function StudentServiceOrderDetailPage({
     redirect(`/student/services/orders/${order.id}/consent`);
   }
 
+  if (nextCall?.status === "started") {
+    return <StudentShell active="services" title="جلسه درون دنا" mobileNav="service" mobileServiceActive="orders">
+      <div className="mx-auto w-full max-w-[520px] md:max-w-4xl">
+        <LiveKitCallRoom callId={nextCall.id} messageHref={`/service-orders/${order.id}/messages`} />
+      </div>
+    </StudentShell>;
+  }
+
   return <StudentShell active="services" title="جزئیات مشاوره" mobileNav="service" mobileServiceActive="orders">
     <div className="mx-auto w-full max-w-[520px] space-y-3 md:max-w-3xl md:space-y-5">
       <Card className="space-y-4 p-4 md:space-y-5 md:p-6">
@@ -104,9 +112,7 @@ export default async function StudentServiceOrderDetailPage({
         </div>
       </div>
 
-      {order.calls.map((call) => call.status === "started" ? <section id="active-session" key={call.id} className="scroll-mt-20">
-        <LiveKitCallRoom callId={call.id} />
-      </section> : call.followUp ? <section key={call.id} aria-label="خلاصه پیگیری جلسه" className="space-y-3 rounded-2xl border border-dena-border bg-white p-4 md:p-5">
+      {order.calls.map((call) => call.followUp ? <section key={call.id} aria-label="خلاصه پیگیری جلسه" className="space-y-3 rounded-2xl border border-dena-border bg-white p-4 md:p-5">
         <h3 className="text-sm font-extrabold text-dena-deep">خلاصه پیگیری</h3>
         <p className="text-xs leading-6 text-dena-muted">یادداشت خصوصی مشاور نمایش داده نمی‌شود.</p>
         <p className="whitespace-pre-wrap text-sm leading-7 text-dena-ink">{call.followUp.summary}</p>

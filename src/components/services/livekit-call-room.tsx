@@ -1,14 +1,17 @@
 "use client";
 
 import { ConnectionState, Room, RoomEvent, VideoPresets } from "livekit-client";
-import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-type Props = { callId: string };
+type Props = { callId: string; messageHref?: string };
 
-export function LiveKitCallRoom({ callId }: Props) {
+export function LiveKitCallRoom({ callId, messageHref }: Props) {
   const roomRef = useRef<Room | null>(null);
   const localRef = useRef<HTMLDivElement>(null);
   const remoteRef = useRef<HTMLDivElement>(null);
+  const mobileRemoteRef = useRef<HTMLDivElement>(null);
+  const remoteAudioRef = useRef<HTMLDivElement>(null);
   const previewRef = useRef<HTMLVideoElement>(null);
   const previewStreamRef = useRef<MediaStream | null>(null);
   const [deviceCheck, setDeviceCheck] = useState<"idle" | "checking" | "ready" | "audio_only" | "failed">("idle");
@@ -61,6 +64,28 @@ export function LiveKitCallRoom({ callId }: Props) {
       localRef.current.appendChild(element);
     }
   }
+
+  const attachRemoteVideoTracks = useCallback(() => {
+    const room = roomRef.current;
+    if (!room) return;
+    for (const participant of room.remoteParticipants.values()) {
+      for (const publication of participant.videoTrackPublications.values()) {
+        const track = publication.track;
+        if (!track) continue;
+        for (const container of [remoteRef.current, mobileRemoteRef.current]) {
+          if (!container || container.childElementCount > 0) continue;
+          const element = track.attach() as HTMLVideoElement;
+          element.className = "absolute inset-0 h-full w-full object-cover";
+          element.playsInline = true;
+          container.appendChild(element);
+        }
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (connected) attachRemoteVideoTracks();
+  }, [connected, attachRemoteVideoTracks]);
 
   function formatElapsed(seconds: number) {
     return `${Math.floor(seconds / 60).toString().padStart(2, "0")}:${(seconds % 60).toString().padStart(2, "0")}`;
@@ -154,11 +179,13 @@ export function LiveKitCallRoom({ callId }: Props) {
       room.on(RoomEvent.ParticipantConnected, () => setRemoteConnected(true));
       room.on(RoomEvent.ParticipantDisconnected, () => setRemoteConnected(false));
       room.on(RoomEvent.TrackSubscribed, (track) => {
+        if (track.kind === "video") {
+          attachRemoteVideoTracks();
+          return;
+        }
         const element = track.attach();
-        element.className = track.kind === "video"
-          ? "absolute inset-0 h-full w-full rounded-xl object-cover"
-          : "sr-only";
-        if (remoteRef.current) remoteRef.current.appendChild(element);
+        element.className = "sr-only";
+        remoteAudioRef.current?.appendChild(element);
       });
       room.on(RoomEvent.TrackUnsubscribed, (track) => {
         track.detach().forEach((element) => element.remove());
@@ -177,6 +204,8 @@ export function LiveKitCallRoom({ callId }: Props) {
         setConnectedAt(null);
         localRef.current?.replaceChildren();
         remoteRef.current?.replaceChildren();
+        mobileRemoteRef.current?.replaceChildren();
+        remoteAudioRef.current?.replaceChildren();
         if (roomRef.current === room) roomRef.current = null;
       });
       await room.connect(credentials.url, credentials.token);
@@ -233,6 +262,8 @@ export function LiveKitCallRoom({ callId }: Props) {
       roomRef.current = null;
       localRef.current?.replaceChildren();
       remoteRef.current?.replaceChildren();
+      mobileRemoteRef.current?.replaceChildren();
+      remoteAudioRef.current?.replaceChildren();
       setConnected(false);
       setMicrophoneEnabled(false);
       setCameraEnabled(false);
@@ -356,7 +387,39 @@ export function LiveKitCallRoom({ callId }: Props) {
       </div>}
     </div>}
 
-    {connected && <div className="overflow-hidden rounded-[14px] bg-[#17132b] p-3 text-white sm:p-5">
+    {connected && <div className="relative h-[500px] overflow-hidden rounded-2xl bg-[#17132b] p-[14px] text-white md:hidden">
+      <div className="absolute inset-0" ref={mobileRemoteRef} aria-label="تصویر مشاور" />
+      <div className="relative z-10 flex items-center justify-between">
+        <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${connectionLabel === "متصل" ? "bg-[#d9f8ef] text-[#24886b]" : "bg-amber-100 text-amber-900"}`}>{connectionLabel}</span>
+        <span dir="ltr" className="font-mono text-[10px] text-[#d8d5e4]">{formatElapsed(elapsedSeconds)}</span>
+      </div>
+      <div className="absolute inset-x-4 top-1/2 z-10 flex -translate-y-1/2 flex-col items-center gap-2 text-center">
+        <span className="grid size-[90px] place-items-center rounded-full bg-[#3ac9a1] text-3xl font-extrabold text-[#17132b]">م</span>
+        <p className="text-xs font-bold">مشاور مؤسسه</p>
+        <p className="text-[9px] text-[#d8d5e4]">{remoteConnected ? "متصل" : "مشاور تخصیص‌یافته"}</p>
+      </div>
+      <div className="absolute inset-x-[14px] bottom-[14px] z-20 flex items-center justify-center gap-4">
+        <button type="button" onClick={() => void toggleMicrophone()} disabled={busy}
+          aria-label={microphoneEnabled ? "خاموش‌کردن میکروفن" : "روشن‌کردن میکروفن"} aria-pressed={microphoneEnabled}
+          className={`grid size-[42px] place-items-center rounded-full disabled:opacity-50 ${microphoneEnabled ? "bg-white/[0.14] text-white" : "bg-red-500 text-white"}`}>
+          <svg viewBox="0 0 24 24" fill="none" className="size-[18px]" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0 0 14 0M12 17v5m-4 0h8" /></svg>
+        </button>
+        <button type="button" onClick={() => void toggleCamera()} disabled={busy}
+          aria-label={cameraEnabled ? "خاموش‌کردن دوربین" : "روشن‌کردن دوربین"} aria-pressed={cameraEnabled}
+          className={`grid size-[42px] place-items-center rounded-full disabled:opacity-50 ${cameraEnabled ? "bg-white/[0.14] text-white" : "bg-white/[0.14] text-white"}`}>
+          <svg viewBox="0 0 24 24" fill="none" className="size-[18px]" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="5" width="13" height="14" rx="2" /><path d="m16 10 5-3v10l-5-3" /></svg>
+        </button>
+        {messageHref && <Link href={messageHref} aria-label="پیام مشاور" className="grid size-[42px] place-items-center rounded-full bg-white/[0.14] text-white">
+          <svg viewBox="0 0 24 24" fill="none" className="size-[18px]" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 8.7 3.9a8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z" /></svg>
+        </Link>}
+        <button type="button" onClick={() => setEndConfirm(true)} aria-label="پایان تماس"
+          className="grid size-[42px] place-items-center rounded-full bg-[#ef4444] text-white">
+          <svg viewBox="0 0 24 24" fill="none" className="size-[18px]" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.4 19.4 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7l.5 2.7a2 2 0 0 1-.6 1.8L7.7 9.5a16 16 0 0 0 6.8 6.8l1.3-1.3a2 2 0 0 1 1.8-.6l2.7.5a2 2 0 0 1 1.7 2z" /><path d="m4 4 16 16" /></svg>
+        </button>
+      </div>
+    </div>}
+
+    {connected && <div className="hidden overflow-hidden rounded-[14px] bg-[#17132b] p-3 text-white sm:p-5 md:block">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div><p className="text-sm font-extrabold">جلسهٔ مشاوره در دنا</p><p className="mt-1 text-xs text-white/60">تماس امن در همین محیط</p></div>
         <div className="flex items-center gap-2">
@@ -402,6 +465,7 @@ export function LiveKitCallRoom({ callId }: Props) {
       </div>
       {message && <p role="status" className="mt-3 text-sm leading-6 text-white/80">{message}</p>}
     </div>}
+    <div ref={remoteAudioRef} className="sr-only" aria-hidden="true" />
     {connected && endConfirm && <div role="alertdialog" aria-labelledby={`end-call-title-${callId}`}
       aria-describedby={`end-call-description-${callId}`} className="space-y-3 rounded-xl border border-amber-300 bg-amber-50 p-4">
       <h6 id={`end-call-title-${callId}`} className="font-bold text-dena-deep">پایان جلسه برای هر دو نفر؟</h6>
