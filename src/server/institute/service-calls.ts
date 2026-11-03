@@ -92,6 +92,7 @@ export async function addInstituteServiceCallSchedules<T extends { id: string }>
     serviceOrderId: instituteServiceCalls.serviceOrderId,
     scheduledAt: instituteServiceCalls.scheduledAt,
     status: instituteServiceCalls.status,
+    connectedSeconds: instituteServiceCalls.connectedSeconds,
   }).from(instituteServiceCalls).where(inArray(
     instituteServiceCalls.serviceOrderId, orders.map((order) => order.id),
   )).orderBy(asc(instituteServiceCalls.scheduledAt), asc(instituteServiceCalls.id));
