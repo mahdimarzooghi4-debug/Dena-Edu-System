@@ -48,34 +48,32 @@ export function CourseConversationComposer({
   }
 
   return (
-    <div className="space-y-3">
+    <section aria-label="ارسال پیام در گفت‌وگو" className="rounded-[22px] border border-dena-border bg-white p-3">
       <label className="block">
         <span className="sr-only">پیام خود را بنویسید</span>
         <textarea
           value={body}
           onChange={(event) => setBody(event.target.value)}
           maxLength={4000}
-          rows={4}
+          rows={2}
           placeholder="پیام خود را بنویسید..."
-          className="w-full resize-y rounded-2xl border border-dena-border bg-white px-4 py-3 text-sm leading-7 outline-none focus:border-dena-brand"
+          className="min-h-12 w-full resize-y rounded-xl bg-transparent px-2 py-1 text-sm leading-6 outline-none placeholder:text-dena-muted focus:ring-1 focus:ring-dena-brand"
         />
       </label>
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-xs text-dena-muted">
-          فقط برای ارتباط آموزشی در چارچوب همین دوره
+      <div className="mt-2 flex items-center justify-between gap-3 border-t border-dena-border pt-2">
+        <p className="text-[10px] leading-5 text-dena-muted">
+          گفت‌وگو فقط در چارچوب همین دوره است.
         </p>
         <Button
           type="button"
           disabled={busy || body.trim().length === 0}
           onClick={() => void submit()}
-          className="disabled:opacity-50"
+          className="min-h-10 w-[108px] shrink-0 disabled:opacity-50"
         >
           {busy ? "در حال ارسال…" : "ارسال"}
         </Button>
       </div>
-      <div role="status" aria-live="polite" className="text-sm text-red-700">
-        {message}
-      </div>
-    </div>
+      {message && <p role="status" aria-live="polite" className="mt-2 text-sm text-red-700">{message}</p>}
+    </section>
   );
 }
