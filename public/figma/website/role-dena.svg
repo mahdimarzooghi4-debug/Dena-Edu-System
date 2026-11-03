@@ -1,0 +1,38 @@
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="48" height="48" fill="#F5F5F5"/>
+<g id="dena-homepage-desktop">
+<rect width="1440" height="5858" transform="translate(-696 -3933)" fill="#F7F6FB"/>
+<g id="Ecosystem Section">
+<rect width="1440" height="855" transform="translate(-696 -610)" fill="white"/>
+<g id="Ecosystem Network">
+<g id="Dena Node" filter="url(#filter0_d_39_3)">
+<rect x="-136" y="-40" width="320" height="213" rx="24" fill="#F7F6FB" shape-rendering="crispEdges"/>
+<rect x="-135" y="-39" width="318" height="211" rx="23" stroke="#5B4CE2" stroke-width="2" shape-rendering="crispEdges"/>
+<g id="Dena Icon">
+<rect x="-8" y="-8" width="64" height="64" rx="32" fill="#F3EEFF"/>
+<g id="Approved Dena Symbol / Ecosystem">
+<path id="Vector" d="M36.9 32.4C38.7 27.3 37.8 21.9 34.5 17.7C31.8 14.4 28.2 12.9 24.6 12.9" stroke="#5B4CE2" stroke-width="3.71831" stroke-linecap="round"/>
+<path id="Vector_2" d="M37.7999 32.4L31.1999 24.6L25.4999 28.8L17.9999 18L9.29993 32.4" stroke="#5B4CE2" stroke-width="4.05634" stroke-linecap="round" stroke-linejoin="round"/>
+<path id="Vector_3" d="M36.8999 32.4C29.9999 36.9 16.7999 36.9 9.29993 32.4" stroke="#5B4CE2" stroke-width="4.05634" stroke-linecap="round"/>
+<path id="Vector_4" d="M36.9001 35.1C38.3912 35.1 39.6001 33.8911 39.6001 32.4C39.6001 30.9088 38.3912 29.7 36.9001 29.7C35.4089 29.7 34.2001 30.9088 34.2001 32.4C34.2001 33.8911 35.4089 35.1 36.9001 35.1Z" fill="#42CFA7"/>
+<path id="Vector_5" d="M18 21C19.6569 21 21 19.6569 21 18C21 16.3431 19.6569 15 18 15C16.3431 15 15 16.3431 15 18C15 19.6569 16.3431 21 18 21Z" fill="#42CFA7"/>
+<path id="Vector_6" d="M9.29998 35.1C10.7911 35.1 12 33.8911 12 32.4C12 30.9088 10.7911 29.7 9.29998 29.7C7.80881 29.7 6.59998 30.9088 6.59998 32.4C6.59998 33.8911 7.80881 35.1 9.29998 35.1Z" fill="#5B4CE2"/>
+</g>
+</g>
+</g>
+</g>
+</g>
+</g>
+<defs>
+<filter id="filter0_d_39_3" x="-160" y="-52" width="368" height="261" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+<feOffset dy="12"/>
+<feGaussianBlur stdDeviation="12"/>
+<feComposite in2="hardAlpha" operator="out"/>
+<feColorMatrix type="matrix" values="0 0 0 0 0.207843 0 0 0 0 0.168627 0 0 0 0 0.407843 0 0 0 0.101961 0"/>
+<feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_39_3"/>
+<feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_39_3" result="shape"/>
+</filter>
+</defs>
+</svg>
