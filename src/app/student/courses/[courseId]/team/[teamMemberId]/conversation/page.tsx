@@ -6,7 +6,10 @@ import { Card } from "@/components/ui/card";
 import { CourseConversationComposer } from "@/components/student/course-conversation-composer";
 import { StudentShell } from "@/components/student/student-shell";
 import { getServerAccessContext } from "@/server/access/actor";
-import { getStudentCourseConversation } from "@/server/student/course-conversation";
+import {
+  getStudentCourseConversation,
+  getStudentCourseConversationCourseTitle,
+} from "@/server/student/course-conversation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,6 +22,14 @@ function roleLabel(role: "teacher" | "academic_supporter" | "counselor") {
   if (role === "teacher") return "مدرس";
   if (role === "academic_supporter") return "پشتیبان تحصیلی";
   return "مشاور";
+}
+
+function messageTime(value: Date) {
+  return value.toLocaleTimeString("fa-IR", {
+    timeZone: "Asia/Tehran",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 export default async function CourseConversationPage({
@@ -37,80 +48,66 @@ export default async function CourseConversationPage({
   if (!z.uuid().safeParse(courseId).success ||
       !z.uuid().safeParse(teamMemberId).success) notFound();
 
-  const conversation = await getStudentCourseConversation(
-    actor.userId, courseId, teamMemberId,
-  );
-  if (!conversation) notFound();
+  const [conversation, courseTitle] = await Promise.all([
+    getStudentCourseConversation(actor.userId, courseId, teamMemberId),
+    getStudentCourseConversationCourseTitle(actor.userId, courseId),
+  ]);
+  if (!conversation || !courseTitle) notFound();
 
   const label = roleLabel(conversation.member.role);
 
   return (
     <StudentShell active="courses" title="گفت‌وگوی دوره">
-      <div className="space-y-6">
+      <div className="mx-auto max-w-2xl space-y-4">
         <Link
           href={`/student/courses/${courseId}/team/${teamMemberId}`}
-          className="text-sm font-bold text-dena-brand hover:underline"
+          className="hidden text-sm font-bold text-dena-brand hover:underline md:inline-flex"
         >
           بازگشت به {label}
         </Link>
 
-        <Card className="rounded-[22px] p-5 md:p-7">
-          <p className="text-xs font-bold text-dena-brand">{label}</p>
-          <h2 className="mt-1 text-xl font-extrabold">
-            {conversation.member.name}
+        <Card className="rounded-[22px] px-5 py-3.5">
+          <h2 className="text-lg font-extrabold text-dena-deep">
+            {conversation.member.name} — {label}
           </h2>
-          <p className="mt-2 text-xs leading-6 text-dena-muted">
-            این گفت‌وگو فقط برای ارتباط آموزشی در چارچوب همین دوره است.
-          </p>
+          <p className="mt-1 text-sm text-dena-muted">{courseTitle}</p>
         </Card>
 
-        <Card className="rounded-[22px] p-4 md:p-6">
-          <section
-            aria-label="پیام‌های گفت‌وگو"
-            className="flex min-h-[280px] flex-col gap-3"
-          >
-            {conversation.messages.length === 0 ? (
-              <div className="m-auto max-w-sm text-center">
-                <p className="font-bold">هنوز پیامی در این گفت‌وگو نیست.</p>
-                <p className="mt-2 text-sm leading-7 text-dena-muted">
-                  اولین پیام را می‌توانی از همین صفحه ارسال کنی.
-                </p>
-              </div>
-            ) : (
-              conversation.messages.map((message) => (
+        {conversation.messages.length === 0 ? (
+          <Card className="flex min-h-36 items-center justify-center rounded-[22px] p-5 text-center">
+            <p className="text-sm font-bold text-dena-muted">هنوز پیامی در این گفت‌وگو نیست.</p>
+          </Card>
+        ) : (
+          <section aria-label="پیام‌های گفت‌وگو" className="flex min-h-44 flex-col gap-4 py-1">
+            {conversation.messages.map((message) => {
+              const fromStudent = message.sender === "student";
+              return (
                 <article
                   key={message.id}
                   className={
-                    "max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-7 " +
-                    (message.sender === "student"
-                      ? "self-start bg-dena-brand text-white"
-                      : "self-end border border-dena-border bg-dena-bg text-dena-ink")
+                    "max-w-[78%] rounded-[20px] px-4 py-3 text-sm leading-7 " +
+                    (fromStudent
+                      ? "self-start bg-dena-lavender text-dena-deep"
+                      : "self-end border border-dena-border bg-white text-dena-ink")
                   }
                 >
-                  <p>{message.body}</p>
+                  <p className="whitespace-pre-wrap">{message.body}</p>
                   <time
                     dateTime={message.createdAt.toISOString()}
-                    className={
-                      "mt-2 block text-[11px] " +
-                      (message.sender === "student"
-                        ? "text-white/75"
-                        : "text-dena-muted")
-                    }
+                    className="mt-1 block text-[10px] leading-4 text-dena-muted"
                   >
-                    {message.createdAt.toLocaleString("fa-IR")}
+                    {messageTime(message.createdAt)}
                   </time>
                 </article>
-              ))
-            )}
+              );
+            })}
           </section>
+        )}
 
-          <div className="mt-5 border-t border-dena-border pt-5">
-            <CourseConversationComposer
-              courseId={courseId}
-              teamMemberId={teamMemberId}
-            />
-          </div>
-        </Card>
+        <CourseConversationComposer
+          courseId={courseId}
+          teamMemberId={teamMemberId}
+        />
       </div>
     </StudentShell>
   );
