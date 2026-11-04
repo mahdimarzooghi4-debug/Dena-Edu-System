@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { getExamReport } from "../../server/assessments/exam-management";
 import { Card } from "../ui/card";
+import { ExamStatusAction } from "./exam-status-action";
 
 type Report = NonNullable<Awaited<ReturnType<typeof getExamReport>>>;
 const date = (value: Date | null) => value
@@ -45,9 +46,14 @@ export function ExamReport({ report, backHref }: {
             {date(exam.startsAt)} · {exam.durationMinutes.toLocaleString("fa-IR")} دقیقه ·
             {" "}{exam.questionCount.toLocaleString("fa-IR")} سؤال
           </p></div>
-        <span className="rounded-full bg-dena-lavender px-3 py-2 text-sm font-bold text-dena-brand">
-          {exam.status === "draft" ? "پیش‌نویس" : exam.status === "published" ? "منتشرشده" : "لغوشده"}
-        </span>
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="rounded-full bg-dena-lavender px-3 py-2 text-sm font-bold text-dena-brand">
+            {exam.status === "draft" ? "پیش‌نویس" : exam.status === "published" ? "منتشرشده" : "لغوشده"}
+          </span>
+          <ExamStatusAction id={exam.id}
+            role={backHref.startsWith("/admin") ? "admin" : "institute"}
+            status={exam.status} />
+        </div>
       </div>
     </header>
 
