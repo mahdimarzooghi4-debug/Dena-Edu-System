@@ -27,7 +27,7 @@ export function TicketCreateForm({ returnTo = "/support" }: { returnTo?: string 
       });
       const result = await response.json() as { ticket?: { id: string } };
       if (!response.ok || !result.ticket?.id) throw new Error();
-      router.push(`${returnTo.replace(/\\/$/, "")}/${result.ticket.id}`);
+      router.push(`${returnTo}/${result.ticket.id}`);
       router.refresh();
     } catch {
       setError("ثبت درخواست انجام نشد؛ ورودی‌ها را بررسی و دوباره تلاش کنید.");
