@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { getServerAccessContext } from "../../../../server/access/actor";
+import { z } from "zod";
 import { getInstituteInstructorDetail } from "../../../../server/institute/course-team";
 
 export const runtime = "nodejs";
@@ -30,6 +31,7 @@ export default async function InstituteInstructorDetailPage({
   if (!instituteIds.length) notFound();
 
   const [{ teamMemberId }, query] = await Promise.all([params, searchParams]);
+  if (!z.uuid().safeParse(teamMemberId).success) notFound();
   const detail = await getInstituteInstructorDetail(instituteIds, teamMemberId);
   if (!detail) notFound();
   const tab = query.tab === "recordings" ? "recordings" : "courses";
