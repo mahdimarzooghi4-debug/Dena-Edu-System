@@ -41,7 +41,7 @@ export default async function InstituteStudentsPage({
     getInstituteDashboardCourses(instituteIds),
     getInstituteStudents(instituteIds),
   ]);
-  const courses = courseResult.courses;
+  const courses = courseResult.courses.filter((course) => course.supervisionStatus === "approved");
   if (selectedCourseId && !courses.some((course) => course.courseId === selectedCourseId)) {
     notFound();
   }
