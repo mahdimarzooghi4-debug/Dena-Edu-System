@@ -242,5 +242,5 @@ export async function getInstituteStudents(instituteIds: readonly string[]) {
     }
     byStudent.set(row.studentId, student);
   }
-  return [...byStudent.values()].slice(0, 5000).map(({ courseIds: _courseIds, ...student }) => student);
+  return [...byStudent.values()].slice(0, 5000).map((student) => ({ ...student, courseIds: [...student.courseIds] }));
 }
