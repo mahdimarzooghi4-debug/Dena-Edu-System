@@ -37,7 +37,7 @@ const assessmentLabels = {
 
 export default async function InstituteCoursesPage({
   searchParams,
-}: { searchParams: Promise<{ cursor?: string; query?: string }> }) {
+}: { searchParams: Promise<{ cursor?: string; query?: string; status?: string }> }) {
   if (!process.env.DATABASE_URL || !process.env.BETTER_AUTH_SECRET ||
       !process.env.BETTER_AUTH_URL) redirect("/login");
   const actor = await getServerAccessContext();
@@ -46,129 +46,98 @@ export default async function InstituteCoursesPage({
     membership.role === "institute" ? [membership.instituteId] : []))];
   if (!instituteIds.length) notFound();
 
-  const { cursor, query: rawQuery } = await searchParams;
+  const { cursor, query: rawQuery, status: rawStatus } = await searchParams;
   const query = rawQuery?.trim() ?? "";
+  const status = ["published", "draft", "archived"].includes(rawStatus ?? "")
+    ? rawStatus ?? ""
+    : "";
   const result = await getInstituteDashboardCourses(instituteIds, cursor);
   if (result.invalidCursor) notFound();
-  const courses = query
-    ? result.courses.filter((course) => course.title.toLocaleLowerCase("fa-IR")
-      .includes(query.toLocaleLowerCase("fa-IR")))
-    : result.courses;
+  const courses = result.courses.filter((course) =>
+    (!query || course.title.toLocaleLowerCase("fa-IR")
+      .includes(query.toLocaleLowerCase("fa-IR"))) &&
+    (!status || course.publicationStatus === status));
 
   return (
-    <main id="main-content" className="mx-auto min-h-screen max-w-5xl space-y-8 px-5 py-8 md:px-10 md:py-12">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <Link href="/institute" className="text-sm font-bold text-dena-brand hover:underline">
-          بازگشت به خانهٔ مؤسسه
-        </Link>
-        <Link href="/institute/providers" className={buttonClassName("secondary")}>
-          بررسی درخواست‌های نظارت
-        </Link>
+    <main id="main-content" dir="rtl" className="min-h-screen bg-[#f8f7fc]">
+      <header className="flex min-h-[72px] items-center justify-between gap-4 border-b border-[#e5e1ed] bg-white px-5 py-4 md:px-8">
+        <h1 className="text-xl font-extrabold text-[#1e1a33]">دوره‌ها</h1>
+        <div className="flex items-center gap-3">
+          <form action="/institute/courses" method="get" role="search" className="hidden w-[280px] items-center gap-2 rounded-lg border border-[#e5e1ed] bg-[#f8f7fc] px-4 py-2 sm:flex">
+            <span aria-hidden="true" className="text-[#7e7a94]">⌕</span>
+            <input name="query" type="search" defaultValue={query} aria-label="جست‌وجو در دوره‌ها" placeholder="جستجو..." className="min-w-0 flex-1 bg-transparent text-right text-sm outline-none placeholder:text-[#7e7a94]" />
+          </form>
+          <Link href="/account" className="rounded-lg border border-[#e5e1ed] bg-[#f8f7fc] px-4 py-2 text-sm font-bold text-[#382973] hover:bg-[#eeeaff]">حساب من</Link>
+        </div>
       </header>
-
-      <section className="rounded-[20px] bg-dena-lavender px-6 py-7 md:px-8">
-        <p className="text-sm font-bold text-dena-brand">مؤسسهٔ دنا</p>
-        <h1 className="mt-2 text-[27px] font-extrabold leading-relaxed text-dena-deep md:text-[31px]">
-          دوره‌های تحت نظارت من
-        </h1>
-        <p className="mt-2 max-w-3xl text-sm leading-8 text-dena-muted">
-          دوره‌های تحت نظارت و دوره‌های متعلق به مؤسسه در محدودهٔ فعال شما نمایش داده می‌شوند.
-          آمار ارزیابی‌ها از داده‌های همان صفحه محاسبه می‌شود.
-        </p>
-      </section>
-
-      <section aria-labelledby="institute-course-list" className="space-y-4">
-        <SectionHeading id="institute-course-list" note="۲۰ دوره در هر صفحه">
-          دوره‌ها و وضعیت‌ها
-        </SectionHeading>
-        {courses.length === 0 ? (
-          <Card className="space-y-3">
-            <h2 className="font-extrabold">دوره‌ای برای نمایش نیست</h2>
-            <p className="text-sm leading-7 text-dena-muted">
-              دوره پس از ثبت درخواست نظارت یا انتقال مالکیت به مؤسسه در این فهرست ظاهر می‌شود.
-            </p>
-            <Link href="/institute/providers" className={buttonClassName()}>
-              رفتن به صف نظارت
-            </Link>
-          </Card>
-        ) : (
-          <ul className="grid gap-4 md:grid-cols-2">
-            {courses.map((course) => (
-              <li key={course.courseId}>
-                <Card className="h-full space-y-3 p-6">
-                  <h2 className="text-lg font-extrabold leading-8">{course.title}</h2>
-                  <div className="flex flex-wrap items-center gap-2 text-sm text-dena-muted">
-                    {course.providerName && <>
-                      <span>{course.providerName}</span>
-                      {course.providerCollaborationApproved && <VerificationBadge kind="provider" />}
-                    </>}
-                    {course.ownerType === "independent_educator" && course.independentEducatorName && <>
-                      <span>{course.independentEducatorName}</span>
-                      <VerificationBadge kind="independent-educator" />
-                    </>}
-                    {course.ownerType === "institute" && <span>مالک دوره: مؤسسه</span>}
-                    <span>{course.instituteName}</span>
-                    <VerificationBadge kind="institute" />
-                  </div>
-                  <p className="text-sm font-semibold">
-                    نظارت: {supervisionLabels[course.supervisionStatus]}
-                  </p>
-                  <p className="text-sm text-dena-muted">
-                    انتشار: {publicationLabels[course.publicationStatus]}
-                  </p>
-                  <p className="text-sm text-dena-muted">
-                    ویدئوهای آماده: {course.readyVideos.toLocaleString("fa-IR")}
-                  </p>
-                  <p className="text-sm text-dena-muted">
-                    سؤال تمرینی: {practiceLabels[course.practiceReviewStatus]}
-                  </p>
-                  <div className="space-y-1 rounded-xl bg-dena-bg p-4 text-sm">
-                    <p className="font-bold">ارزیابی‌های یادگیری</p>
-                    <dl>
-                      {Object.entries(course.learningAssessmentReviews).map(([status, total]) => (
-                        <div key={status} className="flex justify-between gap-3">
-                          <dt className="text-dena-muted">
-                            {assessmentLabels[status as keyof typeof assessmentLabels]}
-                          </dt>
-                          <dd className="font-bold">{total.toLocaleString("fa-IR")}</dd>
-                        </div>
-                      ))}
-                    </dl>
-                  </div>
-                  <Link href={`/institute/courses/${course.courseId}`}
-                    className={buttonClassName()}>
-                    جزئیات همین دوره
-                  </Link>
-                  {course.supervisionStatus === "requested" && (
-                    <Link href="/institute/providers" className={buttonClassName("secondary")}>
-                      رفتن به صف تصمیم نظارت
-                    </Link>
-                  )}
-                  {course.supervisionStatus === "approved" && (
-                    <Link href={`/institute/courses/${course.courseId}/assessments`}
-                      className={buttonClassName("secondary")}>
-                      بازبینی ارزیابی‌های یادگیری
-                    </Link>
-                  )}
-                </Card>
-              </li>
-            ))}
-          </ul>
-        )}
+      <div className="space-y-6 p-5 md:p-8">
+        <section aria-labelledby="courses-heading" className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 id="courses-heading" className="text-lg font-extrabold text-[#1e1a33]">مدیریت دوره‌ها</h2>
+            <p className="mt-1 text-sm text-[#7e7a94]">دوره‌های مرتبط با عضویت فعال مؤسسه و وضعیت نظارت آن‌ها</p>
+          </div>
+          <button type="button" disabled title="ایجاد دوره در این پنل هنوز فعال نشده است" className="inline-flex min-h-10 cursor-not-allowed items-center gap-2 rounded-lg bg-[#5b4ce2]/50 px-4 py-2 text-sm font-bold text-white">
+            <span aria-hidden="true">＋</span>ایجاد دوره
+          </button>
+        </section>
+        <form action="/institute/courses" method="get" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#e5e1ed] bg-white p-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <label htmlFor="course-status" className="text-sm font-bold text-[#1e1a33]">وضعیت انتشار</label>
+            <select id="course-status" name="status" defaultValue={status} className="min-h-10 rounded-lg border border-[#e5e1ed] bg-[#f8f7fc] px-3 text-sm text-[#1e1a33]">
+              <option value="">همه وضعیت‌ها</option><option value="published">منتشرشده</option><option value="draft">پیش‌نویس</option><option value="archived">بایگانی‌شده</option>
+            </select>
+            {query && <input type="hidden" name="query" value={query} />}
+            <button type="submit" className={buttonClassName("secondary")}>اعمال فیلتر</button>
+          </div>
+          <p className="text-xs text-[#7e7a94]">هر صفحه حداکثر ۲۰ دوره را نشان می‌دهد.</p>
+        </form>
+        <section aria-label="فهرست دوره‌ها" className="overflow-hidden rounded-xl border border-[#e5e1ed] bg-white">
+          {courses.length === 0 ? (
+            <div className="space-y-3 p-6">
+              <h3 className="font-extrabold text-[#1e1a33]">{query || status ? "دوره‌ای با این فیلترها پیدا نشد" : "دوره‌ای برای نمایش نیست"}</h3>
+              <p className="text-sm leading-7 text-[#7e7a94]">{query || status ? "عبارت جست‌وجو یا وضعیت انتشار را تغییر دهید." : "دوره پس از ثبت درخواست نظارت یا انتقال مالکیت به مؤسسه در این فهرست ظاهر می‌شود."}</p>
+              {!query && !status && <Link href="/institute/providers" className={buttonClassName()}>رفتن به صف نظارت</Link>}
+            </div>
+          ) : (
+            <>
+              <div className="hidden overflow-x-auto md:block">
+                <table className="w-full min-w-[920px] border-collapse text-right">
+                  <thead className="bg-[#f8f7fc] text-[13px] text-[#7e7a94]"><tr>
+                    <th className="px-5 py-4 font-bold">نام دوره</th><th className="px-5 py-4 font-bold">مدرس / ارائه‌دهنده</th><th className="px-5 py-4 font-bold">ویدئوهای آماده</th><th className="px-5 py-4 font-bold">ثبت‌نام فعال</th><th className="px-5 py-4 font-bold">وضعیت</th><th className="px-5 py-4 font-bold">درخواست نظارت</th><th className="px-5 py-4 font-bold">عملیات</th>
+                  </tr></thead>
+                  <tbody className="divide-y divide-[#e5e1ed] text-[13px] text-[#1e1a33]">
+                    {courses.map((course) => <tr key={course.courseId} className="hover:bg-[#fbfaff]">
+                      <td className="px-5 py-4 font-bold">{course.title}</td>
+                      <td className="px-5 py-4">{course.independentEducatorName ?? course.providerName ?? "—"}</td>
+                      <td className="px-5 py-4">{course.readyVideos.toLocaleString("fa-IR")}</td>
+                      <td className="px-5 py-4">{course.activeEnrollmentCount.toLocaleString("fa-IR")}</td>
+                      <td className="px-5 py-4"><span className={course.publicationStatus === "published" ? "rounded bg-[#e6f7f0] px-2 py-1 text-xs font-bold text-[#24845a]" : "rounded bg-[#fff3df] px-2 py-1 text-xs font-bold text-[#b7791f]"}>{publicationLabels[course.publicationStatus]}</span></td>
+                      <td className="px-5 py-4">{supervisionLabels[course.supervisionStatus]}</td>
+                      <td className="px-5 py-4"><Link href={`/institute/courses/${course.courseId}`} className="font-bold text-[#5b4ce2] hover:underline">جزئیات</Link></td>
+                    </tr>)}
+                  </tbody>
+                </table>
+              </div>
+              <ul className="space-y-3 p-4 md:hidden">
+                {courses.map((course) => <li key={course.courseId}>
+                  <Card className="space-y-3">
+                    <div className="flex items-start justify-between gap-3"><h3 className="font-extrabold leading-7 text-[#1e1a33]">{course.title}</h3><span className="rounded bg-[#f8f7fc] px-2 py-1 text-xs text-[#7e7a94]">{publicationLabels[course.publicationStatus]}</span></div>
+                    <p className="text-sm text-[#7e7a94]">{course.independentEducatorName ?? course.providerName ?? "ارائه‌دهنده نامشخص"}</p>
+                    <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-[#7e7a94]"><span>{course.readyVideos.toLocaleString("fa-IR")} ویدئوی آماده</span><span>{course.activeEnrollmentCount.toLocaleString("fa-IR")} ثبت‌نام فعال</span></div>
+                    <p className="text-xs leading-6 text-[#7e7a94]">{supervisionLabels[course.supervisionStatus]}</p>
+                    <Link href={`/institute/courses/${course.courseId}`} className={buttonClassName()}>جزئیات دوره</Link>
+                  </Card>
+                </li>)}
+              </ul>
+            </>
+          )}
+        </section>
         <nav className="flex flex-wrap justify-between gap-3" aria-label="صفحه‌بندی دوره‌ها">
-          {cursor && (
-            <Link href="/institute/courses" className={buttonClassName("secondary")}>
-              صفحهٔ نخست
-            </Link>
-          )}
-          {!query && result.nextCursor && (
-            <Link href={`/institute/courses?cursor=${encodeURIComponent(result.nextCursor)}`}
-              className={buttonClassName("secondary")}>
-              دوره‌های بعدی
-            </Link>
-          )}
+          {cursor && <Link href="/institute/courses" className={buttonClassName("secondary")}>صفحهٔ نخست</Link>}
+          {!query && !status && result.nextCursor && <Link href={`/institute/courses?cursor=${encodeURIComponent(result.nextCursor)}`} className={buttonClassName("secondary")}>دوره‌های بعدی</Link>}
         </nav>
-      </section>
+        <p className="text-xs leading-6 text-[#7e7a94]">شمار ثبت‌نام‌ها تعداد عضویت‌های فعال است و الزاماً معادل تعداد دانش‌آموزان یکتا نیست.</p>
+      </div>
     </main>
   );
 }
