@@ -4,7 +4,7 @@ import { getServerAccessContext } from "../../../../../server/access/actor";
 import { validSameOrigin } from "../../../../../server/access/role-application-contracts";
 import {
   InstituteQuestionBankError, instituteQuestionInput,
-  updateInstituteQuestion,
+  updateInstituteQuestion, deleteInstituteQuestion,
 } from "../../../../../server/institute/question-bank";
 
 export const runtime = "nodejs";
@@ -42,6 +42,33 @@ export async function PATCH(request: NextRequest, params: Params) {
         status: error.kind === "scope_unavailable" ? 404 : 422,
         headers: noStore,
       });
+    }
+    throw error;
+  }
+}
+
+
+export async function DELETE(request: NextRequest, params: Params) {
+  if (!validSameOrigin(request.headers.get("origin"))) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403, headers: noStore });
+  }
+  const actor = await getServerAccessContext();
+  if (!actor) return NextResponse.json({ error: "Unauthorized" }, {
+    status: 401, headers: noStore,
+  });
+  if (!actor.memberships.some((item) => item.role === "institute")) {
+    return NextResponse.json({ error: "Not found" }, { status: 404, headers: noStore });
+  }
+  const { questionId } = await params.params;
+  if (!z.uuid().safeParse(questionId).success) {
+    return NextResponse.json({ error: "Not found" }, { status: 404, headers: noStore });
+  }
+  try {
+    const question = await deleteInstituteQuestion(actor.userId, questionId);
+    return NextResponse.json({ deleted: question.id }, { headers: noStore });
+  } catch (error) {
+    if (error instanceof InstituteQuestionBankError) {
+      return NextResponse.json({ error: "Not found" }, { status: 404, headers: noStore });
     }
     throw error;
   }
