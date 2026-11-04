@@ -34,6 +34,7 @@ export const auditActions = [
   "course.learning_assessment.rejected",
   "institute.assessment.question.created",
   "institute.assessment.question.updated",
+  "institute.assessment.question.deleted",
   "admin.dena_question.created",
   "admin.dena_question.updated",
   "institute.exam.created",
