@@ -73,7 +73,7 @@ export default async function InstituteSupportPage({
                 <h2 className="text-xl font-bold text-[#1e1a33]">ثبت درخواست جدید پشتیبانی</h2>
                 <p className="text-sm leading-7 text-[#6d6880]">موضوع و شرح مشکل را بنویسید تا تیم دنا بتواند پیگیری کند.</p>
               </header>
-              <TicketCreateForm returnTo="/institute/support" />
+              <TicketCreateForm returnTo="/institute/support" ticketPathPrefix="/support" />
             </Card>
           </div>
         </div>
