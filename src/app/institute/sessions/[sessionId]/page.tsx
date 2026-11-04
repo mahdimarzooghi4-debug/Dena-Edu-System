@@ -68,8 +68,8 @@ export default async function InstituteSessionDetailPage({
             <p className="mt-2 text-sm text-[#7e7a94]">{course.title}</p>
           </div>
           <div className="flex items-center gap-2">
-            <button type="button" disabled title="ویرایش جلسه هنوز در API این پنل پشتیبانی نمی‌شود"
-              className="cursor-not-allowed rounded-lg bg-[#5b4ce2]/50 px-4 py-2 text-sm font-bold text-white">ویرایش جلسه</button>
+            <Link href={`/institute/sessions/${sessionId}/edit?courseId=${courseId}`}
+              className="rounded-lg bg-[#5b4ce2] px-4 py-2 text-sm font-bold text-white hover:bg-[#493bc7]">ویرایش جلسه</Link>
             <Link href={`/institute/sessions?courseId=${courseId}`}
               className="rounded-lg border border-[#e5e1ed] bg-white px-4 py-2 text-sm font-bold text-[#382973] hover:bg-[#eeeaff]">بازگشت به لیست</Link>
           </div>
