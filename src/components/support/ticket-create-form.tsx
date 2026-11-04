@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "../ui/button";
 
-export function TicketCreateForm({ returnTo = "/support" }: { returnTo?: string }) {
+export function TicketCreateForm({ returnTo = "/support", ticketPathPrefix = "/support" }: { returnTo?: string; ticketPathPrefix?: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -27,7 +27,7 @@ export function TicketCreateForm({ returnTo = "/support" }: { returnTo?: string 
       });
       const result = await response.json() as { ticket?: { id: string } };
       if (!response.ok || !result.ticket?.id) throw new Error();
-      router.push(`${returnTo}/${result.ticket.id}`);
+      router.push(`${ticketPathPrefix}/${result.ticket.id}`);
       router.refresh();
     } catch {
       setError("ثبت درخواست انجام نشد؛ ورودی‌ها را بررسی و دوباره تلاش کنید.");
