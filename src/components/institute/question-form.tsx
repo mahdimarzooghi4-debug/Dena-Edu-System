@@ -39,6 +39,7 @@ export function InstituteQuestionForm({ courses, question }: {
   ]);
   const [correctOption, setCorrectOption] = useState(question?.correctOption ?? 0);
   const [busy, setBusy] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [message, setMessage] = useState("");
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -70,6 +71,32 @@ export function InstituteQuestionForm({ courses, question }: {
       setMessage("ارتباط با سرور برقرار نشد؛ دوباره تلاش کنید.");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function removeQuestion() {
+    if (!question || deleting || busy) return;
+    if (!window.confirm("از حذف این سؤال مطمئن هستید؟")) return;
+    setDeleting(true);
+    setMessage("");
+    try {
+      const response = await fetch(`/api/institute/question-bank/${encodeURIComponent(question.id)}`, {
+        method: "DELETE",
+        credentials: "same-origin",
+        cache: "no-store",
+      });
+      if (!response.ok) {
+        setMessage(response.status === 404
+          ? "این سؤال دیگر در دسترس نیست."
+          : "حذف سؤال انجام نشد؛ دوباره تلاش کنید.");
+        return;
+      }
+      router.push("/institute/question-bank");
+      router.refresh();
+    } catch {
+      setMessage("ارتباط با سرور برقرار نشد؛ دوباره تلاش کنید.");
+    } finally {
+      setDeleting(false);
     }
   }
 
