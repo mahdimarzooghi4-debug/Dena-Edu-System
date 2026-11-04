@@ -214,6 +214,7 @@ export async function getInstituteStudents(instituteIds: readonly string[]) {
       eq(supervisionGrants.instituteId, courses.responsibleInstituteId),
       inArray(supervisionGrants.instituteId, [...instituteIds]),
     ))
+    .where(eq(supervisionGrants.status, "approved"))
     .orderBy(desc(studentEnrollments.enrolledAt), asc(user.name), asc(user.id))
     .limit(5001);
 
