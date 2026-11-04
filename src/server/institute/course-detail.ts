@@ -2,7 +2,7 @@ import { and, count, eq, inArray } from "drizzle-orm";
 import { getDb } from "../../db";
 import {
   coursePracticeQuestions, courses, independentEducatorProfiles,
-  privateMediaAssets, supervisionGrants, verifiedEntities,
+  privateMediaAssets, studentEnrollments, supervisionGrants, verifiedEntities,
 } from "../../db/schema";
 
 /** Read-only, institute-scoped course metadata. The caller derives scopes
@@ -21,6 +21,7 @@ export async function getInstituteCourseDetail(
     ownerType: courses.ownerType,
     publicationStatus: courses.publicationStatus,
     supervisionStatus: supervisionGrants.status,
+    requestedAt: supervisionGrants.requestedAt,
     providerName: verifiedEntities.name,
     independentEducatorName: independentEducatorProfiles.displayName,
   }).from(courses).innerJoin(supervisionGrants, and(
@@ -37,7 +38,7 @@ export async function getInstituteCourseDetail(
     inArray(supervisionGrants.instituteId, [...instituteIds]),
   )).limit(1);
   if (!course) return null;
-  const [[assets], [question]] = await Promise.all([
+  const [[assets], [question], [enrollment]] = await Promise.all([
     db.select({ readyVideos: count(privateMediaAssets.id) })
       .from(privateMediaAssets).where(and(
         eq(privateMediaAssets.courseId, courseId),
@@ -47,10 +48,16 @@ export async function getInstituteCourseDetail(
       .from(coursePracticeQuestions).where(
         eq(coursePracticeQuestions.courseId, courseId),
       ).limit(1),
+    db.select({ activeEnrollmentCount: count(studentEnrollments.id) })
+      .from(studentEnrollments).where(and(
+        eq(studentEnrollments.courseId, courseId),
+        eq(studentEnrollments.status, "active"),
+      )),
   ]);
   return {
     ...course,
     readyVideos: assets.readyVideos,
+    activeEnrollmentCount: enrollment.activeEnrollmentCount,
     practiceReviewStatus: question?.reviewStatus ?? ("not_created" as const),
   };
 }

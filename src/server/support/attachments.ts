@@ -2,12 +2,13 @@ import { createHash, createHmac, timingSafeEqual, randomUUID } from "node:crypto
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "../../db";
 import {
-  memberships, technicalSupportAttachments, technicalSupportNotifications,
-  technicalSupportTickets,
+  memberships, technicalSupportAttachments, technicalSupportNotifications, instituteServiceOrders,
+  technicalSupportTickets, serviceOrderAttachments,
 } from "../../db/schema";
 import { canReadTechnicalTicket } from "../../domain/access/policy";
 import { toAccessContext } from "../access/membership";
 import { configuredPrivateMediaOrigin } from "../student/private-media";
+import { requireServiceOrderParticipant } from "../student/service-order-messages";
 
 export const MAX_SUPPORT_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 export const MAX_SUPPORT_ATTACHMENTS_PER_TICKET = 3;
@@ -225,6 +226,112 @@ export async function uploadSupportAttachment(userId: string, ticketId: string, 
   }
 }
 
+export async function uploadServiceOrderAttachment(userId: string, orderId: string, input: {
+  fileName: string; contentType: string; bytes: Buffer;
+}) {
+  const config = scannerConfig();
+  if (process.env.DENA_SUPPORT_ATTACHMENTS_ENABLED !== "1" || !config) return "unavailable" as const;
+  const file = validateSupportAttachment(input);
+  if (!file) return "invalid" as const;
+  const attachmentId = randomUUID();
+  const reserved = await getDb().transaction(async (tx) => {
+    await tx.select({ id: instituteServiceOrders.id }).from(instituteServiceOrders)
+      .where(eq(instituteServiceOrders.id, orderId)).for("update").limit(1);
+    if (!await requireServiceOrderParticipant(tx, userId, orderId)) return "not_found" as const;
+    const [{ count }] = await tx.select({ count: sql<number>`count(*)::int` })
+      .from(serviceOrderAttachments).where(and(
+        eq(serviceOrderAttachments.serviceOrderId, orderId),
+        inArray(serviceOrderAttachments.status, ["uploading", "quarantined", "ready", "rejected"]),
+      ));
+    if (count >= MAX_SUPPORT_ATTACHMENTS_PER_TICKET) return "limit" as const;
+    await tx.insert(serviceOrderAttachments).values({
+      id: attachmentId,
+      serviceOrderId: orderId,
+      uploadedByUserId: userId,
+      fileName: file.fileName,
+      contentType: file.contentType,
+      byteSize: file.byteSize,
+      sha256: file.sha256,
+      objectKey: attachmentId,
+      status: "uploading",
+    });
+    return true;
+  });
+  if (reserved !== true) return reserved;
+  try {
+    const response = await fetch(new URL(`/quarantine/${attachmentId}`, config.origin.origin), {
+      method: "PUT", redirect: "error", cache: "no-store",
+      headers: {
+        Authorization: `Bearer ${config.origin.token}`,
+        "Content-Type": file.contentType,
+        "X-Dena-Sha256": file.sha256,
+      },
+      body: new Uint8Array(input.bytes),
+      signal: AbortSignal.timeout(20_000),
+    });
+    await response.body?.cancel();
+    if (response.status !== 201) throw new Error("private quarantine unavailable");
+    await getDb().update(serviceOrderAttachments).set({ status: "quarantined" })
+      .where(and(eq(serviceOrderAttachments.id, attachmentId),
+        eq(serviceOrderAttachments.status, "uploading")));
+    return { id: attachmentId, status: "quarantined" as const };
+  } catch {
+    await getDb().update(serviceOrderAttachments).set({ status: "failed" })
+      .where(eq(serviceOrderAttachments.id, attachmentId));
+    return "unavailable" as const;
+  }
+}
+
+export async function listServiceOrderAttachments(userId: string, orderId: string) {
+  return getDb().transaction(async (tx) => {
+    if (!await requireServiceOrderParticipant(tx, userId, orderId)) return null;
+    return tx.select({
+      id: serviceOrderAttachments.id,
+      uploadedByUserId: serviceOrderAttachments.uploadedByUserId,
+      fileName: serviceOrderAttachments.fileName,
+      contentType: serviceOrderAttachments.contentType,
+      byteSize: serviceOrderAttachments.byteSize,
+      status: serviceOrderAttachments.status,
+      createdAt: serviceOrderAttachments.createdAt,
+    }).from(serviceOrderAttachments).where(eq(serviceOrderAttachments.serviceOrderId, orderId))
+      .orderBy(asc(serviceOrderAttachments.createdAt));
+  });
+}
+
+export async function downloadReadyServiceOrderAttachment(
+  userId: string, orderId: string, attachmentId: string,
+) {
+  const config = configuredPrivateMediaOrigin();
+  if (!config) return null;
+  const attachment = await getDb().transaction(async (tx) => {
+    if (!await requireServiceOrderParticipant(tx, userId, orderId)) return null;
+    const [row] = await tx.select({
+      id: serviceOrderAttachments.id,
+      fileName: serviceOrderAttachments.fileName,
+      contentType: serviceOrderAttachments.contentType,
+      byteSize: serviceOrderAttachments.byteSize,
+      sha256: serviceOrderAttachments.sha256,
+      status: serviceOrderAttachments.status,
+    }).from(serviceOrderAttachments).where(and(
+      eq(serviceOrderAttachments.id, attachmentId),
+      eq(serviceOrderAttachments.serviceOrderId, orderId),
+    )).limit(1);
+    return row?.status === "ready" ? row : null;
+  });
+  if (!attachment) return null;
+  try {
+    const response = await fetch(new URL(`/quarantine/${attachmentId}`, config.origin), {
+      redirect: "error", cache: "no-store",
+      headers: { Authorization: `Bearer ${config.token}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+    const bytes = await readBoundedSupportAttachment(response, attachment.byteSize, attachment.contentType);
+    if (!bytes || createHash("sha256").update(bytes).digest("hex") !== attachment.sha256 ||
+        sniffSupportAttachment(bytes) !== attachment.contentType) return null;
+    return { bytes, fileName: attachment.fileName, contentType: attachment.contentType };
+  } catch { return null; }
+}
+
 export async function listSupportTicketAttachments(userId: string, ticketId: string) {
   const db = getDb();
   const actor = await currentActor(db, userId);
@@ -295,7 +402,7 @@ export async function downloadReadySupportAttachment(
 
 export async function listSupportAttachmentScanQueue() {
   if (!scannerConfig()) return null;
-  return getDb().select({
+  const [support, serviceOrders] = await Promise.all([getDb().select({
     id: technicalSupportAttachments.id,
     contentType: technicalSupportAttachments.contentType,
     byteSize: technicalSupportAttachments.byteSize,
@@ -303,13 +410,22 @@ export async function listSupportAttachmentScanQueue() {
     createdAt: technicalSupportAttachments.createdAt,
   }).from(technicalSupportAttachments)
     .where(eq(technicalSupportAttachments.status, "quarantined"))
-    .orderBy(asc(technicalSupportAttachments.createdAt)).limit(20);
+    .orderBy(asc(technicalSupportAttachments.createdAt)).limit(20), getDb().select({
+      id: serviceOrderAttachments.id,
+      contentType: serviceOrderAttachments.contentType,
+      byteSize: serviceOrderAttachments.byteSize,
+      sha256: serviceOrderAttachments.sha256,
+      createdAt: serviceOrderAttachments.createdAt,
+    }).from(serviceOrderAttachments)
+      .where(eq(serviceOrderAttachments.status, "quarantined"))
+      .orderBy(asc(serviceOrderAttachments.createdAt)).limit(20)]);
+  return [...support, ...serviceOrders].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime()).slice(0, 20);
 }
 
 export async function getQuarantinedSupportAttachment(attachmentId: string) {
   const config = scannerConfig();
   if (!config) return null;
-  const [attachment] = await getDb().select({
+  const [supportAttachment] = await getDb().select({
     id: technicalSupportAttachments.id,
     contentType: technicalSupportAttachments.contentType,
     byteSize: technicalSupportAttachments.byteSize,
@@ -317,6 +433,14 @@ export async function getQuarantinedSupportAttachment(attachmentId: string) {
     status: technicalSupportAttachments.status,
   }).from(technicalSupportAttachments)
     .where(eq(technicalSupportAttachments.id, attachmentId)).limit(1);
+  const [serviceAttachment] = supportAttachment ? [] : await getDb().select({
+    id: serviceOrderAttachments.id,
+    contentType: serviceOrderAttachments.contentType,
+    byteSize: serviceOrderAttachments.byteSize,
+    sha256: serviceOrderAttachments.sha256,
+    status: serviceOrderAttachments.status,
+  }).from(serviceOrderAttachments).where(eq(serviceOrderAttachments.id, attachmentId)).limit(1);
+  const attachment = supportAttachment ?? serviceAttachment;
   if (!attachment || attachment.status !== "quarantined") return null;
   try {
     const response = await fetch(new URL(`/quarantine/${attachmentId}`, config.origin.origin), {
@@ -357,11 +481,21 @@ export async function recordSupportAttachmentScan(input: {
       .where(eq(technicalSupportAttachments.id, input.attachmentId))
       .for("update").limit(1);
     if (!attachment || attachment.status !== "quarantined" ||
-        attachment.sha256 !== input.sha256) return false;
-    await tx.update(technicalSupportAttachments).set({
-      status: input.clean ? "ready" : "rejected",
-      scannedAt,
-    }).where(eq(technicalSupportAttachments.id, input.attachmentId));
+        attachment.sha256 !== input.sha256) {
+      const [serviceAttachment] = await tx.select({
+        sha256: serviceOrderAttachments.sha256,
+        status: serviceOrderAttachments.status,
+      }).from(serviceOrderAttachments).where(eq(serviceOrderAttachments.id, input.attachmentId))
+        .for("update").limit(1);
+      if (!serviceAttachment || serviceAttachment.status !== "quarantined" ||
+          serviceAttachment.sha256 !== input.sha256) return false;
+      await tx.update(serviceOrderAttachments).set({
+        status: input.clean ? "ready" : "rejected", scannedAt,
+      }).where(eq(serviceOrderAttachments.id, input.attachmentId));
+      return true;
+    }
+    await tx.update(technicalSupportAttachments).set({ status: input.clean ? "ready" : "rejected", scannedAt })
+      .where(eq(technicalSupportAttachments.id, input.attachmentId));
     const recipients = [...new Set([
       attachment.uploadedByUserId,
       attachment.requesterUserId,

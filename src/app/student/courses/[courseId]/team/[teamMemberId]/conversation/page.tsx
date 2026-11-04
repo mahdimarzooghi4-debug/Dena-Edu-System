@@ -6,7 +6,10 @@ import { Card } from "@/components/ui/card";
 import { CourseConversationComposer } from "@/components/student/course-conversation-composer";
 import { StudentShell } from "@/components/student/student-shell";
 import { getServerAccessContext } from "@/server/access/actor";
-import { getStudentCourseConversation } from "@/server/student/course-conversation";
+import {
+  getStudentCourseConversation,
+  getStudentCourseConversationCourseTitle,
+} from "@/server/student/course-conversation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,7 +21,15 @@ export const metadata: Metadata = {
 function roleLabel(role: "teacher" | "academic_supporter" | "counselor") {
   if (role === "teacher") return "مدرس";
   if (role === "academic_supporter") return "پشتیبان تحصیلی";
-  return "مشاور";
+  return "مشاور دوره";
+}
+
+function messageTime(value: Date) {
+  return value.toLocaleTimeString("fa-IR", {
+    timeZone: "Asia/Tehran",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 export default async function CourseConversationPage({
@@ -37,80 +48,64 @@ export default async function CourseConversationPage({
   if (!z.uuid().safeParse(courseId).success ||
       !z.uuid().safeParse(teamMemberId).success) notFound();
 
-  const conversation = await getStudentCourseConversation(
-    actor.userId, courseId, teamMemberId,
-  );
-  if (!conversation) notFound();
+  const [conversation, courseTitle] = await Promise.all([
+    getStudentCourseConversation(actor.userId, courseId, teamMemberId),
+    getStudentCourseConversationCourseTitle(actor.userId, courseId),
+  ]);
+  if (!conversation || !courseTitle) notFound();
 
   const label = roleLabel(conversation.member.role);
+  const heading = conversation.member.role === "counselor"
+    ? `${conversation.member.name} — مشاور دوره`
+    : `${conversation.member.name} — ${label}`;
 
   return (
     <StudentShell active="courses" title="گفت‌وگوی دوره">
-      <div className="space-y-6">
+      <div className="-mt-1 mx-auto max-w-2xl space-y-4 md:mt-0">
         <Link
           href={`/student/courses/${courseId}/team/${teamMemberId}`}
-          className="text-sm font-bold text-dena-brand hover:underline"
+          className="hidden text-sm font-bold text-dena-brand hover:underline md:inline-flex"
         >
           بازگشت به {label}
         </Link>
 
-        <Card className="rounded-[22px] p-5 md:p-7">
-          <p className="text-xs font-bold text-dena-brand">{label}</p>
-          <h2 className="mt-1 text-xl font-extrabold">
-            {conversation.member.name}
-          </h2>
-          <p className="mt-2 text-xs leading-6 text-dena-muted">
-            این گفت‌وگو فقط برای ارتباط آموزشی در چارچوب همین دوره است.
-          </p>
+        <Card className="flex h-[78px] flex-col items-start justify-center rounded-[16px] px-4 text-right md:h-auto md:rounded-[22px] md:px-6 md:py-5">
+          <h1 className="text-[18px] font-bold leading-7 text-dena-deep">{heading}</h1>
+          <p className="text-[12px] leading-5 text-dena-muted">{courseTitle}</p>
         </Card>
 
-        <Card className="rounded-[22px] p-4 md:p-6">
-          <section
-            aria-label="پیام‌های گفت‌وگو"
-            className="flex min-h-[280px] flex-col gap-3"
-          >
-            {conversation.messages.length === 0 ? (
-              <div className="m-auto max-w-sm text-center">
-                <p className="font-bold">هنوز پیامی در این گفت‌وگو نیست.</p>
-                <p className="mt-2 text-sm leading-7 text-dena-muted">
-                  اولین پیام را می‌توانی از همین صفحه ارسال کنی.
-                </p>
-              </div>
-            ) : (
-              conversation.messages.map((message) => (
-                <article
-                  key={message.id}
-                  className={
-                    "max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-7 " +
-                    (message.sender === "student"
-                      ? "self-start bg-dena-brand text-white"
-                      : "self-end border border-dena-border bg-dena-bg text-dena-ink")
-                  }
+        <section aria-label="پیام‌های گفت‌وگو" className="flex flex-col gap-4">
+          {conversation.messages.length === 0 ? (
+            <article className="flex min-h-[104px] w-[248px] max-w-full self-end flex-col justify-between rounded-[14px] border border-dena-border bg-white p-4 text-right md:w-fit md:max-w-[78%]">
+              <p className="text-[12px] leading-5 text-dena-deep">
+                هنوز پیامی در این گفت‌وگو نیست. پیام خود را در چارچوب همین دوره بنویسید.
+              </p>
+            </article>
+          ) : conversation.messages.map((message) => {
+            const fromStudent = message.sender === "student";
+            return (
+              <article
+                key={message.id}
+                className={
+                  "flex min-h-[82px] w-[248px] max-w-full flex-col justify-between self-end rounded-[14px] border p-4 text-right md:w-fit md:max-w-[78%] " +
+                  (fromStudent
+                    ? "border-[#ede9fe] bg-[#ede9fe] text-dena-deep md:self-start"
+                    : "border-dena-border bg-white text-dena-ink md:self-end")
+                }
+              >
+                <p className="whitespace-pre-wrap text-[12px] leading-5">{message.body}</p>
+                <time
+                  dateTime={message.createdAt.toISOString()}
+                  className="mt-2 block text-[10px] leading-4 text-dena-muted"
                 >
-                  <p>{message.body}</p>
-                  <time
-                    dateTime={message.createdAt.toISOString()}
-                    className={
-                      "mt-2 block text-[11px] " +
-                      (message.sender === "student"
-                        ? "text-white/75"
-                        : "text-dena-muted")
-                    }
-                  >
-                    {message.createdAt.toLocaleString("fa-IR")}
-                  </time>
-                </article>
-              ))
-            )}
-          </section>
+                  {messageTime(message.createdAt)}
+                </time>
+              </article>
+            );
+          })}
 
-          <div className="mt-5 border-t border-dena-border pt-5">
-            <CourseConversationComposer
-              courseId={courseId}
-              teamMemberId={teamMemberId}
-            />
-          </div>
-        </Card>
+          <CourseConversationComposer courseId={courseId} teamMemberId={teamMemberId} />
+        </section>
       </div>
     </StudentShell>
   );

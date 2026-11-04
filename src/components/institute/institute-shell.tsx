@@ -8,6 +8,12 @@ import type { ReactNode } from "react";
 const sections = [
   { href: "/institute", label: "داشبورد" },
   { href: "/institute/courses", label: "دوره‌ها" },
+  { href: "/institute/sessions", label: "جلسات و محتوا" },
+  { href: "/institute/students", label: "دانش‌آموزان" },
+  { href: "/institute/instructors", label: "مدرس‌ها" },
+  { href: "/institute/academic-supporters", label: "پشتیبانان تحصیلی" },
+  { href: "/institute/notifications", label: "اعلان‌ها" },
+  { href: "/institute/access", label: "دسترسی‌ها و اعضا" },
   { href: "/institute/providers", label: "ارائه‌دهندگان و مدرس‌ها" },
   { href: "/institute/collaborations", label: "درخواست همکاری ارائه‌دهنده" },
   { href: "/institute/educators", label: "همکاران مستقل" },
@@ -65,7 +71,7 @@ export function InstituteShell({ children }: { children: ReactNode }) {
           </div>
         </div>
         <div className="space-y-1 border-t border-white/15 pt-4">
-          <Link href="/support" className="flex min-h-11 items-center rounded-lg px-4 text-sm text-[#e5e1ed] hover:bg-[#382973]">
+          <Link href="/institute/support" className="flex min-h-11 items-center rounded-lg px-4 text-sm text-[#e5e1ed] hover:bg-[#382973]">
             پشتیبانی آنلاین
           </Link>
           <Link href="/account" className="flex min-h-11 items-center rounded-lg px-4 text-sm text-[#e5e1ed] hover:bg-[#382973]">

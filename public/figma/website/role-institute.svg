@@ -1,0 +1,24 @@
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="48" height="48" fill="#F5F5F5"/>
+<g id="dena-homepage-desktop">
+<rect width="1440" height="5858" transform="translate(-844 -3610)" fill="#F7F6FB"/>
+<g id="Ecosystem Section">
+<rect width="1440" height="855" transform="translate(-844 -287)" fill="white"/>
+<g id="Ecosystem Network">
+<g id="Participants">
+<g id="Institute Node">
+<rect x="-99.5" y="-23.5" width="247" height="191" rx="19.5" fill="#F7F6FB"/>
+<rect x="-99.5" y="-23.5" width="247" height="191" rx="19.5" stroke="#3A74E8"/>
+<g id="Institute Icon / Licensed">
+<rect width="48" height="48" rx="14" fill="#EAF1FF"/>
+<path id="Institute / Roof" d="M24 10L34.8253 17.5H13.1747L24 10Z" fill="#3A74E8"/>
+<rect id="Institute / Building" x="12" y="20" width="24" height="15" rx="2" fill="#3A74E8"/>
+<rect id="Institute / Door" x="21.5" y="26" width="5" height="9" rx="1.5" fill="white"/>
+<circle id="Institute / Verified Badge" cx="36.5" cy="36.5" r="4.75" fill="#3A74E8" stroke="white" stroke-width="1.5"/>
+</g>
+</g>
+</g>
+</g>
+</g>
+</g>
+</svg>

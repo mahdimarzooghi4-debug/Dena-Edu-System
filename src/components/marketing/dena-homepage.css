@@ -100,8 +100,8 @@
 .dena-courses { background:#fff; }
 .course-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:24px; max-width:1280px; margin:auto; }
 .course-card { overflow:hidden; border:1px solid #ebe9f5; border-radius:24px; background:#fff; box-shadow:0 12px 24px #00000005; }
-.course-card__image { height:180px; position:relative; overflow:hidden; background:#dfe7df; }
-.course-card__image::before,.course-card__image::after { content:""; position:absolute; }
+.course-card__image { height:180px; position:relative; overflow:hidden; background-color:#dfe7df; background-position:center; background-repeat:no-repeat; background-size:cover; }
+.course-card__image::before,.course-card__image::after { display:none; content:none; }
 .course-card__image::before { inset:0; background:linear-gradient(140deg,#dde7e1 0%,#f1e6d9 45%,#a98e72 46%,#d6c0a7 70%,#ece7dd 71%); opacity:.95; }
 .course-card__image::after { height:70px; width:170px; bottom:0; right:20%; border-radius:45% 45% 0 0; background:linear-gradient(90deg,#a56f4d,#e6d2b8 32%,#b8966e 33%,#ebdec9 70%,#98724f); box-shadow:0 -38px 0 -25px #fff8; }
 .course-card__image--physics::before { background:linear-gradient(120deg,#d5d9ce 0%,#f2eee5 38%,#baaa91 39%,#e7dfd2 69%,#b2b2a1 70%); }
@@ -184,25 +184,38 @@
 .growth-report__chart i:nth-child(2) { transform:translateY(-24px); }.growth-report__chart i:nth-child(3) { transform:translateY(-45px); }.growth-report__chart i:nth-child(4) { transform:translateY(-62px); }.growth-report__chart i:nth-child(5) { transform:translateY(-85px); }.growth-report__chart i:nth-child(6) { transform:translateY(-110px); }
 .growth-report__labels { display:flex; justify-content:space-around; margin-top:10px; color:var(--muted); font-size:10px; }
 .report-note { margin-top:22px; padding:14px; display:flex; justify-content:space-between; gap:12px; border-radius:12px; background:#f2efff; font-size:11px; }.report-note b { color:var(--brand); }.report-note span { color:var(--muted); }
-.dena-network { min-height:340px; display:grid; grid-template-columns:1fr 1fr; align-items:center; gap:48px; direction:ltr; background:#fff; }
-.network-art { width:min(100%,500px); height:245px; position:relative; margin:auto; background:linear-gradient(145deg,transparent 49.7%,#c9c2ff 50%,transparent 50.4%),linear-gradient(30deg,transparent 49.8%,#d4cff7 50%,transparent 50.3%); }
-.network-art i,.network-art b { position:absolute; display:block; border-radius:50%; box-shadow:0 4px 14px #5b4ce244; }
-.network-art i { width:15px;height:15px;background:#42cfa7; }.network-art i:nth-child(1){left:12%;bottom:18%}.network-art i:nth-child(2){left:32%;bottom:43%;width:30px;height:30px;background:#5b4ce2}.network-art i:nth-child(3){left:52%;bottom:62%;width:36px;height:36px;background:#352b68}.network-art i:nth-child(4){left:68%;bottom:38%;width:24px;height:24px}.network-art i:nth-child(5){left:82%;bottom:72%;width:42px;height:42px}.network-art i:nth-child(6){left:42%;bottom:78%;width:12px;height:12px}.network-art b{width:9px;height:9px;background:#80e4c8}.network-art b:nth-of-type(1){left:24%;bottom:74%}.network-art b:nth-of-type(2){left:76%;bottom:20%}.network-art b:nth-of-type(3){left:18%;bottom:47%}
-.network-copy { max-width:570px; direction:rtl; }.network-copy h2 { margin:16px 0 10px; }.network-copy .dena-button { margin-top:12px; }
-.dena-roles { background:#fff; }
-.role-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:18px; max-width:1280px; margin:0 auto; }
-.role-card { min-height:156px; padding:22px 16px; text-align:center; border:1px solid #d9d4ea; border-radius:14px; background:#faf9ff; }
-.role-card:nth-child(2) { border-color:#f2d7ba; background:#fffaf4; }.role-card:nth-child(3){background:#f5f8ff}.role-card:nth-child(4){background:#f7f6fc}.role-card:last-child{grid-column:2/4;max-width:280px;width:100%;justify-self:center;border-color:#bdb2ff;box-shadow:0 6px 18px #5b4ce21c}
-.role-card__icon { display:grid; place-items:center; width:34px;height:34px;margin:0 auto 9px;border-radius:10px;color:var(--brand);background:#ebe8ff;font-size:18px; }
-.role-card h3 { margin:0 0 6px; font-size:14px; }.role-card p { margin:0; color:var(--muted); font-size:11px; line-height:1.9; }
-.dena-support { background:#f8f7fb; }
-.support-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; max-width:1280px; margin:auto; }
-.support-grid article { padding:20px; border:1px solid #eeebf3; border-radius:14px; background:#fff; }
-.support-grid article > span { color:var(--mint); font-size:12px; font-weight:900; }.support-grid h3 { margin:12px 0 6px; font-size:14px; }.support-grid p { margin:0; color:var(--muted); font-size:11px; line-height:1.9; }
-.dena-cta { padding:54px 24px; text-align:center; color:#fff; background:var(--deep); }
-.dena-cta h2 { margin:0; font-size:30px; }.dena-cta p { margin:8px 0 20px; color:#d9d3f0; font-size:13px; }.dena-cta > div { display:flex; justify-content:center; gap:12px; }
-.dena-institute-cta { max-width:1280px; margin:40px auto; padding:30px; display:flex; align-items:center; justify-content:space-between; gap:30px; border:1px solid var(--line); border-radius:18px; background:#fff; }
-.dena-institute-cta h2 { margin:12px 0 6px; font-size:24px; }.dena-institute-cta p { margin:0; color:var(--muted); font-size:12px; line-height:2; }.dena-institute-cta__actions { display:flex; gap:10px; flex:none; }
+.dena-network { min-height:624px; display:grid; grid-template-columns:580px 580px; align-items:center; justify-content:space-between; gap:40px; direction:ltr; background:#fff; }
+.network-art { display:block; width:580px; height:480px; position:relative; margin:0; object-fit:contain; }
+.network-copy { max-width:580px; direction:rtl; text-align:right; }.network-copy h2 { margin:22px 0 18px; font-size:40px; line-height:1.55; }.network-copy p { margin:0; color:var(--muted); font-size:16px; line-height:1.9; }.network-copy .dena-button { margin-top:32px; }
+.dena-roles { min-height:855px; background:#fff; }
+.dena-roles .dena-section__heading { height:143px; max-width:800px; margin:0 auto 48px; }
+.dena-roles .dena-section__heading h2 { font-size:32px; line-height:1.55; }
+.dena-roles .dena-section__heading p { margin-top:8px; font-size:16px; line-height:1.8; }
+.ecosystem-network { width:100%; max-width:1280px; min-height:520px; margin:0 auto; display:grid; grid-template-rows:192px 19px 213px; row-gap:48px; }
+.role-grid { width:100%; max-width:1136px; margin:0 auto; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:48px; direction:ltr; }
+.role-card { min-height:192px; padding:24px 16px 18px; text-align:center; direction:rtl; border:1px solid #352b68; border-radius:20px; background:#f7f6fb; }
+.role-card:nth-child(2) { border-color:#ff9900; }.role-card:nth-child(3){border-color:#4385f5}.role-card:nth-child(4){border-color:#6354df}
+.role-card__icon { display:grid; place-items:center; width:48px;height:48px;margin:0 auto 12px;border-radius:14px;background:#f0edff; }
+.role-card h3 { margin:0 0 10px; font-size:16px; line-height:1.6; }.role-card p { margin:0; color:var(--muted); font-size:14px; line-height:1.7; }
+.elite-club-acknowledgment { width:800px; max-width:100%; min-height:19px; margin:0 auto; color:#a09aaf; font-size:12px; line-height:19px; text-align:center; }
+.dena-platform-card { width:320px; height:213px; justify-self:center; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:28px; border:2px solid #6354ff; border-radius:24px; background:#f7f6fb; box-shadow:0 8px 18px #352b6815; text-align:center; direction:rtl; }
+.dena-platform-card .role-card__icon { width:64px;height:64px;margin-bottom:12px;border-radius:50%; }
+.dena-platform-card h3 { margin:0 0 12px; color:var(--deep); font-size:20px; }.dena-platform-card p { margin:0; color:var(--muted); font-size:13px; }
+.dena-support { min-height:478px; background:#f7f6fb; }
+.dena-support .dena-section__heading { height:86px; margin:0 auto 48px; }
+.dena-support .dena-section__heading h2 { font-size:32px; line-height:1.55; }
+.dena-support .dena-section__heading p { margin-top:8px; font-size:14px; line-height:2; }
+.support-grid { min-height:200px; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:24px; max-width:1280px; margin:auto; }
+.support-grid article { min-height:200px; padding:24px; border:0; border-radius:18px; background:#fff; }
+.support-grid h3 { margin:0 0 12px; font-size:16px; line-height:1.8; }.support-grid p { margin:0; color:var(--muted); font-size:14px; line-height:1.8; }
+.dena-cta { min-height:384px; padding:72px 24px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; color:#fff; background:var(--deep); }
+.dena-cta h2 { margin:0; font-size:40px; line-height:1.5; }.dena-cta p { margin:8px 0 32px; color:#d9d3f0; font-size:16px; line-height:1.8; }.dena-cta > div { display:flex; justify-content:center; gap:16px; }
+.dena-institute-section { min-height:440px; padding:72px max(32px, calc((100vw - 1280px) / 2)); background:#f7f6fb; }
+.dena-institute-cta { width:100%; max-width:1280px; height:296px; margin:0 auto; padding:33px; display:flex; align-items:center; justify-content:space-between; gap:30px; direction:ltr; border:1px solid var(--line); border-radius:24px; background:#fff; }
+.dena-institute-benefits { width:520px; height:216px; padding:25px; flex:none; border-radius:18px; background:#eae7ff; direction:rtl; }
+.dena-institute-benefits h3 { margin:0 0 16px; font-size:16px; }.dena-institute-benefits ul { margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:14px; }
+.dena-institute-benefits li { position:relative; padding-right:24px; font-size:13px; line-height:1.8; }.dena-institute-benefits li::before { content:""; position:absolute; top:8px; right:0; width:8px; height:8px; border-radius:50%; background:#5b4ce2; }.dena-institute-benefits li:first-child::before { background:#42cfa7; }
+.dena-institute-message { width:664px; direction:rtl; text-align:right; }.dena-institute-message h2 { margin:16px 0 12px; font-size:32px; line-height:1.5; }.dena-institute-message p { margin:0; color:var(--muted); font-size:14px; line-height:1.9; }.dena-institute-cta__actions { display:flex; gap:12px; margin-top:24px; }
 .dena-footer { padding:56px max(32px, calc((100vw - 1280px) / 2)) 24px; background:#fff; }
 .dena-footer__main { display:grid; grid-template-columns:1.45fr repeat(4,1fr); gap:32px; }
 .dena-footer__main > div { display:flex; flex-direction:column; align-items:flex-start; gap:12px; }
@@ -213,25 +226,34 @@
   .dena-header { padding-inline:28px; }.dena-header__right { gap:24px; }.dena-nav { gap:18px; }.dena-nav a { font-size:12px; }
   .dena-hero__inner { grid-template-columns:minmax(340px,.9fr) minmax(0,1.1fr); gap:32px; }
   .dena-section { padding-inline:40px; }.dena-footer { padding-inline:40px; }
+  .dena-network { grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:48px; }
+  .network-art { width:100%; height:auto; aspect-ratio:580/480; }
+  .dena-institute-section { padding-inline:40px; }
+  .dena-institute-cta { padding:24px; gap:24px; }
+  .dena-institute-benefits { width:44%; }
+  .dena-institute-message { width:56%; }
 }
 @media (max-width:760px) {
-  .dena-header { height:auto; min-height:72px; padding:12px 18px; flex-wrap:wrap; gap:12px; }
-  .dena-header__right { gap:14px; }.dena-header__actions { gap:8px; }.dena-brand { width:62px; }.dena-brand img { width:66px;height:auto; }
-  .dena-nav { order:2; width:100%; overflow:auto; gap:20px; padding:8px 0 2px; scrollbar-width:none; }.dena-nav::-webkit-scrollbar{display:none}
+  .dena-header { height:auto; min-height:72px; padding:12px 18px 0; display:grid; grid-template-columns:minmax(0,1fr) auto; grid-template-areas:"actions brand" "nav nav"; align-items:center; gap:0 12px; }
+  .dena-header__right { display:contents; }.dena-header__actions { grid-area:actions; gap:8px; }.dena-brand { grid-area:brand; width:62px; }.dena-brand img { width:66px;height:auto; }
+  .dena-nav { grid-area:nav; order:initial; width:100%; min-width:0; overflow-x:auto; flex-wrap:nowrap; gap:20px; padding:12px 0 10px; scrollbar-width:none; white-space:nowrap; }.dena-nav::-webkit-scrollbar{display:none}
   .dena-nav a { font-size:12px; }.dena-button { min-height:42px; padding-inline:16px; font-size:12px; }
   .dena-hero { padding:36px 18px 42px; }.dena-hero__inner { grid-template-columns:1fr; gap:36px; }.dena-hero__copy { order:0; }.growth-preview { order:1; padding:16px; }
   .dena-hero h1 { margin:15px 0 10px; font-size:30px; }.dena-hero__copy p { font-size:13px; line-height:1.9; }.dena-hero__actions { margin-top:18px; }
   .dena-section { padding:48px 18px; }.dena-section__heading { margin-bottom:28px; }.dena-section__heading h2,.dena-growth h2,.network-copy h2 { font-size:24px; }
   .learning-steps { grid-template-columns:1fr 1fr; padding:20px; gap:24px 16px; }.learning-step { gap:10px; }.learning-step h3 { font-size:14px; }.learning-step p { font-size:11px; }.learning-step__connector { display:none; }
   .course-grid { grid-template-columns:1fr; max-width:460px; }.course-card__image { height:175px; }.course-card__body { min-height:320px; }.home-course-card .course-card__body { min-height:353px; }
-  .dena-growth,.dena-network { grid-template-columns:1fr; gap:30px; }.growth-intro h2 { font-size:30px; }.growth-visualization { grid-template-columns:minmax(0,1fr); gap:18px; }.dena-growth .growth-report { padding:20px; }.growth-trend-card { padding:13px; }.growth-trend-card b { font-size:14px; }.growth-trend-card > span { font-size:11px; }.dena-network { text-align:center; }.network-art { width:90%;height:190px;order:1; }.network-copy { order:0; }
-  .role-grid { grid-template-columns:1fr 1fr; gap:12px; }.role-card:last-child { grid-column:1/3; }.support-grid { grid-template-columns:1fr 1fr; gap:10px; }.support-grid article { padding:15px; }
-  .dena-cta { padding:42px 18px; }.dena-cta h2 { font-size:23px; }.dena-cta > div { flex-wrap:wrap; }
-  .dena-institute-cta { margin:22px 18px; padding:22px; flex-direction:column; align-items:stretch; }.dena-institute-cta h2 { font-size:21px; }.dena-institute-cta__actions { flex-wrap:wrap; }
+  .dena-growth,.dena-network { grid-template-columns:1fr; gap:30px; }.growth-intro h2 { font-size:30px; }.growth-visualization { grid-template-columns:minmax(0,1fr); gap:18px; }.dena-growth .growth-report { padding:20px; }.growth-trend-card { padding:13px; }.growth-trend-card b { font-size:14px; }.growth-trend-card > span { font-size:11px; }
+  .dena-network { min-height:0; text-align:center; }.network-art { width:100%; max-width:580px; height:auto; aspect-ratio:580/480; order:1; }.network-copy { order:0; }.network-copy h2 { font-size:30px; }
+  .dena-roles { min-height:0; }.dena-roles .dena-section__heading { height:auto; margin-bottom:28px; }.dena-roles .dena-section__heading h2,.dena-support .dena-section__heading h2 { font-size:24px; }.dena-roles .dena-section__heading p { font-size:13px; }
+  .ecosystem-network { min-height:0; display:flex; flex-direction:column; gap:24px; }.role-grid { grid-template-columns:1fr 1fr; gap:12px; }.role-card { min-height:180px; padding:18px 10px; }.role-card h3 { font-size:13px; }.role-card p { font-size:11px; }.dena-platform-card { width:100%; max-width:320px; }
+  .dena-support { min-height:0; }.dena-support .dena-section__heading { height:auto; margin-bottom:28px; }.support-grid { grid-template-columns:1fr 1fr; gap:10px; }.support-grid article { min-height:0; padding:15px; }.support-grid h3 { font-size:13px; }.support-grid p { font-size:11px; }
+  .dena-cta { min-height:340px; padding:42px 18px; }.dena-cta h2 { font-size:27px; }.dena-cta p { font-size:13px; }.dena-cta > div { flex-wrap:wrap; }
+  .dena-institute-section { min-height:0; padding:28px 18px; }.dena-institute-cta { height:auto; margin:0; padding:20px; flex-direction:column; align-items:stretch; }.dena-institute-benefits,.dena-institute-message { width:100%; }.dena-institute-benefits { height:auto; }.dena-institute-message h2 { font-size:21px; }.dena-institute-cta__actions { flex-wrap:wrap; }
   .dena-footer { padding:38px 18px 20px; }.dena-footer__main { grid-template-columns:1fr 1fr; gap:28px 20px; }.dena-footer__brand { grid-column:1/-1; align-items:flex-start!important; }.dena-brand--footer { justify-content:flex-start; }.dena-footer__legal { margin-top:28px; }
 }
 @media (max-width:420px) {
-  .dena-header { justify-content:space-between; }.dena-header__right { flex:1; justify-content:flex-end; }.dena-header__actions .dena-button { padding-inline:12px; }
+  .dena-header__actions .dena-button { padding-inline:12px; }
   .growth-preview__cards { grid-template-columns:1fr; }.mini-course { min-height:130px; }.learning-steps { grid-template-columns:1fr; }.learning-step { min-height:72px; }.course-card__badges { font-size:9px; }.course-card__badges .badge-licensed,.course-card__badges .badge-supervised { padding:5px 7px; }
 }
 
@@ -282,3 +304,26 @@
 @media(max-width:900px){.catalog-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.catalog-filters{flex-wrap:wrap}.catalog-filters label{min-width:calc(50% - 12px)}.course-detail-hero{gap:24px}.institute-banner{margin-inline:24px}.dena-section .trust-cards{gap:10px}}
 @media(max-width:760px){.dena-auth-page{padding:18px}.dena-auth-stage{grid-template-columns:1fr;gap:24px;padding:28px 0}.dena-auth-illustration{order:2}.auth-network-art{max-width:340px}.dena-auth-illustration>p{font-size:14px}.dena-auth-card{order:1;max-width:560px;padding:24px}.dena-auth-footer{margin-top:12px}}
 @media(max-width:680px){.catalog-intro{padding:36px 18px}.catalog-content{padding:20px 18px 36px}.catalog-search{flex-direction:column}.catalog-filters label{min-width:100%}.catalog-grid{grid-template-columns:1fr;max-width:460px;margin:auto}.site-title-block h1{font-size:24px}.site-split-hero,.course-detail-hero,.growth-page-content,.assessment-sample,.about-platform,.institute-banner,.institute-roles,.institute-form-layout{grid-template-columns:1fr}.site-split-hero{padding:36px 20px;gap:22px}.site-split-hero .network-art{height:190px;order:1}.site-split-hero > div:last-child{order:0}.course-detail-hero{padding-inline:18px}.course-detail-art{min-height:220px}.detail-card-grid{grid-template-columns:1fr 1fr}.trust-cards{grid-template-columns:1fr}.role-note{grid-template-columns:1fr}.growth-page-content{gap:22px}.assessment-sample{gap:22px}.about-platform .trust-cards{grid-template-columns:1fr}.institute-banner{margin:18px;padding:20px}.institute-roles .role-grid{grid-template-columns:1fr 1fr}.request-fields{grid-template-columns:1fr}.request-fields__wide{grid-column:auto}.institute-form-layout aside,.institute-request-form{padding:18px}.lesson-list article{flex-direction:column;gap:8px}.confirmation-state{min-height:480px;padding:52px 20px}}
+
+
+/* Small-screen refinements for the public homepage and shared site layout. */
+@media (max-width: 760px) {
+  .dena-home .dena-hero__inner > * { min-width: 0; }
+  .dena-home .dena-hero__actions { flex-wrap: wrap; }
+  .dena-home .dena-hero__actions .dena-button { flex: 1 1 145px; }
+  .dena-home .dena-section__heading { max-width: 100%; }
+  .dena-home .growth-preview__heading { flex-wrap: wrap; gap: 8px 12px; }
+  .dena-home .growth-preview__cards { min-width: 0; }
+}
+@media (max-width: 359px) {
+  .dena-home .dena-hero__actions { display: grid; grid-template-columns: 1fr; }
+  .dena-home .dena-hero__actions .dena-button { width: 100%; }
+  .dena-header { padding-inline: 12px; }
+  .dena-header__actions .dena-button { padding-inline: 9px; font-size: 11px; }
+  .dena-nav { gap: 14px; }
+  .dena-hero { padding-inline: 14px; }
+  .dena-hero h1 { font-size: 27px; }
+  .growth-preview { padding: 12px; }
+  .dena-section { padding-inline: 14px; }
+  .dena-footer { padding-inline: 14px; }
+}

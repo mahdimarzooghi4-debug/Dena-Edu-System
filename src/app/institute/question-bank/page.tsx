@@ -1,19 +1,29 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { Card } from "../../../components/ui/card";
-import { buttonClassName } from "../../../components/ui/button";
+import { z } from "zod";
 import { getServerAccessContext } from "../../../server/access/actor";
 import { getInstituteQuestionBank } from "../../../server/institute/question-bank";
 import { getInstituteScopes } from "../../../server/institute/scopes";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "بانک سؤال مؤسسه | دنا", robots: { index: false, follow: false } };
+export const metadata: Metadata = {
+  title: "بانک سؤال مؤسسه | دنا",
+  robots: { index: false, follow: false },
+};
+
+const fa = (value: number) => value.toLocaleString("fa-IR");
+const dateLabel = (value: Date) => new Intl.DateTimeFormat("fa-IR", {
+  dateStyle: "short",
+  timeZone: "Asia/Tehran",
+}).format(value);
 
 export default async function InstituteQuestionBankPage({
   searchParams,
-}: { searchParams: Promise<{ search?: string }> }) {
+}: {
+  searchParams: Promise<{ search?: string; courseId?: string; lessonId?: string }>;
+}) {
   if (!process.env.DATABASE_URL || !process.env.BETTER_AUTH_SECRET ||
       !process.env.BETTER_AUTH_URL) redirect("/login");
   const actor = await getServerAccessContext();
@@ -21,94 +31,146 @@ export default async function InstituteQuestionBankPage({
   if (!actor.memberships.some((member) => member.role === "institute")) notFound();
   const scopes = await getInstituteScopes(actor.userId);
   if (!scopes.length) notFound();
-  const { search } = await searchParams;
-  const result = await getInstituteQuestionBank(actor.userId, search);
+
+  const params = await searchParams;
+  const search = params.search?.trim().slice(0, 120) ?? "";
+  const courseId = params.courseId ?? "";
+  const lessonId = params.lessonId ?? "";
+  if ((courseId && !z.uuid().safeParse(courseId).success) ||
+      (lessonId && !z.uuid().safeParse(lessonId).success)) notFound();
+  const result = await getInstituteQuestionBank(actor.userId, search || undefined, {
+    courseId: courseId || undefined,
+    lessonId: lessonId || undefined,
+  });
+  const selectedCourse = result.courses.find((course) => course.id === courseId) ??
+    result.courses.find((course) => course.lessons.some((lesson) => lesson.id === lessonId));
+  const visibleQuestions = result.questions;
 
   return (
-    <main id="main-content" className="mx-auto min-h-screen max-w-6xl space-y-6 px-5 py-8 md:px-8 lg:px-10">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p className="text-sm font-bold text-dena-brand">محتوای آموزشی مؤسسه</p>
-          <h1 className="mt-1 text-2xl font-extrabold text-dena-deep">بانک سؤال</h1>
-          <p className="mt-2 text-sm leading-7 text-dena-muted">
-            سؤال‌های این فهرست فقط در بانک همین مؤسسه نگهداری می‌شوند.
-          </p>
-        </div>
-        <Link href="/institute/question-bank/new" className={buttonClassName("primary")}>
-          افزودن سؤال جدید
-        </Link>
+    <main id="main-content" dir="rtl" className="min-h-screen bg-[#f7f6fb]">
+      <header className="flex min-h-[72px] flex-wrap items-center justify-between gap-4 border-b border-[#e5e1ed] bg-white px-5 py-4 md:px-8">
+        <form action="/institute/question-bank" method="get" role="search"
+          className="flex w-full max-w-[260px] items-center gap-2 rounded-lg border border-[#e5e1ed] px-3 py-2">
+          <input name="search" type="search" defaultValue={search} placeholder="جستجو..."
+            aria-label="جست‌وجو در بانک سؤال"
+            className="min-w-0 flex-1 bg-transparent text-right text-[13px] outline-none placeholder:text-[#8b86a3]" />
+          <span aria-hidden="true" className="text-[#8b86a3]">⌕</span>
+          {courseId && <input type="hidden" name="courseId" value={courseId} />}
+          {lessonId && <input type="hidden" name="lessonId" value={lessonId} />}
+        </form>
+        <h1 className="text-xl font-bold text-[#1e1a33]">بانک سؤال</h1>
       </header>
 
-      <form action="/institute/question-bank" className="flex flex-wrap gap-3">
-        <label className="sr-only" htmlFor="question-search">جستجو در متن سؤال</label>
-        <input id="question-search" name="search" defaultValue={search ?? ""}
-          placeholder="جستجو در متن سؤال..."
-          className="min-h-11 min-w-0 flex-1 rounded-lg border border-dena-border bg-white px-3 text-sm" />
-        <button type="submit" className={buttonClassName("secondary")}>جستجو</button>
-      </form>
+      <div className="space-y-6 p-5 md:p-8">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <Link href="/institute/question-bank/new"
+            className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#5b4ce2] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#4b3dc9]">
+            <span aria-hidden="true">＋</span>
+            افزودن سؤال جدید
+          </Link>
 
-      {result.questions.length === 0 ? (
-        <Card>
-          <h2 className="font-bold text-dena-deep">سؤالی در بانک این مؤسسه نیست.</h2>
-          <p className="mt-2 text-sm leading-7 text-dena-muted">
-            پس از آماده‌شدن جلسه‌های دورهٔ تحت نظارت، سؤال چهارگزینه‌ای اضافه کن.
-          </p>
-        </Card>
-      ) : (
-        <>
-          <p className="text-sm text-dena-muted">
-            نمایش {result.questions.length.toLocaleString("fa-IR")} سؤال اخیر
-          </p>
-          <div className="hidden overflow-x-auto rounded-xl border border-dena-border bg-white md:block">
-            <table className="w-full min-w-[800px] border-collapse text-right text-sm">
-              <thead className="bg-dena-bg text-dena-deep">
-                <tr>
-                  <th scope="col" className="p-4">متن سؤال</th>
-                  <th scope="col" className="p-4">دورهٔ آموزشی</th>
-                  <th scope="col" className="p-4">جلسهٔ مرتبط</th>
-                  <th scope="col" className="p-4">قالب سؤال</th>
-                  <th scope="col" className="p-4">تاریخ ایجاد</th>
-                  <th scope="col" className="p-4">عملیات</th>
-                </tr>
-              </thead>
-              <tbody>
-                {result.questions.map((question) => (
-                  <tr key={question.id} className="border-t border-dena-border align-top">
-                    <td className="max-w-[360px] p-4 font-medium text-dena-brand">{question.prompt}</td>
-                    <td className="p-4">{question.courseTitle}</td>
-                    <td className="p-4">{question.lessonTitle}</td>
-                    <td className="p-4">چهارگزینه‌ای</td>
-                    <td className="whitespace-nowrap p-4">
-                      {new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium", timeZone: "Asia/Tehran" }).format(question.createdAt)}
-                    </td>
-                    <td className="p-4">
-                      <Link href={`/institute/question-bank/${question.id}/edit`} className="font-bold text-dena-brand hover:underline">
-                        ویرایش
-                      </Link>
-                    </td>
+          <form action="/institute/question-bank" method="get"
+            className="flex flex-wrap items-center gap-2">
+            <label className="sr-only" htmlFor="question-course">همه دوره‌ها</label>
+            <select id="question-course" name="courseId" defaultValue={courseId}
+              className="min-h-10 rounded-lg border border-[#e5e1ed] bg-white px-3 text-[13px] text-[#1e1a33]">
+              <option value="">همه دوره‌ها</option>
+              {result.courses.map((course) => (
+                <option key={course.id} value={course.id}>{course.title}</option>
+              ))}
+            </select>
+            <label className="sr-only" htmlFor="question-lesson">جلسه مرتبط</label>
+            <select id="question-lesson" name="lessonId" defaultValue={lessonId}
+              disabled={!selectedCourse}
+              className="min-h-10 max-w-[220px] rounded-lg border border-[#e5e1ed] bg-white px-3 text-[13px] text-[#1e1a33] disabled:text-[#8b86a3]">
+              <option value="">جلسه مرتبط</option>
+              {(selectedCourse?.lessons ?? []).map((lesson) => (
+                <option key={lesson.id} value={lesson.id}>{lesson.title}</option>
+              ))}
+            </select>
+            <label className="sr-only" htmlFor="question-text-search">جست‌وجو در متن سؤال</label>
+            <div className="flex min-h-10 w-full min-w-[190px] max-w-[260px] items-center gap-2 rounded-lg border border-[#e5e1ed] bg-white px-3">
+              <input id="question-text-search" name="search" type="search" defaultValue={search}
+                placeholder="جستجو در متن سؤال..."
+                className="min-w-0 flex-1 bg-transparent text-right text-[13px] outline-none placeholder:text-[#8b86a3]" />
+              <span aria-hidden="true" className="text-[#8b86a3]">⌕</span>
+            </div>
+            <button type="submit"
+              className="min-h-10 rounded-lg border border-[#e5e1ed] bg-white px-3 text-[13px] font-semibold text-[#5b4ce2] hover:bg-[#f9f8fd]">
+              اعمال فیلتر
+            </button>
+          </form>
+        </div>
+
+        {visibleQuestions.length === 0 ? (
+          <section className="rounded-xl border border-[#e5e1ed] bg-white px-5 py-12 text-center">
+            <h2 className="font-bold text-[#1e1a33]">
+              {result.questions.length
+                ? "سؤالی با این فیلترها پیدا نشد."
+                : "سؤالی در بانک این مؤسسه نیست."}
+            </h2>
+            <p className="mx-auto mt-2 max-w-xl text-sm leading-7 text-[#8b86a3]">
+              {result.questions.length
+                ? "فیلتر دوره، جلسه یا عبارت جست‌وجو را تغییر دهید."
+                : "برای دوره‌های تحت نظارت تأییدشده می‌توانید سؤال چهارگزینه‌ای اضافه کنید."}
+            </p>
+            {search || courseId || lessonId ? (
+              <Link href="/institute/question-bank"
+                className="mt-4 inline-flex font-semibold text-[#5b4ce2] hover:underline">پاک‌کردن فیلترها</Link>
+            ) : null}
+          </section>
+        ) : (
+          <section aria-label="فهرست بانک سؤال"
+            className="overflow-hidden rounded-xl border border-[#e5e1ed] bg-white">
+            <p className="sr-only">نمایش {fa(visibleQuestions.length)} سؤال</p>
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full min-w-[920px] border-collapse text-right text-[13px]">
+                <thead className="bg-[#f9fafb] font-bold text-[#1e1a33]">
+                  <tr>
+                    <th scope="col" className="w-[120px] px-4 py-4">تاریخ ایجاد</th>
+                    <th scope="col" className="w-[150px] px-4 py-4">قالب سؤال</th>
+                    <th scope="col" className="w-[130px] px-4 py-4">جلسه مرتبط</th>
+                    <th scope="col" className="w-[170px] px-4 py-4">دوره آموزشی</th>
+                    <th scope="col" className="px-4 py-4">متن سؤال</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <ul className="space-y-3 md:hidden">
-            {result.questions.map((question) => (
-              <li key={question.id}>
-                <Card className="space-y-2">
-                  <h2 className="font-bold leading-7 text-dena-brand">{question.prompt}</h2>
-                  <p className="text-sm text-dena-muted">{question.courseTitle} · {question.lessonTitle}</p>
-                  <p className="text-xs text-dena-muted">
-                    {new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium", timeZone: "Asia/Tehran" }).format(question.createdAt)} · چهارگزینه‌ای
-                  </p>
-                  <Link href={`/institute/question-bank/${question.id}/edit`} className="inline-flex pt-2 text-sm font-bold text-dena-brand hover:underline">
-                    ویرایش سؤال
-                  </Link>
-                </Card>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
+                </thead>
+                <tbody className="text-[#1e1a33]">
+                  {visibleQuestions.map((question) => (
+                    <tr key={question.id} className="border-t border-[#e5e1ed]">
+                      <td className="whitespace-nowrap px-4 py-4">{dateLabel(question.createdAt)}</td>
+                      <td className="px-4 py-4">
+                        <span className="rounded-md bg-[#e8fff3] px-2.5 py-1 text-xs font-semibold text-[#10b981]">چهارگزینه‌ای</span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className="rounded-md bg-[#eef2ff] px-2.5 py-1 text-xs font-semibold text-[#6366f1]">{question.lessonTitle}</span>
+                      </td>
+                      <td className="px-4 py-4">{question.courseTitle}</td>
+                      <td className="max-w-[440px] px-4 py-4 font-medium text-[#5b4ce2]">
+                        <Link href={`/institute/question-bank/${question.id}/edit`}
+                          className="line-clamp-2 hover:underline">{question.prompt}</Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <ul className="divide-y divide-[#e5e1ed] md:hidden">
+              {visibleQuestions.map((question) => (
+                <li key={question.id} className="space-y-3 p-4">
+                  <Link href={`/institute/question-bank/${question.id}/edit`}
+                    className="block font-medium leading-7 text-[#5b4ce2]">{question.prompt}</Link>
+                  <p className="text-sm text-[#1e1a33]">{question.courseTitle}</p>
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <span className="rounded-md bg-[#eef2ff] px-2.5 py-1 font-semibold text-[#6366f1]">{question.lessonTitle}</span>
+                    <span className="rounded-md bg-[#e8fff3] px-2.5 py-1 font-semibold text-[#10b981]">چهارگزینه‌ای</span>
+                    <time dateTime={question.createdAt.toISOString()} className="text-[#8b86a3]">{dateLabel(question.createdAt)}</time>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+      </div>
     </main>
   );
 }

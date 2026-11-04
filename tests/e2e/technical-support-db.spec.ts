@@ -259,7 +259,7 @@ test.describe("shared technical support tickets", () => {
     }
 
     await signInAs("requester");
-    await page.goto("http://localhost:3000/support");
+    await page.goto("http://localhost:3000/support?new=1");
     const subject = `رابط پشتیبانی ${randomUUID().slice(0, 8)}`;
     const initialMessage = "در رابط کاربری برای ورود به حساب با مشکل روبه‌رو شدم.";
     await page.getByLabel("موضوع").fill(subject);

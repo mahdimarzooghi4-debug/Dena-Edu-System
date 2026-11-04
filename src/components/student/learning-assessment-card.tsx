@@ -181,6 +181,13 @@ export function LearningAssessmentCard({ courseId, assessment }: {
         </p>
       )}
 
+      {(result?.outcome === "completed" || latest?.outcome === "completed") && (
+        <div className="mt-4 flex flex-wrap gap-4">
+          <Link href={`/student/courses/${courseId}`} className="text-sm font-bold text-dena-brand hover:underline">بازگشت به دوره</Link>
+          <Link href="/student/growth" className="text-sm font-bold text-dena-brand hover:underline">مشاهده مسیر رشد</Link>
+        </div>
+      )}
+
       {reviewLessons.length > 0 && reviewAttemptId && (
         <section className="mt-5 space-y-3 rounded-xl bg-amber-50 p-4" aria-label="بازبینی درس‌های مرتبط">
           <h4 className="font-bold text-amber-950">بازبینی درس‌های مرتبط با پرسش‌های نیازمند مرور</h4>
