@@ -24,7 +24,10 @@ export default async function InstituteExamReportPage({ params, searchParams }: 
     cursor: typeof rawQuery.cursor === "string" ? rawQuery.cursor : undefined,
   });
   if (!parsedQuery.success) notFound();
+  const viewValue = typeof rawQuery.view === "string" ? rawQuery.view : "overview";
+  if (!["overview", "questions", "results"].includes(viewValue)) notFound();
   const report = await getExamReport(actor.userId, "institute", examId, parsedQuery.data);
   if (!report) notFound();
-  return <ExamReport report={report} backHref="/institute/exams" />;
+  return <ExamReport report={report} backHref="/institute/exams"
+    activeView={viewValue as "overview" | "questions" | "results"} />;
 }
