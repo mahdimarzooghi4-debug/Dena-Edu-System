@@ -11,6 +11,7 @@ const sections = [
   { href: "/institute/sessions", label: "جلسات و محتوا" },
   { href: "/institute/students", label: "دانش‌آموزان" },
   { href: "/institute/instructors", label: "مدرس‌ها" },
+  { href: "/institute/academic-supporters", label: "پشتیبانان تحصیلی" },
   { href: "/institute/providers", label: "ارائه‌دهندگان و مدرس‌ها" },
   { href: "/institute/collaborations", label: "درخواست همکاری ارائه‌دهنده" },
   { href: "/institute/educators", label: "همکاران مستقل" },
