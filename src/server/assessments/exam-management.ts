@@ -135,7 +135,7 @@ export async function getExamReport(
     id: string; title: string; examType: "institute_planned" | "dena_coordinated";
     status: "draft" | "published" | "cancelled"; startsAt: Date; endsAt: Date;
     durationMinutes: number; attemptLimit: number; courseTitle: string | null;
-    createdByUserId: string;
+    createdByUserId: string; courseId: string | null; instructions: string;
   } | undefined;
   if (role === "admin") {
     const [admin] = await db.select({ id: memberships.id }).from(memberships)
@@ -148,7 +148,9 @@ export async function getExamReport(
       startsAt: assessmentExams.startsAt, endsAt: assessmentExams.endsAt,
       durationMinutes: assessmentExams.durationMinutes,
       attemptLimit: assessmentExams.attemptLimit,
-      createdByUserId: assessmentExams.createdByUserId, courseTitle: sql.raw("NULL").mapWith({
+      createdByUserId: assessmentExams.createdByUserId,
+      courseId: assessmentExams.courseId, instructions: assessmentExams.instructions,
+      courseTitle: sql.raw("NULL").mapWith({
         mapFromDriverValue: (value) => value === null ? null : String(value),
       }),
     }).from(assessmentExams).where(and(
@@ -163,7 +165,9 @@ export async function getExamReport(
       startsAt: assessmentExams.startsAt, endsAt: assessmentExams.endsAt,
       durationMinutes: assessmentExams.durationMinutes,
       attemptLimit: assessmentExams.attemptLimit,
-      createdByUserId: assessmentExams.createdByUserId, courseTitle: courses.title,
+      createdByUserId: assessmentExams.createdByUserId,
+      courseId: assessmentExams.courseId, instructions: assessmentExams.instructions,
+      courseTitle: courses.title,
     }).from(assessmentExams).innerJoin(memberships, and(
       eq(memberships.instituteId, assessmentExams.ownerId),
       eq(memberships.userId, userId),
@@ -190,6 +194,7 @@ export async function getExamReport(
   const [questionRows, summary, attemptRows, creatorRows] = await Promise.all([
     db.select({
       id: assessmentExamQuestions.id,
+      bankQuestionId: assessmentExamQuestions.bankQuestionId,
       prompt: assessmentExamQuestions.prompt,
       option0: assessmentExamQuestions.option0,
       option1: assessmentExamQuestions.option1,
