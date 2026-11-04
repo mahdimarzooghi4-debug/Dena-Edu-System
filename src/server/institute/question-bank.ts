@@ -287,3 +287,47 @@ export async function updateInstituteQuestion(
     return updated;
   });
 }
+
+
+/** Deletes only a question owned by an actively linked institute and records the action. */
+export async function deleteInstituteQuestion(actorUserId: string, questionId: string) {
+  return getDb().transaction(async (tx) => {
+    const scopes = await tx.select({ id: verifiedEntities.id })
+      .from(memberships).innerJoin(verifiedEntities, and(
+        eq(memberships.instituteId, verifiedEntities.id),
+        eq(verifiedEntities.role, "institute"),
+      )).where(and(
+        eq(memberships.userId, actorUserId),
+        eq(memberships.role, "institute"),
+        eq(memberships.status, "active"),
+      )).for("share");
+    const [current] = await tx.select({
+      bankId: assessmentQuestionBankQuestions.bankId,
+      ownerId: assessmentQuestionBankQuestions.ownerId,
+    }).from(assessmentQuestionBankQuestions).innerJoin(assessmentQuestionBanks, and(
+      eq(assessmentQuestionBanks.id, assessmentQuestionBankQuestions.bankId),
+      eq(assessmentQuestionBanks.ownerType, "institute"),
+      eq(assessmentQuestionBanks.ownerId, assessmentQuestionBankQuestions.ownerId),
+    )).where(and(
+      eq(assessmentQuestionBankQuestions.id, questionId),
+      eq(assessmentQuestionBankQuestions.ownerType, "institute"),
+      inArray(assessmentQuestionBankQuestions.ownerId, scopes.map((scope) => scope.id)),
+    )).limit(1).for("update");
+    if (!current) throw new InstituteQuestionBankError("scope_unavailable");
+
+    const [deleted] = await tx.delete(assessmentQuestionBankQuestions).where(and(
+      eq(assessmentQuestionBankQuestions.id, questionId),
+      eq(assessmentQuestionBankQuestions.bankId, current.bankId),
+      eq(assessmentQuestionBankQuestions.ownerId, current.ownerId),
+    )).returning({ id: assessmentQuestionBankQuestions.id });
+    if (!deleted) throw new InstituteQuestionBankError("scope_unavailable");
+    await tx.insert(auditLogs).values(auditLogRecord({
+      actorId: actorUserId,
+      actorRole: "institute",
+      action: "institute.assessment.question.deleted",
+      entityType: "ASSESSMENT_QUESTION",
+      entityId: deleted.id,
+    }));
+    return deleted;
+  });
+}
