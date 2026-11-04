@@ -90,6 +90,32 @@ export default async function InstituteExamsPage({
           </Link>
         </div>
 
+        {result.denaExams.length > 0 && (
+          <section aria-label="آزمون‌های هماهنگ دنا" className="space-y-4">
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-bold text-[#1e1a33]">آزمون‌های سراسری هماهنگ دنا</h2>
+                <p className="mt-1 text-sm text-[#8b86a3]">اطلاعات این آزمون‌ها فقط برای مشاهده در دسترس مؤسسه است.</p>
+              </div>
+              <span className="rounded-md bg-[#f0eefd] px-3 py-1.5 text-xs font-semibold text-[#5b4ce2]">فقط مشاهده</span>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              {result.denaExams.map((exam) => (
+                <Link key={exam.id} href={`/institute/exams/national/${encodeURIComponent(exam.id)}`}
+                  className="flex min-h-[116px] flex-col justify-between gap-3 rounded-xl border border-[#e5e1ed] bg-white p-4 transition hover:border-[#b6aff3] hover:bg-[#fcfbff]">
+                  <span className="font-bold leading-7 text-[#1e1a33]">{exam.title}</span>
+                  <span className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-[#6e6a8a]">
+                    <span>{exam.questionCount.toLocaleString("fa-IR")} سؤال</span>
+                    <span>{exam.durationMinutes.toLocaleString("fa-IR")} دقیقه</span>
+                    <time dateTime={exam.startsAt.toISOString()}>{formatDate(exam.startsAt)}</time>
+                    <span className="font-semibold text-[#5b4ce2]">نمایش جزئیات ←</span>
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+
         {filtered.length === 0 ? (
           <section className="rounded-xl border border-[#e5e1ed] bg-white px-5 py-12 text-center">
             <h2 className="font-bold text-[#1e1a33]">
