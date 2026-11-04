@@ -30,7 +30,11 @@ export class InstituteQuestionBankError extends Error {
   }
 }
 
-export async function getInstituteQuestionBank(userId: string, search?: string) {
+export async function getInstituteQuestionBank(
+  userId: string,
+  search?: string,
+  filters?: { courseId?: string; lessonId?: string },
+) {
   const scopes = await getInstituteScopes(userId);
   if (!scopes.length) return { questions: [], courses: [] };
   const db = getDb();
@@ -69,6 +73,10 @@ export async function getInstituteQuestionBank(userId: string, search?: string) 
         inArray(assessmentQuestionBankQuestions.ownerId, scopes.map((scope) => scope.id)),
         ...(cleanSearch ? [ilike(assessmentQuestionBankQuestions.prompt,
           `%${cleanSearch}%`)] : []),
+        ...(filters?.courseId ? [eq(assessmentQuestionBankQuestions.courseId,
+          filters.courseId)] : []),
+        ...(filters?.lessonId ? [eq(assessmentQuestionBankQuestions.lessonAssetId,
+          filters.lessonId)] : []),
       )).orderBy(desc(assessmentQuestionBankQuestions.createdAt),
         desc(assessmentQuestionBankQuestions.id)).limit(100),
     db.select({
