@@ -10,9 +10,6 @@ const date = (value: Date | null) => value
     dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Tehran",
   }).format(value)
   : "—";
-const shortDate = (value: Date) => new Intl.DateTimeFormat("fa-IR", {
-  dateStyle: "short", timeZone: "Asia/Tehran",
-}).format(value);
 
 export function ExamReport({ report, backHref, activeView = "overview" }: {
   report: Report; backHref: string; activeView?: ExamView;
