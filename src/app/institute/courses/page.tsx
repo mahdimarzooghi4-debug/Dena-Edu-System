@@ -76,9 +76,9 @@ export default async function InstituteCoursesPage({
             <h2 id="courses-heading" className="text-lg font-extrabold text-[#1e1a33]">مدیریت دوره‌ها</h2>
             <p className="mt-1 text-sm text-[#7e7a94]">دوره‌های مرتبط با عضویت فعال مؤسسه و وضعیت نظارت آن‌ها</p>
           </div>
-          <button type="button" disabled title="ایجاد دوره در این پنل هنوز فعال نشده است" className="inline-flex min-h-10 cursor-not-allowed items-center gap-2 rounded-lg bg-[#5b4ce2]/50 px-4 py-2 text-sm font-bold text-white">
+          <Link href="/institute/courses/new" className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-[#5b4ce2] px-4 py-2 text-sm font-bold text-white hover:bg-[#493bc7]">
             <span aria-hidden="true">＋</span>ایجاد دوره
-          </button>
+          </Link>
         </section>
         <form action="/institute/courses" method="get" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#e5e1ed] bg-white p-4">
           <div className="flex flex-wrap items-center gap-3">
