@@ -6,7 +6,7 @@ import {
   courseLearningAssessments, coursePracticeQuestions, courses,
   independentEducatorProfiles, privateMediaAssets,
   providerInstituteCollaborations, studentEnrollments, supervisionGrants,
-  verifiedEntities,
+  verifiedEntities, user,
 } from "../../db/schema";
 
 const instituteDashboardProvider = alias(verifiedEntities, "institute_dashboard_provider");
@@ -191,4 +191,56 @@ export async function getInstituteCourseSessionAssets(
     inArray(supervisionGrants.instituteId, [...instituteIds]),
   )).orderBy(asc(privateMediaAssets.createdAt), asc(privateMediaAssets.id))
     .limit(100);
+}
+
+
+/** Minimal student roster for institutes, limited to enrollments in courses
+ * they currently supervise. No contact details or authentication data returned. */
+export async function getInstituteStudents(instituteIds: readonly string[]) {
+  if (!instituteIds.length) return [];
+  const rows = await getDb().select({
+    studentId: user.id,
+    name: user.name,
+    status: studentEnrollments.status,
+    enrolledAt: studentEnrollments.enrolledAt,
+    courseId: courses.id,
+    courseTitle: courses.title,
+  }).from(studentEnrollments)
+    .innerJoin(user, eq(user.id, studentEnrollments.studentUserId))
+    .innerJoin(courses, eq(courses.id, studentEnrollments.courseId))
+    .innerJoin(supervisionGrants, and(
+      eq(supervisionGrants.courseId, courses.id),
+      eq(supervisionGrants.ownerType, courses.ownerType),
+      eq(supervisionGrants.instituteId, courses.responsibleInstituteId),
+      inArray(supervisionGrants.instituteId, [...instituteIds]),
+    ))
+    .orderBy(desc(studentEnrollments.enrolledAt), asc(user.name), asc(user.id))
+    .limit(5001);
+
+  const byStudent = new Map<string, {
+    studentId: string;
+    name: string;
+    status: "active" | "inactive";
+    enrolledAt: Date;
+    courseTitles: string[];
+    courseIds: Set<string>;
+  }>();
+  for (const row of rows) {
+    const student = byStudent.get(row.studentId) ?? {
+      studentId: row.studentId,
+      name: row.name,
+      status: "inactive" as const,
+      enrolledAt: row.enrolledAt,
+      courseTitles: [],
+      courseIds: new Set<string>(),
+    };
+    if (row.status === "active") student.status = "active";
+    if (row.enrolledAt > student.enrolledAt) student.enrolledAt = row.enrolledAt;
+    if (!student.courseIds.has(row.courseId)) {
+      student.courseIds.add(row.courseId);
+      student.courseTitles.push(row.courseTitle);
+    }
+    byStudent.set(row.studentId, student);
+  }
+  return [...byStudent.values()].slice(0, 5000).map(({ courseIds: _courseIds, ...student }) => student);
 }
