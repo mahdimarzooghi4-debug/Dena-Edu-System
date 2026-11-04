@@ -771,3 +771,99 @@ async function saveQuestions(
     };
   }));
 }
+
+
+export async function updateInstituteExam(
+  userId: string, examId: string, input: InstituteExamInput,
+) {
+  return getDb().transaction(async (tx) => {
+    const scopes = await tx.select({ id: verifiedEntities.id })
+      .from(memberships).innerJoin(verifiedEntities, and(
+        eq(verifiedEntities.id, memberships.instituteId),
+        eq(verifiedEntities.role, "institute"),
+      )).where(and(
+        eq(memberships.userId, userId),
+        eq(memberships.role, "institute"),
+        eq(memberships.status, "active"),
+      )).for("share");
+    const instituteIds = [...new Set(scopes.map((scope) => scope.id))];
+    if (!instituteIds.length) throw new ExamManagementError("scope_unavailable");
+
+    const [current] = await tx.select({
+      id: assessmentExams.id,
+      ownerId: assessmentExams.ownerId,
+      status: assessmentExams.status,
+      startsAt: assessmentExams.startsAt,
+    }).from(assessmentExams).where(and(
+      eq(assessmentExams.id, examId),
+      eq(assessmentExams.examType, "institute_planned"),
+      eq(assessmentExams.ownerType, "institute"),
+      inArray(assessmentExams.ownerId, instituteIds),
+    )).limit(1).for("update");
+    if (!current) throw new ExamManagementError("exam_unavailable");
+
+    const [attempt] = await tx.select({ id: assessmentExamAttempts.id })
+      .from(assessmentExamAttempts)
+      .where(eq(assessmentExamAttempts.examId, examId)).limit(1);
+    const canEdit = current.status === "draft" ||
+      (current.status === "published" && current.startsAt > new Date());
+    if (!canEdit || attempt) throw new ExamManagementError("exam_unavailable");
+
+    const [course] = await tx.select({
+      id: courses.id,
+      instituteId: courses.responsibleInstituteId,
+    }).from(courses).innerJoin(supervisionGrants, and(
+      eq(supervisionGrants.courseId, courses.id),
+      eq(supervisionGrants.providerId, courses.providerId),
+      eq(supervisionGrants.instituteId, courses.responsibleInstituteId),
+      eq(supervisionGrants.status, "approved"),
+    )).where(and(
+      eq(courses.id, input.courseId),
+      eq(courses.responsibleInstituteId, current.ownerId),
+    )).limit(1).for("share");
+    if (!course) throw new ExamManagementError("course_unavailable");
+
+    const [bank] = await tx.select({ id: assessmentQuestionBanks.id })
+      .from(assessmentQuestionBanks).where(and(
+        eq(assessmentQuestionBanks.ownerType, "institute"),
+        eq(assessmentQuestionBanks.ownerId, current.ownerId),
+      )).limit(1).for("share");
+    if (!bank) throw new ExamManagementError("questions_unavailable");
+    const questions = await tx.select().from(assessmentQuestionBankQuestions).where(and(
+      eq(assessmentQuestionBankQuestions.bankId, bank.id),
+      eq(assessmentQuestionBankQuestions.ownerType, "institute"),
+      eq(assessmentQuestionBankQuestions.ownerId, current.ownerId),
+      eq(assessmentQuestionBankQuestions.courseId, input.courseId),
+      inArray(assessmentQuestionBankQuestions.id, input.questionIds),
+    )).for("share");
+    if (questions.length !== input.questionIds.length) {
+      throw new ExamManagementError("questions_unavailable");
+    }
+
+    const [updated] = await tx.update(assessmentExams).set({
+      courseId: input.courseId,
+      bankId: bank.id,
+      title: input.title,
+      instructions: input.instructions,
+      startsAt: new Date(input.startsAt),
+      endsAt: new Date(input.endsAt),
+      durationMinutes: input.durationMinutes,
+      attemptLimit: input.attemptLimit,
+      updatedAt: new Date(),
+    }).where(eq(assessmentExams.id, examId))
+      .returning({ id: assessmentExams.id });
+    if (!updated) throw new ExamManagementError("exam_unavailable");
+    await tx.delete(assessmentExamQuestions)
+      .where(eq(assessmentExamQuestions.examId, examId));
+    await saveQuestions(tx, examId, bank.id, "institute", current.ownerId,
+      questions, input.questionIds);
+    await tx.insert(auditLogs).values(auditLogRecord({
+      actorId: userId,
+      actorRole: "institute",
+      action: "institute.exam.updated",
+      entityType: "ASSESSMENT_EXAM",
+      entityId: examId,
+    }));
+    return updated;
+  });
+}
