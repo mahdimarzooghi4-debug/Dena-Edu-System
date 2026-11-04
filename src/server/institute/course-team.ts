@@ -1,10 +1,12 @@
-import { and, eq } from "drizzle-orm";
+import { and, asc, count, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "../../db";
 import {
   courseTeamMembers,
   courses,
   memberships,
+  problemSolvingSessions,
+  supervisionGrants,
   user,
 } from "../../db/schema";
 
@@ -172,4 +174,50 @@ export async function setInstituteCourseTeamSessionRequestPolicy(
   });
 
   return updated ?? null;
+}
+
+
+/** Instructor directory for courses the signed-in institute currently supervises. */
+export async function getInstituteInstructorDirectory(
+  instituteIds: readonly string[],
+) {
+  if (!instituteIds.length) return [];
+
+  return getDb().select({
+    teamMemberId: courseTeamMembers.id,
+    name: user.name,
+    role: courseTeamMembers.role,
+    status: courseTeamMembers.status,
+    courseId: courses.id,
+    courseTitle: courses.title,
+    sessionCount: count(problemSolvingSessions.id),
+  }).from(courseTeamMembers)
+    .innerJoin(courses, eq(courses.id, courseTeamMembers.courseId))
+    .innerJoin(supervisionGrants, and(
+      eq(supervisionGrants.courseId, courses.id),
+      eq(supervisionGrants.ownerType, courses.ownerType),
+      eq(supervisionGrants.instituteId, courses.responsibleInstituteId),
+      eq(supervisionGrants.status, "approved"),
+      inArray(supervisionGrants.instituteId, [...instituteIds]),
+    ))
+    .innerJoin(user, eq(user.id, courseTeamMembers.memberUserId))
+    .leftJoin(problemSolvingSessions, and(
+      eq(problemSolvingSessions.supporterTeamMemberId, courseTeamMembers.id),
+      eq(problemSolvingSessions.courseId, courses.id),
+    ))
+    .where(and(
+      inArray(courseTeamMembers.instituteId, [...instituteIds]),
+    ))
+    .groupBy(
+      courseTeamMembers.id,
+      courseTeamMembers.memberUserId,
+      courseTeamMembers.role,
+      courseTeamMembers.status,
+      courses.id,
+      courses.title,
+      user.id,
+      user.name,
+    )
+    .orderBy(asc(user.name), asc(courses.title))
+    .limit(1000);
 }
