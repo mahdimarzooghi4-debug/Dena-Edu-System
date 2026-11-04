@@ -222,7 +222,7 @@ export async function getInstituteStudentGrowth(
 
   const completedVideos = videos.filter((video) => video.completedAt !== null);
   let completedCount = 0;
-  const events = [{
+  const events: Array<{ kind: "enrollment" | "video" | "assessment" | "now"; title: string; occurredAt: Date; progress: number | null }> = [{
     kind: "enrollment" as const,
     title: "شروع دوره",
     occurredAt: enrollment.enrolledAt,
