@@ -135,6 +135,7 @@ export async function getExamReport(
     id: string; title: string; examType: "institute_planned" | "dena_coordinated";
     status: "draft" | "published" | "cancelled"; startsAt: Date; endsAt: Date;
     durationMinutes: number; attemptLimit: number; courseTitle: string | null;
+    createdByUserId: string;
   } | undefined;
   if (role === "admin") {
     const [admin] = await db.select({ id: memberships.id }).from(memberships)
@@ -146,7 +147,8 @@ export async function getExamReport(
       examType: assessmentExams.examType, status: assessmentExams.status,
       startsAt: assessmentExams.startsAt, endsAt: assessmentExams.endsAt,
       durationMinutes: assessmentExams.durationMinutes,
-      attemptLimit: assessmentExams.attemptLimit, courseTitle: sql.raw("NULL").mapWith({
+      attemptLimit: assessmentExams.attemptLimit,
+      createdByUserId: assessmentExams.createdByUserId, courseTitle: sql.raw("NULL").mapWith({
         mapFromDriverValue: (value) => value === null ? null : String(value),
       }),
     }).from(assessmentExams).where(and(
@@ -160,7 +162,8 @@ export async function getExamReport(
       examType: assessmentExams.examType, status: assessmentExams.status,
       startsAt: assessmentExams.startsAt, endsAt: assessmentExams.endsAt,
       durationMinutes: assessmentExams.durationMinutes,
-      attemptLimit: assessmentExams.attemptLimit, courseTitle: courses.title,
+      attemptLimit: assessmentExams.attemptLimit,
+      createdByUserId: assessmentExams.createdByUserId, courseTitle: courses.title,
     }).from(assessmentExams).innerJoin(memberships, and(
       eq(memberships.instituteId, assessmentExams.ownerId),
       eq(memberships.userId, userId),
@@ -184,10 +187,20 @@ export async function getExamReport(
     sql`${assessmentExamAttempts.startedAt} < ${cursor.startedAt}::timestamptz`,
     and(sql`${assessmentExamAttempts.startedAt} = ${cursor.startedAt}::timestamptz`, lt(assessmentExamAttempts.id, cursor.id)),
   )!);
-  const [questionCount, summary, attemptRows] = await Promise.all([
-    db.select({ value: sql.raw("count(*)").mapWith(Number) })
-      .from(assessmentExamQuestions)
-      .where(eq(assessmentExamQuestions.examId, examId)),
+  const [questionRows, summary, attemptRows, creatorRows] = await Promise.all([
+    db.select({
+      id: assessmentExamQuestions.id,
+      prompt: assessmentExamQuestions.prompt,
+      option0: assessmentExamQuestions.option0,
+      option1: assessmentExamQuestions.option1,
+      option2: assessmentExamQuestions.option2,
+      option3: assessmentExamQuestions.option3,
+      correctOption: assessmentExamQuestions.correctOption,
+      points: assessmentExamQuestions.points,
+      position: assessmentExamQuestions.position,
+    }).from(assessmentExamQuestions)
+      .where(eq(assessmentExamQuestions.examId, examId))
+      .orderBy(asc(assessmentExamQuestions.position)),
     db.select({
       participants: sql.raw("count(DISTINCT student_user_id)").mapWith(Number),
       totalAttempts: sql.raw("count(*)").mapWith(Number),
@@ -197,6 +210,15 @@ export async function getExamReport(
       averageScorePercent: sql.raw(
         "coalesce(avg(earned_points::numeric * 100 / NULLIF(total_points, 0)) " +
         "FILTER (WHERE status IN ('submitted', 'expired')), 0)",
+      ).mapWith(Number),
+      averageEarnedScore: sql.raw(
+        "coalesce(avg(earned_points) FILTER (WHERE status IN ('submitted', 'expired')), 0)",
+      ).mapWith(Number),
+      maxEarnedScore: sql.raw(
+        "coalesce(max(earned_points) FILTER (WHERE status IN ('submitted', 'expired')), 0)",
+      ).mapWith(Number),
+      maxTotalPoints: sql.raw(
+        "coalesce(max(total_points) FILTER (WHERE status IN ('submitted', 'expired')), 0)",
       ).mapWith(Number),
     }).from(assessmentExamAttempts).where(eq(assessmentExamAttempts.examId, examId)),
     db.select({
@@ -213,13 +235,16 @@ export async function getExamReport(
       .where(and(...attemptConditions))
       .orderBy(desc(assessmentExamAttempts.startedAt), desc(assessmentExamAttempts.id))
       .limit(pageSize + 1),
+    db.select({ name: user.name }).from(user)
+      .where(eq(user.id, exam.createdByUserId)).limit(1),
   ]);
   const hasMore = attemptRows.length > pageSize;
   const rows = hasMore ? attemptRows.slice(0, pageSize) : attemptRows;
   const last = rows.at(-1);
   const totals = summary[0]!;
   return {
-    exam: { ...exam, questionCount: questionCount[0]?.value ?? 0 },
+    exam: { ...exam, questionCount: questionRows.length, createdByName: creatorRows[0]?.name ?? "—" },
+    questions: questionRows,
     summary: {
       participants: totals.participants,
       totalAttempts: totals.totalAttempts,
@@ -227,6 +252,9 @@ export async function getExamReport(
       submitted: totals.submitted,
       expired: totals.expired,
       averageScorePercent: Math.round(totals.averageScorePercent * 10) / 10,
+      averageEarnedScore: Math.round(totals.averageEarnedScore * 10) / 10,
+      maxEarnedScore: totals.maxEarnedScore,
+      maxTotalPoints: totals.maxTotalPoints,
     },
     filters: { status: query.status ?? "", search: query.search ?? "" },
     attempts: rows.map((attempt) => ({
