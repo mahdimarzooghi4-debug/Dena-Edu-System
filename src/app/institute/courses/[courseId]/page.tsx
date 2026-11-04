@@ -106,7 +106,7 @@ export default async function InstituteCoursePage({
           <div className="flex min-w-max items-center gap-1 p-2 text-sm">
             <span aria-current="page" className="rounded-lg bg-[#eeeaff] px-4 py-3 font-bold text-[#5b4ce2]">نمای کلی</span>
             <Link href={`/institute/courses/${courseId}/assessments`} className="rounded-lg px-4 py-3 text-[#7e7a94] hover:bg-[#f8f7fc]">آزمون‌های یادگیری</Link>
-            <span aria-disabled="true" title="صفحهٔ جلسات دوره هنوز در مخزن پیاده‌سازی نشده است" className="cursor-not-allowed px-4 py-3 text-[#aaa6b8]">جلسات</span>
+            <Link href={`/institute/sessions?courseId=${courseId}`} className="rounded-lg px-4 py-3 text-[#7e7a94] hover:bg-[#f8f7fc]">جلسات و محتوا</Link>
             <span aria-disabled="true" title="فهرست دانش‌آموزان دوره هنوز در مخزن پیاده‌سازی نشده است" className="cursor-not-allowed px-4 py-3 text-[#aaa6b8]">دانش‌آموزان</span>
             <a href="#institute-course-team" className="rounded-lg px-4 py-3 text-[#7e7a94] hover:bg-[#f8f7fc]">تیم آموزشی</a>
           </div>

@@ -167,3 +167,28 @@ export async function getInstituteDashboardCourses(
     invalidCursor: false,
   };
 }
+
+/** Read only safe video metadata for a course that belongs to an active
+ * institute scope. Storage keys and signed media URLs are never returned. */
+export async function getInstituteCourseSessionAssets(
+  instituteIds: readonly string[],
+  courseId: string,
+) {
+  if (!instituteIds.length) return [];
+  return getDb().select({
+    assetId: privateMediaAssets.id,
+    title: privateMediaAssets.title,
+    status: privateMediaAssets.status,
+    createdAt: privateMediaAssets.createdAt,
+  }).from(privateMediaAssets).innerJoin(courses, and(
+    eq(courses.id, privateMediaAssets.courseId),
+  )).innerJoin(supervisionGrants, and(
+    eq(supervisionGrants.courseId, courses.id),
+    eq(supervisionGrants.ownerType, courses.ownerType),
+    eq(supervisionGrants.instituteId, courses.responsibleInstituteId),
+  )).where(and(
+    eq(privateMediaAssets.courseId, courseId),
+    inArray(supervisionGrants.instituteId, [...instituteIds]),
+  )).orderBy(asc(privateMediaAssets.createdAt), asc(privateMediaAssets.id))
+    .limit(100);
+}

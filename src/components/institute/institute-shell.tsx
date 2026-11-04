@@ -8,6 +8,7 @@ import type { ReactNode } from "react";
 const sections = [
   { href: "/institute", label: "داشبورد" },
   { href: "/institute/courses", label: "دوره‌ها" },
+  { href: "/institute/sessions", label: "جلسات و محتوا" },
   { href: "/institute/providers", label: "ارائه‌دهندگان و مدرس‌ها" },
   { href: "/institute/collaborations", label: "درخواست همکاری ارائه‌دهنده" },
   { href: "/institute/educators", label: "همکاران مستقل" },
