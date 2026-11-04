@@ -79,8 +79,8 @@ export default async function InstituteCoursePage({
               <p className="text-xs font-bold text-[#5b4ce2]">پروندهٔ دوره</p>
               <h2 className="mt-2 text-2xl font-extrabold leading-10 text-[#1e1a33]">{course.title}</h2>
             </div>
-            <button type="button" disabled title="ویرایش دوره در این پنل هنوز فعال نشده است"
-              className="cursor-not-allowed rounded-lg bg-[#5b4ce2]/50 px-4 py-2 text-sm font-bold text-white">ویرایش دوره</button>
+            <Link href={`/institute/courses/${courseId}/edit`}
+              className="rounded-lg bg-[#5b4ce2] px-4 py-2 text-sm font-bold text-white hover:bg-[#493bc7]">ویرایش دوره</Link>
           </div>
           <dl className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-lg bg-[#f8f7fc] p-4">
