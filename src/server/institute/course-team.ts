@@ -1,10 +1,12 @@
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "../../db";
 import {
   courseTeamMembers,
   courses,
   memberships,
+  privateMediaAssets,
+  studentEnrollments,
   supervisionGrants,
   user,
 } from "../../db/schema";
@@ -215,4 +217,103 @@ export async function getInstituteInstructorDirectory(
     )
     .orderBy(asc(user.name), asc(courses.title))
     .limit(1000);
+}
+
+
+/** A teacher profile and course media, restricted to approved institute scopes. */
+export async function getInstituteInstructorDetail(
+  instituteIds: readonly string[],
+  teamMemberId: string,
+) {
+  if (!instituteIds.length) return null;
+  const db = getDb();
+  const [selected] = await db.select({
+    memberUserId: courseTeamMembers.memberUserId,
+  }).from(courseTeamMembers)
+    .innerJoin(courses, eq(courses.id, courseTeamMembers.courseId))
+    .innerJoin(supervisionGrants, and(
+      eq(supervisionGrants.courseId, courses.id),
+      eq(supervisionGrants.ownerType, courses.ownerType),
+      eq(supervisionGrants.instituteId, courses.responsibleInstituteId),
+      eq(supervisionGrants.status, "approved"),
+      inArray(supervisionGrants.instituteId, [...instituteIds]),
+    ))
+    .where(and(
+      eq(courseTeamMembers.id, teamMemberId),
+      eq(courseTeamMembers.role, "teacher"),
+      inArray(courseTeamMembers.instituteId, [...instituteIds]),
+    ))
+    .limit(1);
+  if (!selected) return null;
+
+  const rows = await db.select({
+    teamMemberId: courseTeamMembers.id,
+    memberUserId: courseTeamMembers.memberUserId,
+    name: user.name,
+    status: courseTeamMembers.status,
+    assignedAt: courseTeamMembers.assignedAt,
+    courseId: courses.id,
+    courseTitle: courses.title,
+  }).from(courseTeamMembers)
+    .innerJoin(courses, eq(courses.id, courseTeamMembers.courseId))
+    .innerJoin(supervisionGrants, and(
+      eq(supervisionGrants.courseId, courses.id),
+      eq(supervisionGrants.ownerType, courses.ownerType),
+      eq(supervisionGrants.instituteId, courses.responsibleInstituteId),
+      eq(supervisionGrants.status, "approved"),
+      inArray(supervisionGrants.instituteId, [...instituteIds]),
+    ))
+    .innerJoin(user, eq(user.id, courseTeamMembers.memberUserId))
+    .where(and(
+      eq(courseTeamMembers.memberUserId, selected.memberUserId),
+      eq(courseTeamMembers.role, "teacher"),
+      inArray(courseTeamMembers.instituteId, [...instituteIds]),
+    ))
+    .orderBy(asc(courses.title), asc(courseTeamMembers.assignedAt))
+    .limit(200);
+  if (!rows.length) return null;
+
+  const courseIds = [...new Set(rows.map((row) => row.courseId))];
+  const [enrollmentRows, recordingRows] = await Promise.all([
+    db.select({
+      courseId: studentEnrollments.courseId,
+      activeStudents: count(studentEnrollments.id),
+    }).from(studentEnrollments)
+      .where(and(
+        inArray(studentEnrollments.courseId, courseIds),
+        eq(studentEnrollments.status, "active"),
+      ))
+      .groupBy(studentEnrollments.courseId),
+    db.select({
+      assetId: privateMediaAssets.id,
+      courseId: privateMediaAssets.courseId,
+      title: privateMediaAssets.title,
+      createdAt: privateMediaAssets.createdAt,
+    }).from(privateMediaAssets)
+      .where(and(
+        inArray(privateMediaAssets.courseId, courseIds),
+        eq(privateMediaAssets.status, "ready"),
+      ))
+      .orderBy(desc(privateMediaAssets.createdAt), desc(privateMediaAssets.id))
+      .limit(200),
+  ]);
+  const activeStudentsByCourse = new Map(enrollmentRows.map((row) =>
+    [row.courseId, row.activeStudents] as const));
+  return {
+    name: rows[0]!.name,
+    active: rows.some((row) => row.status === "active"),
+    assignedAt: rows.reduce((earliest, row) =>
+      row.assignedAt < earliest ? row.assignedAt : earliest, rows[0]!.assignedAt),
+    courses: rows.map((row) => ({
+      teamMemberId: row.teamMemberId,
+      courseId: row.courseId,
+      title: row.courseTitle,
+      activeStudents: activeStudentsByCourse.get(row.courseId) ?? 0,
+      active: row.status === "active",
+    })),
+    recordings: recordingRows.map((recording) => ({
+      ...recording,
+      courseTitle: rows.find((row) => row.courseId === recording.courseId)?.courseTitle ?? "",
+    })),
+  };
 }
