@@ -28,6 +28,8 @@ export function ExamReport({ report, backHref, activeView = "overview" }: {
     "/exams/" + encodeURIComponent(exam.id) + "/report.csv" + queryString();
   const tabHref = (view: ExamView) => baseHref + "?view=" + view;
   const isFinished = exam.status === "published" && exam.endsAt.getTime() < Date.now();
+  const canEdit = summary.totalAttempts === 0 && exam.status !== "cancelled" &&
+    (exam.status === "draft" || (exam.status === "published" && exam.startsAt.getTime() > Date.now()));
   const statusLabel = exam.status === "draft" ? "پیش‌نویس"
     : exam.status === "cancelled" ? "لغوشده" : isFinished ? "پایان‌یافته" : "فعال";
   const statusColor = exam.status === "draft" ? "bg-[#fff9e6] text-[#f59e0b]"
@@ -63,6 +65,12 @@ export function ExamReport({ report, backHref, activeView = "overview" }: {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
+            {canEdit && (
+              <Link href={baseHref + "/edit"}
+                className="inline-flex min-h-[42px] items-center justify-center rounded-lg bg-[#5b4ce2] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#4b3dc9]">
+                ویرایش آزمون
+              </Link>
+            )}
             <Link href={tabHref("results")}
               className="inline-flex min-h-[42px] items-center justify-center rounded-lg border border-[#5b4ce2] px-5 py-2.5 text-sm font-semibold text-[#5b4ce2] hover:bg-[#f7f6fb]">
               مشاهده نتایج
