@@ -75,12 +75,12 @@ export function InstituteQuestionForm({ courses, question }: {
 
   if (courses.length === 0) {
     return (
-      <div className="rounded-xl border border-dena-border bg-white p-6">
-        <p className="font-bold text-dena-deep">هنوز جلسهٔ آماده‌ای برای سؤال وجود ندارد.</p>
-        <p className="mt-2 text-sm leading-7 text-dena-muted">
+      <div className="rounded-xl border border-[#e5e1ed] bg-white p-6">
+        <p className="font-bold text-[#1e1a33]">هنوز جلسهٔ آماده‌ای برای سؤال وجود ندارد.</p>
+        <p className="mt-2 text-sm leading-7 text-[#6e6a8a]">
           پس از تأیید نظارت دوره و آماده‌شدن دست‌کم یک ویدئوی جلسه، می‌توانی سؤال را به همان دوره و جلسه پیوند بدهی.
         </p>
-        <Link href="/institute/question-bank" className="mt-5 inline-flex text-sm font-bold text-dena-brand hover:underline">
+        <Link href="/institute/question-bank" className="mt-5 inline-flex text-sm font-bold text-[#5b4ce2] hover:underline">
           بازگشت به بانک سؤال
         </Link>
       </div>
@@ -88,25 +88,26 @@ export function InstituteQuestionForm({ courses, question }: {
   }
 
   return (
-    <form onSubmit={(event) => void submit(event)} className="space-y-6 rounded-xl border border-dena-border bg-white p-5 md:p-8">
+    <form onSubmit={(event) => void submit(event)}
+      className="space-y-6 rounded-xl border border-[#e5e1ed] bg-white p-5 md:p-7">
       <div className="grid gap-5 md:grid-cols-2">
-        <label className="space-y-2 text-sm font-bold">
-          <span>دورهٔ آموزشی</span>
+        <label className="space-y-2 text-sm font-semibold text-[#1e1a33]">
+          <span className="block">دوره آموزشی</span>
           <select required value={courseId}
             onChange={(event) => {
               const next = courses.find((course) => course.id === event.target.value);
               setCourseId(event.target.value);
               setLessonAssetId(next?.lessons[0]?.id ?? "");
             }}
-            className="block min-h-12 w-full rounded-lg border border-dena-border bg-dena-bg px-3 font-normal">
+            className="block min-h-11 w-full rounded-lg border border-[#e5e1ed] bg-[#f9fafb] px-3 text-[13px] font-normal text-[#1e1a33]">
             {courses.map((course) => <option key={course.id} value={course.id}>{course.title}</option>)}
           </select>
         </label>
-        <label className="space-y-2 text-sm font-bold">
-          <span>جلسهٔ مرتبط</span>
+        <label className="space-y-2 text-sm font-semibold text-[#1e1a33]">
+          <span className="block">جلسه مرتبط</span>
           <select required value={lessonAssetId}
             onChange={(event) => setLessonAssetId(event.target.value)}
-            className="block min-h-12 w-full rounded-lg border border-dena-border bg-dena-bg px-3 font-normal">
+            className="block min-h-11 w-full rounded-lg border border-[#e5e1ed] bg-[#f9fafb] px-3 text-[13px] font-normal text-[#1e1a33]">
             {selectedCourse?.lessons.map((lesson) => (
               <option key={lesson.id} value={lesson.id}>{lesson.title}</option>
             ))}
@@ -115,51 +116,53 @@ export function InstituteQuestionForm({ courses, question }: {
       </div>
 
       <fieldset className="space-y-2">
-        <legend className="text-sm font-bold">قالب سؤال</legend>
-        <label className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-dena-bg px-3 text-sm">
-          <input type="radio" checked readOnly aria-label="چهارگزینه‌ای" />
+        <legend className="text-sm font-semibold text-[#1e1a33]">قالب سؤال: چهارگزینه‌ای</legend>
+        <label className="inline-flex min-h-8 items-center gap-2 text-[13px] text-[#1e1a33]">
+          <input type="radio" checked readOnly aria-label="چهارگزینه‌ای" className="accent-[#5b4ce2]" />
           چهارگزینه‌ای
         </label>
       </fieldset>
 
-      <label className="block space-y-2 text-sm font-bold">
+      <label className="block space-y-2 text-sm font-semibold text-[#1e1a33]">
         <span>متن سؤال</span>
-        <textarea required minLength={10} maxLength={500} rows={5} value={prompt}
+        <textarea required minLength={10} maxLength={500} rows={4} value={prompt}
           onChange={(event) => setPrompt(event.target.value)}
           placeholder="صورت سؤال را در این قسمت وارد نمایید..."
-          className="w-full rounded-lg border border-dena-border p-3 font-normal leading-7" />
+          className="h-[100px] w-full resize-y rounded-lg border border-[#e5e1ed] p-3 text-sm font-normal leading-7 placeholder:text-[#8b86a3] focus:border-[#5b4ce2] focus:outline-none focus:ring-2 focus:ring-[#5b4ce2]/15" />
       </label>
 
       <fieldset className="space-y-3">
-        <legend className="mb-3 text-sm font-bold">گزینه‌های پاسخ</legend>
+        <legend className="mb-1 text-sm font-semibold text-[#1e1a33]">گزینه‌های پاسخ</legend>
         {options.map((option, index) => (
           <div key={index} className="flex items-center gap-3">
             <input type="radio" name="correct-option" required
               aria-label={`گزینهٔ ${index + 1} پاسخ صحیح است`}
-              checked={correctOption === index} onChange={() => setCorrectOption(index)} />
+              checked={correctOption === index} onChange={() => setCorrectOption(index)}
+              className="h-[18px] w-[18px] shrink-0 accent-[#5b4ce2]" />
             <input required maxLength={160} value={option}
               aria-label={`متن گزینهٔ ${index + 1}`}
               onChange={(event) => setOptions((current) => current.map((value, item) =>
                 item === index ? event.target.value : value) as typeof current)}
               placeholder={`گزینهٔ ${(index + 1).toLocaleString("fa-IR")}`}
-              className="min-h-11 flex-1 rounded-lg border border-dena-border px-3 text-sm" />
+              className="min-h-11 min-w-0 flex-1 rounded-lg border border-[#e5e1ed] px-3 text-[13px] placeholder:text-[#8b86a3] focus:border-[#5b4ce2] focus:outline-none focus:ring-2 focus:ring-[#5b4ce2]/15" />
           </div>
         ))}
       </fieldset>
 
-      <p className="border-t border-dena-border pt-4 text-xs leading-6 text-dena-muted">
-        پاسخ صحیح فقط برای ارزیابی داخلی استفاده می‌شود و در اختیار دانش‌آموز قرار نمی‌گیرد.
+      <p className="flex items-center gap-2 border-t border-[#e5e1ed] pt-4 text-xs leading-6 text-[#6e6a8a]">
+        <span aria-hidden="true" className="font-bold text-[#5b4ce2]">ⓘ</span>
+        پاسخ صحیح فقط برای ارزیابی داخلی استفاده می‌شود.
       </p>
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-3 border-t border-[#e5e1ed] pt-3">
         <Button type="submit" disabled={busy}>
-          {busy ? "در حال ذخیره…" : "ذخیره سؤال"}
+          {busy ? "در حال ذخیره…" : "ذخیره"}
         </Button>
         <Link href="/institute/question-bank"
-          className="inline-flex min-h-12 items-center justify-center rounded-xl border border-dena-border bg-white px-5 py-3 text-sm font-semibold text-dena-ink hover:bg-dena-bg">
+          className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[#e5e1ed] bg-white px-6 py-2.5 text-sm font-semibold text-[#1e1a33] hover:bg-[#f7f6fb]">
           انصراف
         </Link>
       </div>
-      {message && <p role="status" className="text-sm leading-7 text-dena-deep">{message}</p>}
+      {message && <p role="status" className="text-sm leading-7 text-[#1e1a33]">{message}</p>}
     </form>
   );
 }
