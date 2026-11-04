@@ -180,80 +180,44 @@ export function ExamReport({ report, backHref, activeView = "overview" }: {
           )}
 
           {activeView === "results" && (
-            <section className="space-y-4">
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" aria-label="خلاصهٔ عملکرد آزمون">
-                {[
-                  ["شرکت‌کنندگان", summary.participants],
-                  ["کل تلاش‌ها", summary.totalAttempts],
-                  ["ثبت‌شده", summary.submitted],
-                  ["در حال انجام", summary.inProgress],
-                  ["اتمام زمان", summary.expired],
-                  ["میانگین درصد نمره", summary.averageScorePercent.toLocaleString("fa-IR") + "٪"],
-                ].map(([label, value]) => (
-                  <Card key={label} className="space-y-2 rounded-xl border-[#e5e1ed] p-4">
-                    <p className="text-sm text-[#6e6a8a]">{label}</p>
-                    <p className="text-xl font-bold text-[#1e1a33]">{value.toLocaleString("fa-IR")}</p>
+            <section className="space-y-5">
+              {backHref.startsWith("/institute") ? (
+                <>
+                  <div><h1 className="text-2xl font-bold leading-9 text-[#1e1a33]">نتایج و بازخوردهای ارزیابی</h1><p className="mt-1 text-sm text-[#6e6a8a]">{exam.title}</p></div>
+                  <div role="note" className="flex gap-3 rounded-xl border border-[#d9d4ff] bg-[#f0efff] p-4 text-sm leading-7 text-[#5145b8]">
+                    <span aria-hidden="true" className="text-lg">ⓘ</span><p>اطلاعات این بخش صرفاً جهت تحلیل روند یادگیری کلی مؤسسه است؛ پاسخ‌نامه و جزئیات نمرات فردی برای حفظ امنیت آزمون نمایش داده نمی‌شود.</p>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-3" aria-label="آمار گروهی آزمون">
+                    <Card className="space-y-3 rounded-xl border-[#e5e1ed] p-5"><p className="text-sm text-[#6e6a8a]">تعداد شرکت‌کنندگان</p><p className="text-2xl font-bold text-[#1e1a33]">{summary.participants.toLocaleString("fa-IR")} <span className="text-sm font-medium">نفر</span></p><p className="text-xs text-[#8b86a3]">{summary.totalAttempts.toLocaleString("fa-IR")} تلاش ثبت‌شده</p></Card>
+                    <Card className="space-y-3 rounded-xl border-[#e5e1ed] p-5"><p className="text-sm text-[#6e6a8a]">میانگین نمره گروهی</p><p className="text-2xl font-bold text-[#1e1a33]">{summary.averageEarnedScore.toLocaleString("fa-IR")} <span className="text-sm font-medium">از {summary.maxTotalPoints.toLocaleString("fa-IR")}</span></p><p className="text-xs text-[#8b86a3]">بر پایهٔ تلاش‌های تکمیل یا پایان‌یافته</p></Card>
+                    <Card className="space-y-3 rounded-xl border-[#e5e1ed] p-5"><p className="text-sm text-[#6e6a8a]">نرخ تکمیل آزمون</p><p className="text-2xl font-bold text-[#1e1a33]">{(summary.totalAttempts ? Math.round(summary.submitted / summary.totalAttempts * 1000) / 10 : 0).toLocaleString("fa-IR")}٪</p><p className="text-xs text-[#8b86a3]">{summary.submitted.toLocaleString("fa-IR")} تلاش تکمیل‌شده از {summary.totalAttempts.toLocaleString("fa-IR")} تلاش</p></Card>
+                  </div>
+                  <Card className="space-y-4 rounded-xl border-[#e5e1ed] p-5 md:p-6">
+                    <div><h2 className="text-lg font-bold text-[#1e1a33]">لیست وضعیت مشارکت دانش‌آموزان</h2><p className="mt-1 text-sm text-[#8b86a3]">آخرین {attempts.slice(0,5).length.toLocaleString("fa-IR")} تلاش دانش‌آموزان در این آزمون</p></div>
+                    {attempts.length === 0 ? <p className="rounded-lg bg-[#f7f6fb] p-4 text-sm text-[#6e6a8a]">هنوز مشارکتی در این آزمون ثبت نشده است.</p> : (
+                      <div className="overflow-x-auto"><table className="w-full min-w-[520px] border-collapse text-right text-sm">
+                        <thead className="bg-[#f9fafb] text-[#6e6a8a]"><tr>{["تاریخ شرکت","وضعیت آزمون","نام دانش‌آموز"].map((h)=><th key={h} scope="col" className="p-4 font-medium">{h}</th>)}</tr></thead>
+                        <tbody>{attempts.slice(0,5).map((attempt)=><tr key={attempt.id} className="border-t border-[#e5e1ed]">
+                          <td className="p-4">{date(attempt.startedAt)}</td><td className="p-4"><span className={"inline-flex rounded-full px-3 py-1 text-xs font-semibold "+(attempt.status==="submitted"?"bg-[#e8fff3] text-[#07875c]":"bg-[#fff5e6] text-[#bd7100]")}>{attempt.status==="submitted"?"تکمیل‌شده":"ناتمام"}</span></td>
+                          <th scope="row" className="p-4 font-semibold text-[#1e1a33]">{attempt.studentName}</th></tr>)}</tbody>
+                      </table></div>
+                    )}
                   </Card>
-                ))}
-              </div>
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h2 className="text-lg font-bold text-[#1e1a33]">تلاش‌های دانش‌آموزان</h2>
-                <p className="text-xs text-[#6e6a8a]">
-                  آمار بالا برای همهٔ تلاش‌هاست؛ این جدول بر اساس فیلترها نمایش داده می‌شود.
-                </p>
-              </div>
-              <form method="get" className="flex flex-wrap items-end gap-3 rounded-xl border border-[#e5e1ed] bg-white p-4">
-                <input type="hidden" name="view" value="results" />
-                <label className="grid gap-1 text-sm font-semibold text-[#1e1a33]">
-                  نام دانش‌آموز
-                  <input name="search" defaultValue={filters.search} maxLength={80}
-                    className="min-h-11 rounded-lg border border-[#e5e1ed] px-3" />
-                </label>
-                <label className="grid gap-1 text-sm font-semibold text-[#1e1a33]">
-                  وضعیت تلاش
-                  <select name="status" defaultValue={filters.status}
-                    className="min-h-11 rounded-lg border border-[#e5e1ed] bg-white px-3">
-                    <option value="">همهٔ وضعیت‌ها</option>
-                    <option value="in_progress">در حال انجام</option>
-                    <option value="submitted">ثبت‌شده</option>
-                    <option value="expired">اتمام زمان</option>
-                  </select>
-                </label>
-                <button className="min-h-11 rounded-lg bg-[#5b4ce2] px-4 font-bold text-white">اعمال فیلتر</button>
-                <a href={exportHref}
-                  className="min-h-11 rounded-lg border border-[#5b4ce2] px-4 py-2.5 text-sm font-bold text-[#5b4ce2]">
-                  دریافت CSV نتایج فیلترشده
-                </a>
-              </form>
-              {attempts.length === 0 ? (
-                <Card><p className="text-sm text-[#6e6a8a]">هنوز دانش‌آموزی در این آزمون شرکت نکرده است.</p></Card>
+                </>
               ) : (
-                <div className="overflow-x-auto rounded-xl border border-[#e5e1ed] bg-white">
-                  <table className="w-full min-w-[760px] border-collapse text-right text-sm">
-                    <thead className="bg-[#f9fafb]"><tr>
-                      {["دانش‌آموز", "تلاش", "وضعیت", "شروع", "ثبت پاسخ", "پاسخ درست", "امتیاز", "درصد"].map((heading) =>
-                        <th key={heading} scope="col" className="p-4">{heading}</th>)}
-                    </tr></thead>
-                    <tbody>{attempts.map((attempt) => <tr key={attempt.id} className="border-t border-[#e5e1ed]">
-                      <th scope="row" className="p-4 font-semibold">{attempt.studentName}</th>
-                      <td className="p-4">{attempt.attemptNumber.toLocaleString("fa-IR")}</td>
-                      <td className="p-4">{attempt.status === "in_progress" ? "در حال انجام" :
-                        attempt.status === "submitted" ? "ثبت‌شده" : "اتمام زمان"}</td>
-                      <td className="p-4">{date(attempt.startedAt)}</td>
-                      <td className="p-4">{date(attempt.submittedAt)}</td>
-                      <td className="p-4">{attempt.correctCount === null ? "—" : attempt.correctCount.toLocaleString("fa-IR")}</td>
-                      <td className="p-4">{attempt.earnedPoints === null ? "—" :
-                        attempt.earnedPoints.toLocaleString("fa-IR") + " از " + (attempt.totalPoints ?? 0).toLocaleString("fa-IR")}</td>
-                      <td className="p-4">{attempt.scorePercent === null ? "—" : attempt.scorePercent.toLocaleString("fa-IR") + "٪"}</td>
-                    </tr>)}</tbody>
-                  </table>
-                </div>
+                <section className="space-y-4">
+                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" aria-label="خلاصهٔ عملکرد آزمون">{[
+                    ["شرکت‌کنندگان",summary.participants],["کل تلاش‌ها",summary.totalAttempts],["ثبت‌شده",summary.submitted],["در حال انجام",summary.inProgress],["اتمام زمان",summary.expired],["میانگین درصد نمره",summary.averageScorePercent.toLocaleString("fa-IR")+"٪"],
+                  ].map(([label,value])=><Card key={label} className="space-y-2 rounded-xl border-[#e5e1ed] p-4"><p className="text-sm text-[#6e6a8a]">{label}</p><p className="text-xl font-bold text-[#1e1a33]">{value.toLocaleString("fa-IR")}</p></Card>)}</div>
+                  <h2 className="text-lg font-bold text-[#1e1a33]">تلاش‌های دانش‌آموزان</h2>
+                  <form method="get" className="flex flex-wrap items-end gap-3 rounded-xl border border-[#e5e1ed] bg-white p-4"><input type="hidden" name="view" value="results"/>
+                    <label className="grid gap-1 text-sm font-semibold text-[#1e1a33]">نام دانش‌آموز<input name="search" defaultValue={filters.search} maxLength={80} className="min-h-11 rounded-lg border border-[#e5e1ed] px-3"/></label>
+                    <label className="grid gap-1 text-sm font-semibold text-[#1e1a33]">وضعیت تلاش<select name="status" defaultValue={filters.status} className="min-h-11 rounded-lg border border-[#e5e1ed] bg-white px-3"><option value="">همهٔ وضعیت‌ها</option><option value="in_progress">در حال انجام</option><option value="submitted">ثبت‌شده</option><option value="expired">اتمام زمان</option></select></label>
+                    <button className="min-h-11 rounded-lg bg-[#5b4ce2] px-4 font-bold text-white">اعمال فیلتر</button><a href={exportHref} className="min-h-11 rounded-lg border border-[#5b4ce2] px-4 py-2.5 text-sm font-bold text-[#5b4ce2]">دریافت CSV نتایج فیلترشده</a></form>
+                  {attempts.length === 0 ? <Card><p className="text-sm text-[#6e6a8a]">هنوز دانش‌آموزی در این آزمون شرکت نکرده است.</p></Card> : <div className="overflow-x-auto rounded-xl border border-[#e5e1ed] bg-white"><table className="w-full min-w-[760px] border-collapse text-right text-sm"><thead className="bg-[#f9fafb]"><tr>{["دانش‌آموز","تلاش","وضعیت","شروع","ثبت پاسخ","پاسخ درست","امتیاز","درصد"].map(h=><th key={h} scope="col" className="p-4">{h}</th>)}</tr></thead><tbody>{attempts.map(attempt=><tr key={attempt.id} className="border-t border-[#e5e1ed]"><th scope="row" className="p-4 font-semibold">{attempt.studentName}</th><td className="p-4">{attempt.attemptNumber.toLocaleString("fa-IR")}</td><td className="p-4">{attempt.status==="in_progress"?"در حال انجام":attempt.status==="submitted"?"ثبت‌شده":"اتمام زمان"}</td><td className="p-4">{date(attempt.startedAt)}</td><td className="p-4">{date(attempt.submittedAt)}</td><td className="p-4">{attempt.correctCount===null?"—":attempt.correctCount.toLocaleString("fa-IR")}</td><td className="p-4">{attempt.earnedPoints===null?"—":attempt.earnedPoints.toLocaleString("fa-IR")+" از "+(attempt.totalPoints??0).toLocaleString("fa-IR")}</td><td className="p-4">{attempt.scorePercent===null?"—":attempt.scorePercent.toLocaleString("fa-IR")+"٪"}</td></tr>)}</tbody></table></div>}
+                  {attempts.length>0&&<div className="flex items-center justify-between gap-3 text-sm"><span className="text-[#6e6a8a]">{attempts.length.toLocaleString("fa-IR")} تلاش در این صفحه</span>{nextCursor&&<Link href={baseHref+"?view=results"+queryString(true)} className="rounded-lg border border-[#5b4ce2] px-4 py-2 font-bold text-[#5b4ce2]">صفحهٔ بعد</Link>}</div>}
+                </section>
               )}
-              {attempts.length > 0 && <div className="flex items-center justify-between gap-3 text-sm">
-                <span className="text-[#6e6a8a]">{attempts.length.toLocaleString("fa-IR")} تلاش در این صفحه</span>
-                {nextCursor && <Link href={baseHref + "?view=results" + queryString(true)}
-                  className="rounded-lg border border-[#5b4ce2] px-4 py-2 font-bold text-[#5b4ce2]">صفحهٔ بعد</Link>}
-              </div>}
             </section>
           )}
         </section>
