@@ -1,11 +1,10 @@
-import { and, asc, count, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "../../db";
 import {
   courseTeamMembers,
   courses,
   memberships,
-  problemSolvingSessions,
   supervisionGrants,
   user,
 } from "../../db/schema";
@@ -190,7 +189,6 @@ export async function getInstituteInstructorDirectory(
     status: courseTeamMembers.status,
     courseId: courses.id,
     courseTitle: courses.title,
-    sessionCount: count(problemSolvingSessions.id),
   }).from(courseTeamMembers)
     .innerJoin(courses, eq(courses.id, courseTeamMembers.courseId))
     .innerJoin(supervisionGrants, and(
@@ -201,12 +199,9 @@ export async function getInstituteInstructorDirectory(
       inArray(supervisionGrants.instituteId, [...instituteIds]),
     ))
     .innerJoin(user, eq(user.id, courseTeamMembers.memberUserId))
-    .leftJoin(problemSolvingSessions, and(
-      eq(problemSolvingSessions.supporterTeamMemberId, courseTeamMembers.id),
-      eq(problemSolvingSessions.courseId, courses.id),
-    ))
     .where(and(
       inArray(courseTeamMembers.instituteId, [...instituteIds]),
+      eq(courseTeamMembers.role, "teacher"),
     ))
     .groupBy(
       courseTeamMembers.id,
