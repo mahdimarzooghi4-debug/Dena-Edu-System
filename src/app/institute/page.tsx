@@ -59,7 +59,7 @@ export default async function InstituteHomePage() {
     pendingLearningAssessments;
   const stats = [
     {
-      label: "دوره‌های منتشرشده در فهرست نظارت",
+      label: "دوره‌های فعال در فهرست نظارت",
       value: publishedCourses,
       detail: "از حداکثر ۲۰ دورهٔ اخیر",
       symbol: "▤",
@@ -73,14 +73,14 @@ export default async function InstituteHomePage() {
       tone: "bg-[#e8f5ef] text-[#24845a]",
     },
     {
-      label: "درخواست‌های نظارت",
-      value: pendingSupervision,
-      detail: "در انتظار تصمیم مؤسسه",
-      symbol: "◷",
+      label: "ارزیابی‌های در انتظار بازبینی",
+      value: pendingLearningAssessments + pendingPractices,
+      detail: "تمرین و ارزیابی یادگیری",
+      symbol: "✓",
       tone: "bg-[#fff3df] text-[#b7791f]",
     },
     {
-      label: "موارد نیازمند بررسی",
+      label: "موارد نیازمند توجه",
       value: itemsNeedingAttention,
       detail: "تمرین، ارزیابی یادگیری و نظارت",
       symbol: "!",
@@ -89,14 +89,21 @@ export default async function InstituteHomePage() {
   ];
   return (
     <main id="main-content" dir="rtl" className="min-h-screen bg-[#f8f7fc]">
-      <header className="flex min-h-[72px] items-center justify-between border-b border-[#e5e1ed] bg-white px-5 py-4 md:px-8">
-        <div>
-          <h1 className="text-xl font-extrabold text-[#1e1a33]">داشبورد</h1>
-          <p className="mt-1 text-xs text-[#7e7a94]">نمای کلی عملیات مؤسسه</p>
+      <header className="flex min-h-[72px] items-center justify-between gap-4 border-b border-[#e5e1ed] bg-white px-5 py-4 md:px-8">
+        <h1 className="text-xl font-extrabold text-[#1e1a33]">داشبورد</h1>
+        <div className="flex items-center gap-3">
+          <form action="/institute/courses" method="get" role="search"
+            className="hidden w-[280px] items-center gap-2 rounded-lg border border-[#e5e1ed] bg-[#f8f7fc] px-4 py-2 sm:flex">
+            <svg aria-hidden="true" viewBox="0 0 24 24" className="size-4 shrink-0 text-[#7e7a94]" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" />
+            </svg>
+            <input name="query" type="search" aria-label="جست‌وجو در دوره‌ها"
+              placeholder="جستجو در دوره‌ها..." className="min-w-0 flex-1 bg-transparent text-right text-sm text-[#1e1a33] outline-none placeholder:text-[#7e7a94]" />
+          </form>
+          <Link href="/account" className="rounded-lg border border-[#e5e1ed] bg-[#f8f7fc] px-4 py-2 text-sm font-bold text-[#382973] hover:bg-[#eeeaff]">
+            حساب من
+          </Link>
         </div>
-        <Link href="/account" className="rounded-lg border border-[#e5e1ed] bg-[#f8f7fc] px-4 py-2 text-sm font-bold text-[#382973] hover:bg-[#eeeaff]">
-          حساب من
-        </Link>
       </header>
 
       <div className="space-y-6 p-5 md:space-y-6 md:p-8">
@@ -162,23 +169,28 @@ export default async function InstituteHomePage() {
           </div>
 
           <div className="rounded-xl border border-[#e5e1ed] bg-white p-5 md:p-6">
-            <h2 className="mb-4 text-base font-extrabold text-[#1e1a33]">نمای کلی فهرست دوره‌ها</h2>
-            <div className="space-y-3 text-sm">
-              <div className="flex items-center justify-between gap-3 border-b border-[#e5e1ed] pb-3">
-                <span className="font-bold text-[#1e1a33]">دوره‌های نمایش‌داده‌شده</span>
-                <span className="text-[#5b4ce2]">{hasMore ? "۲۰+" : courses.length.toLocaleString("fa-IR")}</span>
-              </div>
-              <div className="flex items-center justify-between gap-3 border-b border-[#e5e1ed] pb-3">
-                <span className="font-bold text-[#1e1a33]">سؤال‌های تمرینی در انتظار بازبینی</span>
-                <span className="text-[#5b4ce2]">{pendingPractices.toLocaleString("fa-IR")}</span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="font-bold text-[#1e1a33]">ارزیابی‌های یادگیری در انتظار بازبینی</span>
-                <span className="text-[#5b4ce2]">{pendingLearningAssessments.toLocaleString("fa-IR")}</span>
-              </div>
-            </div>
-            <p className="mt-5 rounded-lg bg-[#f8f7fc] p-3 text-xs leading-6 text-[#7e7a94]">
-              آمار دانش‌آموزان کل مؤسسه و رویدادهای اخیر در داده‌های این داشبورد در دسترس نیست.
+            <h2 className="mb-4 text-base font-extrabold text-[#1e1a33]">آخرین درخواست‌های نظارت</h2>
+            {courses.length === 0 ? (
+              <p className="rounded-lg bg-[#f8f7fc] p-4 text-sm leading-7 text-[#7e7a94]">
+                هنوز درخواست نظارتی برای نمایش وجود ندارد.
+              </p>
+            ) : (
+              <ul className="space-y-3">
+                {courses.slice(0, 4).map((course) => (
+                  <li key={course.courseId}>
+                    <Link href={`/institute/courses/${course.courseId}`}
+                      className="flex items-center justify-between gap-3 rounded-lg bg-[#f8f7fc] p-3 text-sm hover:bg-[#eeeaff]">
+                      <span className="min-w-0 text-right text-[#1e1a33]">{course.title}</span>
+                      <span className="shrink-0 text-xs font-bold text-[#5b4ce2]">
+                        {supervisionLabels[course.supervisionStatus]}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="mt-4 text-xs leading-6 text-[#7e7a94]">
+              این فهرست از درخواست‌های اخیر در دسترس مؤسسه ساخته شده است؛ دادهٔ نمونه نمایش داده نمی‌شود.
             </p>
           </div>
         </section>

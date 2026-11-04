@@ -37,7 +37,7 @@ const assessmentLabels = {
 
 export default async function InstituteCoursesPage({
   searchParams,
-}: { searchParams: Promise<{ cursor?: string }> }) {
+}: { searchParams: Promise<{ cursor?: string; query?: string }> }) {
   if (!process.env.DATABASE_URL || !process.env.BETTER_AUTH_SECRET ||
       !process.env.BETTER_AUTH_URL) redirect("/login");
   const actor = await getServerAccessContext();
@@ -46,9 +46,14 @@ export default async function InstituteCoursesPage({
     membership.role === "institute" ? [membership.instituteId] : []))];
   if (!instituteIds.length) notFound();
 
-  const { cursor } = await searchParams;
+  const { cursor, query: rawQuery } = await searchParams;
+  const query = rawQuery?.trim() ?? "";
   const result = await getInstituteDashboardCourses(instituteIds, cursor);
   if (result.invalidCursor) notFound();
+  const courses = query
+    ? result.courses.filter((course) => course.title.toLocaleLowerCase("fa-IR")
+      .includes(query.toLocaleLowerCase("fa-IR")))
+    : result.courses;
 
   return (
     <main id="main-content" className="mx-auto min-h-screen max-w-5xl space-y-8 px-5 py-8 md:px-10 md:py-12">
@@ -76,7 +81,7 @@ export default async function InstituteCoursesPage({
         <SectionHeading id="institute-course-list" note="۲۰ دوره در هر صفحه">
           دوره‌ها و وضعیت‌ها
         </SectionHeading>
-        {result.courses.length === 0 ? (
+        {courses.length === 0 ? (
           <Card className="space-y-3">
             <h2 className="font-extrabold">دوره‌ای برای نمایش نیست</h2>
             <p className="text-sm leading-7 text-dena-muted">
@@ -88,7 +93,7 @@ export default async function InstituteCoursesPage({
           </Card>
         ) : (
           <ul className="grid gap-4 md:grid-cols-2">
-            {result.courses.map((course) => (
+            {courses.map((course) => (
               <li key={course.courseId}>
                 <Card className="h-full space-y-3 p-6">
                   <h2 className="text-lg font-extrabold leading-8">{course.title}</h2>
@@ -156,7 +161,7 @@ export default async function InstituteCoursesPage({
               صفحهٔ نخست
             </Link>
           )}
-          {result.nextCursor && (
+          {!query && result.nextCursor && (
             <Link href={`/institute/courses?cursor=${encodeURIComponent(result.nextCursor)}`}
               className={buttonClassName("secondary")}>
               دوره‌های بعدی
