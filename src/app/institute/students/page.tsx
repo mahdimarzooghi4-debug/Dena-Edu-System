@@ -132,8 +132,8 @@ export default async function InstituteStudentsPage({
                     {students.map((student) => (
                       <tr key={student.studentId} className="border-t border-[#e8e6f0] text-[13px] text-[#2a254b]">
                         <td className="px-4 py-4 text-center">
-                          <button type="button" disabled title="پروندهٔ دانش‌آموز در فریم بعدی پیاده‌سازی می‌شود"
-                            className="cursor-not-allowed rounded-md border border-[#5b4ce2]/50 px-3 py-1.5 text-[11px] font-semibold text-[#5b4ce2]/60">مشاهده پرونده</button>
+                          <Link href={`/institute/students/${student.studentId}`}
+                            className="inline-flex rounded-md border border-[#5b4ce2] px-3 py-1.5 text-[11px] font-semibold text-[#5b4ce2] hover:bg-[#f4f1ff]">مشاهده پرونده</Link>
                         </td>
                         <td className="px-4 py-4 text-center">
                           <span className={student.status === "active"
