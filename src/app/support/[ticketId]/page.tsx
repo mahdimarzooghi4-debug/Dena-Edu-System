@@ -7,6 +7,7 @@ import { TicketReplyForm } from "../../../components/support/ticket-reply-form";
 import { TicketOperationsForm } from "../../../components/support/ticket-operations-form";
 import { TicketAttachments } from "../../../components/support/ticket-attachments";
 import { StudentShell } from "../../../components/student/student-shell";
+import { InstituteShell } from "../../../components/institute/institute-shell";
 import { getServerAccessContext } from "../../../server/access/actor";
 import { readTechnicalSupportTicket } from "../../../server/support/tickets";
 import { listSupportTicketAttachments, supportAttachmentUploadAvailable } from "../../../server/support/attachments";
@@ -50,10 +51,11 @@ export default async function SupportTicketPage({ params }: Props) {
     membership.role === "admin" && membership.canHandleTechnicalSupport,
   );
   const isStudent = actor.memberships.some((membership) => membership.role === "student");
+  const isInstitute = actor.memberships.some((membership) => membership.role === "institute");
 
   const conversation = (
     <div className="space-y-5">
-      <Link href={canReply ? "/admin/support" : "/support"}
+      <Link href={canReply ? "/admin/support" : isInstitute ? "/institute/support" : "/support"}
         className="text-sm font-semibold text-dena-brand underline-offset-4 hover:underline">
         {canReply ? "بازگشت به صندوق ادمین" : "بازگشت به پشتیبانی"}
       </Link>
@@ -123,6 +125,16 @@ export default async function SupportTicketPage({ params }: Props) {
       <StudentShell active="support" title="پشتیبانی آنلاین">
         <div className="mx-auto max-w-3xl">{conversation}</div>
       </StudentShell>
+    );
+  }
+
+  if (isInstitute) {
+    return (
+      <InstituteShell>
+        <main id="main-content" className="min-h-screen bg-dena-bg px-5 py-8 md:px-8">
+          <div className="mx-auto max-w-4xl">{conversation}</div>
+        </main>
+      </InstituteShell>
     );
   }
 
