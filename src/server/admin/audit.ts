@@ -38,6 +38,7 @@ export const auditActions = [
   "admin.dena_question.created",
   "admin.dena_question.updated",
   "institute.exam.created",
+  "institute.exam.updated",
   "admin.dena_exam.created",
   "institute.exam.published",
   "institute.exam.cancelled",
