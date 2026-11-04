@@ -96,7 +96,7 @@ export default async function InstituteInstructorsPage({
                           <div className="flex items-center justify-center gap-2">
                             <Link href={`/institute/courses/${teacher.courseId}#institute-course-team`}
                               className="rounded-md border border-[#5b4ce2] px-3 py-1.5 text-[11px] font-semibold text-[#5b4ce2] hover:bg-[#f0eeff]">ویرایش</Link>
-                            <Link href={`/institute/courses/${teacher.courseId}`}
+                            <Link href={`/institute/instructors/${teacher.teamMemberId}`}
                               className="rounded-md bg-[#f8f7fc] px-3 py-1.5 text-[11px] font-semibold text-[#2a254b] hover:bg-[#eceaf5]">مشاهده</Link>
                           </div>
                         </td>
