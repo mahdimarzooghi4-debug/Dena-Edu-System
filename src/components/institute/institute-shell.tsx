@@ -12,6 +12,7 @@ const sections = [
   { href: "/institute/students", label: "دانش‌آموزان" },
   { href: "/institute/instructors", label: "مدرس‌ها" },
   { href: "/institute/academic-supporters", label: "پشتیبانان تحصیلی" },
+  { href: "/institute/notifications", label: "اعلان‌ها" },
   { href: "/institute/providers", label: "ارائه‌دهندگان و مدرس‌ها" },
   { href: "/institute/collaborations", label: "درخواست همکاری ارائه‌دهنده" },
   { href: "/institute/educators", label: "همکاران مستقل" },
