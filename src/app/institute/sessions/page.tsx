@@ -97,7 +97,7 @@ export default async function InstituteSessionsPage({
                       <div className="flex min-w-0 flex-1 items-center gap-4">
                         <span className="shrink-0 text-sm font-bold text-[#5b4ce2]">جلسه { (index + 1).toLocaleString("fa-IR") }</span>
                         <div className="min-w-0">
-                          <h3 className="truncate text-sm font-bold text-[#1e1a33]">{asset.title}</h3>
+                          <Link href={`/institute/sessions/${asset.assetId}?courseId=${selectedCourse.courseId}`} className="block truncate text-sm font-bold text-[#1e1a33] hover:text-[#5b4ce2]">{asset.title}</Link>
                           <p className="mt-1 text-xs text-[#7e7a94]">ارزیابی جداگانه‌ای برای این جلسه ثبت نشده است.</p>
                         </div>
                       </div>
