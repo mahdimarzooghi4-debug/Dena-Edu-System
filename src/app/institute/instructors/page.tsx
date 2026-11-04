@@ -95,7 +95,7 @@ export default async function InstituteInstructorsPage({
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-center gap-2">
                             <Link href={`/institute/courses/${teacher.courseId}#institute-course-team`}
-                              className="rounded-md border border-[#5b4ce2] px-3 py-1.5 text-[11px] font-semibold text-[#5b4ce2] hover:bg-[#f0eeff]">ویرایش</Link>
+                              className="rounded-md border border-[#5b4ce2] px-3 py-1.5 text-[11px] font-semibold text-[#5b4ce2] hover:bg-[#f0eeff]">تیم آموزشی</Link>
                             <Link href={`/institute/instructors/${teacher.teamMemberId}`}
                               className="rounded-md bg-[#f8f7fc] px-3 py-1.5 text-[11px] font-semibold text-[#2a254b] hover:bg-[#eceaf5]">مشاهده</Link>
                           </div>
@@ -128,8 +128,8 @@ export default async function InstituteInstructorsPage({
                     </div>
                     <p className="text-sm text-[#767093]">{teacher.courseTitle}</p>
                     <p className="text-xs text-[#767093]">تعداد جلسات در داده‌های فعلی ثبت نمی‌شود.</p>
-                    <Link href={`/institute/courses/${teacher.courseId}#institute-course-team`}
-                      className="inline-flex min-h-10 items-center rounded-md border border-[#5b4ce2] px-3 text-xs font-semibold text-[#5b4ce2]">مشاهده تیم دوره</Link>
+                    <Link href={`/institute/instructors/${teacher.teamMemberId}`}
+                      className="inline-flex min-h-10 items-center rounded-md border border-[#5b4ce2] px-3 text-xs font-semibold text-[#5b4ce2]">مشاهده</Link>
                   </li>
                 ))}
               </ul>
