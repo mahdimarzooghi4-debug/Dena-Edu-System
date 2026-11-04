@@ -269,10 +269,10 @@ export async function getExamReport(
       status: attempt.status,
       startedAt: attempt.startedAt,
       submittedAt: attempt.submittedAt,
-      correctCount: attempt.correctCount,
-      totalPoints: attempt.totalPoints,
-      earnedPoints: attempt.earnedPoints,
-      scorePercent: attempt.totalPoints && attempt.earnedPoints !== null
+      correctCount: role === "admin" ? attempt.correctCount : null,
+      totalPoints: role === "admin" ? attempt.totalPoints : null,
+      earnedPoints: role === "admin" ? attempt.earnedPoints : null,
+      scorePercent: role === "admin" && attempt.totalPoints && attempt.earnedPoints !== null
         ? Math.round(attempt.earnedPoints / attempt.totalPoints * 1000) / 10
         : null,
     })),
