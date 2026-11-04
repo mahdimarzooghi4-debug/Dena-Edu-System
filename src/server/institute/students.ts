@@ -149,3 +149,130 @@ export async function getInstituteStudentProfile(
     activities,
   };
 }
+
+
+/** Safe growth timeline for one student and one institute-supervised course.
+ * It reports media completion and attempt lifecycle only; score, outcome,
+ * selected answers and private notes are intentionally excluded. */
+export async function getInstituteStudentGrowth(
+  instituteIds: readonly string[],
+  studentId: string,
+  courseId: string,
+) {
+  if (!instituteIds.length) return null;
+  const db = getDb();
+  const [enrollment] = await db.select({
+    courseId: courses.id,
+    courseTitle: courses.title,
+    enrollmentStatus: studentEnrollments.status,
+    enrolledAt: studentEnrollments.enrolledAt,
+  }).from(studentEnrollments)
+    .innerJoin(courses, eq(courses.id, studentEnrollments.courseId))
+    .innerJoin(supervisionGrants, and(
+      eq(supervisionGrants.courseId, courses.id),
+      eq(supervisionGrants.ownerType, courses.ownerType),
+      eq(supervisionGrants.instituteId, courses.responsibleInstituteId),
+      eq(supervisionGrants.status, "approved"),
+      inArray(supervisionGrants.instituteId, [...instituteIds]),
+    ))
+    .where(and(
+      eq(studentEnrollments.studentUserId, studentId),
+      eq(courses.id, courseId),
+    ))
+    .limit(1);
+  if (!enrollment) return null;
+
+  const [videos, attempts] = await Promise.all([
+    db.select({
+      assetId: privateMediaAssets.id,
+      title: privateMediaAssets.title,
+      completedAt: studentVideoCompletions.completedAt,
+    }).from(privateMediaAssets)
+      .leftJoin(studentVideoCompletions, and(
+        eq(studentVideoCompletions.assetId, privateMediaAssets.id),
+        eq(studentVideoCompletions.studentUserId, studentId),
+      ))
+      .where(and(
+        eq(privateMediaAssets.courseId, courseId),
+        eq(privateMediaAssets.status, "ready"),
+      ))
+      .orderBy(asc(privateMediaAssets.createdAt), asc(privateMediaAssets.id))
+      .limit(500),
+    db.select({
+      assessmentId: courseLearningAssessments.id,
+      title: courseLearningAssessments.title,
+      attemptNumber: studentLearningAssessmentAttempts.attemptNumber,
+      status: studentLearningAssessmentAttempts.status,
+      startedAt: studentLearningAssessmentAttempts.startedAt,
+      submittedAt: studentLearningAssessmentAttempts.submittedAt,
+    }).from(studentLearningAssessmentAttempts)
+      .innerJoin(courseLearningAssessments, and(
+        eq(courseLearningAssessments.id, studentLearningAssessmentAttempts.assessmentId),
+        eq(courseLearningAssessments.courseId, studentLearningAssessmentAttempts.courseId),
+        eq(courseLearningAssessments.reviewStatus, "approved"),
+      ))
+      .where(and(
+        eq(studentLearningAssessmentAttempts.studentUserId, studentId),
+        eq(studentLearningAssessmentAttempts.courseId, courseId),
+      ))
+      .orderBy(asc(studentLearningAssessmentAttempts.startedAt),
+        asc(studentLearningAssessmentAttempts.attemptNumber))
+      .limit(500),
+  ]);
+
+  const completedVideos = videos.filter((video) => video.completedAt !== null);
+  let completedCount = 0;
+  const events = [{
+    kind: "enrollment" as const,
+    title: "شروع دوره",
+    occurredAt: enrollment.enrolledAt,
+    progress: 0,
+  }];
+  const rawEvents = [
+    ...completedVideos.map((video) => ({
+      kind: "video" as const,
+      title: video.title,
+      occurredAt: video.completedAt!,
+      order: 1,
+    })),
+    ...attempts.map((attempt) => ({
+      kind: "assessment" as const,
+      title: attempt.title,
+      occurredAt: attempt.status === "submitted" && attempt.submittedAt
+        ? attempt.submittedAt
+        : attempt.startedAt,
+      order: 2,
+    })),
+  ].sort((a, b) => a.occurredAt.getTime() - b.occurredAt.getTime() || a.order - b.order);
+
+  for (const event of rawEvents) {
+    if (event.kind === "video") completedCount += 1;
+    events.push({
+      kind: event.kind,
+      title: event.title,
+      occurredAt: event.occurredAt,
+      progress: videos.length ? Math.round(completedCount / videos.length * 100) : null,
+    });
+  }
+  if (videos.length) {
+    events.push({
+      kind: "now" as const,
+      title: "اکنون",
+      occurredAt: new Date(),
+      progress: Math.round(completedVideos.length / videos.length * 100),
+    });
+  }
+
+  const latestAssessment = [...attempts]
+    .sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime())[0] ?? null;
+  return {
+    courseId,
+    courseTitle: enrollment.courseTitle,
+    enrollmentStatus: enrollment.enrollmentStatus,
+    enrolledAt: enrollment.enrolledAt,
+    totalVideos: videos.length,
+    completedVideos: completedVideos.length,
+    events,
+    latestAssessment,
+  };
+}
