@@ -11,6 +11,16 @@ type Question = {
   courseId?: string;
 };
 type Course = { id: string; title: string; lessons: Array<{ id: string; title: string }> };
+type InitialExam = {
+  id: string; title: string; instructions: string; startsAt: string; endsAt: string;
+  durationMinutes: number; attemptLimit: number; courseId: string; questionIds: string[];
+};
+
+function localDateValue(value: string) {
+  const date = new Date(value);
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 16);
+}
 
 function localDate(offsetHours: number) {
   const date = new Date(Date.now() + offsetHours * 60 * 60 * 1000);
@@ -18,18 +28,22 @@ function localDate(offsetHours: number) {
   return local.toISOString().slice(0, 16);
 }
 
-export function ExamCreationForm({ kind }: { kind: "institute" | "dena" }) {
+export function ExamCreationForm({ kind, initialExam }: {
+  kind: "institute" | "dena"; initialExam?: InitialExam;
+}) {
   const router = useRouter();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
-  const [courseId, setCourseId] = useState("");
-  const [selected, setSelected] = useState<string[]>([]);
-  const [title, setTitle] = useState("");
-  const [instructions, setInstructions] = useState("سؤال‌ها را با دقت بخوانید و پاسخ نهایی را ثبت کنید.");
-  const [startsAt, setStartsAt] = useState(localDate(24));
-  const [endsAt, setEndsAt] = useState(localDate(27));
-  const [duration, setDuration] = useState(60);
-  const [attemptLimit, setAttemptLimit] = useState(1);
+  const [courseId, setCourseId] = useState(initialExam?.courseId ?? "");
+  const [selected, setSelected] = useState<string[]>(initialExam?.questionIds ?? []);
+  const [title, setTitle] = useState(initialExam?.title ?? "");
+  const [instructions, setInstructions] = useState(
+    initialExam?.instructions ?? "سؤال‌ها را با دقت بخوانید و پاسخ نهایی را ثبت کنید.",
+  );
+  const [startsAt, setStartsAt] = useState(initialExam ? localDateValue(initialExam.startsAt) : localDate(24));
+  const [endsAt, setEndsAt] = useState(initialExam ? localDateValue(initialExam.endsAt) : localDate(27));
+  const [duration, setDuration] = useState(initialExam?.durationMinutes ?? 60);
+  const [attemptLimit, setAttemptLimit] = useState(initialExam?.attemptLimit ?? 1);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -44,7 +58,7 @@ export function ExamCreationForm({ kind }: { kind: "institute" | "dena" }) {
         if (cancelled) return;
         setQuestions(result.questions);
         setCourses(result.courses ?? []);
-        if (result.courses?.[0]) setCourseId(result.courses[0].id);
+        if (result.courses?.[0] && !initialExam) setCourseId(result.courses[0].id);
       }).catch(() => { if (!cancelled) setMessage("دریافت بانک سؤال با خطا روبه‌رو شد."); });
     return () => { cancelled = true; };
   }, [kind]);
@@ -72,17 +86,24 @@ export function ExamCreationForm({ kind }: { kind: "institute" | "dena" }) {
         attemptLimit, questionIds: selected,
         ...(kind === "institute" ? { courseId } : {}),
       };
-      const response = await fetch(kind === "institute" ? "/api/institute/exams" : "/api/admin/exams", {
-        method: "POST", credentials: "same-origin", cache: "no-store",
+      const endpoint = initialExam
+        ? "/api/institute/exams/" + encodeURIComponent(initialExam.id)
+        : kind === "institute" ? "/api/institute/exams" : "/api/admin/exams";
+      const response = await fetch(endpoint, {
+        method: initialExam ? "PUT" : "POST", credentials: "same-origin", cache: "no-store",
         headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
       });
       if (!response.ok) {
-        setMessage(response.status === 422
-          ? "دوره یا سؤال‌های انتخاب‌شده در دسترس نیستند؛ فهرست را تازه‌سازی کنید."
-          : "ثبت آزمون انجام نشد؛ اطلاعات را بررسی کنید.");
+        setMessage(response.status === 409
+          ? "این آزمون به‌دلیل زمان‌بندی یا ثبت تلاش دانش‌آموز قابل ویرایش نیست."
+          : response.status === 422
+            ? "دوره یا سؤال‌های انتخاب‌شده در دسترس نیستند؛ فهرست را تازه‌سازی کنید."
+            : "ذخیره آزمون انجام نشد؛ اطلاعات را بررسی کنید.");
         return;
       }
-      router.push(kind === "institute" ? "/institute/exams" : "/admin/exams");
+      router.push(initialExam
+        ? "/institute/exams/" + encodeURIComponent(initialExam.id)
+        : kind === "institute" ? "/institute/exams" : "/admin/exams");
       router.refresh();
     } catch {
       setMessage("ارتباط با سرور برقرار نشد؛ دوباره تلاش کنید.");
@@ -139,11 +160,12 @@ export function ExamCreationForm({ kind }: { kind: "institute" | "dena" }) {
         </ul>}
       </section>
       <p className="rounded-xl bg-dena-lavender p-4 text-sm leading-7 text-dena-deep">
-        با ذخیره، آزمون در وضعیت پیش‌نویس می‌ماند. سؤال‌ها به‌صورت نسخهٔ ثابت در آزمون ثبت می‌شوند.
+        با ذخیره، آزمون {initialExam ? "با همان وضعیت فعلی به‌روزرسانی می‌شود" : "در وضعیت پیش‌نویس می‌ماند"}.
+        سؤال‌ها به‌صورت نسخهٔ ثابت در آزمون ثبت می‌شوند.
       </p>
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" disabled={busy || !canSubmit}>{busy ? "در حال ذخیره…" : "ذخیرهٔ پیش‌نویس آزمون"}</Button>
-        <Link href={kind === "institute" ? "/institute/exams" : "/admin/exams"} className="text-sm font-semibold text-dena-muted hover:underline">بازگشت</Link>
+        <Button type="submit" disabled={busy || !canSubmit}>{busy ? "در حال ذخیره…" : initialExam ? "ذخیره تغییرات" : "ذخیرهٔ پیش‌نویس آزمون"}</Button>
+        <Link href={initialExam ? "/institute/exams/" + encodeURIComponent(initialExam.id) : kind === "institute" ? "/institute/exams" : "/admin/exams"} className="text-sm font-semibold text-dena-muted hover:underline">بازگشت</Link>
       </div>
       {message && <p role="status" className="text-sm text-dena-deep">{message}</p>}
     </form>
