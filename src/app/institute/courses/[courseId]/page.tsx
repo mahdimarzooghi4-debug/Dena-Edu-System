@@ -54,163 +54,150 @@ export default async function InstituteCoursePage({
   } as const;
 
   return (
-    <main id="main-content"
-      className="mx-auto min-h-screen max-w-4xl space-y-6 px-5 py-8 md:py-14">
-      <header className="flex flex-wrap items-center gap-4">
-        <Link href="/institute" className="text-sm font-bold text-dena-brand hover:underline">
-          بازگشت به خانهٔ مؤسسه
-        </Link>
-        <Link href="/institute/providers" className={buttonClassName("secondary")}>
-          صف تصمیم‌های نظارت
-        </Link>
-      </header>
-      <Card className="space-y-6 rounded-[24px] p-6 md:p-10">
+    <main id="main-content" dir="rtl" className="min-h-screen bg-[#f8f7fc]">
+      <header className="flex min-h-[72px] items-center justify-between gap-4 border-b border-[#e5e1ed] bg-white px-5 py-4 md:px-8">
         <div>
-          <p className="text-sm font-bold text-dena-brand">
-            پروندهٔ نظارت و محتوای همین دوره
+          <p className="text-xs text-[#7e7a94]">
+            <Link href="/institute/courses" className="hover:text-[#5b4ce2]">دوره‌ها</Link>
+            <span aria-hidden="true"> &gt; </span>{course.title}
           </p>
-          <h1 className="mt-3 text-2xl font-extrabold leading-10">
-            {course.title}
-          </h1>
-          <p className="mt-3 text-sm leading-8 text-dena-muted">
-            داده‌های همین دوره از محدودهٔ مؤسسهٔ فعال شما خوانده می‌شوند.
-            این صفحه صرفاً نمای وضعیت است و به‌خودی‌خود تصمیم نظارت یا
-            مجوز بازبینی سؤال صادر نمی‌کند.
-          </p>
+          <h1 className="mt-1 text-xl font-extrabold text-[#1e1a33]">جزئیات دوره</h1>
         </div>
-        <dl className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-xl bg-dena-bg p-5">
-            <dt className="text-sm text-dena-muted">مالک/ارائه‌دهندهٔ دوره</dt>
-            <dd className="mt-2 font-bold leading-8">
-              {course.providerName ?? course.independentEducatorName ?? "مؤسسهٔ مسئول"}
-            </dd>
+        <div className="flex items-center gap-3">
+          <form action="/institute/courses" method="get" role="search" className="hidden w-[280px] items-center gap-2 rounded-lg border border-[#e5e1ed] bg-[#f8f7fc] px-4 py-2 sm:flex">
+            <span aria-hidden="true" className="text-[#7e7a94]">⌕</span>
+            <input name="query" type="search" aria-label="جست‌وجو در دوره‌ها" placeholder="جستجو..." className="min-w-0 flex-1 bg-transparent text-right text-sm outline-none placeholder:text-[#7e7a94]" />
+          </form>
+          <Link href="/account" className="rounded-lg border border-[#e5e1ed] bg-[#f8f7fc] px-4 py-2 text-sm font-bold text-[#382973] hover:bg-[#eeeaff]">حساب من</Link>
+        </div>
+      </header>
+
+      <div className="space-y-6 p-5 md:p-8">
+        <section className="rounded-xl border border-[#e5e1ed] bg-white p-5 md:p-6" aria-label="خلاصه دوره">
+          <div className="flex flex-wrap items-start justify-between gap-5">
+            <div>
+              <p className="text-xs font-bold text-[#5b4ce2]">پروندهٔ دوره</p>
+              <h2 className="mt-2 text-2xl font-extrabold leading-10 text-[#1e1a33]">{course.title}</h2>
+            </div>
+            <button type="button" disabled title="ویرایش دوره در این پنل هنوز فعال نشده است"
+              className="cursor-not-allowed rounded-lg bg-[#5b4ce2]/50 px-4 py-2 text-sm font-bold text-white">ویرایش دوره</button>
           </div>
-          <div className="rounded-xl bg-dena-bg p-5">
-            <dt className="text-sm text-dena-muted">وضعیت نظارت</dt>
-            <dd className="mt-2 font-bold leading-8">
-              {supervisionLabels[course.supervisionStatus]}
-            </dd>
+          <dl className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-lg bg-[#f8f7fc] p-4">
+              <dt className="text-xs text-[#7e7a94]">وضعیت نظارت</dt>
+              <dd className="mt-2 text-sm font-bold text-[#1e1a33]">{supervisionLabels[course.supervisionStatus]}</dd>
+            </div>
+            <div className="rounded-lg bg-[#f8f7fc] p-4">
+              <dt className="text-xs text-[#7e7a94]">ثبت‌نام‌های فعال</dt>
+              <dd className="mt-2 text-lg font-extrabold text-[#5b4ce2]">{course.activeEnrollmentCount.toLocaleString("fa-IR")}</dd>
+            </div>
+            <div className="rounded-lg bg-[#f8f7fc] p-4">
+              <dt className="text-xs text-[#7e7a94]">مدرس / ارائه‌دهنده</dt>
+              <dd className="mt-2 text-sm font-bold text-[#1e1a33]">{course.providerName ?? course.independentEducatorName ?? "مؤسسهٔ مسئول"}</dd>
+            </div>
+            <div className="rounded-lg bg-[#f8f7fc] p-4">
+              <dt className="text-xs text-[#7e7a94]">ویدئوهای آماده</dt>
+              <dd className="mt-2 text-lg font-extrabold text-[#5b4ce2]">{course.readyVideos.toLocaleString("fa-IR")}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <nav aria-label="بخش‌های دوره" className="overflow-x-auto rounded-xl border border-[#e5e1ed] bg-white">
+          <div className="flex min-w-max items-center gap-1 p-2 text-sm">
+            <span aria-current="page" className="rounded-lg bg-[#eeeaff] px-4 py-3 font-bold text-[#5b4ce2]">نمای کلی</span>
+            <Link href={`/institute/courses/${courseId}/assessments`} className="rounded-lg px-4 py-3 text-[#7e7a94] hover:bg-[#f8f7fc]">آزمون‌های یادگیری</Link>
+            <span aria-disabled="true" title="صفحهٔ جلسات دوره هنوز در مخزن پیاده‌سازی نشده است" className="cursor-not-allowed px-4 py-3 text-[#aaa6b8]">جلسات</span>
+            <span aria-disabled="true" title="فهرست دانش‌آموزان دوره هنوز در مخزن پیاده‌سازی نشده است" className="cursor-not-allowed px-4 py-3 text-[#aaa6b8]">دانش‌آموزان</span>
+            <a href="#institute-course-team" className="rounded-lg px-4 py-3 text-[#7e7a94] hover:bg-[#f8f7fc]">تیم آموزشی</a>
           </div>
-          <div className="rounded-xl bg-dena-bg p-5">
-            <dt className="text-sm text-dena-muted">وضعیت انتشار</dt>
-            <dd className="mt-2 font-bold leading-8">
-              {publicationLabels[course.publicationStatus]}
-            </dd>
-          </div>
-          <div className="rounded-xl bg-dena-bg p-5">
-            <dt className="text-sm text-dena-muted">تعداد ویدئوهای آماده</dt>
-            <dd className="mt-2 text-2xl font-extrabold text-dena-brand">
-              {course.readyVideos.toLocaleString("fa-IR")}
-            </dd>
-          </div>
-          <div className="rounded-xl bg-dena-bg p-5 md:col-span-2">
-            <dt className="text-sm text-dena-muted">وضعیت بررسی سؤال تمرینی</dt>
-            <dd className="mt-2 font-bold leading-8">
-              {practiceLabels[course.practiceReviewStatus]}
-            </dd>
-          </div>
-        </dl>
+        </nav>
+
+        <section className="rounded-xl border border-[#e5e1ed] bg-white p-5 md:p-6" aria-labelledby="course-description">
+          <h2 id="course-description" className="text-base font-extrabold text-[#1e1a33]">توضیحات دوره</h2>
+          <p className="mt-3 text-sm leading-8 text-[#7e7a94]">
+            برای این دوره توضیحات متنی در اطلاعات فعلی ثبت نشده است.
+          </p>
+          <dl className="mt-5 grid gap-4 border-t border-[#e5e1ed] pt-5 sm:grid-cols-2 xl:grid-cols-3">
+            <div><dt className="text-xs text-[#7e7a94]">تاریخ درخواست نظارت</dt><dd className="mt-1 text-sm font-bold text-[#1e1a33]">{course.requestedAt.toLocaleDateString("fa-IR")}</dd></div>
+            <div><dt className="text-xs text-[#7e7a94]">محتوای آماده</dt><dd className="mt-1 text-sm font-bold text-[#1e1a33]">{course.readyVideos.toLocaleString("fa-IR")} ویدئو</dd></div>
+            <div><dt className="text-xs text-[#7e7a94]">مسئول آموزشی</dt><dd className="mt-1 text-sm font-bold text-[#1e1a33]">{course.providerName ?? course.independentEducatorName ?? "مؤسسهٔ مسئول"}</dd></div>
+          </dl>
+        </section>
+
         {course.supervisionStatus === "requested" ? (
-          <section className="space-y-3" aria-label="اقدام‌های مؤسسه">
-            <p className="text-sm leading-8 text-dena-muted">
-              درخواست نظارت همین دوره در انتظار تصمیم مستقل مؤسسه است.
-            </p>
-            <Link href="/institute/providers" className={buttonClassName()}>
-              رفتن به صف بررسی نظارت
-            </Link>
+          <section className="space-y-3 rounded-xl border border-[#e5e1ed] bg-white p-5" aria-label="اقدام‌های مؤسسه">
+            <p className="text-sm leading-8 text-[#7e7a94]">درخواست نظارت همین دوره در انتظار تصمیم مستقل مؤسسه است.</p>
+            <Link href="/institute/providers" className={buttonClassName()}>رفتن به صف بررسی نظارت</Link>
           </section>
         ) : course.supervisionStatus === "approved" ? (
-          <section className="space-y-3" aria-label="اقدام‌های مؤسسه">
-            <p className="text-sm leading-8 text-dena-muted">
-              بازبینی سؤال تمرینی، مستقل از تأیید نظارت دوره است؛
-              نمایندهٔ هم‌زمانِ ارائه‌دهندهٔ همین دوره مجوز این تصمیم را ندارد.
+          <section className="rounded-xl border border-[#e5e1ed] bg-white p-5 md:p-6" aria-label="اقدام‌های مؤسسه">
+            <p className="mb-4 text-sm leading-8 text-[#7e7a94]">
+              بازبینی سؤال تمرینی، مستقل از تأیید نظارت دوره است؛ نمایندهٔ هم‌زمانِ ارائه‌دهندهٔ همین دوره مجوز این تصمیم را ندارد.
             </p>
-            <Link href={`/institute/courses/${course.courseId}/practice`}
-              className={buttonClassName("secondary")}>
-              مشاهده و بررسی مستقل سؤال تمرینی
-            </Link>
-            <Link href={`/institute/courses/${course.courseId}/assessments`}
-              className={buttonClassName("secondary")}>
-              بازبینی مستقل ارزیابی یادگیری
-            </Link>
-            <Link href="/institute/providers" className={buttonClassName()}>
-              مدیریت تصمیم نظارت
-            </Link>
+            <div className="flex flex-wrap gap-3">
+              <Link href={`/institute/courses/${course.courseId}/practice`} className={buttonClassName("secondary")}>مشاهده و بررسی مستقل سؤال تمرینی</Link>
+              <Link href={`/institute/courses/${course.courseId}/assessments`} className={buttonClassName("secondary")}>بازبینی مستقل ارزیابی یادگیری</Link>
+              <Link href="/institute/providers" className={buttonClassName()}>مدیریت تصمیم نظارت</Link>
+            </div>
           </section>
         ) : (
-          <p role="status" className="rounded-xl bg-dena-bg p-4 text-sm leading-8">
-            نظارت همین دوره رد یا لغو شده است؛ بازبینی سؤال و دسترسی
-            دانش‌آموز از این صفحه فعال نمی‌شوند.
+          <p role="status" className="rounded-xl bg-white p-4 text-sm leading-8 text-[#7e7a94]">
+            نظارت همین دوره رد یا لغو شده است؛ بازبینی سؤال و دسترسی دانش‌آموز از این صفحه فعال نمی‌شوند.
           </p>
         )}
-        <p className="text-xs leading-7 text-dena-muted">
-          هیچ نتیجه، هویت یا یادداشت خصوصی دانش‌آموز در این نما نیست؛
-          تأیید داخلی دنا جایگزین مجوز رسمی آموزشی نیست.
-        </p>
-      </Card>
 
-      <AiVideoPermissions
-        courseId={courseId}
-        grantEligible={course.supervisionStatus === "approved" &&
-          (course.ownerType === "institute" ||
-            course.ownerType === "independent_educator")}
-      />
+        <AiVideoPermissions
+          courseId={courseId}
+          grantEligible={course.supervisionStatus === "approved" &&
+            (course.ownerType === "institute" || course.ownerType === "independent_educator")}
+        />
 
-      <section aria-labelledby="institute-course-team" className="space-y-4">
-        <div>
-          <h2 id="institute-course-team" className="text-xl font-extrabold">
-            تیم آموزشی دوره
-          </h2>
-          <p className="mt-1 text-sm leading-7 text-dena-muted">
-            نقش‌ها به همین دوره متصل‌اند و نقش سراسری در دنا ایجاد نمی‌کنند.
-          </p>
-        </div>
-
-        {team.length === 0 ? (
-          <Card className="rounded-[22px] p-6">
-            <p className="font-bold">هنوز عضوی برای تیم آموزشی این دوره ثبت نشده است.</p>
-          </Card>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2">
-            {team.map((member) => (
-              <Card key={member.teamMemberId} className="rounded-[22px] p-5">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-bold text-dena-brand">
-                      {teamRoleLabel[member.role]}
-                    </p>
-                    <h3 className="mt-2 text-lg font-extrabold">{member.name}</h3>
-                  </div>
-                  <span className={
-                    "rounded-full px-3 py-1 text-xs font-bold " +
-                    (member.status === "active"
-                      ? "bg-emerald-50 text-emerald-700"
-                      : "bg-dena-bg text-dena-muted")
-                  }>
-                    {member.status === "active" ? "فعال" : "پایان‌یافته"}
-                  </span>
-                </div>
-
-                {member.role === "academic_supporter" &&
-                  member.status === "active" && (
-                    <CourseTeamSessionPolicyControl
-                      courseId={courseId}
-                      teamMemberId={member.teamMemberId}
-                      enabled={member.studentSessionRequestsEnabled}
-                    />
-                  )}
-              </Card>
-            ))}
+        <section id="institute-course-team" aria-labelledby="institute-course-team-title" className="overflow-hidden rounded-xl border border-[#e5e1ed] bg-white">
+          <div className="flex items-center justify-between gap-3 border-b border-[#e5e1ed] p-5 md:p-6">
+            <h2 id="institute-course-team-title" className="text-base font-extrabold text-[#5b4ce2]">تیم آموزشی دوره</h2>
+            <Link href="#institute-course-team" className={buttonClassName("secondary")}>مدیریت تیم آموزشی</Link>
           </div>
-        )}
-
-        <Card className="rounded-[22px] border-dashed p-5">
-          <p className="text-xs leading-7 text-dena-muted">
-            جست‌وجو و دعوت عضو جدید تا تعریف جریان معتبر شناسایی حساب،
-            در UI فعال نمی‌شود. API تخصیص فقط شناسه کاربر معتبر و scope همین مؤسسه را می‌پذیرد.
-          </p>
-        </Card>
-      </section>
+          <p className="px-5 py-3 text-xs leading-6 text-[#7e7a94]">نقش‌ها فقط به همین دوره متصل‌اند و نقش سراسری در دنا ایجاد نمی‌کنند.</p>
+          {team.length === 0 ? (
+            <p className="p-5 text-sm text-[#7e7a94]">هنوز عضوی برای تیم آموزشی این دوره ثبت نشده است.</p>
+          ) : (
+            <>
+              <div className="hidden overflow-x-auto md:block">
+                <table className="w-full min-w-[700px] text-right text-sm">
+                  <thead className="bg-[#f8f7fc] text-xs text-[#7e7a94]"><tr>
+                    <th className="px-4 py-3 font-bold">نام</th><th className="px-4 py-3 font-bold">نقش</th><th className="px-4 py-3 font-bold">وضعیت</th><th className="px-4 py-3 font-bold">عملیات</th>
+                  </tr></thead>
+                  <tbody className="divide-y divide-[#e5e1ed] text-[#1e1a33]">
+                    {team.map((member) => <tr key={member.teamMemberId}>
+                      <td className="px-4 py-4 font-bold">{member.name}</td>
+                      <td className="px-4 py-4">{teamRoleLabel[member.role]}</td>
+                      <td className="px-4 py-4"><span className={member.status === "active" ? "rounded bg-[#e6f7f0] px-2 py-1 text-xs font-bold text-[#24845a]" : "rounded bg-[#f8f7fc] px-2 py-1 text-xs text-[#7e7a94]"}>{member.status === "active" ? "فعال" : "پایان‌یافته"}</span></td>
+                      <td className="px-4 py-4">
+                        {member.role === "academic_supporter" && member.status === "active"
+                          ? <CourseTeamSessionPolicyControl courseId={courseId} teamMemberId={member.teamMemberId} enabled={member.studentSessionRequestsEnabled} />
+                          : <span className="text-xs text-[#7e7a94]">—</span>}
+                      </td>
+                    </tr>)}
+                  </tbody>
+                </table>
+              </div>
+              <ul className="space-y-3 p-4 md:hidden">
+                {team.map((member) => <li key={member.teamMemberId}>
+                  <Card className="space-y-2">
+                    <h3 className="font-extrabold">{member.name}</h3>
+                    <p className="text-sm text-[#7e7a94]">{teamRoleLabel[member.role]}</p>
+                    <p className="text-xs">{member.status === "active" ? "فعال" : "پایان‌یافته"}</p>
+                    {member.role === "academic_supporter" && member.status === "active" && <CourseTeamSessionPolicyControl courseId={courseId} teamMemberId={member.teamMemberId} enabled={member.studentSessionRequestsEnabled} />}
+                  </Card>
+                </li>)}
+              </ul>
+            </>
+          )}
+        </section>
+        <p className="text-xs leading-7 text-[#7e7a94]">
+          هیچ نتیجه، هویت یا یادداشت خصوصی دانش‌آموز در این نما نیست؛ تأیید داخلی دنا جایگزین مجوز رسمی آموزشی نیست.
+        </p>
+      </div>
     </main>
   );
 }
