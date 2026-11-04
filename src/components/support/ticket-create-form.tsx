@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "../ui/button";
 
-export function TicketCreateForm() {
+export function TicketCreateForm({ returnTo = "/support" }: { returnTo?: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -27,7 +27,7 @@ export function TicketCreateForm() {
       });
       const result = await response.json() as { ticket?: { id: string } };
       if (!response.ok || !result.ticket?.id) throw new Error();
-      router.push(`/support/${result.ticket.id}`);
+      router.push(`${returnTo.replace(/\\/$/, "")}/${result.ticket.id}`);
       router.refresh();
     } catch {
       setError("ثبت درخواست انجام نشد؛ ورودی‌ها را بررسی و دوباره تلاش کنید.");
@@ -54,7 +54,7 @@ export function TicketCreateForm() {
       </p>
       {error && <p role="alert" className="text-sm font-semibold text-red-700">{error}</p>}
       <div className="flex flex-row gap-3 pt-1">
-        <Link href="/support" className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl border border-dena-border px-4 text-sm font-bold text-dena-deep hover:bg-dena-bg">انصراف</Link>
+        <Link href={returnTo} className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl border border-dena-border px-4 text-sm font-bold text-dena-deep hover:bg-dena-bg">انصراف</Link>
         <Button type="submit" disabled={busy} className="flex-1">{busy ? "در حال ثبت…" : "ارسال درخواست"}</Button>
       </div>
     </form>
