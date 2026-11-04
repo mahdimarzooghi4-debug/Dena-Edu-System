@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
+import { z } from "zod";
 import { getServerAccessContext } from "../../../server/access/actor";
 import { getInstituteQuestionBank } from "../../../server/institute/question-bank";
 import { getInstituteScopes } from "../../../server/institute/scopes";
@@ -35,12 +36,15 @@ export default async function InstituteQuestionBankPage({
   const search = params.search?.trim().slice(0, 120) ?? "";
   const courseId = params.courseId ?? "";
   const lessonId = params.lessonId ?? "";
-  const result = await getInstituteQuestionBank(actor.userId, search || undefined);
-  const selectedCourse = result.courses.find((course) => course.id === courseId);
-  const visibleQuestions = result.questions.filter((question) =>
-    (!courseId || question.courseId === courseId) &&
-    (!lessonId || question.lessonAssetId === lessonId),
-  );
+  if ((courseId && !z.uuid().safeParse(courseId).success) ||
+      (lessonId && !z.uuid().safeParse(lessonId).success)) notFound();
+  const result = await getInstituteQuestionBank(actor.userId, search || undefined, {
+    courseId: courseId || undefined,
+    lessonId: lessonId || undefined,
+  });
+  const selectedCourse = result.courses.find((course) => course.id === courseId) ??
+    result.courses.find((course) => course.lessons.some((lesson) => lesson.id === lessonId));
+  const visibleQuestions = result.questions;
 
   return (
     <main id="main-content" dir="rtl" className="min-h-screen bg-[#f7f6fb]">
