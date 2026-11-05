@@ -33,6 +33,7 @@ export default async function OrganizationStudentDetail({ params, searchParams }
     { key: "courses", label: "دوره‌ها", title: "دوره‌های تحصیلی" },
     { key: "progress", label: "پیشرفت یادگیری", title: "پیشرفت یادگیری" },
     { key: "assessments", label: "آزمون‌ها", title: "آزمون‌های" },
+    { key: "growth", label: "رشد", title: "روند رشد" },
   ];
   const current = tabs.find(({ key }) => key === tab) ?? tabs[0];
   const detail = `/organization/students/${studentId}`;
@@ -69,7 +70,12 @@ export default async function OrganizationStudentDetail({ params, searchParams }
           </nav>
         </div>
       </Card>
-      {current.key === "assessments" ? <Card className="overflow-x-auto">
+      {current.key === "growth" ? <section aria-label="روند رشد دانش‌آموز" className="space-y-5">
+        <Card><h2 className="font-extrabold text-dena-deep">نمودار تفصیلی مسیر رشد یادگیری</h2>
+          <p className="mt-3 text-sm leading-7 text-dena-muted">اطلاعات روند یادگیری فردی در دسترس این سازمان نیست.</p></Card>
+        <Card><h2 className="font-extrabold text-dena-deep">گاه‌شمار پیشرفت تحصیلی و تغییرات یادگیری</h2>
+          <p className="mt-3 text-sm leading-7 text-dena-muted">رویدادهای آموزشی فردی در دسترس این سازمان نیست.</p></Card>
+      </section> : current.key === "assessments" ? <Card className="overflow-x-auto">
         <h2 className="mb-4 font-extrabold">فهرست ارزیابی‌های ثبت‌شده</h2>
         <table className="w-full min-w-[36rem] text-right text-sm">
           <thead className="bg-dena-bg text-dena-muted"><tr>
