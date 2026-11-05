@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { SignOutButton } from "../auth/sign-out-button";
 
 type AdminSection = "home" | "role-applications" | "provider-collaborations" | "service-accounting" | "audit" | "support" | "question-bank" | "exams";
 
@@ -34,7 +35,7 @@ function AdminNavigation({ active, canHandleSupport, mobile = false }: {
     : links;
   return (
     <nav aria-label={mobile ? "منوی ادمین موبایل" : "منوی ادمین"}>
-      <ul className="space-y-2">
+      <ul className="space-y-1.5">
         {items.map((item) => {
           const selected = active === item.key;
           return (
@@ -45,8 +46,8 @@ function AdminNavigation({ active, canHandleSupport, mobile = false }: {
                 className={
                   "flex min-h-11 items-center rounded-xl px-4 text-sm transition-colors " +
                   (selected
-                    ? "bg-dena-lavender font-bold text-dena-brand"
-                    : "text-dena-muted hover:bg-dena-bg hover:text-dena-ink")
+                    ? "bg-[#6048e8] font-bold text-white"
+                    : "text-[#e5e1ed] hover:bg-[#443678] hover:text-white")
                 }
               >
                 {item.label}
@@ -62,18 +63,19 @@ function AdminNavigation({ active, canHandleSupport, mobile = false }: {
 export function AdminShell({ active, canHandleSupport = false, children }: Props) {
   return (
     <div className="min-h-screen min-w-0 bg-dena-bg lg:flex">
-      <aside className="hidden h-screen w-[260px] shrink-0 border-l border-dena-border bg-white px-4 py-5 lg:sticky lg:top-0 lg:flex lg:flex-col">
-        <Link href="/admin" aria-label="دنا، خانهٔ ادمین" className="inline-flex px-3">
+      <aside className="hidden h-dvh w-[260px] shrink-0 border-l border-white/10 bg-[#342b63] px-4 py-5 text-white lg:sticky lg:top-0 lg:flex lg:flex-col">
+        <Link href="/admin" aria-label="دنا، خانهٔ ادمین" className="inline-flex rounded-xl bg-white px-3 py-1">
           <Image src="/dena-app-logo.png" alt="دنا" width={84} height={48} priority />
         </Link>
-        <p className="mt-3 px-3 text-sm font-bold text-dena-deep">مدیریت دنا</p>
-        <div className="mt-7">
+        <p className="mt-3 px-3 text-sm font-bold text-white">مدیریت دنا</p>
+        <div className="mt-7 min-h-0 flex-1 overflow-y-auto">
           <AdminNavigation active={active} canHandleSupport={canHandleSupport} />
         </div>
-        <div className="mt-auto border-t border-dena-border pt-4">
-          <Link href="/account" className="flex min-h-11 items-center rounded-xl px-4 text-sm text-dena-muted hover:bg-dena-bg">
-            بازگشت به حساب من
+        <div className="mt-5 space-y-3 border-t border-white/15 pt-4">
+          <Link href="/account" className="flex min-h-11 items-center rounded-xl px-4 text-sm text-[#e5e1ed] hover:bg-[#443678]">
+            حساب من
           </Link>
+          <SignOutButton />
         </div>
       </aside>
 
@@ -90,8 +92,9 @@ export function AdminShell({ active, canHandleSupport = false, children }: Props
               بخش‌های پنل ادمین
               <span className="text-xs font-normal text-dena-muted">بازکردن / بستن</span>
             </summary>
-            <div className="border-t border-dena-border p-3">
+            <div className="rounded-b-xl border-t border-white/10 bg-[#342b63] p-3">
               <AdminNavigation active={active} canHandleSupport={canHandleSupport} mobile />
+              <div className="mt-3 border-t border-white/15 pt-3"><SignOutButton /></div>
             </div>
           </details>
         </div>
