@@ -268,7 +268,7 @@ export async function listTechnicalSupportInbox(userId: string, cursorToken?: st
   };
 }
 
-export async function readTechnicalSupportTicket(userId: string, ticketId: string) {
+export async function readTechnicalSupportTicket(userId: string, ticketId: string, requesterOnly = false) {
   const db = getDb();
   const actor = await activeActor(db, userId);
   if (!actor) return null;
@@ -287,7 +287,7 @@ export async function readTechnicalSupportTicket(userId: string, ticketId: strin
     updatedAt: technicalSupportTickets.updatedAt,
   }).from(technicalSupportTickets)
     .where(eq(technicalSupportTickets.id, ticketId)).limit(1);
-  if (!ticket || !canReadTechnicalTicket(actor, {
+  if (!ticket || (requesterOnly && ticket.requesterUserId !== userId) || !canReadTechnicalTicket(actor, {
     ticketId: ticket.id,
     requesterUserId: ticket.requesterUserId,
   })) return null;
