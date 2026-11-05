@@ -51,9 +51,9 @@ export async function AdminDirectoryPage({ section, searchParams }: DirectoryPag
           <table className="w-full min-w-[720px] text-right text-xs">
             <thead className="h-[42px] bg-dena-bg text-dena-muted"><tr>{["نام / عنوان", "وضعیت", "خلاصه", "تاریخ ثبت / انتشار", "جزئیات"].map((label) => <th key={label} scope="col" className="px-4 font-bold">{label}</th>)}</tr></thead>
             <tbody>{state.rows.map((row) => <tr key={row.id} className="h-[54px] border-t border-dena-border odd:bg-white even:bg-[#fcfbff]">
-              <th scope="row" className="max-w-80 px-4 py-3 font-semibold leading-6">{translate(row.name)}</th>
+              <th scope="row" className="max-w-80 break-words px-4 py-3 font-semibold leading-6">{translate(row.name)}</th>
               <td className="px-4 py-3"><span className="rounded-md bg-dena-lavender px-2 py-1 text-dena-brand">{translate(row.status)}</span></td>
-              <td className="max-w-72 px-4 py-3 leading-6">{translate(row.detail)}</td>
+              <td className="max-w-72 break-words px-4 py-3 leading-6">{translate(row.detail)}</td>
               <td className="whitespace-nowrap px-4 py-3 text-dena-muted">{row.created_at ? new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium", timeZone: "Asia/Tehran" }).format(new Date(row.created_at)) : "—"}</td>
               <td className="px-4 py-3"><Link href={href(state.page, row.id)} className="font-bold text-dena-brand">مشاهده</Link></td>
             </tr>)}</tbody>

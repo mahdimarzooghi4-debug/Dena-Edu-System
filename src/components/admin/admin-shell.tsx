@@ -105,7 +105,7 @@ export function AdminShell({ active, canHandleSupport = false, children }: Props
               بخش‌های پنل ادمین
               <span className="text-xs font-normal text-dena-muted">بازکردن / بستن</span>
             </summary>
-            <div className="rounded-b-xl border-t border-white/10 bg-[#352b68] p-3">
+            <div className="max-h-[65dvh] overflow-y-auto overscroll-contain rounded-b-xl border-t border-white/10 bg-[#352b68] p-3">
               <AdminNavigation active={active} canHandleSupport={canHandleSupport} mobile />
               <div className="mt-3 border-t border-white/15 pt-3"><SignOutButton appearance="sidebar" /></div>
             </div>
