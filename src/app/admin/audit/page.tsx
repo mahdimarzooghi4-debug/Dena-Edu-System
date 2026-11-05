@@ -5,7 +5,7 @@ import { Card } from "../../../components/ui/card";
 import { AdminShell } from "../../../components/admin/admin-shell";
 import { buttonClassName } from "../../../components/ui/button";
 import { getServerAccessContext } from "../../../server/access/actor";
-import { getRecentAuditLogs } from "../../../server/admin/audit";
+import { auditActions, getRecentAuditLogs } from "../../../server/admin/audit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 
 export default async function AdminAuditPage({
   searchParams,
-}: { searchParams: Promise<{ cursor?: string }> }) {
+}: { searchParams: Promise<{ cursor?: string; action?: string }> }) {
   if (!process.env.DATABASE_URL || !process.env.BETTER_AUTH_SECRET ||
       !process.env.BETTER_AUTH_URL) {
     redirect("/login");
@@ -25,8 +25,9 @@ export default async function AdminAuditPage({
   const actor = await getServerAccessContext();
   if (!actor) redirect("/login");
   if (!actor.memberships.some((item) => item.role === "admin")) notFound();
-  const { cursor } = await searchParams;
-  const result = await getRecentAuditLogs(cursor);
+  const { cursor, action: requestedAction } = await searchParams;
+  const action = auditActions.find((value) => value === requestedAction);
+  const result = await getRecentAuditLogs(cursor, action);
   if (result.invalidCursor) notFound();
   const { events } = result;
   const roleLabels: Record<string, string> = {
@@ -39,6 +40,31 @@ export default async function AdminAuditPage({
     ROLE_APPLICATION: "درخواست نقش",
   };
   const actionLabels: Record<string, string> = {
+    "institute.service.created": "ایجاد خدمت مؤسسه",
+    "institute.service.updated": "ویرایش خدمت مؤسسه",
+    "student.service_order.created": "ثبت سفارش خدمت",
+    "student.service_order.cancelled": "لغو سفارش خدمت",
+    "student.profile.phone_changed": "تغییر شمارهٔ تماس",
+    "institute.service_order.guardian_consent_confirmed": "ثبت رضایت سرپرست",
+    "institute.service_call.scheduled": "زمان‌بندی جلسه",
+    "institute.service_call.started": "شروع جلسه",
+    "institute.service_call.ended": "پایان جلسه توسط مؤسسه",
+    "student.service_call.ended": "پایان جلسه توسط دانش‌آموز",
+    "institute.service_call.follow_up.published": "انتشار پیگیری جلسه",
+    "institute.service_call.cancelled": "لغو جلسه",
+    "provider.collaboration.requested": "درخواست همکاری ارائه‌دهنده",
+    "provider.collaboration.withdrawn": "انصراف از همکاری",
+    "institute.provider_collaboration.accepted": "پذیرش همکاری توسط مؤسسه",
+    "institute.provider_collaboration.rejected": "رد همکاری توسط مؤسسه",
+    "admin.provider_collaboration.approved": "تأیید نهایی همکاری دنا",
+    "admin.provider_collaboration.rejected": "رد نهایی همکاری دنا",
+    "educator.affiliation.requested": "درخواست وابستگی مدرس",
+    "educator.affiliation.withdrawn": "انصراف مدرس",
+    "institute.educator_affiliation.approved": "تأیید وابستگی مدرس",
+    "institute.educator_affiliation.rejected": "رد وابستگی مدرس",
+    "institute.educator_affiliation.revoked": "لغو وابستگی مدرس",
+    "institute.course_ownership.transferred": "انتقال مالکیت دوره",
+
     "role_application.approved": "تأیید درخواست نقش",
     "role_application.rejected": "رد درخواست نقش",
     "course.supervision.requested": "درخواست نظارت دوره",
@@ -76,8 +102,19 @@ export default async function AdminAuditPage({
         این فهرست در هر صفحه حداکثر ۵۰ رویداد را نشان می‌دهد. متن پاسخ دانش‌آموز، OTP،
         token، کلید رسانه و دلیل خصوصی بازبینی در این گزارش ذخیره یا نمایش داده نمی‌شود.
       </p>
+      <form action="/admin/audit" method="get" className="flex flex-wrap items-end gap-3 rounded-xl border border-dena-border bg-white p-4">
+        <label className="min-w-0 flex-1 text-sm font-bold text-dena-deep">
+          نوع رویداد
+          <select name="action" defaultValue={action ?? ""} className="mt-2 min-h-11 w-full rounded-lg border border-dena-border bg-dena-bg px-3 text-sm font-normal">
+            <option value="">همهٔ رویدادها</option>
+            {auditActions.map((value) => <option key={value} value={value}>{actionLabels[value] ?? value}</option>)}
+          </select>
+        </label>
+        <button type="submit" className={buttonClassName("primary")}>اعمال فیلتر</button>
+        {action && <Link href="/admin/audit" className={buttonClassName("secondary")}>حذف فیلتر</Link>}
+      </form>
       {events.length === 0 ? (
-        <Card><p className="text-sm text-dena-muted">هنوز رویدادی ثبت نشده است.</p></Card>
+        <Card><p className="text-sm text-dena-muted">{action ? "رویدادی با این فیلتر پیدا نشد." : cursor ? "رویداد قدیمی‌تری وجود ندارد." : "هنوز رویدادی ثبت نشده است."}</p></Card>
       ) : (
         <ol className="space-y-3">
           {events.map((event) => (
@@ -109,12 +146,12 @@ export default async function AdminAuditPage({
       )}
       <nav className="flex flex-wrap justify-between gap-3" aria-label="صفحه‌بندی رویدادها">
         {cursor && (
-          <Link href="/admin/audit" className={buttonClassName("secondary")}>
+          <Link href={action ? `/admin/audit?action=${encodeURIComponent(action)}` : "/admin/audit"} className={buttonClassName("secondary")}>
             تازه‌ترین رویدادها
           </Link>
         )}
         {result.nextCursor && (
-          <Link href={`/admin/audit?cursor=${encodeURIComponent(result.nextCursor)}`}
+          <Link href={`/admin/audit?cursor=${encodeURIComponent(result.nextCursor)}${action ? `&action=${encodeURIComponent(action)}` : ""}`}
             className={buttonClassName("secondary")}>
             رویدادهای قدیمی‌تر
           </Link>
