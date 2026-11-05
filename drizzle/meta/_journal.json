@@ -400,6 +400,13 @@
       "when": 1792577719184,
       "tag": "0058_organization_contact_profiles",
       "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1792577719185,
+      "tag": "0059_benefactor_contact_profiles",
+      "breakpoints": true
     }
   ]
 }

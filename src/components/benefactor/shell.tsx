@@ -11,11 +11,12 @@ const navigation = [
   { href: "/benefactor/students", label: "دانش‌آموزان تحت حمایت", icon: "students" },
   { href: "/benefactor/growth", label: "رشد و پیشرفت", icon: "growth" },
   { href: "/benefactor/reports", label: "گزارش‌ها", icon: "reports" },
+  { href: "/benefactor/access", label: "محدودهٔ دسترسی", icon: "account" },
   { href: "/benefactor/notifications", label: "اعلان‌ها", icon: "notifications" },
 ];
 const utilities = [
-  { href: "/support", label: "پشتیبانی آنلاین", icon: "support" },
-  { href: "/account", label: "حساب خیر و حامی", icon: "account" },
+  { href: "/benefactor/support", label: "پشتیبانی آنلاین", icon: "support" },
+  { href: "/benefactor/profile", label: "حساب خیر و حامی", icon: "account" },
 ];
 
 export function BenefactorShell({ children }: { children: ReactNode }) {

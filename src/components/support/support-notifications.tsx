@@ -21,7 +21,7 @@ const labels: Record<Notification["kind"], string> = {
   attachment_scanned: "بررسی امنیتی فایل پیوست تکمیل شد",
 };
 
-export function SupportNotifications() {
+export function SupportNotifications({ detailBase = "/support" }: { detailBase?: string }) {
   const [items, setItems] = useState<Notification[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
@@ -65,7 +65,7 @@ export function SupportNotifications() {
             <li key={item.id} className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-white p-4 ${item.readAt ? "border-dena-border" : "border-dena-brand/40"}`}>
               <div>
                 <p className="text-sm font-bold">{labels[item.kind]}</p>
-                <Link href={`/support/${item.ticketId}`} className="mt-1 inline-block text-sm text-dena-brand underline-offset-4 hover:underline">
+                <Link href={`${detailBase}/${item.ticketId}`} className="mt-1 inline-block text-sm text-dena-brand underline-offset-4 hover:underline">
                   {item.subject}
                 </Link>
                 <p className="mt-1 text-xs text-dena-muted">
