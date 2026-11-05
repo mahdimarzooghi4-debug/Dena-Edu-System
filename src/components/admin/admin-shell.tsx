@@ -15,14 +15,15 @@ const links: ReadonlyArray<{
   key: AdminSection;
   href: string;
   label: string;
+  group: string;
 }> = [
-  { key: "home", href: "/admin", label: "نمای کلی" },
-  { key: "role-applications", href: "/admin/role-applications", label: "درخواست‌های نقش" },
-  { key: "provider-collaborations", href: "/admin/provider-collaborations", label: "بررسی همکاری ارائه‌دهنده" },
-  { key: "service-accounting", href: "/admin/service-accounting", label: "خدمات و حسابداری" },
-  { key: "question-bank", href: "/admin/question-bank", label: "بانک سؤال دنا" },
-  { key: "exams", href: "/admin/exams", label: "آزمون‌های هماهنگ دنا" },
-  { key: "audit", href: "/admin/audit", label: "رویدادهای سیستم" },
+  { key: "home", group: "مدیریت", href: "/admin", label: "نمای کلی" },
+  { key: "role-applications", group: "نقش‌ها و موجودیت‌ها", href: "/admin/role-applications", label: "درخواست‌های نقش" },
+  { key: "provider-collaborations", group: "ارائه‌دهندگان", href: "/admin/provider-collaborations", label: "بررسی همکاری ارائه‌دهنده" },
+  { key: "service-accounting", group: "خدمات مؤسسه", href: "/admin/service-accounting", label: "خدمات و حسابداری" },
+  { key: "question-bank", group: "آموزش", href: "/admin/question-bank", label: "بانک سؤال دنا" },
+  { key: "exams", group: "آموزش", href: "/admin/exams", label: "آزمون‌های هماهنگ دنا" },
+  { key: "audit", group: "نظارت", href: "/admin/audit", label: "رویدادهای سیستم" },
 ];
 
 function AdminNavigation({ active, canHandleSupport, mobile = false }: {
@@ -31,15 +32,18 @@ function AdminNavigation({ active, canHandleSupport, mobile = false }: {
   mobile?: boolean;
 }) {
   const items = canHandleSupport
-    ? [...links, { key: "support" as const, href: "/admin/support", label: "پشتیبانی فنی" }]
+    ? [...links, { key: "support" as const, group: "پشتیبانی", href: "/admin/support", label: "پشتیبانی فنی" }]
     : links;
   return (
     <nav aria-label={mobile ? "منوی ادمین موبایل" : "منوی ادمین"}>
       <ul className="space-y-1.5">
-        {items.map((item) => {
+        {items.map((item, index) => {
           const selected = active === item.key;
           return (
             <li key={item.key}>
+              {(index === 0 || items[index - 1].group !== item.group) && (
+                <p className="px-4 pb-2 pt-4 text-[10px] font-semibold text-[#b9acd8]">{item.group}</p>
+              )}
               <Link
                 href={item.href}
                 aria-current={selected ? "page" : undefined}

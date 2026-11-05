@@ -89,17 +89,17 @@ export default async function AdminHomePage() {
   return (
     <AdminShell active="home" canHandleSupport={canHandleSupport}>
     <main id="main-content"
-      className="mx-auto min-h-screen max-w-5xl space-y-8 px-5 py-8 md:px-10 md:py-12">
-      <section className="rounded-[20px] bg-dena-lavender px-6 py-7 md:px-8">
+      className="mx-auto min-h-screen max-w-7xl space-y-6 px-5 py-6 md:px-8">
+      <section className="rounded-xl border border-dena-border bg-white px-6 py-5">
         <p className="text-sm font-bold text-dena-brand">خانه مدیر دنا</p>
         <h1 className="mt-2 text-[27px] font-extrabold leading-relaxed text-dena-deep md:text-[31px]">
-          نمای کلی سیستم
+          نمای کلی فضای مدیریتی
         </h1>
       </section>
 
       <section className="space-y-4" aria-labelledby="admin-user-counts">
         <SectionHeading id="admin-user-counts">حساب‌ها و دوره‌ها</SectionHeading>
-        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3" aria-label="آمار مدیر">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="آمار مدیر">
           {Object.entries(overview.users).map(([role, total]) => (
             <Card key={role}>
               <p className="text-sm text-dena-muted">{roleLabels[role] ?? role}</p>
