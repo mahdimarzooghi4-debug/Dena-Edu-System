@@ -30,6 +30,9 @@ export const navigation = {
     { href: "/institute/profile", title: "پروفایل مؤسسه", figmaNode: "172:127" },
   ],
   provider: [
+    { href: "/provider/services", title: "خدمات و دامنهٔ مجاز", figmaNode: "570:16560" },
+    { href: "/provider/notifications", title: "اعلان‌ها", figmaNode: undefined },
+    { href: "/provider/revenue", title: "درآمد و تسویه", figmaNode: "570:16560" },
     { href: "/provider", title: "خانه ارائه‌دهنده", figmaNode: "173:3" },
     { href: "/provider/courses", title: "دوره‌های من", figmaNode: "173:768" },
     { href: "/provider/assessments", title: "تمرین‌ها و آزمون‌ها", figmaNode: "177:44" },

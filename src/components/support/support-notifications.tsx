@@ -25,6 +25,8 @@ export function SupportNotifications({ detailBase = "/support" }: { detailBase?:
   const [items, setItems] = useState<Notification[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
+  const [retry, setRetry] = useState(0);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -37,25 +39,32 @@ export function SupportNotifications({ detailBase = "/support" }: { detailBase?:
       .catch(() => { if (active) setError(true); })
       .finally(() => { if (active) setLoaded(true); });
     return () => { active = false; };
-  }, []);
+  }, [retry]);
 
   async function markRead(id: string) {
-    const response = await fetch(`/api/support/notifications/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
-    });
-    if (response.ok) {
+    if (busyId) return;
+    setBusyId(id); setError(false);
+    try {
+      const response = await fetch(`/api/support/notifications/${id}`, {
+        method: "PATCH", credentials: "same-origin", cache: "no-store",
+        headers: { "Content-Type": "application/json" }, body: JSON.stringify({}),
+      });
+      if (!response.ok) throw new Error("notification_unavailable");
       setItems((current) => current.map((item) =>
         item.id === id ? { ...item, readAt: new Date().toISOString() } : item));
-    } else setError(true);
+    } catch { setError(true); }
+    finally { setBusyId(null); }
   }
 
   return (
     <section aria-labelledby="support-notification-heading" className="space-y-3">
       <h2 id="support-notification-heading" className="text-lg font-bold">اعلان‌های پشتیبانی</h2>
       {error && <p role="alert" className="text-sm text-red-700">اعلان‌ها بارگذاری یا به‌روزرسانی نشدند.</p>}
-      {loaded && items.length === 0 ? (
+      {error && <button type="button" disabled={Boolean(busyId) || !loaded} onClick={() => {
+        setLoaded(false); setError(false); setRetry((value) => value + 1);
+      }} className="rounded-lg border border-dena-border px-3 py-2 text-xs font-bold text-dena-brand">دریافت دوبارهٔ اعلان‌ها</button>}
+      {!loaded && <p role="status" className="text-sm text-dena-muted">در حال دریافت اعلان‌ها…</p>}
+      {loaded && !error && items.length === 0 ? (
         <p className="rounded-xl border border-dena-border bg-white p-4 text-sm text-dena-muted">
           اعلان تازه‌ای نداری.
         </p>
@@ -73,9 +82,9 @@ export function SupportNotifications({ detailBase = "/support" }: { detailBase?:
                 </p>
               </div>
               {!item.readAt && (
-                <button type="button" onClick={() => void markRead(item.id)}
+                <button type="button" disabled={Boolean(busyId)} onClick={() => void markRead(item.id)}
                   className="rounded-lg border border-dena-border px-3 py-2 text-xs font-bold text-dena-deep hover:bg-dena-bg">
-                  خواندم
+                  {busyId === item.id ? "در حال ثبت…" : "خواندم"}
                 </button>
               )}
             </li>

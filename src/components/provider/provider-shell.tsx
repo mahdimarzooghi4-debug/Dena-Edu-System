@@ -8,12 +8,16 @@ import type { ReactNode } from "react";
 
 const sections = [
   { href: "/provider", label: "داشبورد" },
+  { href: "/provider/profile", label: "پروفایل ارائه‌دهنده" },
+  { href: "/provider/collaborations", label: "مؤسسهٔ ناظر" },
+  { href: "/provider/services", label: "خدمات و دامنهٔ مجاز" },
+  { href: "/provider/revenue", label: "درآمد و تسویه" },
+  { href: "/provider/notifications", label: "اعلان‌ها" },
   { href: "/provider/courses", label: "دوره‌های من" },
   { href: "/provider/assessments", label: "ارزیابی‌های یادگیری" },
   { href: "/provider/learning", label: "پیگیری یادگیری" },
   { href: "/provider/supervision", label: "درخواست‌های نظارت" },
-  { href: "/provider/collaborations", label: "همکاری با مؤسسه‌ها" },
-  { href: "/provider/profile", label: "پروفایل ارائه‌دهنده" },
+
 ] as const;
 
 function Navigation({ currentPath, mobile = false }: {
