@@ -37,6 +37,7 @@ export default async function OrganizationReportsPage() {
       <Link href="/organization/reports/growth" className={buttonClassName("secondary")}>
         گزارش تفصیلی روند ثبت و فعال‌سازی
       </Link>
+      <Link href="/organization/reports/course" className={buttonClassName("secondary")}>گزارش دورهٔ آموزشی</Link>
       <OrganizationPanelAnalytics snapshot={snapshot} view="reports" />
     </main>
   );
