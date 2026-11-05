@@ -17,7 +17,7 @@ export class CollaborationWorkflowError extends Error {
   constructor(readonly kind: CollaborationWorkflowFailure) { super(kind); }
 }
 
-export async function getProviderCollaborations(userId: string) {
+export async function getProviderCollaborations(userId: string, collaborationId?: string) {
   const db = getDb();
   const scopes = await db.select({ id: memberships.providerId }).from(memberships)
     .where(and(eq(memberships.userId, userId), eq(memberships.role, "provider"),
@@ -50,7 +50,8 @@ export async function getProviderCollaborations(userId: string) {
     }).from(providerInstituteCollaborations).innerJoin(verifiedEntities, and(
       eq(verifiedEntities.id, providerInstituteCollaborations.instituteId),
       eq(verifiedEntities.role, "institute"),
-    )).where(inArray(providerInstituteCollaborations.providerId, providerIds))
+    )).where(and(inArray(providerInstituteCollaborations.providerId, providerIds),
+      collaborationId ? eq(providerInstituteCollaborations.id, collaborationId) : undefined))
       .orderBy(desc(providerInstituteCollaborations.createdAt), desc(providerInstituteCollaborations.id)).limit(100),
   ]);
   const collaborationIds = collaborations.map((item) => item.id);

@@ -5,6 +5,7 @@ import { Card } from "../../components/ui/card";
 import { buttonClassName } from "../../components/ui/button";
 import { SectionHeading } from "../../components/ui/section-heading";
 import { getServerAccessContext } from "../../server/access/actor";
+import { getProviderMetrics } from "../../server/provider/metrics";
 import { getProviderDashboardCourses } from "../../server/provider/dashboard";
 import { getProviderCollaborations } from "../../server/provider/collaborations";
 
@@ -57,9 +58,10 @@ export default async function ProviderHomePage() {
     entry.role === "provider" ? [entry.providerId] : []))];
   if (!providerIds.length) notFound();
 
-  const [{ courses, hasMore }, collaborationData] = await Promise.all([
+  const [{ courses, hasMore }, collaborationData, metrics] = await Promise.all([
     getProviderDashboardCourses(providerIds),
     getProviderCollaborations(actor.userId),
+    getProviderMetrics(actor.userId),
   ]);
   return (
     <main id="main-content"
@@ -95,18 +97,12 @@ export default async function ProviderHomePage() {
       </section>
 
       <section aria-labelledby="provider-overview" className="space-y-4">
-        <SectionHeading id="provider-overview" note="بر پایهٔ رکوردهای همین فهرست">
+        <SectionHeading id="provider-overview" note="آمار کل محدودهٔ فعال ارائه‌دهنده">
           نمای کلی دوره‌ها
         </SectionHeading>
-        <Card className="max-w-sm">
-          <p className="text-sm text-dena-muted">دوره‌های نمایش‌داده‌شده</p>
-          <p className="mt-2 text-[29px] font-extrabold text-dena-brand">
-            {hasMore ? "۲۰+" : courses.length.toLocaleString("fa-IR")}
-          </p>
-          <p className="mt-1 text-xs leading-7 text-dena-muted">
-            فقط دوره‌های محدودهٔ فعال؛ این عدد شمار دانش‌آموز یا درآمد نیست.
-          </p>
-        </Card>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {[["کل دوره‌های من",metrics?.courses ?? 0],["دوره‌های منتشرشده",metrics?.published ?? 0],["درخواست‌های در انتظار",metrics?.pending ?? 0],["همکاری‌های تأییدشده",metrics?.approved ?? 0]].map(([label,total]) => <Card key={label} className="space-y-2 p-5"><p className="text-xs text-dena-muted">{label}</p><p className="text-[29px] font-extrabold text-dena-brand">{Number(total).toLocaleString("fa-IR")}</p></Card>)}
+        </div>
       </section>
 
       <section aria-labelledby="provider-supervision" className="space-y-4">
@@ -118,6 +114,7 @@ export default async function ProviderHomePage() {
             <Card className="h-full space-y-2">
               <p className="font-extrabold text-dena-deep">{collaboration.instituteName}</p>
               <p className="text-sm text-dena-muted">{collaborationStatusLabels[collaboration.status]}</p>
+              <Link href={`/provider/collaborations/${collaboration.id}`} className="inline-flex text-sm font-bold text-dena-brand">پیگیری درخواست</Link>
               {collaboration.status === "approved" && <p className="text-xs leading-6 text-dena-muted">دامنهٔ همکاری فقط با مؤسسهٔ ناظر تأییدشده فعال است.</p>}
             </Card>
           </li>)}

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState, type FormEvent } from "react";
 import { Button } from "../ui/button";
 
@@ -159,6 +160,7 @@ export function ProviderCollaborationWorkspace({ providerIds, institutes, initia
             {item.status === "approved" && <span title="ارائه‌دهندهٔ تحت نظارت دنا" className="rounded-full bg-orange-100 px-3 py-1 text-xs font-bold text-orange-800">● نشان نارنجی · همکاری تأییدشده</span>}
           </div>
           <p className="mt-3 text-sm font-semibold text-dena-deep">{statusLabel[item.status]}</p>
+          <Link href={`/provider/collaborations/${item.id}`} className="mt-3 inline-flex text-sm font-bold text-dena-brand">جزئیات بررسی مؤسسه و دنا</Link>
           {item.instituteDecisionReason && <p className="mt-2 text-sm leading-7 text-dena-muted">یادداشت مؤسسه: {item.instituteDecisionReason}</p>}
           {item.denaDecisionReason && <p className="mt-2 text-sm leading-7 text-dena-muted">یادداشت دنا: {item.denaDecisionReason}</p>}
           <div className="mt-4 rounded-xl bg-dena-bg p-4">
