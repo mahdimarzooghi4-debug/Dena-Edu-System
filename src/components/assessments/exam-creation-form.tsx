@@ -32,6 +32,11 @@ export function ExamCreationForm({ kind }: { kind: "institute" | "dena" }) {
   const [attemptLimit, setAttemptLimit] = useState(1);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [loadingBank, setLoadingBank] = useState(true);
+  const [bankFailed, setBankFailed] = useState(false);
+  const [bankPage, setBankPage] = useState(1);
+  const [bankPages, setBankPages] = useState(1);
+  const [retry, setRetry] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -39,15 +44,17 @@ export function ExamCreationForm({ kind }: { kind: "institute" | "dena" }) {
     void fetch(endpoint, { credentials: "same-origin", cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) throw new Error("bank_unavailable");
-        return response.json() as Promise<{ questions: Question[]; courses?: Course[] }>;
+        return response.json() as Promise<{ questions: Question[]; courses?: Course[]; pageCount?: number }>;
       }).then((result) => {
         if (cancelled) return;
         setQuestions(result.questions);
+        setBankPages(result.pageCount ?? 1);
+        setBankFailed(false); setLoadingBank(false);
         setCourses(result.courses ?? []);
         if (result.courses?.[0]) setCourseId(result.courses[0].id);
-      }).catch(() => { if (!cancelled) setMessage("دریافت بانک سؤال با خطا روبه‌رو شد."); });
+      }).catch(() => { if (!cancelled) { setMessage("دریافت بانک سؤال با خطا روبه‌رو شد."); setBankFailed(true); setLoadingBank(false); } });
     return () => { cancelled = true; };
-  }, [kind]);
+  }, [kind, retry]);
 
   const available = useMemo(() => kind === "dena"
     ? questions : questions.filter((question) => question.courseId === courseId),
@@ -61,9 +68,25 @@ export function ExamCreationForm({ kind }: { kind: "institute" | "dena" }) {
       : current.length < 300 ? [...current, id] : current);
   }
 
+  async function loadMoreQuestions() {
+    if (loadingBank || bankPage >= bankPages) return;
+    setLoadingBank(true); setMessage("");
+    try {
+      const response = await fetch(`/api/admin/question-bank?page=${bankPage + 1}`, { credentials: "same-origin", cache: "no-store" });
+      if (!response.ok) throw new Error("bank_unavailable");
+      const result = await response.json() as { questions: Question[]; pageCount: number };
+      setQuestions((current) => [...new Map([...current, ...result.questions].map((question) => [question.id, question])).values()]);
+      setBankPage((current) => current + 1); setBankPages(result.pageCount);
+    } catch { setMessage("دریافت سؤال‌های بیشتر ممکن نشد؛ دوباره تلاش کنید."); }
+    finally { setLoadingBank(false); }
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy || !canSubmit) return;
+    if (!Number.isFinite(Date.parse(startsAt)) || !Number.isFinite(Date.parse(endsAt)) || Date.parse(endsAt) <= Date.parse(startsAt)) {
+      setMessage("زمان پایان باید بعد از زمان شروع باشد."); return;
+    }
     setBusy(true); setMessage("");
     try {
       const body = {
@@ -125,7 +148,10 @@ export function ExamCreationForm({ kind }: { kind: "institute" | "dena" }) {
           <h2 id="pick-questions" className="text-lg font-extrabold text-dena-deep">انتخاب سؤال‌ها</h2>
           <p className="text-sm text-dena-muted">انتخاب‌شده: {selected.length.toLocaleString("fa-IR")}</p>
         </div>
-        {available.length === 0 ? <div className="rounded-xl border border-dena-border bg-white p-5 text-sm leading-7 text-dena-muted">
+        <p className="text-xs text-dena-muted">زمان شروع و پایان بر اساس منطقهٔ زمانی دستگاه شما ثبت می‌شود.</p>
+        {bankFailed && <Button type="button" variant="outline" onClick={() => { setLoadingBank(true); setMessage(""); setRetry((value) => value + 1); }}>دریافت دوبارهٔ بانک سؤال</Button>}
+        {loadingBank && <p role="status" className="text-sm text-dena-muted">در حال دریافت سؤال‌ها…</p>}
+        {!loadingBank && !bankFailed && available.length === 0 ? <div className="rounded-xl border border-dena-border bg-white p-5 text-sm leading-7 text-dena-muted">
           {kind === "institute" && !courseId ? "ابتدا دوره را انتخاب کنید." : "سؤالی برای این آزمون پیدا نشد؛ ابتدا بانک سؤال را تکمیل کنید."}
           <div className="mt-3"><Link className="font-bold text-dena-brand underline" href={kind === "institute" ? "/institute/question-bank" : "/admin/question-bank"}>رفتن به بانک سؤال</Link></div>
         </div> : <ul className="space-y-2">
@@ -137,6 +163,7 @@ export function ExamCreationForm({ kind }: { kind: "institute" | "dena" }) {
             </label>
           </li>)}
         </ul>}
+        {kind === "dena" && bankPage < bankPages && !bankFailed && <Button type="button" variant="outline" disabled={loadingBank} onClick={() => void loadMoreQuestions()}>دریافت سؤال‌های بیشتر</Button>}
       </section>
       <p className="rounded-xl bg-dena-lavender p-4 text-sm leading-7 text-dena-deep">
         با ذخیره، آزمون در وضعیت پیش‌نویس می‌ماند. سؤال‌ها به‌صورت نسخهٔ ثابت در آزمون ثبت می‌شوند.

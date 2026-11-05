@@ -117,13 +117,14 @@ export async function getDenaExams(userId: string) {
     startsAt: assessmentExams.startsAt, endsAt: assessmentExams.endsAt,
     durationMinutes: assessmentExams.durationMinutes,
     attemptLimit: assessmentExams.attemptLimit, status: assessmentExams.status,
-    questionCount: assessmentExamQuestions.id,
+    questionCount: sql<number>`count(${assessmentExamQuestions.id})`.mapWith(Number),
   }).from(assessmentExams)
     .leftJoin(assessmentExamQuestions, eq(assessmentExamQuestions.examId, assessmentExams.id))
     .where(and(eq(assessmentExams.examType, "dena_coordinated"),
       eq(assessmentExams.ownerId, DENA_ASSESSMENT_OWNER_ID)))
+    .groupBy(assessmentExams.id)
     .orderBy(desc(assessmentExams.startsAt), asc(assessmentExams.id)).limit(200);
-  return { exams: collapseCount(exams) };
+  return { exams };
 }
 
 export async function getExamReport(
