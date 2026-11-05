@@ -45,6 +45,7 @@ export default async function BenefactorStudentsPage() {
         </table>
       </Card>
       <div className="flex flex-wrap gap-3">
+        <Link href="/benefactor/students/learning" className={buttonClassName("secondary")}>بخش‌های گزارش آموزشی ناشناس</Link>
         <Link href="/benefactor/reports" className={buttonClassName("secondary")}>مشاهدهٔ وضعیت گزارش‌ها</Link>
         <Link href="/benefactor" className={buttonClassName("secondary")}>بازگشت به داشبورد</Link>
       </div>
