@@ -5,6 +5,8 @@ import { buttonClassName } from "../../../components/ui/button";
 import { Card } from "../../../components/ui/card";
 import { SectionHeading } from "../../../components/ui/section-heading";
 import { getServerAccessContext } from "../../../server/access/actor";
+import { ProviderContactForm } from "../../../components/provider/contact-profile-form";
+import { getProviderContact } from "../../../server/provider/contact-profile";
 import { getProviderProfile } from "../../../server/provider/profile";
 
 export const runtime = "nodejs";
@@ -24,6 +26,7 @@ export default async function ProviderProfilePage() {
   if (!providerIds.length) notFound();
   const entities = await getProviderProfile(providerIds);
   if (!entities.length) notFound();
+  const profiles = (await Promise.all(entities.map((entity) => getProviderContact(actor.userId, entity.id)))).filter((profile) => profile !== null);
 
   return (
     <main id="main-content" className="mx-auto min-h-screen max-w-4xl space-y-8 px-5 py-8 md:px-10 md:py-12">
@@ -64,12 +67,9 @@ export default async function ProviderProfilePage() {
         </ul>
       </section>
 
-      <Card className="space-y-3">
-        <h2 className="font-extrabold">اطلاعات فقط‌خواندنی</h2>
-        <p className="text-sm leading-7 text-dena-muted">
-          این نسخه تغییر نام، جابه‌جایی دامنه یا مدیریت نمایندگان را پشتیبانی نمی‌کند.
-        </p>
-      </Card>
+      <section className="space-y-5" aria-label="ویرایش مشخصات ارائه‌دهنده">
+        {profiles.map((profile) => <ProviderContactForm key={profile.provider_id} profile={profile} />)}
+      </section>
     </main>
   );
 }
