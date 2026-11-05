@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { AdminShell } from "../../../components/admin/admin-shell";
@@ -9,13 +10,14 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "بانک سؤال دنا | مدیریت", robots: { index: false, follow: false } };
 
-export default async function AdminQuestionBankPage() {
+export default async function AdminQuestionBankPage({ searchParams }: { searchParams: Promise<{ q?: string; page?: string }> }) {
   if (!process.env.DATABASE_URL || !process.env.BETTER_AUTH_SECRET ||
       !process.env.BETTER_AUTH_URL) redirect("/login");
   const actor = await getServerAccessContext();
   if (!actor) redirect("/login");
   if (!actor.memberships.some((member) => member.role === "admin")) notFound();
-  const state = await getDenaQuestionBank(actor.userId);
+  const params = await searchParams;
+  const state = await getDenaQuestionBank(actor.userId, { query: params.q, page: Number(params.page ?? 1) });
   if (!state) notFound();
   return (
     <AdminShell active="question-bank" canHandleSupport={actor.memberships.some((member) =>
@@ -29,7 +31,19 @@ export default async function AdminQuestionBankPage() {
             این بانک مالکیت مستقل دنا دارد و با بانک سؤال مؤسسه‌ها مشترک نیست.
           </p>
         </header>
-        <DenaQuestionBankWorkspace questions={state.questions} />
+        <form action="/admin/question-bank" method="get" className="flex flex-wrap items-end gap-3">
+          <label className="flex-1 text-sm font-bold">جست‌وجو در متن سؤال
+            <input type="search" name="q" maxLength={200} defaultValue={state.query} className="mt-2 min-h-11 w-full rounded-lg border border-dena-border bg-white px-3 font-normal" />
+          </label>
+          <button type="submit" className="min-h-11 rounded-lg bg-dena-brand px-4 text-sm font-bold text-white">جست‌وجو</button>
+          {state.query && <Link href="/admin/question-bank" className="py-3 text-sm font-bold text-dena-brand">حذف جست‌وجو</Link>}
+        </form>
+        <p className="text-xs text-dena-muted">{state.total.toLocaleString("fa-IR")} سؤال · صفحهٔ {state.page.toLocaleString("fa-IR")} از {state.pageCount.toLocaleString("fa-IR")}</p>
+        <DenaQuestionBankWorkspace key={`${state.query}:${state.page}`} questions={state.questions} filtered={Boolean(state.query)} />
+        <nav aria-label="صفحه‌بندی بانک سؤال" className="flex justify-between gap-3 text-sm font-bold text-dena-brand">
+          {state.page > 1 ? <Link href={`/admin/question-bank?q=${encodeURIComponent(state.query)}&page=${state.page - 1}`}>صفحهٔ قبل</Link> : <span />}
+          {state.page < state.pageCount ? <Link href={`/admin/question-bank?q=${encodeURIComponent(state.query)}&page=${state.page + 1}`}>صفحهٔ بعد</Link> : <span />}
+        </nav>
       </main>
     </AdminShell>
   );

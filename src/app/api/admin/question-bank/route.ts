@@ -10,13 +10,16 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 const noStore = { "Cache-Control": "private, no-store, max-age=0" };
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const actor = await getServerAccessContext();
   if (!actor) return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: noStore });
   if (!actor.memberships.some((item) => item.role === "admin")) {
     return NextResponse.json({ error: "Not found" }, { status: 404, headers: noStore });
   }
-  const state = await getDenaQuestionBank(actor.userId);
+  const state = await getDenaQuestionBank(actor.userId, {
+    query: request.nextUrl.searchParams.get("q") ?? undefined,
+    page: Number(request.nextUrl.searchParams.get("page") ?? 1),
+  });
   if (!state) return NextResponse.json({ error: "Not found" }, { status: 404, headers: noStore });
   return NextResponse.json(state, { headers: noStore });
 }
