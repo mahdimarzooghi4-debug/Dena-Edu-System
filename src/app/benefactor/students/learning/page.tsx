@@ -1,3 +1,5 @@
+import { z } from "zod";
+import { getBenefactorLearning } from "../../../../server/benefactor/learning";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Card } from "../../../../components/ui/card";
@@ -16,34 +18,47 @@ const tabs = [
 ];
 
 export default async function BenefactorLearningPage({ searchParams }: {
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; recipient?: string }>;
 }) {
-  await requireBenefactorAccess();
-  const { tab = "overview" } = await searchParams;
+  const { actor } = await requireBenefactorAccess();
+  const { tab = "overview", recipient } = await searchParams;
   const current = tabs.find(({ key }) => key === tab);
   if (!current) notFound();
+  if (!recipient || !z.uuid().safeParse(recipient).success) notFound();
+  const courses = await getBenefactorLearning(actor.userId, recipient);
+  if (!courses.length) notFound();
+  const total = courses.reduce((sum, row) => sum + row.total_videos, 0);
+  const completed = courses.reduce((sum, row) => sum + row.completed_videos, 0);
+  const progress = total ? Math.round(completed / total * 100) : 0;
   const unavailable = "گزارش آموزشی ناشناس هنوز برای این حساب در دسترس نیست.";
 
   return <div>
-    <BenefactorPageHeader title={current.label + " · گزارش آموزشی ناشناس"} section="دانش‌آموزان تحت حمایت" />
+    <BenefactorPageHeader title={current.label + " · دانش‌آموز " + recipient.slice(0, 8)} section="دانش‌آموزان تحت حمایت" />
     <main id="main-content" className="space-y-5 p-5 md:p-8">
       <Link href="/benefactor/students" className="text-sm font-bold text-dena-brand hover:underline">بازگشت به دانش‌آموزان تحت حمایت</Link>
       <Card className="space-y-4">
         <h2 className="font-extrabold">گزارش آموزشی با حفظ حریم خصوصی</h2>
         <nav aria-label="بخش‌های گزارش آموزشی" className="flex flex-wrap gap-3 border-b border-dena-border">
-          {tabs.map(({ key, label }) => <Link key={key} href={`/benefactor/students/learning?tab=${key}`}
+          {tabs.map(({ key, label }) => <Link key={key} href={`/benefactor/students/learning?recipient=${recipient}&tab=${key}`}
             aria-current={key === tab ? "page" : undefined}
             className={`px-3 pb-3 text-sm ${key === tab ? "border-b-2 border-dena-brand font-bold text-dena-brand" : "text-dena-muted hover:text-dena-brand"}`}>{label}</Link>)}
         </nav>
       </Card>
       {tab === "overview" && <div className="grid items-start gap-5 lg:grid-cols-2">
         <div className="space-y-5">
-          <Section title="خلاصهٔ پیشرفت یادگیری">{unavailable}</Section>
-          <Section title="دوره‌های فعال">{unavailable}</Section>
+          <Card><h2 className="font-extrabold">خلاصهٔ پیشرفت ویدئوها</h2>
+            <p className="my-3 text-sm">{completed.toLocaleString("fa-IR")} از {total.toLocaleString("fa-IR")} ویدئو تکمیل شده</p>
+            {total > 0 && <progress aria-label="پیشرفت ویدئوهای دوره‌های تحت حمایت" className="h-2 w-full accent-dena-brand" value={progress} max={100} />}
+          </Card>
+          <Section title="دوره‌های تحت حمایت">{courses.map((row) => row.course_title).join("، ")}</Section>
         </div>
         <Section title="آخرین فعالیت‌های یادگیری">{unavailable}</Section>
       </div>}
-      {tab === "courses" && <Section title="دوره‌های آموزشی">{unavailable}</Section>}
+      {tab === "courses" && <div className="space-y-4">{courses.map((row, index) => <Card key={index}>
+        <h2 className="font-extrabold">{row.course_title}</h2>
+        <p className="my-3 text-sm text-dena-muted">{row.completed_videos.toLocaleString("fa-IR")} از {row.total_videos.toLocaleString("fa-IR")} ویدئوی تکمیل‌شده</p>
+        {row.total_videos > 0 && <progress aria-label={row.course_title} className="h-2 w-full accent-dena-brand" value={row.completed_videos} max={row.total_videos} />}
+      </Card>)}</div>}
       {tab === "progress" && <Section title="رویدادنگاری و وضعیت فعلی دوره‌ها">{unavailable}</Section>}
       {tab === "growth" && <div className="space-y-5">
         <Section title="نمودار پایش مسیر یادگیری">{unavailable}</Section>
