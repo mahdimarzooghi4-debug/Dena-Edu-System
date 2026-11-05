@@ -10,8 +10,9 @@ import { requireOrganizationAccess } from "../../../../server/organization/requi
 export const dynamic = "force-dynamic";
 export const metadata = { title: "پروندهٔ دانش‌آموز | دنا", robots: { index: false, follow: false } };
 
-export default async function OrganizationStudentDetail({ params }: {
+export default async function OrganizationStudentDetail({ params, searchParams }: {
   params: Promise<{ studentId: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }) {
   const { scopes } = await requireOrganizationAccess();
   const { studentId } = await params;
@@ -26,6 +27,8 @@ export default async function OrganizationStudentDetail({ params }: {
     .where(and(eq(organizationStudents.id, studentId),
       inArray(organizationStudents.organizationId, scopes.map(({ id }) => id)))).limit(1);
   if (!student) notFound();
+  const coursesTab = (await searchParams).tab === "courses";
+  const detail = `/organization/students/${studentId}`;
   const name = `${student.firstName} ${student.lastName}`;
   const organization = scopes.find(({ id }) => id === student.organizationId);
   const date = new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium", timeZone: "Asia/Tehran" });
@@ -37,7 +40,7 @@ export default async function OrganizationStudentDetail({ params }: {
         <Link href={back} className="hover:underline">دانش‌آموزان</Link>
         <span aria-hidden="true"> ‹ </span><span aria-current="page">{name}</span>
       </nav>
-      <h1 className="mt-1 text-xl font-extrabold text-dena-deep">نمای کلی وضعیت {name}</h1>
+      <h1 className="mt-1 text-xl font-extrabold text-dena-deep">{coursesTab ? "دوره‌های تحصیلی" : "نمای کلی وضعیت"} {name}</h1>
     </header>
     <main id="main-content" className="space-y-5 p-5 md:p-8">
       <Card className="space-y-5">
@@ -52,10 +55,18 @@ export default async function OrganizationStudentDetail({ params }: {
           </span>
         </div>
         <div className="border-b border-dena-border">
-          <span className="inline-block border-b-2 border-dena-brand px-3 pb-2 text-sm font-bold text-dena-brand">نمای کلی</span>
+          <nav aria-label="بخش‌های پرونده" className="flex flex-wrap gap-4 text-sm">
+            <Link href={detail} aria-current={coursesTab ? undefined : "page"}
+              className={coursesTab ? "px-3 pb-2 text-dena-muted" : "border-b-2 border-dena-brand px-3 pb-2 font-bold text-dena-brand"}>نمای کلی</Link>
+            <Link href={`${detail}?tab=courses`} aria-current={coursesTab ? "page" : undefined}
+              className={coursesTab ? "border-b-2 border-dena-brand px-3 pb-2 font-bold text-dena-brand" : "px-3 pb-2 text-dena-muted"}>دوره‌ها</Link>
+          </nav>
         </div>
       </Card>
-      <div className="grid items-start gap-5 lg:grid-cols-2">
+      {coursesTab ? <Card>
+        <h2 className="font-extrabold text-dena-deep">دوره‌های ثبت‌شده در محدودهٔ دسترسی سازمان</h2>
+        <p className="mt-3 text-sm leading-7 text-dena-muted">اطلاعات ثبت‌نام دوره و پیشرفت فردی در دسترس این سازمان نیست.</p>
+      </Card> : <div className="grid items-start gap-5 lg:grid-cols-2">
         <div className="space-y-5">
           <Card><h2 className="font-extrabold">خلاصهٔ پیشرفت یادگیری</h2>
             <p className="mt-3 text-sm leading-7 text-dena-muted">اطلاعات پیشرفت آموزشی در دسترس این سازمان نیست.</p></Card>
@@ -65,7 +76,7 @@ export default async function OrganizationStudentDetail({ params }: {
         <Card><h2 className="font-extrabold">رویدادهای پرونده</h2>
           <p className="mt-3 rounded-lg bg-dena-bg p-3 text-sm">ثبت پرونده در سازمان · {date.format(student.createdAt)}</p>
         </Card>
-      </div>
+      </div>}
     </main>
   </div>;
 }
