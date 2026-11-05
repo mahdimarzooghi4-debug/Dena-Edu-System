@@ -34,6 +34,7 @@ export default async function OrganizationStudentDetail({ params, searchParams }
     { key: "progress", label: "پیشرفت یادگیری", title: "پیشرفت یادگیری" },
     { key: "assessments", label: "آزمون‌ها", title: "آزمون‌های" },
     { key: "growth", label: "رشد", title: "روند رشد" },
+    { key: "report", label: "گزارش", title: "گزارش عملکرد تحصیلی" },
   ];
   const current = tabs.find(({ key }) => key === tab) ?? tabs[0];
   const detail = `/organization/students/${studentId}`;
@@ -70,7 +71,12 @@ export default async function OrganizationStudentDetail({ params, searchParams }
           </nav>
         </div>
       </Card>
-      {current.key === "growth" ? <section aria-label="روند رشد دانش‌آموز" className="space-y-5">
+      {current.key === "report" ? <section aria-label="گزارش عملکرد تحصیلی" className="grid items-start gap-5 lg:grid-cols-2">
+        <Card><h2 className="font-extrabold text-dena-deep">آخرین ارزیابی‌های جامع</h2>
+          <p className="mt-3 text-sm leading-7 text-dena-muted">نتایج ارزیابی فردی در دسترس این سازمان نیست.</p></Card>
+        <Card><h2 className="font-extrabold text-dena-deep">عملکرد دروس فعال</h2>
+          <p className="mt-3 text-sm leading-7 text-dena-muted">عملکرد آموزشی فردی در دسترس این سازمان نیست.</p></Card>
+      </section> : current.key === "growth" ? <section aria-label="روند رشد دانش‌آموز" className="space-y-5">
         <Card><h2 className="font-extrabold text-dena-deep">نمودار تفصیلی مسیر رشد یادگیری</h2>
           <p className="mt-3 text-sm leading-7 text-dena-muted">اطلاعات روند یادگیری فردی در دسترس این سازمان نیست.</p></Card>
         <Card><h2 className="font-extrabold text-dena-deep">گاه‌شمار پیشرفت تحصیلی و تغییرات یادگیری</h2>
