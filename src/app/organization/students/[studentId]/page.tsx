@@ -32,6 +32,7 @@ export default async function OrganizationStudentDetail({ params, searchParams }
     { key: "", label: "نمای کلی", title: "نمای کلی وضعیت" },
     { key: "courses", label: "دوره‌ها", title: "دوره‌های تحصیلی" },
     { key: "progress", label: "پیشرفت یادگیری", title: "پیشرفت یادگیری" },
+    { key: "assessments", label: "آزمون‌ها", title: "آزمون‌های" },
   ];
   const current = tabs.find(({ key }) => key === tab) ?? tabs[0];
   const detail = `/organization/students/${studentId}`;
@@ -68,7 +69,18 @@ export default async function OrganizationStudentDetail({ params, searchParams }
           </nav>
         </div>
       </Card>
-      {current.key === "progress" ? <div className="grid items-start gap-5 lg:grid-cols-2">
+      {current.key === "assessments" ? <Card className="overflow-x-auto">
+        <h2 className="mb-4 font-extrabold">فهرست ارزیابی‌های ثبت‌شده</h2>
+        <table className="w-full min-w-[36rem] text-right text-sm">
+          <thead className="bg-dena-bg text-dena-muted"><tr>
+            {["عنوان آزمون", "نوع ارزیابی", "دوره", "تاریخ", "وضعیت", "نمره"].map((label) =>
+              <th key={label} scope="col" className="px-4 py-3">{label}</th>)}
+          </tr></thead>
+          <tbody><tr><td colSpan={6} className="px-4 py-5 text-dena-muted">
+            نتایج آزمون و نمرات فردی در دسترس این سازمان نیست.
+          </td></tr></tbody>
+        </table>
+      </Card> : current.key === "progress" ? <div className="grid items-start gap-5 lg:grid-cols-2">
         <div className="space-y-5">
           <Card><h2 className="font-extrabold">آمار کلی یادگیری دوره</h2>
             <p className="mt-3 text-sm leading-7 text-dena-muted">اطلاعات تکمیل جلسات در دسترس این سازمان نیست.</p></Card>
