@@ -14,12 +14,12 @@ export default async function BenefactorReportsPage() {
       <Card className="space-y-4">
         <h2 className="font-extrabold">گزارش‌های دانش‌آموزان تحت حمایت</h2>
         {[
-          ["growth", "گزارش پیشرفت تجمیعی دانش‌آموزان", "روند رشد آموزشی در دوره‌های تحت حمایت"],
-          ["course", "گزارش دوره‌ها و مباحث آموزشی", "خلاصهٔ پیشرفت و تکمیل دوره‌های آموزشی"],
-          ["student", "گزارش عملکرد ناشناس", "نمای آموزشی با حفظ حریم خصوصی دریافت‌کنندگان حمایت"],
+          ["/benefactor/reports/growth", "گزارش پیشرفت تجمیعی دانش‌آموزان", "روند رشد آموزشی در دوره‌های تحت حمایت"],
+          ["/benefactor/reports/course", "گزارش دوره‌ها و مباحث آموزشی", "خلاصهٔ پیشرفت و تکمیل دوره‌های آموزشی"],
+          ["/benefactor/reports/student", "گزارش عملکرد ناشناس", "نمای آموزشی با حفظ حریم خصوصی دریافت‌کنندگان حمایت"],
         ].map(([route, title, description]) => <div key={route} className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-dena-border p-4">
           <div><h3 className="text-sm font-bold">{title}</h3><p className="mt-1 text-xs leading-6 text-dena-muted">{description}</p></div>
-          <Link href={`/benefactor/reports/${route}`} className={buttonClassName()}>مشاهدهٔ گزارش</Link>
+          <Link href={route} className={buttonClassName()}>مشاهدهٔ گزارش</Link>
         </div>)}
       </Card>
     </main>
