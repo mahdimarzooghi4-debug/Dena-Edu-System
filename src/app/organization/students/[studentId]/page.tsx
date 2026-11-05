@@ -27,7 +27,13 @@ export default async function OrganizationStudentDetail({ params, searchParams }
     .where(and(eq(organizationStudents.id, studentId),
       inArray(organizationStudents.organizationId, scopes.map(({ id }) => id)))).limit(1);
   if (!student) notFound();
-  const coursesTab = (await searchParams).tab === "courses";
+  const { tab } = await searchParams;
+  const tabs = [
+    { key: "", label: "نمای کلی", title: "نمای کلی وضعیت" },
+    { key: "courses", label: "دوره‌ها", title: "دوره‌های تحصیلی" },
+    { key: "progress", label: "پیشرفت یادگیری", title: "پیشرفت یادگیری" },
+  ];
+  const current = tabs.find(({ key }) => key === tab) ?? tabs[0];
   const detail = `/organization/students/${studentId}`;
   const name = `${student.firstName} ${student.lastName}`;
   const organization = scopes.find(({ id }) => id === student.organizationId);
@@ -40,7 +46,7 @@ export default async function OrganizationStudentDetail({ params, searchParams }
         <Link href={back} className="hover:underline">دانش‌آموزان</Link>
         <span aria-hidden="true"> ‹ </span><span aria-current="page">{name}</span>
       </nav>
-      <h1 className="mt-1 text-xl font-extrabold text-dena-deep">{coursesTab ? "دوره‌های تحصیلی" : "نمای کلی وضعیت"} {name}</h1>
+      <h1 className="mt-1 text-xl font-extrabold text-dena-deep">{current.title} {name}</h1>
     </header>
     <main id="main-content" className="space-y-5 p-5 md:p-8">
       <Card className="space-y-5">
@@ -56,14 +62,22 @@ export default async function OrganizationStudentDetail({ params, searchParams }
         </div>
         <div className="border-b border-dena-border">
           <nav aria-label="بخش‌های پرونده" className="flex flex-wrap gap-4 text-sm">
-            <Link href={detail} aria-current={coursesTab ? undefined : "page"}
-              className={coursesTab ? "px-3 pb-2 text-dena-muted" : "border-b-2 border-dena-brand px-3 pb-2 font-bold text-dena-brand"}>نمای کلی</Link>
-            <Link href={`${detail}?tab=courses`} aria-current={coursesTab ? "page" : undefined}
-              className={coursesTab ? "border-b-2 border-dena-brand px-3 pb-2 font-bold text-dena-brand" : "px-3 pb-2 text-dena-muted"}>دوره‌ها</Link>
+            {tabs.map(({ key, label }) => <Link key={key} href={key ? `${detail}?tab=${key}` : detail}
+              aria-current={current.key === key ? "page" : undefined}
+              className={current.key === key ? "border-b-2 border-dena-brand px-3 pb-2 font-bold text-dena-brand" : "px-3 pb-2 text-dena-muted"}>{label}</Link>)}
           </nav>
         </div>
       </Card>
-      {coursesTab ? <Card>
+      {current.key === "progress" ? <div className="grid items-start gap-5 lg:grid-cols-2">
+        <div className="space-y-5">
+          <Card><h2 className="font-extrabold">آمار کلی یادگیری دوره</h2>
+            <p className="mt-3 text-sm leading-7 text-dena-muted">اطلاعات تکمیل جلسات در دسترس این سازمان نیست.</p></Card>
+          <Card><h2 className="font-extrabold">مباحث نیازمند توجه</h2>
+            <p className="mt-3 text-sm leading-7 text-dena-muted">ارزیابی مباحث فردی در دسترس این سازمان نیست.</p></Card>
+        </div>
+        <Card><h2 className="font-extrabold">جلسات و گام‌های آموزشی</h2>
+          <p className="mt-3 text-sm leading-7 text-dena-muted">فعالیت آموزشی جلسات در دسترس این سازمان نیست.</p></Card>
+      </div> : current.key === "courses" ? <Card>
         <h2 className="font-extrabold text-dena-deep">دوره‌های ثبت‌شده در محدودهٔ دسترسی سازمان</h2>
         <p className="mt-3 text-sm leading-7 text-dena-muted">اطلاعات ثبت‌نام دوره و پیشرفت فردی در دسترس این سازمان نیست.</p>
       </Card> : <div className="grid items-start gap-5 lg:grid-cols-2">
