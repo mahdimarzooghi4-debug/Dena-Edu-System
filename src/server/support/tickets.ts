@@ -232,7 +232,11 @@ export async function listRequesterTechnicalSupportTickets(
   };
 }
 
-export async function listTechnicalSupportInbox(userId: string, cursorToken?: string) {
+export async function listTechnicalSupportInbox(userId: string, cursorToken?: string, filters: {
+  status?: SupportStatus;
+  priority?: (typeof supportPriorities)[number];
+  assignedToMe?: boolean;
+} = {}) {
   const actor = await activeActor(getDb(), userId);
   if (!actor?.memberships.some((membership) =>
     membership.role === "admin" && membership.canHandleTechnicalSupport)) return null;
@@ -250,11 +254,15 @@ export async function listTechnicalSupportInbox(userId: string, cursorToken?: st
     resolutionDueAt: technicalSupportTickets.resolutionDueAt,
     createdAt: technicalSupportTickets.createdAt,
     updatedAt: technicalSupportTickets.updatedAt,
-  }).from(technicalSupportTickets).where(cursor ? or(
+   }).from(technicalSupportTickets).where(and(
+    filters.status ? eq(technicalSupportTickets.status, filters.status) : undefined,
+    filters.priority ? eq(technicalSupportTickets.priority, filters.priority) : undefined,
+    filters.assignedToMe ? eq(technicalSupportTickets.assignedToUserId, userId) : undefined,
+    cursor ? or(
     lt(technicalSupportTickets.updatedAt, cursor.updatedAt),
     and(eq(technicalSupportTickets.updatedAt, cursor.updatedAt),
       lt(technicalSupportTickets.id, cursor.id)),
-  ) : undefined)
+  ) : undefined))
     .orderBy(desc(technicalSupportTickets.updatedAt),
       desc(technicalSupportTickets.id))
     .limit(101);
