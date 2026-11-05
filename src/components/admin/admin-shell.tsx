@@ -1,9 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
+import { adminDirectories, type AdminDirectory } from "../../server/admin/directory";
 import type { ReactNode } from "react";
 import { SignOutButton } from "../auth/sign-out-button";
 
-type AdminSection = "home" | "role-applications" | "provider-collaborations" | "service-accounting" | "audit" | "support" | "question-bank" | "exams";
+type AdminSection = AdminDirectory | "settings" | "home" | "role-applications" | "provider-collaborations" | "service-accounting" | "audit" | "support" | "question-bank" | "exams";
 
 type Props = {
   active: AdminSection;
@@ -18,12 +19,14 @@ const links: ReadonlyArray<{
   group: string;
 }> = [
   { key: "home", group: "مدیریت", href: "/admin", label: "نمای کلی" },
+  ...Object.entries(adminDirectories).map(([key, config]) => ({ key: key as AdminDirectory, group: config.group, href: `/admin/${key}`, label: config.title })),
   { key: "role-applications", group: "حساب‌ها و نقش‌ها", href: "/admin/role-applications", label: "درخواست‌های نقش" },
   { key: "provider-collaborations", group: "ارائه‌دهندگان", href: "/admin/provider-collaborations", label: "بررسی همکاری ارائه‌دهنده" },
   { key: "service-accounting", group: "خدمات مؤسسه", href: "/admin/service-accounting", label: "خدمات و حسابداری" },
   { key: "question-bank", group: "آموزش و محتوا", href: "/admin/question-bank", label: "بانک سؤال دنا" },
   { key: "exams", group: "آموزش و محتوا", href: "/admin/exams", label: "آزمون‌های هماهنگ دنا" },
   { key: "audit", group: "گزارش‌ها و امنیت", href: "/admin/audit", label: "رویدادهای سیستم" },
+  { key: "settings", group: "تنظیمات", href: "/admin/settings", label: "تنظیمات" },
 ];
 
 function AdminNavigation({ active, canHandleSupport, mobile = false }: {
@@ -34,14 +37,16 @@ function AdminNavigation({ active, canHandleSupport, mobile = false }: {
   const items = canHandleSupport
     ? [...links, { key: "support" as const, group: "پشتیبانی", href: "/admin/support", label: "پشتیبانی فنی" }]
     : links;
+  const groups = [...new Set(items.map((item) => item.group))];
+  const groupedItems = groups.flatMap((group) => items.filter((item) => item.group === group));
   return (
     <nav aria-label={mobile ? "منوی ادمین موبایل" : "منوی ادمین"}>
       <ul className="space-y-[3px]">
-        {items.map((item, index) => {
+        {groupedItems.map((item, index) => {
           const selected = active === item.key;
           return (
             <li key={item.key}>
-              {(index === 0 || items[index - 1].group !== item.group) && (
+              {(index === 0 || groupedItems[index - 1].group !== item.group) && (
                 <p className="px-0 pb-1 pt-3 text-[10px] font-bold text-[#bdb2ff]">{item.group}</p>
               )}
               <Link

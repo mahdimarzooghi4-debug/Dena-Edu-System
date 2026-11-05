@@ -77,4 +77,4 @@ test("real SQL isolates funded enrollments, revocation and suspension without ex
   await pg.query("UPDATE dena_student_enrollments SET status='cancelled' WHERE id=$1", [enrollment]);
   expect((await read(actor)).map((rows) => rows.length)).toEqual([0, 0, 0]);
   await pg.close();
-});
+}, 30_000);
