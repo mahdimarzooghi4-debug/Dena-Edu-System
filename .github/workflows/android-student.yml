@@ -20,9 +20,17 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-      - uses: android-actions/setup-android@v3
+      # Ubuntu runners already include Android command-line tools. The
+      # setup-android v3 action tries to install removed package "tools".
       - name: Install Android SDK platform
-        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+        run: |
+          SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -name sdkmanager -type f | sort -r | head -n 1)"
+          if [ ! -x "$SDKMANAGER" ]; then
+            echo "Android SDK manager not available on runner"
+            exit 1
+          fi
+          "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.11.1"
