@@ -40,13 +40,11 @@ const desktopItems: ReadonlyArray<{
   icon: IconName;
 }> = [
   { key: "home", href: "/student", label: "خانه من", icon: "home" },
-  { key: "aiTutor", href: "/student/ai-tutor", label: "معلم هوشمند", icon: "sparkles" },
   { key: "courses", href: "/student/courses", label: "دوره‌های من", icon: "book" },
   { key: "assessments", href: "/student/assessments", label: "تمرین‌ها و آزمون‌ها", icon: "assessment" },
   { key: "growth", href: "/student/growth", label: "مسیر رشد", icon: "growth" },
   { key: "elite", href: "/student/elite-club", label: "باشگاه نخبگان", icon: "star" },
   { key: "account", href: "/student/profile", label: "پروفایل کاربری", icon: "user" },
-  { key: "services", href: "/student/services", label: "مرکز خدمات", icon: "help" },
 ];
 
 const mobileItems: ReadonlyArray<{
@@ -174,7 +172,7 @@ export function StudentShell({ active, title, children, demo = false }: Props) {
   const eliteActive = active === "elite";
   const notificationsActive = active === "notifications";
   return (
-    <div className="min-h-screen bg-dena-bg lg:flex">
+    <div dir="rtl" className="min-h-screen bg-dena-bg lg:flex">
       <aside className="hidden h-screen w-[260px] shrink-0 border-l border-dena-border bg-white lg:sticky lg:top-0 lg:flex lg:flex-col lg:px-4 lg:py-5">
         <Link href={demo ? demoHref.home : "/student"} aria-label="دنا، خانه دانش‌آموز" className="inline-flex px-3">
           <Image src="/dena-app-logo.png" alt="دنا" width={84} height={48} priority />
@@ -185,7 +183,7 @@ export function StudentShell({ active, title, children, demo = false }: Props) {
         <div className="mt-auto border-t border-dena-border pt-4">
           <Link href={demo ? "/student/demo/support" : "/support"} className="flex min-h-[44px] items-center gap-3 rounded-xl px-4 text-sm text-dena-muted hover:bg-dena-bg hover:text-dena-ink">
             <Icon name="help" />
-            <span>پشتیبانی فنی</span>
+            <span>پشتیبانی آنلاین</span>
           </Link>
           <div className="mt-2 flex min-h-[44px] items-center gap-3 rounded-xl px-4 text-sm text-dena-muted">
             <Icon name="user" />
@@ -202,7 +200,7 @@ export function StudentShell({ active, title, children, demo = false }: Props) {
       </aside>
 
       <div className="min-w-0 flex-1">
-        <header className="sticky top-0 z-30 flex min-h-[60px] items-center justify-between border-b border-dena-border bg-white/95 px-4 backdrop-blur md:px-7 lg:min-h-[80px] lg:px-10">
+        <header dir="rtl" className="sticky top-0 z-30 flex min-h-[60px] items-center justify-between border-b border-dena-border bg-white/95 px-4 backdrop-blur md:px-7 lg:min-h-[80px] lg:px-10">
           <Link href={demo ? demoHref.home : "/student"} className="order-1 lg:hidden" aria-label="دنا، خانه دانش‌آموز">
             <Image src="/dena-app-logo.png" alt="دنا" width={55} height={33} priority />
           </Link>
