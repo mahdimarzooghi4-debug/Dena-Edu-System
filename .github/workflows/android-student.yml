@@ -1,0 +1,73 @@
+name: Android Student APK
+
+on:
+  pull_request:
+    paths:
+      - "android-student/**"
+      - ".github/workflows/android-student.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  android-debug:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      # Ubuntu runners already include Android command-line tools. The
+      # setup-android v3 action tries to install removed package "tools".
+      - name: Install Android SDK platform
+        run: |
+          SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -name sdkmanager -type f | sort -r | head -n 1)"
+          if [ ! -x "$SDKMANAGER" ]; then
+            echo "Android SDK manager not available on runner"
+            exit 1
+          fi
+          "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.11.1"
+      - name: JVM tests and fail-closed Android debug APK
+        run: gradle -p android-student --no-daemon testDebugUnitTest assembleDebug
+      - name: Build Android APK using existing synthetic Render showcase
+        run: |
+          gradle -p android-student --no-daemon --rerun-tasks \
+            -PdenaStudentUrl=https://dena-student-demo.onrender.com/student-demo \
+            assembleDebug
+      - name: Publish Android debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: dena-student-android-showcase-${{ github.sha }}
+          path: android-student/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+      - name: Prepare versioned preview APK and checksum
+        run: |
+          cp android-student/app/build/outputs/apk/debug/app-debug.apk dena-student-android-demo.apk
+          sha256sum dena-student-android-demo.apk > dena-student-android-demo.apk.sha256
+      - name: Publish public demo APK as a GitHub pre-release
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'feat/student-android-app' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag=dena-student-demo-v0.1.1-preview
+          if gh release view "$tag" >/dev/null 2>&1; then
+            if gh release view "$tag" --json assets --jq '.assets[].name' | grep -qx 'dena-student-android-demo.apk'; then
+              echo "Existing versioned release is immutable; keeping previously published debug APK."
+            else
+              gh release upload "$tag" dena-student-android-demo.apk dena-student-android-demo.apk.sha256
+            fi
+          else
+            gh release create "$tag" dena-student-android-demo.apk dena-student-android-demo.apk.sha256 \
+              --target "${{ github.event.pull_request.head.sha }}" \
+              --prerelease \
+              --title "Dena Student Android — demo 0.1.1 (official Dena icon)" \
+              --notes "Android-only demo APK pointing to the already deployed synthetic Dena student showcase. Preview, not production. No real accounts, payments or SMS. Internet required. Signed with an ephemeral Android debug certificate. Do not use for production distribution."
+          fi
