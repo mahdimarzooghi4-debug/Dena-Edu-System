@@ -130,6 +130,21 @@ test.describe("isolated installable synthetic Dena student app", () => {
       const noOverflow = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
       expect(noOverflow, "student app must not overflow at " + width).toBe(true);
     }
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/student/demo");
+    const rtlLayout = await page.evaluate(() => {
+      const sidebar = document.querySelector("aside")?.getBoundingClientRect();
+      const main = document.querySelector("main")?.getBoundingClientRect();
+      const logo = document.querySelector("header a[aria-label='دنا، خانه دانش‌آموز']")?.getBoundingClientRect();
+      const actions = document.querySelector("header [dir='ltr']")?.getBoundingClientRect();
+      return {
+        sidebarOnRight: Boolean(sidebar && main && sidebar.left > main.left),
+        logoOnRight: Boolean(logo && actions && logo.left > actions.left),
+        documentDirection: document.documentElement.dir,
+      };
+    });
+    expect(rtlLayout.sidebarOnRight).toBe(true);
+    expect(rtlLayout.logoOnRight).toBe(true);
     const manifest = await page.request.get("/manifest.webmanifest");
     expect(manifest.status()).toBe(200);
     const body = await manifest.json();
