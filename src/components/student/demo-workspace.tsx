@@ -83,6 +83,7 @@ export function DemoWorkspace({ route }: StudentWorkspaceProps) {
   const [message, setMessage] = useState("");
   const [reply, setReply] = useState("");
   const [evaluationIndex, setEvaluationIndex] = useState(0);
+  const [evaluationDraft, setEvaluationDraft] = useState<Record<string, number>>({});
   const [reviewMode, setReviewMode] = useState(false);
   const [showReset, setShowReset] = useState(false);
   const [teamMessage, setTeamMessage] = useState("");
@@ -142,6 +143,7 @@ export function DemoWorkspace({ route }: StudentWorkspaceProps) {
         setQuizResult({ correct: json.correct, explanation: json.explanation || "" });
       }
     } catch (err) {
+      if (action.type === "answerEvaluation") setEvaluationDraft({});
       setError(err instanceof Error ? err.message : "خطا در ارتباط با سرور.");
     } finally { setBusy(false); }
   }, []);
@@ -382,8 +384,8 @@ export function DemoWorkspace({ route }: StudentWorkspaceProps) {
           <h3 className="text-base font-extrabold leading-8">{question.question}</h3>
           <fieldset className="space-y-2"><legend className="sr-only">گزینه انتخابی</legend>
             {question.choices.map((option,i)=><label key={i} className="flex min-h-12 cursor-pointer gap-3 rounded-xl border border-dena-border p-3 text-sm has-[:checked]:bg-dena-lavender">
-              <input type="radio" name={"evaluation-"+question.id} checked={state.elite.answers[question.id]===i}
-                onChange={()=>void act({type:"answerEvaluation",questionId:question.id,choice:i})}/>{option}</label>)}
+              <input type="radio" name={"evaluation-"+question.id} checked={(evaluationDraft[question.id] ?? state.elite.answers[question.id])===i}
+                onChange={()=>{setEvaluationDraft(current=>({...current,[question.id]:i}));void act({type:"answerEvaluation",questionId:question.id,choice:i});}}/>{option}</label>)}
           </fieldset>
           <div className="flex flex-wrap gap-2">
             {evaluationIndex>0 && <button className={secondary} onClick={()=>setEvaluationIndex(i=>i-1)}>سؤال قبل</button>}
