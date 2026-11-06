@@ -5,6 +5,7 @@ import { Card } from "../../components/ui/card";
 import { buttonClassName } from "../../components/ui/button";
 import { SectionHeading } from "../../components/ui/section-heading";
 import { getServerAccessContext } from "../../server/access/actor";
+import { getProviderProfile } from "../../server/provider/profile";
 import { getProviderMetrics } from "../../server/provider/metrics";
 import { getProviderDashboardCourses } from "../../server/provider/dashboard";
 import { getProviderCollaborations } from "../../server/provider/collaborations";
@@ -58,10 +59,11 @@ export default async function ProviderHomePage() {
     entry.role === "provider" ? [entry.providerId] : []))];
   if (!providerIds.length) notFound();
 
-  const [{ courses, hasMore }, collaborationData, metrics] = await Promise.all([
+  const [{ courses, hasMore }, collaborationData, metrics, identities] = await Promise.all([
     getProviderDashboardCourses(providerIds),
     getProviderCollaborations(actor.userId),
     getProviderMetrics(actor.userId),
+    getProviderProfile(providerIds),
   ]);
   return (
     <main id="main-content"
@@ -85,15 +87,12 @@ export default async function ProviderHomePage() {
         </Link>
       </header>
 
-      <section className="rounded-[20px] bg-dena-lavender px-6 py-7 md:px-8">
-        <p className="text-sm font-bold text-dena-brand">خانه ارائه‌دهنده در دنا</p>
-        <h1 className="mt-2 text-[27px] font-extrabold leading-relaxed text-dena-deep md:text-[31px]">
-          دوره‌های من و وضعیت نظارت
-        </h1>
-        <p className="mt-2 max-w-3xl text-sm leading-8">
-          وضعیت فعلی دوره‌های مربوط به محدودهٔ ارائه‌دهندگی فعال شما نمایش
-          داده می‌شود. ایجاد دوره، تأیید مؤسسه و انتشار هرکدام مجوز مستقل دارند.
-        </p>
+      <section aria-label="هویت ارائه‌دهنده" className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-dena-border bg-white p-[18px]">
+        <div><h1 className="text-[22px] font-black text-dena-deep">{identities.map((identity) => identity.name).join("، ")}</h1><p className="mt-1 text-xs text-dena-muted">پنل ارائه‌دهنده · دوره‌ها و وضعیت نظارت</p></div>
+        <div className="flex flex-col items-start gap-2">
+          {metrics?.approved ? <span className="rounded-md bg-[#fff1e7] px-2.5 py-1 text-xs font-bold text-[#e97925]">دارای همکاری تأییدشده تحت نظارت مؤسسه</span> : <span className="rounded-md bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-800">همکاری تحت نظارت هنوز تأیید نشده است</span>}
+          <Link href="/provider/collaborations" className="rounded-md bg-[#e8f0ff] px-2.5 py-1 text-xs font-bold text-[#3b6eea]">مشاهدهٔ مؤسسه‌های ناظر و وضعیت درخواست‌ها</Link>
+        </div>
       </section>
 
       <section aria-labelledby="provider-overview" className="space-y-4">

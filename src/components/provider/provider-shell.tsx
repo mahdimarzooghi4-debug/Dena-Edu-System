@@ -48,6 +48,8 @@ function Navigation({ currentPath, mobile = false }: {
 
 export function ProviderShell({ children }: { children: ReactNode }) {
   const currentPath = usePathname();
+  const currentSection = sections.find((section) => section.href === currentPath)
+    ?? sections.find((section) => section.href !== "/provider" && currentPath.startsWith(section.href + "/"));
   return <div className="min-h-screen min-w-0 bg-dena-bg lg:flex">
     <aside className="hidden h-dvh w-[260px] shrink-0 flex-col justify-between gap-5 bg-[#352b68] p-6 text-white lg:sticky lg:top-0 lg:flex">
       <div className="flex min-h-0 flex-1 flex-col">
@@ -90,6 +92,16 @@ export function ProviderShell({ children }: { children: ReactNode }) {
           </div>
         </details>
       </div>
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-dena-border bg-white px-5 py-3.5 md:px-7">
+        <div className="min-w-0"><p className="text-[10px] text-dena-muted">خانه / پنل ارائه‌دهنده</p><p className="mt-1 text-xl font-extrabold text-dena-deep">{currentSection?.label ?? "پنل ارائه‌دهنده"}</p></div>
+        <div className="flex min-w-0 items-center gap-2.5">
+          <form action="/provider/courses" method="get" role="search" className="flex min-h-10 min-w-0 items-center gap-2 rounded-lg border border-dena-border bg-dena-bg px-3 sm:w-60">
+            <label className="min-w-0 flex-1"><span className="sr-only">جست‌وجو در دوره‌های من</span><input type="search" name="q" maxLength={120} placeholder="جست‌وجو در دوره‌های من…" className="w-full min-w-0 bg-transparent text-xs outline-none" /></label>
+            <button type="submit" aria-label="جست‌وجوی دوره" className="grid min-h-8 min-w-8 place-items-center"><Image src="/provider-nav/search.svg" alt="" width={16} height={16} /></button>
+          </form>
+          <Link href="/provider/notifications" aria-label="اعلان‌های ارائه‌دهنده" className="grid size-[38px] shrink-0 place-items-center rounded-full bg-dena-bg"><Image src="/provider-nav/bell.svg" alt="" width={18} height={18} /></Link>
+        </div>
+      </header>
       {children}
     </div>
   </div>;

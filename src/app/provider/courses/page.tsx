@@ -40,7 +40,7 @@ const assessmentLabels = {
 
 export default async function ProviderCoursesPage({
   searchParams,
-}: { searchParams: Promise<{ cursor?: string }> }) {
+}: { searchParams: Promise<{ cursor?: string; q?: string }> }) {
   if (!process.env.DATABASE_URL || !process.env.BETTER_AUTH_SECRET ||
       !process.env.BETTER_AUTH_URL) redirect("/login");
   const actor = await getServerAccessContext();
@@ -49,8 +49,9 @@ export default async function ProviderCoursesPage({
     membership.role === "provider" ? [membership.providerId] : []))];
   if (!providerIds.length) notFound();
 
-  const { cursor } = await searchParams;
-  const result = await getProviderDashboardCourses(providerIds, cursor);
+  const { cursor, q } = await searchParams;
+  const query = (q ?? "").trim().slice(0,120);
+  const result = await getProviderDashboardCourses(providerIds, cursor, query);
   if (result.invalidCursor) notFound();
 
   return (
@@ -75,13 +76,18 @@ export default async function ProviderCoursesPage({
         </p>
       </section>
 
+      <form action="/provider/courses" method="get" className="flex flex-wrap gap-3">
+        <label className="flex-1"><span className="sr-only">جست‌وجوی عنوان دوره</span><input name="q" type="search" maxLength={120} defaultValue={query} placeholder="جست‌وجوی عنوان دوره…" className="min-h-11 w-full rounded-lg border border-dena-border bg-white px-3 text-sm" /></label>
+        <button type="submit" className={buttonClassName()}>جست‌وجو</button>
+        {query && <Link href="/provider/courses" className={buttonClassName("secondary")}>حذف جست‌وجو</Link>}
+      </form>
       <section aria-labelledby="provider-courses-list" className="space-y-4">
         <SectionHeading id="provider-courses-list" note="۲۰ دوره در هر صفحه">
           دوره‌ها و وضعیت‌ها
         </SectionHeading>
         {result.courses.length === 0 ? (
           <Card className="space-y-3">
-            <h2 className="font-extrabold">دوره‌ای برای نمایش نیست</h2>
+            <h2 className="font-extrabold">{query ? "دوره‌ای مطابق جست‌وجو پیدا نشد" : "دوره‌ای برای نمایش نیست"}</h2>
             <p className="text-sm leading-7 text-dena-muted">
               درخواست نظارت برای یک دوره ثبت کنید تا وضعیت آن در این فهرست دیده شود.
             </p>
@@ -137,12 +143,12 @@ export default async function ProviderCoursesPage({
         )}
         <nav className="flex flex-wrap justify-between gap-3" aria-label="صفحه‌بندی دوره‌ها">
           {cursor && (
-            <Link href="/provider/courses" className={buttonClassName("secondary")}>
+            <Link href={query ? `/provider/courses?q=${encodeURIComponent(query)}` : "/provider/courses"} className={buttonClassName("secondary")}>
               صفحهٔ نخست
             </Link>
           )}
           {result.nextCursor && (
-            <Link href={`/provider/courses?cursor=${encodeURIComponent(result.nextCursor)}`}
+            <Link href={`/provider/courses?cursor=${encodeURIComponent(result.nextCursor)}&q=${encodeURIComponent(query)}`}
               className={buttonClassName("secondary")}>
               دوره‌های بعدی
             </Link>
