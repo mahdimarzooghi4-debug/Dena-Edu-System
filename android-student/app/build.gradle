@@ -1,0 +1,66 @@
+plugins {
+    id 'com.android.application'
+}
+
+def studentUrl = providers.gradleProperty('denaStudentUrl').orElse('').get().trim()
+if (!studentUrl.isEmpty()) {
+    def uri
+    try { uri = new URI(studentUrl) }
+    catch (Exception e) { throw new GradleException('denaStudentUrl must be a valid HTTPS URL') }
+    def path = uri.path ?: ''
+    if (uri.scheme != 'https' || !uri.host || uri.userInfo != null || uri.query != null ||
+        uri.fragment != null || !(uri.port == -1 || uri.port == 443) ||
+        !(path == '/student' || path.startsWith('/student/')) ||
+        !uri.host.contains('.') || uri.host.equalsIgnoreCase('localhost')) {
+        throw new GradleException('denaStudentUrl must be an HTTPS student route on a DNS host, without credentials, query or fragment')
+    }
+}
+
+android {
+    namespace 'ir.dena.student'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'ir.dena.student'
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName '0.1.0'
+        buildConfigField 'String', 'STUDENT_START_URL', groovy.json.JsonOutput.toJson(studentUrl)
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix '.debug'
+            versionNameSuffix '-debug'
+        }
+        release {
+            minifyEnabled false
+        }
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+// A debug APK may be built without a server and displays a configuration notice.
+// Never allow a release variant to be assembled with a missing endpoint.
+tasks.configureEach { task ->
+    if (task.name == 'preReleaseBuild') {
+        task.doFirst {
+            if (studentUrl.isEmpty()) {
+                throw new GradleException('Release requires -PdenaStudentUrl=https://<approved-host>/student')
+            }
+        }
+    }
+}
+
+dependencies {
+    testImplementation 'junit:junit:4.13.2'
+}
