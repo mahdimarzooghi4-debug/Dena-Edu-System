@@ -108,6 +108,20 @@ test.describe("isolated installable synthetic Dena student app", () => {
     await page.getByRole("button", { name: "ثبت درخواست جلسهٔ نمونه" }).click();
     await expect(page.getByText("درخواست جلسهٔ نمونه ثبت شد؛ وقت واقعی رزرو نشده است.")).toBeVisible();
   });
+  test("shows the iOS Safari add-to-home-screen instructions", async ({ page }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, "userAgent", {
+        configurable: true,
+        get: () => "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1",
+      });
+    });
+    await page.goto("/student/demo");
+    const installHelp = page.getByText("نصب دنا روی آیفون و آیپد");
+    await expect(installHelp).toBeVisible();
+    await installHelp.click();
+    await expect(page.getByText("افزودن به صفحهٔ اصلی", { exact: false })).toBeVisible();
+  });
+
   test("renders five-tab RTL mobile app at narrow widths and exposes the manifest", async ({ page }) => {
     for (const width of [320, 375, 390]) {
       await page.setViewportSize({ width, height: 840 });
