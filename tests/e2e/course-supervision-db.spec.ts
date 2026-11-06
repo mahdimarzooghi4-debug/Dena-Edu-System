@@ -460,7 +460,7 @@ test.describe("course-scoped provider requests and independent institute decisio
     })).toBeVisible();
     const uiTitle = "دوره مرور عملی درخواست و پاسخ مؤسسه";
     await page.getByLabel("عنوان دوره").fill(uiTitle);
-    await page.getByLabel("شناسه مؤسسه ناظر").fill(scopes.institute);
+    await page.getByLabel("مؤسسهٔ ناظر").selectOption(scopes.institute);
     const createResponse = page.waitForResponse((response) =>
       response.url().endsWith("/api/provider/courses") &&
       response.request().method() === "POST",

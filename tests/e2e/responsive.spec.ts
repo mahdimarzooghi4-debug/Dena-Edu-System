@@ -95,6 +95,7 @@ test("role preview landmarks and navigation work with keyboard in RTL", async ({
     await summary.focus();
     await page.keyboard.press("Enter");
     await expect(mobileMenu).toHaveAttribute("open", "");
+    await summary.focus(); // Restore focus after native <details> toggle before tabbing.
     const mobileHome = page.getByRole("navigation", { name: "منوی پیش‌نمایش موبایل" })
       .getByRole("link", { name: homeLabels[role] });
     // Browser/RTL details focus ordering varies slightly across Chromium builds.
