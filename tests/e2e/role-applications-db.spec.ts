@@ -268,7 +268,7 @@ test.describe("reviewed role requests, scoped grants and audit on PostgreSQL", (
     }]);
     await page.goto("http://localhost:3000/admin/audit");
     await expect(page.getByRole("heading", { name: "رویدادهای سیستم" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "تأیید درخواست نقش" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "تأیید درخواست نقش" }).first()).toBeVisible();
 
     const paginationEventIds = Array.from({ length: 51 }, () => randomUUID());
     const auditUpdatedAt = new Date(Date.now() + 3_600_000);
