@@ -13,11 +13,11 @@ test("the Dena website exposes the Android download without login", async ({ pag
   await expect(page.getByRole("heading", { name: /اپ دانش‌آموز دنا/ })).toBeVisible();
   const apk = page.getByRole("link", { name: "دریافت فایل APK اندروید" });
   await expect(apk).toHaveAttribute("href",
-    "https://github.com/mahdimarzooghi4-debug/Dena-Edu-System/releases/download/dena-student-demo-v0.1.1-preview/dena-student-android-demo.apk");
+    "/download/android/apk");
   await expect(page.getByText(/امضای دیباگ/)).toBeVisible();
   await expect(page.getByText(/اینترنت لازم است/)).toBeVisible();
   await expect(page.getByRole("link", { name: /SHA-256/ }))
-    .toHaveAttribute("href", /\.apk\.sha256$/);
+    .toHaveAttribute("href", "/download/android/checksum");
 });
 
 test("Android download page fits a narrow phone screen", async ({ page }) => {
