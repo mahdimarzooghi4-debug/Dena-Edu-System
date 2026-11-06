@@ -324,3 +324,26 @@
   .dena-download-details { padding:36px 18px; }
   .dena-download-details__card { padding:21px; }
 }
+
+/* Android download is the last header ACTION, not a scroll-hidden menu item. */
+.dena-header__app-icon {
+  width:44px;
+  height:44px;
+  display:inline-flex;
+  flex:none;
+  align-items:center;
+  justify-content:center;
+  border:1px solid #ded9fb;
+  border-radius:13px;
+  color:#5b4ce2;
+  background:#f1eeff;
+  text-decoration:none;
+  transition:background .15s ease, border-color .15s ease;
+}
+.dena-header__app-icon svg { width:24px; height:24px; display:block; }
+.dena-header__app-icon:hover { background:#e7e2ff; border-color:#b9adfc; }
+.dena-header__app-icon:focus-visible { outline:3px solid #5b4ce2; outline-offset:3px; }
+@media (max-width:420px) {
+  .dena-header__app-icon { width:42px; height:42px; border-radius:11px; }
+  .dena-header__actions { gap:7px; }
+}
