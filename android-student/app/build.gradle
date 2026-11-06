@@ -10,7 +10,7 @@ if (!studentUrl.isEmpty()) {
     def path = uri.path ?: ''
     if (uri.scheme != 'https' || !uri.host || uri.userInfo != null || uri.query != null ||
         uri.fragment != null || !(uri.port == -1 || uri.port == 443) ||
-        !(path == '/student' || path.startsWith('/student/')) ||
+        !(path == '/student' || path.startsWith('/student/') || path == '/student-demo' || path.startsWith('/student-demo/')) ||
         !uri.host.contains('.') || uri.host.equalsIgnoreCase('localhost')) {
         throw new GradleException('denaStudentUrl must be an HTTPS student route on a DNS host, without credentials, query or fragment')
     }

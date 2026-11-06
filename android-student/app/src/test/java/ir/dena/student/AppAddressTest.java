@@ -12,6 +12,8 @@ public class AppAddressTest {
 
     @Test public void acceptsOnlyHttpsStudentEntry() {
         URI uri = AppAddress.validatedStart("https://stage.edu-example.org/student/demo");
+        URI showcase = AppAddress.validatedStart("https://dena-student-demo.onrender.com/student-demo");
+        assertEquals("/student-demo", showcase.getPath());
         assertEquals("/student/demo", uri.getPath());
         assertTrue(AppAddress.sameOrigin(uri, "https://stage.edu-example.org/api/student/demo"));
         assertTrue(AppAddress.sameOrigin(uri, "https://stage.edu-example.org/login"));

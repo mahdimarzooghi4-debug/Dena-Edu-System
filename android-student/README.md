@@ -56,3 +56,25 @@ keystore and signing process are deliberately not supplied or invented.
 
 The icon uses the Dena color and a simple book glyph until the approved,
 raster/vector Android launcher icon is made available in buildable form.
+
+## Existing synthetic Render showcase APK
+
+A separate already-live Dena Render service exists at
+`https://dena-student-demo.onrender.com`. Its deployed branch is
+`demo/student-app-showcase` (November 4), with a versioned
+`/student-demo` route using synthetic student data. The CI builds a
+**showcase debug APK** pinned to this explicit endpoint. This permits
+a useful online demo without SMS, payments, real student accounts or
+deploying PR #45 or #46. It is **not** the newer signed-cookie demo
+API or operational student backend on the newer PR branch. The service
+was reported `live` in Render; independent end-to-end Android
+reachability and real-device interaction still require validation.
+
+To rebuild the current showcase target explicitly:
+
+```sh
+gradle -p android-student -PdenaStudentUrl="https://dena-student-demo.onrender.com/student-demo" testDebugUnitTest assembleDebug
+```
+
+To target the newer official student route instead, substitute the
+independently approved HTTPS server URL containing `/student`.

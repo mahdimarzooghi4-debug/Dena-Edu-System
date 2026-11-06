@@ -22,7 +22,8 @@ public final class AppAddress {
                 uri.getRawUserInfo() != null || uri.getRawQuery() != null ||
                 uri.getRawFragment() != null ||
                 !(uri.getPort() == -1 || uri.getPort() == 443) ||
-                !(path != null && (path.equals("/student") || path.startsWith("/student/")))) {
+                !(path != null && (path.equals("/student") || path.startsWith("/student/") ||
+                    path.equals("/student-demo") || path.startsWith("/student-demo/")))) {
                 throw new IllegalArgumentException("Student Android URL must be a clean HTTPS student path");
             }
             String normalized = host.toLowerCase(Locale.ROOT);

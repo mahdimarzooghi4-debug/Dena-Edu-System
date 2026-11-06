@@ -34,11 +34,16 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.11.1"
-      - name: JVM tests and build unsigned Android debug APK
+      - name: JVM tests and fail-closed Android debug APK
         run: gradle -p android-student --no-daemon testDebugUnitTest assembleDebug
+      - name: Build Android APK using existing synthetic Render showcase
+        run: |
+          gradle -p android-student --no-daemon --rerun-tasks \
+            -PdenaStudentUrl=https://dena-student-demo.onrender.com/student-demo \
+            assembleDebug
       - name: Publish Android debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: dena-student-android-debug-${{ github.sha }}
+          name: dena-student-android-showcase-${{ github.sha }}
           path: android-student/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
