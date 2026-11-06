@@ -2,11 +2,11 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    id: "/student",
+    id: "/student/",
     name: "دنا | اپ دانش‌آموز",
     short_name: "دنا",
     description: "آموزش، دوره‌ها، تمرین‌ها و مسیر رشد دانش‌آموز",
-    start_url: "/student",
+    start_url: "/student/",
     scope: "/student/",
     lang: "fa",
     dir: "rtl",
