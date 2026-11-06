@@ -441,9 +441,7 @@ test.describe("course-scoped provider requests and independent institute decisio
       domain: "localhost", path: "/", httpOnly: true, secure: false, sameSite: "Lax",
     }]);
     await page.goto("http://localhost:3000/provider");
-    await expect(page.getByRole("heading", {
-      name: "دوره‌های من و وضعیت نظارت",
-    })).toBeVisible();
+    await expect(page.getByText("پنل ارائه‌دهنده · دوره‌ها و وضعیت نظارت")).toBeVisible();
     await page.getByRole("link", {
       name: "جزئیات و وضعیت همین دوره",
     }).first().click();

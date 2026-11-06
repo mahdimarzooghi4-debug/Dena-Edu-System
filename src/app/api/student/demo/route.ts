@@ -5,7 +5,10 @@ export const dynamic = "force-dynamic";
 
 export function GET() {
   if (!isStudentDemoEnabled()) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json({ mode: "synthetic", persisted: false, ...demoStudentWorkspace }, {
+  const { assessments, ...publicData } = demoStudentWorkspace;
+  const publicAssessments = assessments.map(({ id, title, courseId, question, choices }) =>
+    ({ id, title, courseId, question, choices }));
+  return NextResponse.json({ mode: "synthetic", persisted: false, ...publicData, assessments: publicAssessments }, {
     headers: { "Cache-Control": "no-store, private", "X-Dena-Data-Mode": "synthetic" },
   });
 }
