@@ -121,16 +121,17 @@ test.describe("isolated installable synthetic Dena student app", () => {
     const rtlLayout = await page.evaluate(() => {
       const sidebar = document.querySelector("aside")?.getBoundingClientRect();
       const main = document.querySelector("main")?.getBoundingClientRect();
-      const logo = document.querySelector("header a[aria-label='دنا، خانه دانش‌آموز']")?.getBoundingClientRect();
-      const actions = document.querySelector("header [dir='ltr']")?.getBoundingClientRect();
-      return {
-        sidebarOnRight: Boolean(sidebar && main && sidebar.left > main.left),
-        logoOnRight: Boolean(logo && actions && logo.left > actions.left),
-        documentDirection: document.documentElement.dir,
-      };
+      return { sidebarOnRight: Boolean(sidebar && main && sidebar.left > main.left) };
     });
     expect(rtlLayout.sidebarOnRight).toBe(true);
-    expect(rtlLayout.logoOnRight).toBe(true);
+    // Desktop intentionally hides the mobile logo. Check header geometry on mobile.
+    await page.setViewportSize({ width: 390, height: 844 });
+    const mobileHeader = await page.evaluate(() => {
+      const logo = document.querySelector("header a[aria-label='دنا، خانه دانش‌آموز']")?.getBoundingClientRect();
+      const actions = document.querySelector("header [dir='ltr']")?.getBoundingClientRect();
+      return Boolean(logo && actions && logo.width > 0 && actions.width > 0 && logo.left > actions.left);
+    });
+    expect(mobileHeader).toBe(true);
     const manifest = await page.request.get("/manifest.webmanifest");
     expect(manifest.status()).toBe(200);
     const body = await manifest.json();
