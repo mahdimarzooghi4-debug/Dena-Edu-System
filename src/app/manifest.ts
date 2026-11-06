@@ -14,7 +14,7 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: "#f7f6fb",
     theme_color: "#5b4ce2",
     icons: [
-      { src: "/dena-app-logo.png", type: "image/png", sizes: "any", purpose: "any" },
+      { src: "/student-app-icon.svg", type: "image/svg+xml", sizes: "any", purpose: "any" },
     ],
   };
 }

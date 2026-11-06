@@ -183,20 +183,20 @@ export function StudentShell({ active, title, children, demo = false }: Props) {
         <DesktopNavigation active={active} demo={demo} />
 
         <div className="mt-auto border-t border-dena-border pt-4">
-          <Link href={demo ? demoHref.services : "/support"} className="flex min-h-[44px] items-center gap-3 rounded-xl px-4 text-sm text-dena-muted hover:bg-dena-bg hover:text-dena-ink">
+          <Link href={demo ? "/student/demo/support" : "/support"} className="flex min-h-[44px] items-center gap-3 rounded-xl px-4 text-sm text-dena-muted hover:bg-dena-bg hover:text-dena-ink">
             <Icon name="help" />
             <span>پشتیبانی فنی</span>
           </Link>
           <div className="mt-2 flex min-h-[44px] items-center gap-3 rounded-xl px-4 text-sm text-dena-muted">
             <Icon name="user" />
-            <span>دانش‌آموز دنا</span>
+            <span>{demo ? "دانش‌آموز نمونه" : "دانش‌آموز دنا"}</span>
           </div>
           <Link
             href={demo ? demoHref.account : "/account"}
             className="mt-4 flex min-h-[44px] items-center gap-3 rounded-xl px-4 text-sm font-semibold text-red-600 hover:bg-red-50"
           >
             <Icon name="logout" />
-            <span>خروج / حساب کاربری</span>
+            <span>{demo ? "حساب آزمایشی" : "خروج / حساب کاربری"}</span>
           </Link>
         </div>
       </aside>
