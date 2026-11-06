@@ -19,6 +19,7 @@ function current(route: string): { title: string; active: Active } {
     growth:{title:"مسیر رشد",active:"growth"}, "elite-club":{title:"باشگاه نخبگان",active:"elite"},
     services:{title:"مرکز خدمات",active:"services"}, profile:{title:"پروفایل کاربری",active:"account"},
     notifications:{title:"اعلان‌ها",active:"notifications"}, support:{title:"پشتیبانی",active:"services"},
+    team:{title:"تیم آموزشی دوره",active:"courses"}, "problem-solving":{title:"جلسه رفع اشکال",active:"services"},
     privacy:{title:"حریم خصوصی",active:"account"}, "ai-tutor":{title:"معلم هوشمند",active:"aiTutor"},
   };
   return nav[top] ?? nav.home;

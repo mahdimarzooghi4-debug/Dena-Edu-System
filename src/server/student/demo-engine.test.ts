@@ -36,6 +36,14 @@ describe("signed and isolated synthetic student workflows", () => {
     expect(state.name).toBe("دانش‌آموز تست");
     expect(() => applyDemoAction(state, { type: "requestService", kind: "welfare" })).toThrow();
   });
+  it("records course-team messages and a problem-solving request without external dispatch", () => {
+    let state = applyDemoAction(freshDemoState(), { type: "sendCourseMessage", recipient: "supporter", message: "برای مرور جلسه نهم کمک می‌خواهم." }).state;
+    state = applyDemoAction(state, { type: "requestProblemSession" }).state;
+    expect(state.conversations.supporter).toContain("مرور جلسه");
+    expect(state.problemSessionRequested).toBe(true);
+    expect(() => applyDemoAction(state, { type: "requestProblemSession" })).toThrow();
+    expect(() => applyDemoAction(state, { type: "sendCourseMessage", recipient: "other", message: "متن معتبر برای آزمایش" })).toThrow();
+  });
   it("rejects invalid and tampered state, supports reset", () => {
     const state = applyDemoAction(freshDemoState(), { type: "completeLesson", lesson: "math-10:1" }).state;
     const token = encodeDemoState(state);

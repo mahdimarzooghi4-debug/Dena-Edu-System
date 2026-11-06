@@ -16,6 +16,8 @@ export type DemoState = {
   services: Partial<Record<ServiceKind, "requested">>;
   tickets: DemoTicket[];
   readNotifications: string[];
+  conversations: Partial<Record<"supporter" | "counselor", string>>;
+  problemSessionRequested: boolean;
 };
 
 const allowedGrades = ["دهم تجربی", "دهم ریاضی", "یازدهم تجربی", "یازدهم ریاضی", "دوازدهم تجربی", "دوازدهم ریاضی"] as const;
@@ -29,7 +31,7 @@ export const demoEvaluationQuestions = evaluationQuestions;
 export function freshDemoState(): DemoState {
   return { version: 1, name: "دانش‌آموز نمونه", grade: "دهم تجربی", completed: [],
     notes: {}, attempts: {}, elite: { status: "not_registered", answers: {} },
-    services: {}, tickets: [], readNotifications: [] };
+    services: {}, tickets: [], readNotifications: [], conversations: {}, problemSessionRequested: false };
 }
 
 export class DemoInputError extends Error {
@@ -72,6 +74,8 @@ export type DemoAction =
   | { type: "createTicket"; subject: string; message: string }
   | { type: "replyTicket"; id: number; reply: string }
   | { type: "markNotificationRead"; id: string }
+  | { type: "sendCourseMessage"; recipient: string; message: string }
+  | { type: "requestProblemSession" }
   | { type: "reset" };
 
 export function applyDemoAction(previous: DemoState, actionInput: unknown) {
@@ -173,6 +177,17 @@ export function applyDemoAction(previous: DemoState, actionInput: unknown) {
       feedback = "اعلان نمونه خوانده شد.";
       break;
     }
+    case "sendCourseMessage": {
+      if (action.recipient !== "supporter" && action.recipient !== "counselor") throw new DemoInputError("گیرنده نامعتبر است.");
+      next.conversations[action.recipient] = safeText(action.message, 10, 180);
+      feedback = "پیام نمونه ثبت شد؛ برای مربی یا مشاور واقعی ارسال نشده است.";
+      break;
+    }
+    case "requestProblemSession":
+      if (next.problemSessionRequested) throw new DemoInputError("درخواست جلسهٔ نمونه قبلاً ثبت شده است.");
+      next.problemSessionRequested = true;
+      feedback = "درخواست جلسهٔ نمونه ثبت شد؛ وقت واقعی رزرو نشده است.";
+      break;
     case "reset":
       return { state: freshDemoState(), feedback: "همه وضعیت‌های آزمایشی بازنشانی شدند.", result: {} };
     default: throw new DemoInputError("عملیات پشتیبانی نمی‌شود.");
@@ -208,6 +223,7 @@ export function decodeDemoState(input: string | undefined): DemoState {
       !Array.isArray(obj.completed) || !obj.completed.every(x => typeof x === "string") ||
       !obj.notes || typeof obj.notes !== "object" || !obj.attempts || typeof obj.attempts !== "object" ||
       !obj.elite || typeof obj.elite !== "object" || !obj.services || typeof obj.services !== "object" ||
+      !obj.conversations || typeof obj.conversations !== "object" || typeof obj.problemSessionRequested !== "boolean" ||
       !Array.isArray(obj.tickets) || !Array.isArray(obj.readNotifications)) return freshDemoState();
     return parsed as DemoState;
   } catch { return freshDemoState(); }

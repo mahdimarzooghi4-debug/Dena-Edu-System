@@ -85,6 +85,8 @@ export function DemoWorkspace({ route }: StudentWorkspaceProps) {
   const [evaluationIndex, setEvaluationIndex] = useState(0);
   const [reviewMode, setReviewMode] = useState(false);
   const [showReset, setShowReset] = useState(false);
+  const [teamMessage, setTeamMessage] = useState("");
+  const [clubAgreement, setClubAgreement] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true); setError("");
@@ -240,7 +242,7 @@ export function DemoWorkspace({ route }: StudentWorkspaceProps) {
           </Link>;
         })}
       </div>
-      <Go outline href="assessments">تمرین‌های این دوره</Go>
+      <div className="flex flex-wrap gap-2"><Go outline href="assessments">تمرین‌های این دوره</Go><Go outline href={"team/"+course.id}>تیم آموزشی و ارتباط</Go><Go outline href="problem-solving">جلسه رفع اشکال</Go></div>
     </div>;
   } else if (section === "learn" && parts.length === 3) {
     const course = courses.find(x=>x.id===parts[1]);
@@ -391,13 +393,26 @@ export function DemoWorkspace({ route }: StudentWorkspaceProps) {
         </div> : <Empty title="ارزیابی فعال نیست" description="از صفحه باشگاه فرایند را آغاز کن." href="elite-club" cta="باشگاه نخبگان"/>}
       </div>;
     } else {
-      content=<div className="space-y-5">
+      if (parts[1] === "register") {
+        content=<div className="space-y-5">
+          <Heading eyebrow="باشگاه نخبگان" title="ثبت‌نام آزمایشی" description="شروع مسیر بررسی و ارزیابی نمونه؛ هیچ عضویت واقعی اعطا نمی‌شود."/>
+          <div className={card + " space-y-4"}>
+            <p className="text-sm leading-8">نام نمایشی: {state.name} · پایه: {state.grade}</p>
+            <label className="flex items-start gap-3 text-sm leading-7"><input type="checkbox" className="mt-2" checked={clubAgreement} onChange={e=>setClubAgreement(e.target.checked)}/>
+              <span>می‌دانم این یک فرایند آزمایشی است و ثبت‌نام به معنی پذیرش، عضویت یا استفاده واقعی از خدمات نیست.</span>
+            </label>
+            <button type="button" disabled={busy || !clubAgreement || elite!=="not_registered"} className={primary}
+              onClick={()=>void act({type:"applyElite"})}>تأیید و ثبت درخواست نمونه</button>
+            {elite==="registered" && <Go href="elite-club/evaluation">ادامه ارزیابی</Go>}
+          </div>
+        </div>;
+      } else content=<div className="space-y-5">
         <Heading eyebrow="فرصت‌های یادگیری بیشتر" title="باشگاه نخبگان" description="پشتیبانی آموزشی، رفاهی و مسیرهای کسب‌وکار برای اعضای واجد شرایط در نسخه عملیاتی."/>
         <Notice>ارزیابی این نسخه صرفاً تجربهٔ آزمایشی است؛ هیچ وضعیت عضویت یا استحقاق واقعی ایجاد نمی‌کند.</Notice>
         <div className={card + " space-y-4"}>
           <h3 className="text-lg font-extrabold">وضعیت باشگاه</h3>
           <p className="text-sm text-dena-muted">{({not_registered:"هنوز ثبت‌نام نکرده‌ای",registered:"ثبت‌نام آزمایشی انجام شده",in_progress:"ارزیابی آزمایشی در حال انجام",pending:"در انتظار بررسی آزمایشی"} as const)[elite]}</p>
-          {elite==="not_registered" && <button disabled={busy} className={primary} onClick={()=>void act({type:"applyElite"})}>ثبت‌نام آزمایشی در باشگاه</button>}
+          {elite==="not_registered" && <Go href="elite-club/register">ثبت‌نام آزمایشی در باشگاه</Go>}
           {elite==="registered" && <Go href="elite-club/evaluation">آغاز ارزیابی</Go>}
           {elite==="in_progress" && <Go href="elite-club/evaluation">ادامه ارزیابی</Go>}
           {elite==="pending" && <Go href="elite-club/evaluation/result">مشاهده وضعیت</Go>}
@@ -495,6 +510,49 @@ export function DemoWorkspace({ route }: StudentWorkspaceProps) {
       {state.tickets.length ? <div className="space-y-3">{state.tickets.map(t=><Link key={t.id} href={base+"/support/"+t.id} className={card+" block hover:border-dena-brand"}>
         <h3 className="font-extrabold">{t.subject}</h3><p className="mt-2 text-xs text-dena-muted">درخواست شماره {fa(t.id)} · تازه ثبت‌شده</p></Link>)}</div> :
       <Empty title="درخواستی وجود ندارد" description="برای آزمودن فرم پشتیبانی یک درخواست نمونه ثبت کن." href="support/new" cta="درخواست جدید"/>}
+    </div>;
+  } else if (section === "team" && parts.length >= 2) {
+    const course=courses.find(x=>x.id===parts[1]);
+    const recipient=parts[2];
+    const contacts=[
+      {id:"supporter",name:"پشتیبان آموزشی (نمونه)",description:"مرور مسیر یادگیری، جلسه‌ها و پرسش‌های دوره"},
+      {id:"counselor",name:"مشاور تحصیلی (نمونه)",description:"راهنمایی برای برنامه‌ریزی و پیگیری مسیر مطالعه"},
+    ];
+    content=!course?<Empty title="دوره یافت نشد" description="از دوره‌های من آغاز کن." href="courses" cta="دوره‌ها"/>:
+    recipient && (recipient==="supporter"||recipient==="counselor")?<div className="space-y-5">
+      <Go outline href={"team/"+course.id}>بازگشت به تیم دوره</Go>
+      <Heading eyebrow={course.title} title={contacts.find(x=>x.id===recipient)?.name??"ارتباط با تیم"} description="نمونهٔ گفت‌وگوی آموزشی؛ پیام برای شخص واقعی ارسال نمی‌شود."/>
+      <div className={card+" space-y-3"}>
+        <h3 className="font-extrabold">آخرین پیام نمونه</h3>
+        {state.conversations[recipient] ? <p className="text-sm leading-8">{state.conversations[recipient]}</p> :
+          <p className="text-sm text-dena-muted">هنوز پیامی ثبت نشده است.</p>}
+        <p className="text-xs text-dena-muted">پاسخ مربی یا مشاور واقعی در این حالت ارائه نمی‌شود.</p>
+      </div>
+      <form className={card+" space-y-3"} onSubmit={e=>{e.preventDefault();void act({type:"sendCourseMessage",recipient,message:teamMessage});}}>
+        <label className="block text-sm font-bold">پیام آموزشی<textarea className={input} rows={3} minLength={10} maxLength={180} required
+          value={teamMessage} onChange={e=>setTeamMessage(e.target.value)}/></label>
+        <button className={primary} disabled={busy}>ثبت پیام نمونه</button>
+      </form>
+    </div>:<div className="space-y-5">
+      <Go outline href={"course/"+course.id}>بازگشت به دوره</Go>
+      <Heading eyebrow={course.title} title="تیم دوره و پشتیبانی آموزشی" description="هویت و نقش‌های این صفحه فقط نمونهٔ طراحی هستند."/>
+      <div className="grid gap-4 md:grid-cols-2">{contacts.map(contact=><div key={contact.id} className={card+" space-y-4"}>
+        <h3 className="font-extrabold">{contact.name}</h3><p className="text-sm leading-7 text-dena-muted">{contact.description}</p>
+        <Go href={"team/"+course.id+"/"+contact.id}>گفت‌وگو</Go>
+      </div>)}</div>
+      <Go href="problem-solving">درخواست جلسه رفع اشکال</Go>
+    </div>;
+  } else if (section === "problem-solving") {
+    content=<div className="space-y-5">
+      <Heading eyebrow="پشتیبانی آموزشی" title="جلسه رفع اشکال" description="فرایند درخواست نمونه برای آشنایی با گردش‌کار؛ بدون تماس یا رزرو زمان واقعی."/>
+      <div className={card+" space-y-4"}>
+        <h3 className="font-extrabold">وضعیت درخواست نمونه</h3>
+        <p className="text-sm text-dena-muted">{state.problemSessionRequested?"درخواست ثبت شده و در انتظار بررسی نمونه است.":"هنوز درخواستی ثبت نشده است."}</p>
+        <Notice>ساعت، ارائه‌دهنده، تأیید سرپرست و تماس واقعی در این محیط ایجاد نمی‌شوند.</Notice>
+        <button className={primary} disabled={busy || state.problemSessionRequested} onClick={()=>void act({type:"requestProblemSession"})}>
+          {state.problemSessionRequested?"درخواست ثبت شده":"ثبت درخواست جلسهٔ نمونه"}
+        </button>
+      </div>
     </div>;
   } else if (section === "privacy") {
     content=<div className="space-y-5">
