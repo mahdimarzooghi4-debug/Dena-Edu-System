@@ -435,6 +435,13 @@
       "when": 1792577719189,
       "tag": "0063_provider_compensation_decisions",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1792577719190,
+      "tag": "0064_provider_compensation_activation",
+      "breakpoints": true
     }
   ]
 }

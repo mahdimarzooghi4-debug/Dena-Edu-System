@@ -71,3 +71,33 @@ export async function decideCompensationDraft(userId:string, draftId:string, dec
     return replay.length ? "saved" as const : "conflict" as const;
   });
 }
+
+/** Activation reserves the agreed date range; revenue posting remains a separate, verified-event operation. */
+export async function activateCompensationContract(userId:string,draftId:string) {
+  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(draftId)) return "invalid" as const;
+  return getDb().transaction(async(tx)=>{
+    // Serialize activation per collaboration before reading overlapping ranges.
+    const allowed=await tx.execute(sql`SELECT c.id FROM dena_provider_compensation_drafts d
+      JOIN dena_provider_institute_collaborations c ON c.id=d.collaboration_id
+      JOIN dena_memberships m ON m.institute_id=c.institute_id
+      WHERE d.id=${draftId}::uuid AND c.status='approved' AND c.withdrawn_at IS NULL
+      AND m.user_id=${userId}::uuid AND m.role='institute' AND m.status='active'
+      FOR UPDATE OF c FOR SHARE OF m`);
+    if(!allowed.length) return "forbidden" as const;
+    const rows=await tx.execute(sql`SELECT status,proposed_end::text FROM dena_provider_compensation_drafts WHERE id=${draftId}::uuid FOR UPDATE`);
+    const current=rows[0] as {status:string;proposed_end:string|null}|undefined;
+    if(current?.status==="active") return "saved" as const;
+    if(current?.status!=="accepted") return "not_accepted" as const;
+    const expired=await tx.execute(sql`SELECT id FROM dena_provider_compensation_drafts WHERE id=${draftId}::uuid
+      AND proposed_end < (now() AT TIME ZONE 'Asia/Tehran')::date`);
+    if(expired.length) return "expired" as const;
+    const overlap=await tx.execute(sql`SELECT other.id FROM dena_provider_compensation_drafts other
+      JOIN dena_provider_compensation_drafts candidate ON candidate.collaboration_id=other.collaboration_id
+      WHERE candidate.id=${draftId}::uuid AND other.id<>candidate.id AND other.status='active'
+      AND daterange(other.proposed_start,other.proposed_end,'[]') && daterange(candidate.proposed_start,candidate.proposed_end,'[]')`);
+    if(overlap.length) return "overlap" as const;
+    await tx.execute(sql`UPDATE dena_provider_compensation_drafts SET status='active',activated_by=${userId}::uuid,
+      activated_at=now() WHERE id=${draftId}::uuid AND status='accepted'`);
+    return "saved" as const;
+  });
+}

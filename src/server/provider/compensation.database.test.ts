@@ -4,14 +4,14 @@ import { expect,test,vi } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 import { PgDialect } from "drizzle-orm/pg-core";
 
-test("financial drafts remain scoped, replay-safe and unable to become active",async()=>{
+test("compensation decisions and activation enforce scope, replay and non-overlapping date ranges",async()=>{
   const pg=new PGlite(),dialect=new PgDialect();
   const execute=(db:Pick<PGlite,"query">)=>async(query:Parameters<PgDialect["sqlToQuery"]>[0])=>{
     const compiled=dialect.sqlToQuery(query);return(await db.query(compiled.sql,compiled.params)).rows;
   };
   vi.doMock("../../db",()=>({getDb:()=>({execute:execute(pg),transaction:(fn:(tx:{execute:ReturnType<typeof execute>})=>Promise<unknown>)=>pg.transaction(tx=>fn({execute:execute(tx)}))})}));
   try{
-    const {createCompensationDraft,listCompensationDrafts,getCompensationCollaborations,decideCompensationDraft}=await import("./compensation");
+    const {createCompensationDraft,listCompensationDrafts,getCompensationCollaborations,decideCompensationDraft,activateCompensationContract}=await import("./compensation");
     await pg.exec(`CREATE TABLE "user"(id uuid PRIMARY KEY);
       CREATE TABLE dena_verified_entities(id uuid PRIMARY KEY,name text,role text);
       CREATE TABLE dena_memberships(id uuid PRIMARY KEY,user_id uuid,institute_id uuid,provider_id uuid,role text,status text);
@@ -22,7 +22,7 @@ test("financial drafts remain scoped, replay-safe and unable to become active",a
     await pg.query("INSERT INTO dena_verified_entities VALUES ($1,'Institute','institute'),($2,'Provider','provider')",[institute,provider]);
     await pg.query("INSERT INTO dena_memberships VALUES ($1,$2,$3,NULL,'institute','active'),($4,$5,NULL,$6,'provider','active')",[randomUUID(),instituteActor,institute,randomUUID(),providerActor,provider]);
     await pg.query("INSERT INTO dena_provider_institute_collaborations VALUES ($1,$2,$3,'approved',NULL)",[collaboration,provider,institute]);
-    const input={collaborationId:collaboration,clientRequestId:randomUUID(),reference:"Contract reference",shareBasis:"institute_after_fee",shareBasisPoints:4500,proposedStart:"2026-11-06",proposedEnd:null,settlementTerms:"شرایط پیشنهادی پرداخت مطابق قرارداد مؤسسه"};
+    const input={collaborationId:collaboration,clientRequestId:randomUUID(),reference:"Contract reference",shareBasis:"institute_after_fee",shareBasisPoints:4500,proposedStart:"2026-11-06",proposedEnd:"2099-12-31",settlementTerms:"شرایط پیشنهادی پرداخت مطابق قرارداد مؤسسه"};
     expect(await getCompensationCollaborations(instituteActor)).toHaveLength(1);
     expect(await getCompensationCollaborations(providerActor)).toEqual([]);
     expect(await createCompensationDraft(instituteActor,input)).toBe("saved");
@@ -50,11 +50,41 @@ test("financial drafts remain scoped, replay-safe and unable to become active",a
     const rejected=(await listCompensationDrafts(providerActor,"provider")).find(row=>row.reference==="Second proposal")!;
     expect(await decideCompensationDraft(providerActor,rejected.id,"rejected")).toBe("saved");
     await expect(pg.exec("UPDATE dena_provider_compensation_drafts SET status='active'")).rejects.toThrow();
+    await pg.exec(readFileSync("drizzle/0064_provider_compensation_activation.sql","utf8"));
+    expect(await activateCompensationContract(providerActor,draft.id)).toBe("forbidden");
+    expect(await activateCompensationContract(outsider,draft.id)).toBe("forbidden");
+    expect(await activateCompensationContract(instituteActor,rejected.id)).toBe("not_accepted");
+    expect(await activateCompensationContract(instituteActor,"bad-id")).toBe("invalid");
+    expect(await activateCompensationContract(instituteActor,draft.id)).toBe("saved");
+    const activation=(await pg.query("SELECT activated_at FROM dena_provider_compensation_drafts WHERE id=$1",[draft.id])).rows[0];
+    expect(await activateCompensationContract(instituteActor,draft.id)).toBe("saved");
+    expect((await pg.query("SELECT activated_at FROM dena_provider_compensation_drafts WHERE id=$1",[draft.id])).rows[0]).toEqual(activation);
+    expect((await listCompensationDrafts(providerActor,"provider")).find(row=>row.id===draft.id)?.status).toBe("active");
+    expect(await decideCompensationDraft(providerActor,draft.id,"rejected")).toBe("conflict");
+    expect(await createCompensationDraft(instituteActor,{...input,clientRequestId:randomUUID(),reference:"Overlapping proposal"})).toBe("saved");
+    const overlapping=(await listCompensationDrafts(providerActor,"provider")).find(row=>row.reference==="Overlapping proposal")!;
+    expect(await decideCompensationDraft(providerActor,overlapping.id,"accepted")).toBe("saved");
+    expect(await activateCompensationContract(instituteActor,overlapping.id)).toBe("overlap");
+    for(const [reference,proposedStart,proposedEnd,expected] of [
+      ["Boundary overlap","2099-12-31","2100-01-01","overlap"],
+      ["Next contract","2100-01-01","2100-12-31","saved"],
+    ] as const) {
+      expect(await createCompensationDraft(instituteActor,{...input,clientRequestId:randomUUID(),reference,proposedStart,proposedEnd})).toBe("saved");
+      const next=(await listCompensationDrafts(providerActor,"provider")).find(row=>row.reference===reference)!;
+      expect(await decideCompensationDraft(providerActor,next.id,"accepted")).toBe("saved");
+      expect(await activateCompensationContract(instituteActor,next.id)).toBe(expected);
+    }
+
+    expect(await createCompensationDraft(instituteActor,{...input,clientRequestId:randomUUID(),reference:"Expired proposal",proposedStart:"2000-01-01",proposedEnd:"2000-01-02"})).toBe("saved");
+    const expired=(await listCompensationDrafts(providerActor,"provider")).find(row=>row.reference==="Expired proposal")!;
+    expect(await decideCompensationDraft(providerActor,expired.id,"accepted")).toBe("saved");
+    expect(await activateCompensationContract(instituteActor,expired.id)).toBe("expired");
     expect(await createCompensationDraft(instituteActor,{...input,shareBasisPoints:10001})).toBe("invalid");
     expect(await createCompensationDraft(instituteActor,{...input,proposedEnd:"2020-01-01"})).toBe("invalid");
     await pg.query("UPDATE dena_provider_institute_collaborations SET status='awaiting_dena'");
     expect(await createCompensationDraft(instituteActor,{...input,clientRequestId:randomUUID()})).toBe("forbidden");
     expect(await decideCompensationDraft(providerActor,rejected.id,"rejected")).toBe("forbidden");
+    expect(await activateCompensationContract(instituteActor,draft.id)).toBe("forbidden");
     await pg.query("UPDATE dena_memberships SET status='suspended'");
     expect(await listCompensationDrafts(providerActor,"provider")).toEqual([]);
     expect(await listCompensationDrafts(instituteActor,"institute")).toEqual([]);

@@ -13,5 +13,5 @@ export const compensationDraftInput = z.object({
 export type CompensationDraftRow = {
   id:string; collaboration_id:string; provider_name:string; institute_name:string;
   reference:string; share_basis:keyof typeof compensationBasisLabels; share_basis_points:number;
-  proposed_start:string; proposed_end:string|null; settlement_terms:string; status:"draft"|"accepted"|"rejected"; created_at:Date|string;
+  proposed_start:string; proposed_end:string|null; settlement_terms:string; status:"draft"|"accepted"|"rejected"|"active"; created_at:Date|string;
 };

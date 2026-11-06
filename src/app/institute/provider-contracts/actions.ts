@@ -2,7 +2,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getServerAccessContext } from "../../../server/access/actor";
-import { createCompensationDraft } from "../../../server/provider/compensation";
+import { activateCompensationContract,createCompensationDraft } from "../../../server/provider/compensation";
 export async function saveCompensationDraft(_:string,form:FormData):Promise<string> {
   const actor=await getServerAccessContext();
   if(!actor) redirect("/login");
@@ -18,4 +18,17 @@ export async function saveCompensationDraft(_:string,form:FormData):Promise<stri
   if(result==="conflict") return "این شناسهٔ درخواست قبلاً با اطلاعات دیگری ثبت شده است؛ صفحه را تازه کنید.";
   revalidatePath("/institute/provider-contracts");revalidatePath("/provider/revenue");
   return "پیش‌نویس ثبت شد. این ثبت هنوز قرارداد فعال یا ماندهٔ قابل تسویه ایجاد نمی‌کند.";
+}
+
+export async function activateProviderContract(_:string,form:FormData):Promise<string> {
+  const actor=await getServerAccessContext();
+  if(!actor) redirect("/login");
+  const result=await activateCompensationContract(actor.userId,String(form.get("draftId")??""));
+  if(result==="forbidden") return "دسترسی مؤسسه یا همکاری تأییدشده معتبر نیست.";
+  if(result==="invalid") return "شناسهٔ قرارداد معتبر نیست.";
+  if(result==="not_accepted") return "ابتدا ارائه‌دهنده باید شرایط همین قرارداد را بپذیرد.";
+  if(result==="expired") return "بازهٔ این قرارداد پایان یافته است؛ پیشنهاد جدید ثبت کنید.";
+  if(result==="overlap") return "در این بازه، قرارداد فعال دیگری برای همین همکاری وجود دارد.";
+  revalidatePath("/institute/provider-contracts");revalidatePath("/provider/revenue");
+  return "قرارداد فعال شد؛ ثبت درآمد و تسویه به اتصال رویدادهای مالی نیاز دارد.";
 }
