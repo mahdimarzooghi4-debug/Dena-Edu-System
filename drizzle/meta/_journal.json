@@ -449,6 +449,13 @@
       "when": 1792577719191,
       "tag": "0065_provider_revenue_allocations",
       "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1792577719192,
+      "tag": "0066_provider_service_order_binding",
+      "breakpoints": true
     }
   ]
 }

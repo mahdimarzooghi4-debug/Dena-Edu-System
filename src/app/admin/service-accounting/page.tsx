@@ -74,7 +74,7 @@ export default async function AdminServiceAccountingPage({ searchParams }: { sea
         <div className="grid gap-3 sm:grid-cols-3">
           <Metric label="مبلغ ناخالص" value={formatToman(overview.paidAccounting.grossToman)} note="مجموع مبلغ سفارش‌ها به تومان" />
           <Metric label="سهم دنا · ۱۰٪" value={formatToman(overview.paidAccounting.denaShareToman)} note="پیش از هرگونه ثبت کارمزد درگاه" />
-          <Metric label="سهم مؤسسه" value={formatToman(overview.paidAccounting.instituteShareToman)} note="پیش از کسر کارمزد درگاه" />
+          <Metric label="سهم پایهٔ مؤسسه · ۹۰٪" value={formatToman(overview.paidAccounting.instituteShareToman)} note="پیش از سهم ارائه‌دهنده و کارمزد درگاه" />
         </div>
       </section>
 
@@ -132,7 +132,7 @@ export default async function AdminServiceAccountingPage({ searchParams }: { sea
           <span className="rounded-full bg-dena-lavender px-3 py-1.5 text-xs font-bold text-dena-brand">{statusLabels[selectedOrder.status]}</span></div>
         <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Detail label="مؤسسه" value={selectedOrder.instituteName} /><Detail label="قیمت ثبت‌شده" value={formatToman(selectedOrder.priceToman)} />
-          <Detail label="سهم دنا" value={formatToman(Math.floor(selectedOrder.denaShareRials / 10))} /><Detail label="سهم مؤسسه" value={formatToman(Math.floor(selectedOrder.instituteShareRials / 10))} />
+          <Detail label="سهم دنا" value={formatToman(Math.floor(selectedOrder.denaShareRials / 10))} /><Detail label="سهم پایهٔ مؤسسه، پیش از سهم ارائه‌دهنده و کارمزد" value={formatToman(Math.floor(selectedOrder.instituteShareRials / 10))} />
           <Detail label="تاریخ سفارش" value={formatDate(selectedOrder.createdAt)} /><Detail label="تاریخ پرداخت" value={selectedOrder.paidAt ? formatDate(selectedOrder.paidAt) : "پرداخت ثبت نشده"} />
           <Detail label="شناسهٔ سفارش" value={selectedOrder.id} />
         </dl>

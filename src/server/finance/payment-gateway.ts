@@ -13,6 +13,8 @@ export const verifiedPaymentCapture = z.object({
   eventId: z.string().regex(/^[A-Za-z0-9._:-]{8,100}$/),
   orderId: z.uuid(),
   grossRials: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+  capturedAt: z.iso.datetime({offset:true}).optional(),
+  gatewayFeeRials: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).optional(),
   currency: z.literal("IRR"),
   state: z.literal("captured"),
 }).strict();
@@ -160,5 +162,7 @@ export async function handleServicePaymentWebhook(
     orderId: parsed.data.orderId,
     gatewayEventId: `${adapter.providerId}:${parsed.data.eventId}`,
     grossRials: parsed.data.grossRials,
+    ...(parsed.data.capturedAt!==undefined?{capturedAt:parsed.data.capturedAt}:{}),
+    ...(parsed.data.gatewayFeeRials!==undefined?{gatewayFeeRials:parsed.data.gatewayFeeRials}:{}),
   });
 }

@@ -16,11 +16,11 @@ test("verified provider capture posts balanced immutable scoped revenue exactly 
     transaction:(fn:(tx:Tx)=>Promise<unknown>)=>db.transaction(tx=>fn(wrap(tx)))})}));
   try {
     await pg.exec(`CREATE TABLE "user" (id uuid PRIMARY KEY);
-      CREATE TABLE dena_institute_services(id uuid,institute_id uuid);
+
       CREATE TABLE dena_verified_entities(id uuid PRIMARY KEY,name text,role text);
       CREATE TABLE dena_memberships(id uuid PRIMARY KEY,user_id uuid,institute_id uuid,provider_id uuid,role text,status text);
       CREATE TABLE dena_provider_institute_collaborations(id uuid PRIMARY KEY,provider_id uuid,institute_id uuid,status text,withdrawn_at timestamptz);`);
-    for(const file of["0029_dena_financial_ledger","0062_provider_compensation_drafts","0063_provider_compensation_decisions","0064_provider_compensation_activation"]) await pg.exec(readFileSync(`drizzle/${file}.sql`,"utf8"));
+    for(const file of["0027_dena_institute_service_catalog","0029_dena_financial_ledger","0062_provider_compensation_drafts","0063_provider_compensation_decisions","0064_provider_compensation_activation"]) await pg.exec(readFileSync(`drizzle/${file}.sql`,"utf8"));
     await pg.exec(readFileSync("drizzle/0065_provider_revenue_allocations.sql","utf8"));
     const {recordVerifiedProviderRevenue}=await import("./provider-revenue");
     const {getProviderRevenue}=await import("../provider/revenue");
@@ -59,6 +59,36 @@ test("verified provider capture posts balanced immutable scoped revenue exactly 
     expect((await getProviderRevenue(user)).totals).toEqual({count:"2",provider_total:"8950"});
     const zeroFee=(await getProviderRevenue(user)).rows.find(row=>row.gateway_fee_rials==="0")!;
     expect(zeroFee).toMatchObject({provider_share_rials:"4500",institute_net_rials:"4500"});
+    await pg.exec(`CREATE TYPE dena_audit_entity_type AS ENUM ('PROVIDER_COLLABORATION');
+      CREATE TABLE dena_audit_logs(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),actor_id uuid,actor_role text,action text,entity_type text,entity_id uuid,created_at timestamptz DEFAULT now());`);
+    for(const file of["0030_dena_institute_service_orders","0031_dena_service_order_consent_check","0032_dena_cancelled_service_order_consent","0066_provider_service_order_binding"]) await pg.exec(readFileSync(`drizzle/${file}.sql`,"utf8"));
+    const {bindServiceContract}=await import("../institute/provider-service-contract");
+    const {createStudentServiceOrder}=await import("../student/service-orders");
+    const {captureInstituteServiceOrderPayment}=await import("./service-order-payments");
+    const student=randomUUID(),service=randomUUID();
+    await pg.query('INSERT INTO "user" VALUES ($1)',[student]);
+    await pg.query("INSERT INTO dena_memberships VALUES ($1,$2,$3,NULL,'institute','active'),($4,$5,NULL,NULL,'student','active')",[randomUUID(),user,institute,randomUUID(),student]);
+    await pg.query(`INSERT INTO dena_institute_services (id,institute_id,created_by_user_id,title,category,description,price_toman,cancellation_policy,status)
+      VALUES ($1,$2,$3,'Provider consultation','consultation','Provider service description',1000,'Cancellation terms','active')`,[service,institute,user]);
+    expect(await bindServiceContract(outsider,service,contract)).toBe("forbidden");
+    expect(await bindServiceContract(user,service,contract)).toBe("saved");
+    const orderInput={serviceId:service,idempotencyKey:randomUUID()};
+    const purchase=await createStudentServiceOrder(student,orderInput);
+    expect((await createStudentServiceOrder(student,orderInput)).duplicate).toBe(true);
+    expect((await pg.query("SELECT provider_contract_id FROM dena_institute_service_orders WHERE id=$1",[purchase.id])).rows[0]).toEqual({provider_contract_id:contract});
+    await expect(pg.query("UPDATE dena_institute_service_orders SET provider_contract_id=NULL WHERE id=$1",[purchase.id])).rejects.toThrow("immutable");
+    await pg.query("UPDATE dena_institute_services SET price_toman=2000 WHERE id=$1",[service]);
+    const payment={orderId:purchase.id,gatewayEventId:"bound-capture:001",grossRials:10000,gatewayFeeRials:100,capturedAt:new Date(Date.now()-1000).toISOString()};
+    await expect(captureInstituteServiceOrderPayment({...payment,grossRials:20000})).rejects.toThrow("amount_mismatch");
+    await expect(captureInstituteServiceOrderPayment({orderId:purchase.id,gatewayEventId:payment.gatewayEventId,grossRials:10000})).rejects.toThrow("order_not_payable");
+    expect((await captureInstituteServiceOrderPayment(payment)).duplicate).toBe(false);
+    expect((await captureInstituteServiceOrderPayment(payment)).duplicate).toBe(true);
+    expect((await pg.query("SELECT status FROM dena_institute_service_orders WHERE id=$1",[purchase.id])).rows[0]).toEqual({status:"paid"});
+    await expect(captureInstituteServiceOrderPayment({...payment,gatewayEventId:"different-event:001"})).rejects.toThrow();
+    await pg.query("UPDATE dena_institute_services SET guardian_consent_required=true WHERE id=$1",[service]);
+    const guarded=await createStudentServiceOrder(student,{serviceId:service,idempotencyKey:randomUUID()});
+    expect(guarded.status).toBe("awaiting_guardian_consent");
+    await expect(captureInstituteServiceOrderPayment({...payment,orderId:guarded.id,grossRials:20000,gatewayEventId:"consent-capture:001"})).rejects.toThrow("order_not_payable");
     await pg.query("UPDATE dena_memberships SET status='suspended'");
     expect((await getProviderRevenue(user)).rows).toEqual([]);
     await pg.query("UPDATE dena_provider_institute_collaborations SET status='terminated'");

@@ -1,3 +1,5 @@
+import { ServiceProviderContractForm } from "../../../../components/institute/service-provider-contract-form";
+import { getServiceContractOptions } from "../../../../server/institute/provider-service-contract";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
@@ -22,8 +24,10 @@ export default async function EditInstituteServicePage({ params }: Props) {
     getInstituteServiceById(actor.userId, serviceId), getInstituteScopes(actor.userId),
   ]);
   if (!service || !institutes.length) notFound();
+  const options=await getServiceContractOptions(actor.userId,serviceId);
   return <main id="main-content" className="mx-auto min-h-screen max-w-4xl space-y-6 px-5 py-8 md:px-8 lg:px-10">
     <header><p className="text-sm font-bold text-dena-brand">{service.instituteName}</p><h1 className="mt-1 text-2xl font-extrabold text-dena-deep">ویرایش خدمت</h1></header>
     <InstituteServiceForm institutes={institutes} service={service} />
+    <ServiceProviderContractForm serviceId={serviceId} options={options}/>
   </main>;
 }

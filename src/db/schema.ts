@@ -2111,6 +2111,7 @@ export const instituteServiceOrders = pgTable("dena_institute_service_orders", {
   idempotencyKey: uuid("idempotency_key").notNull(),
   studentUserId: uuid("student_user_id").notNull()
     .references(() => user.id, { onDelete: "restrict" }),
+  providerContractId: uuid("provider_contract_id"),
   serviceId: uuid("service_id").notNull(),
   instituteId: uuid("institute_id").notNull(),
   serviceTitleSnapshot: text("service_title_snapshot").notNull(),

@@ -2,11 +2,11 @@ import { sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "../../db";
 import { calculateProviderCompensation } from "./provider-compensation";
-import { postFinancialJournal } from "./ledger";
+import { postFinancialJournal,type FinancialJournalTransaction } from "./ledger";
 import type { compensationBasisLabels } from "../../lib/provider-compensation";
 
 const verifiedRevenueInput=z.object({
-  eventKey:z.string().regex(/^[a-zA-Z0-9_.:-]{8,120}$/),
+  eventKey:z.string().regex(/^[a-zA-Z0-9_.:-]{8,140}$/),
   sourceId:z.uuid(),contractId:z.uuid(),capturedAt:z.iso.datetime({offset:true}),
   grossRials:z.number().int().min(10).max(Number.MAX_SAFE_INTEGER).refine(value=>value%10===0),
   gatewayFeeRials:z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
@@ -14,13 +14,16 @@ const verifiedRevenueInput=z.object({
 export type VerifiedProviderRevenue=z.infer<typeof verifiedRevenueInput>;
 
 /** INTERNAL adapter boundary. Call only after authenticating a capture, reconciling its
- * amount/source with a server-owned purchase and its bound contract. No public route or
- * gateway adapter currently calls this function; it cannot verify a PSP by itself.
+ * amount/source with a server-owned purchase and its bound contract. Bound service orders
+ * call the transaction variant after loading their immutable contract; no real PSP adapter is configured.
  * One final capture per source; partial/multiple captures and refunds are unsupported.
  */
 export async function recordVerifiedProviderRevenue(raw:VerifiedProviderRevenue) {
+  return getDb().transaction(tx=>recordVerifiedProviderRevenueInTransaction(tx,raw));
+}
+
+export async function recordVerifiedProviderRevenueInTransaction(tx:FinancialJournalTransaction,raw:VerifiedProviderRevenue) {
   const input=verifiedRevenueInput.parse(raw);
-  return getDb().transaction(async(tx)=>{
     // All captures/activations for the collaboration use the same lock order.
     const contracts=await tx.execute(sql`SELECT d.id,d.share_basis,d.share_basis_points,
       d.status,(d.proposed_start <= (${input.capturedAt}::timestamptz AT TIME ZONE 'Asia/Tehran')::date
@@ -65,5 +68,5 @@ export async function recordVerifiedProviderRevenue(raw:VerifiedProviderRevenue)
         ${input.grossRials},${denaShareRials},${input.gatewayFeeRials},${split.providerShareRials},${split.instituteNetRials},${capture.id}::uuid,${fee?.id??null}::uuid)
       RETURNING id`);
     return {id:String(rows[0].id),duplicate:false};
-  });
 }
+
