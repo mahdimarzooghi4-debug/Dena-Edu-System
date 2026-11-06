@@ -78,3 +78,12 @@ gradle -p android-student -PdenaStudentUrl="https://dena-student-demo.onrender.c
 
 To target the newer official student route instead, substitute the
 independently approved HTTPS server URL containing `/student`.
+
+## Official launcher icon (v0.1.1)
+
+The Android launcher now uses Dena's **official** `public/dena-app-logo.png`
+binary, copied into Android drawable resources without re-creating or inventing
+a new brand symbol. `ic_launcher.xml` puts it on a purple and white Dena
+background. Version code was incremented to 2 so this update can be installed
+over an earlier build when signing keys allow it. Each CI debug key may differ
+across builds; Android may require uninstalling the earlier debug app.

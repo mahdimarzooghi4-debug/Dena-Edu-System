@@ -2,7 +2,7 @@
 
 بخش «اپ اندروید» در ناوبری، صفحهٔ اصلی و پاورقی سایت به `/download/android` متصل است. این صفحه **عمومی** است و برای دانلود به ورود احتیاج ندارد.
 
-- فایل از GitHub Releases به صورت نسخه‌دار (tag `dena-student-demo-v0.1.0-preview`) سرو می‌شود، نه خروجی موقت Actions. نام فایل `dena-student-android-demo.apk` است.
+- فایل از GitHub Releases به صورت نسخه‌دار (tag `dena-student-demo-v0.1.1-preview`) سرو می‌شود، نه خروجی موقت Actions. نام فایل `dena-student-android-demo.apk` است.
 - نسخهٔ آزمایشی به سرویس Render موجود `https://dena-student-demo.onrender.com/student-demo` وصل است؛ این نسخه قدیمی‌تر از PR #45 و فاقد دادهٔ عملیاتی است.
 - نسخه روی Android 8+ قابل نصب است؛ اینترنت لازم است؛ کلید امضای debug متعلق به CI است، نه release رسمی.
 - استفاده از URL عمومی برای عرضهٔ نسخهٔ واقعی و تغییر کد به نسخهٔ جدید نیازمند بررسی‌های جداگانه، امضای انتشار، تست روی دستگاه و تأیید انسانی است.

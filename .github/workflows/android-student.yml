@@ -57,7 +57,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          tag=dena-student-demo-v0.1.0-preview
+          tag=dena-student-demo-v0.1.1-preview
           if gh release view "$tag" >/dev/null 2>&1; then
             if gh release view "$tag" --json assets --jq '.assets[].name' | grep -qx 'dena-student-android-demo.apk'; then
               echo "Existing versioned release is immutable; keeping previously published debug APK."
@@ -68,6 +68,6 @@ jobs:
             gh release create "$tag" dena-student-android-demo.apk dena-student-android-demo.apk.sha256 \
               --target "${{ github.event.pull_request.head.sha }}" \
               --prerelease \
-              --title "Dena Student Android — demo 0.1.0 (test APK)" \
+              --title "Dena Student Android — demo 0.1.1 (official Dena icon)" \
               --notes "Android-only demo APK pointing to the already deployed synthetic Dena student showcase. Preview, not production. No real accounts, payments or SMS. Internet required. Signed with an ephemeral Android debug certificate. Do not use for production distribution."
           fi
