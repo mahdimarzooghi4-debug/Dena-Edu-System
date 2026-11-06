@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   android-debug:
@@ -47,3 +47,27 @@ jobs:
           name: dena-student-android-showcase-${{ github.sha }}
           path: android-student/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+      - name: Prepare versioned preview APK and checksum
+        run: |
+          cp android-student/app/build/outputs/apk/debug/app-debug.apk dena-student-android-demo.apk
+          sha256sum dena-student-android-demo.apk > dena-student-android-demo.apk.sha256
+      - name: Publish public demo APK as a GitHub pre-release
+        if: ${cond}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag=dena-student-demo-v0.1.0-preview
+          if gh release view "$tag" >/dev/null 2>&1; then
+            if gh release view "$tag" --json assets --jq '.assets[].name' | grep -qx 'dena-student-android-demo.apk'; then
+              echo "Existing versioned release is immutable; keeping previously published debug APK."
+            else
+              gh release upload "$tag" dena-student-android-demo.apk dena-student-android-demo.apk.sha256
+            fi
+          else
+            gh release create "$tag" dena-student-android-demo.apk dena-student-android-demo.apk.sha256 \
+              --target "${target}" \
+              --prerelease \
+              --title "Dena Student Android — demo 0.1.0 (test APK)" \
+              --notes "Android-only demo APK pointing to the already deployed synthetic Dena student showcase. Preview, not production. No real accounts, payments or SMS. Internet required. Signed with an ephemeral Android debug certificate. Do not use for production distribution."
+          fi
