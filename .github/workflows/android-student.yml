@@ -52,7 +52,7 @@ jobs:
           cp android-student/app/build/outputs/apk/debug/app-debug.apk dena-student-android-demo.apk
           sha256sum dena-student-android-demo.apk > dena-student-android-demo.apk.sha256
       - name: Publish public demo APK as a GitHub pre-release
-        if: ${cond}
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'feat/student-android-app' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -66,7 +66,7 @@ jobs:
             fi
           else
             gh release create "$tag" dena-student-android-demo.apk dena-student-android-demo.apk.sha256 \
-              --target "${target}" \
+              --target "${{ github.event.pull_request.head.sha }}" \
               --prerelease \
               --title "Dena Student Android — demo 0.1.0 (test APK)" \
               --notes "Android-only demo APK pointing to the already deployed synthetic Dena student showcase. Preview, not production. No real accounts, payments or SMS. Internet required. Signed with an ephemeral Android debug certificate. Do not use for production distribution."
