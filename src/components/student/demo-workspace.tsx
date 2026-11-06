@@ -403,7 +403,7 @@ export function DemoWorkspace({ route }: StudentWorkspaceProps) {
             </label>
             <button type="button" disabled={busy || !clubAgreement || elite!=="not_registered"} className={primary}
               onClick={()=>void act({type:"applyElite"})}>تأیید و ثبت درخواست نمونه</button>
-            {elite==="registered" && <Go href="elite-club/evaluation">ادامه ارزیابی</Go>}
+            {elite==="registered" && <Go href="elite-club/evaluation">آغاز ارزیابی</Go>}
           </div>
         </div>;
       } else content=<div className="space-y-5">
