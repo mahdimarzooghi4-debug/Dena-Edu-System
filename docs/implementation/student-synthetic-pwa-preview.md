@@ -1,21 +1,41 @@
-# Dena student mobile app — synthetic backend preview
+# تحویل اپ دانش‌آموز دنا — نسخهٔ آزمایشی موبایل (PWA)
 
-## Scope
+## هدف و اجرای محلی
 
-The existing authenticated student app continues using PostgreSQL, role and enrollment checks. The synthetic preview is separate and does not bypass identity or entitlement guards.
+این نسخه برای ساخت و آزمون همهٔ مسیرهای اصلی دانش‌آموز با دادهٔ غیرواقعی است. با Node 22 و npm 11 ابتدا `npm ci`، سپس `DENA_DEMO_MODE=enabled DENA_DEMO_SIGNING_KEY=local-test-secret npm run dev` را اجرا کنید و `/student/demo` را باز کنید.
 
-## Local preview
+این یک وب‌اپ قابل نصب (PWA) است، نه APK/اپ Native. مسیرهای عملیاتی `/student/*` همچنان ورود معتبر، مجوز دانش‌آموز و PostgreSQL واقعی می‌خواهند؛ مسیرهای نمونه به آن رکوردها دسترسی ندارند.
 
-Set DENA_DEMO_MODE=enabled and run npm run dev, then open /student/demo.
+## ماتریس مسیرهای فیگما و اتصال آزمایشی
 
-Available screens: home, courses, assessments, growth. Other entries intentionally explain their unavailable operational contract. The demo can be enabled on a production-mode server only if BOTH DENA_DEMO_MODE=enabled and DENA_DEMO_ALLOW_PRODUCTION=enabled are explicitly present. Never enable them on the live student service.
+| طراحی مرجع فیگما | مسیر نمونه | عملیات |
+|---|---|---|
+| خانه 280:120 و 287:238 | `/student/demo` | داشبورد، دوره و آمار |
+| دوره‌ها 287:856 و جزئیات 293:323 | `/courses`, `/course/math-10` | جست‌وجو، مشاهده سرفصل و پیشرفت |
+| یادگیری 298:778 و یادداشت 299:178 | `/learn/math-10/9` | تکمیل جلسه و ثبت یادداشت؛ بدون ویدئوی واقعی |
+| آزمون 302:740، 308:735، 319:818، 335:771 | `/assessments`, `/assessment/practice-functions`, `/attempt/practice-functions`, `/results/practice-functions` | شروع، انتخاب پاسخ، مرور، بررسی سمت سرور و کارنامه غیررسمی |
+| رشد 344:1055 | `/growth` | پیشرفت نمونه |
+| باشگاه 349:1039؛ ثبت‌نام/ارزیابی 392:3201–4342 | `/elite-club`, `/elite-club/register`, `/elite-club/evaluation`, `/elite-club/evaluation/review`, `/elite-club/evaluation/result` | ثبت‌نام آزمایشی، پرسش‌نامه، ارسال برای بررسی؛ بدون عضویت |
+| خدمات آموزشی 365:1324، رفاهی 378:1495 و کسب‌وکار 385:1821 | `/services/{educational,welfare,business}` | درخواست و وضعیت آزمایشی بدون تخصیص واقعی |
+| تیم دوره و گفتگو 531:1828، 531:2161 و رفع اشکال 531:2321 | `/team/math-10`, `/team/math-10/supporter`, `/problem-solving` | پیام و درخواست جلسه نمونه؛ بدون ارسال و رزرو واقعی |
+| پروفایل 353:1144 و ویرایش 353:1335 | `/profile`, `/profile/edit` | تغییر اطلاعات نمونه |
+| اعلان، پشتیبانی، حریم خصوصی 401:1989، 401:2041، 401:1959 | `/notifications`, `/support`, `/support/new`, `/privacy` | صندوق نمونه، تیکت، بازنشانی |
+| معلم هوشمند | `/ai-tutor` | توضیح وضعیت مدل؛ تولید پاسخ واقعی فعال نیست |
 
-GET /api/student/demo returns synthetic preview content, without correct answers. POST /api/student/demo/practice grades two synthetic practice questions in server code and returns stored=false. Neither writes to PostgreSQL nor claims formal learning progress. No SMS, payment, membership, provider payout or real content is simulated.
+تمام مسیرهای بالا بعد از پیشوند `/student/demo` هستند.
 
-## Mobile installation
+## بک‌اند و امنیت دادهٔ آزمایشی
 
-Next.js provides /manifest.webmanifest, and the StudentShell registers a student-scoped service worker on secure origins. It does not cache private HTML, API data or tokens; offline pages show a generic retry message. App installation and browser visuals still require a real-device acceptance pass.
+- `GET /api/student/demo`: کاتالوگ نمونه، پرسش‌های آزمایشی و وضعیت بدون افشای کلید پاسخ.
+- `POST /api/student/demo/actions`: اعتبارسنجی عملیات در سرور و امضای وضعیت در کوکی HTTP-only با SameSite Strict. وضعیت نمونه حداکثر یک هفته حفظ می‌شود، وارد PostgreSQL رسمی نمی‌شود و هیچ مجوز عملیاتی نمی‌سازد.
+- برنامهٔ نمایشی بدون فعال‌سازی صریح غیرفعال است. در محیط Production به مجوز جداگانهٔ `DENA_DEMO_ALLOW_PRODUCTION=enabled` و کلید امضا نیاز دارد؛ نباید روی سرویس عملیاتی عمومی فعال شود.
+- ارسال پیامک، پرداخت، عضویت و ارزیابی انسانی، نمرهٔ رسمی، تماس زنده و دادهٔ شخصی واقعی در این جریان وجود ندارند. همهٔ وضعیت‌ها با برچسب آزمایشی نمایش داده می‌شوند.
+- Service Worker پاسخ خصوصی و API را ذخیره نمی‌کند؛ نصب عملی روی دستگاه و تطبیق پیکسلی همهٔ فریم‌ها هنوز باید اعتبارسنجی شود.
 
-## Next product steps
+## آزمون
 
-Continue backend-backed student learning flows using synthetic PostgreSQL fixtures isolated from real data. Implement missing Figma member/elite-club and educational-support contracts before claiming those screens connected. Keep real payment, SMS, CDN and LiveKit disabled until providers exist.
+Vitest گذارهای قانونی، امضا، ثبت درس و درخواست‌های نمونه را می‌سنجد. Playwright در CI صفحه‌های خانه، دوره، تمرین، باشگاه، خدمات، پشتیبانی، تیم دوره، پروفایل، نمایش RTL موبایل و manifest را آزمایش می‌کند. پذیرش فقط وقتی معتبر است که تمام مشاغل CI برای آخرین SHA سبز باشند.
+
+## محدودیت محصول
+
+این تکمیل تجربهٔ تعاملی با دادهٔ آزمایشی است و جایگزین قراردادهای اصلی عضویت و ارزیابی انسانی، محتوای واقعی رسانه، سرویس‌های بیرونی یا تست نصب Native/Android نیست. خرید، OTP و درگاه طبق تصمیم فعلی خارج از محدودهٔ این تحویل‌اند.
