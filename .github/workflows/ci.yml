@@ -27,7 +27,11 @@ jobs:
       - run: npm run build
       - name: Install Chromium for browser smoke tests
         run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e
+      - name: Browser smoke and isolated student app tests
+        run: npm run test:e2e
+        env:
+          DENA_DEMO_MODE: enabled
+          DENA_DEMO_SIGNING_KEY: ci-only-synthetic-state-do-not-use-in-production
 
   db-integration:
     name: PostgreSQL + Auth integration (${{ matrix.shard }})
