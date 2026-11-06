@@ -25,6 +25,8 @@ export function MediaIngestForm({ courseId }: { courseId: string }) {
   const [message, setMessage] = useState("");
   const [problem, setProblem] = useState("");
   const requestId = useRef<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [loading, setLoading] = useState(true);
   const path = `/api/provider/courses/${encodeURIComponent(courseId)}/media-ingest`;
 
   async function refresh() {
@@ -32,7 +34,12 @@ export function MediaIngestForm({ courseId }: { courseId: string }) {
       cache: "no-store", credentials: "same-origin",
     });
     if (!response.ok) throw new Error("list_unavailable");
-    setUploads((await response.json() as { uploads: Upload[] }).uploads);
+    setUploads((await response.json() as { uploads: Upload[] }).uploads); setLoaded(true);
+  }
+  async function refreshSafely() {
+    try { await refresh(); } catch {
+      setProblem((current) => [current,"دریافت وضعیت تازه ممکن نشد؛ فهرست ویدئوها را تازه‌سازی کنید."].filter(Boolean).join(" "));
+    }
   }
   useEffect(() => {
     const controller = new AbortController();
@@ -42,9 +49,9 @@ export function MediaIngestForm({ courseId }: { courseId: string }) {
       if (!response.ok) throw new Error("list_unavailable");
       return response.json() as Promise<{ uploads: Upload[] }>;
     }).then((data) => {
-      if (!controller.signal.aborted) setUploads(data.uploads);
+      if (!controller.signal.aborted) { setUploads(data.uploads); setLoaded(true); setLoading(false); }
     }).catch(() => {
-      if (!controller.signal.aborted) setProblem("فهرست ویدئوهای این دوره در دسترس نیست.");
+      if (!controller.signal.aborted) { setProblem("فهرست ویدئوهای این دوره در دسترس نیست."); setLoading(false); }
     });
     return () => controller.abort();
   }, [path]);
@@ -85,14 +92,14 @@ export function MediaIngestForm({ courseId }: { courseId: string }) {
       if (job.status === "quarantined" || job.status === "ready") {
         requestId.current = null;
         setFile(null); setTitle("");
-        await refresh();
         setMessage("این فایل پیش‌تر دریافت شده است؛ بارگذاری تکراری انجام نشد.");
+        await refreshSafely();
         return;
       }
       if (job.status !== "reserved") {
         requestId.current = null;
-        await refresh();
         setProblem("این نوبت دریافت قابل تکرار نیست؛ یک درخواست تازه ثبت کنید.");
+        await refreshSafely();
         return;
       }
       const uploaded = await fetch(
@@ -102,10 +109,10 @@ export function MediaIngestForm({ courseId }: { courseId: string }) {
           body: file,
         },
       );
-      await refresh();
       if (!uploaded.ok) {
         if (uploaded.status !== 503) requestId.current = null;
         setProblem("انتقال ناموفق بود؛ وضعیت درخواست را بررسی و سپس در صورت لزوم درخواست تازه ایجاد کنید.");
+        await refreshSafely();
         return;
       }
       requestId.current = null;
@@ -113,6 +120,7 @@ export function MediaIngestForm({ courseId }: { courseId: string }) {
       const input = document.getElementById("pilot-video-file") as HTMLInputElement | null;
       if (input) input.value = "";
       setMessage("فایل فقط به قرنطینه منتقل شد؛ هنوز برای دانش‌آموز قابل مشاهده نیست.");
+      await refreshSafely();
     } catch {
       setProblem("ارتباط ناموفق بود. با همان فایل و عنوان وضعیت درخواست را بازیابی کنید.");
     } finally {
@@ -153,13 +161,13 @@ export function MediaIngestForm({ courseId }: { courseId: string }) {
       <section className="border-t border-dena-border pt-6" aria-labelledby="pilot-media-status">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 id="pilot-media-status" className="text-lg font-extrabold">ویدئوهای این نوبت دوره</h2>
-          <Button type="button" variant="outline" disabled={busy}
-            onClick={() => void refresh().catch(() =>
-              setProblem("به‌روزرسانی وضعیت ممکن نشد."))}>
+          <Button type="button" variant="outline" disabled={busy || loading}
+            onClick={async () => { setLoading(true); setProblem(""); await refreshSafely(); setLoading(false); }}>
             به‌روزرسانی وضعیت
           </Button>
         </div>
-        {!uploads.length
+        {loading ? <p role="status" className="mt-4 text-sm text-dena-muted">در حال دریافت وضعیت ویدئوها…</p>
+          : !loaded ? null : !uploads.length
           ? <p className="mt-4 text-sm text-dena-muted">درخواستی ثبت نشده است.</p>
           : <ul className="mt-4 space-y-3">
             {uploads.map((item) => <li key={item.uploadId}
