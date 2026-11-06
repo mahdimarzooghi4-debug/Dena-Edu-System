@@ -5,7 +5,7 @@ import { isStudentDemoEnabled } from "../../../../server/student/demo-app";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const metadata = { title: "اپ دانش‌آموز آزمایشی | دنا", robots: { index: false, follow: false } };
+export const metadata = { title: "اپ دانش‌آموز آزمایشی | دنا", manifest: "/student-demo.webmanifest", robots: { index: false, follow: false } };
 
 type Active = "home" | "courses" | "assessments" | "growth" | "elite" | "account" | "services" | "notifications" | "aiTutor";
 function current(route: string): { title: string; active: Active } {

@@ -121,6 +121,9 @@ test.describe("isolated installable synthetic Dena student app", () => {
     const body = await manifest.json();
     expect(body.start_url).toBe("/student");
     expect(body.display).toBe("standalone");
+    const demoManifest = await page.request.get("/student-demo.webmanifest");
+    expect(demoManifest.status()).toBe(200);
+    expect((await demoManifest.json()).start_url).toBe("/student/demo");
     const asset = await page.request.get("/student-app-icon.svg");
     expect(asset.status()).toBe(200);
     expect(await asset.text()).toContain("<svg");
