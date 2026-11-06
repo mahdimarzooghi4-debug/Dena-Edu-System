@@ -34,10 +34,11 @@ const eventLabels: Record<Collaboration["events"][number]["kind"], string> = {
   provider_withdrew: "درخواست توسط ارائه‌دهنده پس گرفته شد",
 };
 
-export function ProviderCollaborationWorkspace({ providerIds, institutes, initialCollaborations }: {
-  providerIds: string[]; institutes: Institute[]; initialCollaborations: Collaboration[];
+export function ProviderCollaborationWorkspace({ providerIds, institutes, initialCollaborations, initialNextCursor = null }: {
+  providerIds: string[]; institutes: Institute[]; initialCollaborations: Collaboration[]; initialNextCursor?: string | null;
 }) {
   const [items, setItems] = useState(initialCollaborations);
+  const [nextCursor, setNextCursor] = useState(initialNextCursor);
   const [providerId, setProviderId] = useState(providerIds[0] ?? "");
   const [instituteId, setInstituteId] = useState(institutes[0]?.id ?? "");
   const [busy, setBusy] = useState(false);
@@ -52,8 +53,8 @@ export function ProviderCollaborationWorkspace({ providerIds, institutes, initia
       credentials: "same-origin", cache: "no-store",
     });
     if (!response.ok) throw new Error("list_unavailable");
-    const result = await response.json() as { collaborations: Collaboration[] };
-    setItems(result.collaborations);
+    const result = await response.json() as { collaborations: Collaboration[]; nextCursor: string | null };
+    setItems(result.collaborations); setNextCursor(result.nextCursor);
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -184,6 +185,17 @@ export function ProviderCollaborationWorkspace({ providerIds, institutes, initia
             {busy ? "در حال ثبت…" : "پس‌گرفتن درخواست"}
           </Button>}
         </li>)}</ul>}
+      {nextCursor && <Button type="button" variant="outline" disabled={busy} className="mt-4" onClick={async () => {
+        setBusy(true); setError("");
+        try {
+          const response = await fetch(`/api/provider/collaborations?cursor=${encodeURIComponent(nextCursor)}`, {credentials:"same-origin",cache:"no-store"});
+          if (!response.ok) throw new Error("list_unavailable");
+          const data = await response.json() as {collaborations:Collaboration[];nextCursor:string|null};
+          setItems((current) => [...new Map([...current,...data.collaborations].map((item) => [item.id,item])).values()]);
+          setNextCursor(data.nextCursor);
+        } catch { setError("دریافت درخواست‌های قدیمی‌تر ممکن نشد؛ دوباره تلاش کنید."); }
+        finally { setBusy(false); }
+      }}>درخواست‌های قدیمی‌تر</Button>}
     </section>
   </div>;
 }

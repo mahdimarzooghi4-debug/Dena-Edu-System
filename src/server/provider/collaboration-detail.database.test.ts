@@ -16,6 +16,7 @@ test("a collaboration detail only returns the active provider's exact request an
   try {
     const { getProviderCollaborations } = await import("./collaborations");
     const { getProviderMetrics } = await import("./metrics");
+    const { getProviderCollaborationEvents } = await import("./collaboration-events");
     await pg.exec(`
       CREATE TABLE dena_courses (provider_id uuid,publication_status text);
       CREATE TABLE dena_memberships (user_id uuid,provider_id uuid,institute_id uuid,role text,status text);
@@ -42,8 +43,29 @@ test("a collaboration detail only returns the active provider's exact request an
     expect(found.collaborations[0].events).toHaveLength(1);
     expect((await getProviderCollaborations(actor,foreign)).collaborations).toEqual([]);
     expect((await getProviderCollaborations(actor,randomUUID())).collaborations).toEqual([]);
+    await pg.query(`WITH added AS (
+      INSERT INTO dena_provider_institute_collaborations
+        (id,provider_id,institute_id,status,created_at,updated_at)
+      SELECT gen_random_uuid(),$1::uuid,$2::uuid,'requested','2020-01-01'::timestamptz,'2020-01-01'::timestamptz
+      FROM generate_series(1,101) RETURNING id
+    ) INSERT INTO dena_provider_institute_collaboration_events
+      SELECT gen_random_uuid(),id,'requested',NULL,'2020-01-01'::timestamptz FROM added`,[provider,institute]);
+    const first = await getProviderCollaborations(actor);
+    const second = await getProviderCollaborations(actor,undefined,first.nextCursor!);
+    expect(first.collaborations).toHaveLength(100);
+    expect(second.collaborations).toHaveLength(3);
+    expect(second.nextCursor).toBeNull();
+    expect(new Set([...first.collaborations,...second.collaborations].map((item) => item.id)).size).toBe(103);
+    const eventOne = await getProviderCollaborationEvents(actor);
+    const eventTwo = await getProviderCollaborationEvents(actor,eventOne.nextCursor!);
+    const eventThree = await getProviderCollaborationEvents(actor,eventTwo.nextCursor!);
+    expect([eventOne.events.length,eventTwo.events.length,eventThree.events.length]).toEqual([50,50,3]);
+    expect(new Set([...eventOne.events,...eventTwo.events,...eventThree.events].map((item) => item.id)).size).toBe(103);
+    expect((await getProviderCollaborationEvents(actor,"invalid")).invalidCursor).toBe(true);
+    expect((await getProviderCollaborations(actor,undefined,"invalid")).invalidCursor).toBe(true);
     await pg.query("UPDATE dena_memberships SET status='suspended'");
     expect((await getProviderCollaborations(actor,own)).collaborations).toEqual([]);
     expect(await getProviderMetrics(actor)).toBeNull();
+    expect((await getProviderCollaborationEvents(actor)).events).toEqual([]);
   } finally { vi.doUnmock("../../db"); await pg.close(); }
 },30_000);
