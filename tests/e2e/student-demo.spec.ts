@@ -45,7 +45,10 @@ test.describe("isolated installable synthetic Dena student app", () => {
 
   test("registers in sample elite club, answers evaluation, remains pending (never becomes member)", async ({ page }) => {
     await page.goto("/student/demo/elite-club");
-    await page.getByRole("button", { name: "ثبت‌نام آزمایشی در باشگاه" }).click();
+    await page.getByRole("link", { name: "ثبت‌نام آزمایشی در باشگاه" }).click();
+    await expect(page.getByRole("heading", { name: "ثبت‌نام آزمایشی" })).toBeVisible();
+    await page.getByRole("checkbox").check();
+    await page.getByRole("button", { name: "تأیید و ثبت درخواست نمونه" }).click();
     await expect(page.getByText("ثبت‌نام آزمایشی انجام شد؛ هیچ عضویت واقعی ایجاد نشد.")).toBeVisible();
     await page.getByRole("link", { name: "آغاز ارزیابی" }).click();
     await page.getByRole("button", { name: "آغاز ارزیابی" }).click();
@@ -83,6 +86,17 @@ test.describe("isolated installable synthetic Dena student app", () => {
     await expect(page.getByText("دانش‌آموز آزمایش")).toBeVisible();
   });
 
+  test("records demo course-team message and non-booking problem-solving request", async ({ page }) => {
+    await page.goto("/student/demo/team/math-10");
+    await expect(page.getByRole("heading", { name: "تیم دوره و پشتیبانی آموزشی" })).toBeVisible();
+    await page.getByRole("link", { name: "گفت‌وگو" }).first().click();
+    await page.getByRole("textbox", { name: "پیام آموزشی" }).fill("برای جلسه نهم ریاضی به مرور بیشتری نیاز دارم.");
+    await page.getByRole("button", { name: "ثبت پیام نمونه" }).click();
+    await expect(page.getByText("پیام نمونه ثبت شد؛ برای مربی یا مشاور واقعی ارسال نشده است.")).toBeVisible();
+    await page.goto("/student/demo/problem-solving");
+    await page.getByRole("button", { name: "ثبت درخواست جلسهٔ نمونه" }).click();
+    await expect(page.getByText("درخواست جلسهٔ نمونه ثبت شد؛ وقت واقعی رزرو نشده است.")).toBeVisible();
+  });
   test("renders five-tab RTL mobile app at narrow widths and exposes the manifest", async ({ page }) => {
     for (const width of [320, 375, 390]) {
       await page.setViewportSize({ width, height: 840 });
