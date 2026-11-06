@@ -1,3 +1,5 @@
+import { listServiceRefunds } from "../../../server/finance/service-refunds";
+import { RefundRequests } from "../../../components/services/refund-requests";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { Card } from "../../../components/ui/card";
@@ -30,7 +32,7 @@ export default async function InstituteServiceOrdersPage() {
   const actor = await getServerAccessContext();
   if (!actor) redirect("/login");
   if (!actor.memberships.some((membership) => membership.role === "institute")) notFound();
-  const result = await getInstituteServiceOrders(actor.userId);
+  const [result,refunds] = await Promise.all([getInstituteServiceOrders(actor.userId),listServiceRefunds(actor.userId,"institute")]);
   if (!result.institutes.length) notFound();
 
   return <main id="main-content" className="mx-auto min-h-screen max-w-6xl space-y-6 px-5 py-8 md:px-8 lg:px-10">
@@ -91,6 +93,7 @@ export default async function InstituteServiceOrdersPage() {
         </Card></li>)}
       </ul>
     </>}
+    <RefundRequests rows={refunds} canReview/>
   </main>;
 }
 
