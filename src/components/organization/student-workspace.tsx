@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "../ui/card";
@@ -25,10 +27,10 @@ const genderOptions = [
 const genderLabel = Object.fromEntries(genderOptions) as Record<string, string>;
 
 export function OrganizationStudentWorkspace({
-  scopes, initialStudents, initialOrganizationId, searchTerm, activationPendingOnly,
-}: { scopes: Scope[]; initialStudents: Student[]; initialOrganizationId?: string; searchTerm: string; activationPendingOnly: boolean }) {
+  scopes, initialStudents, initialOrganizationId, searchTerm, activationPendingOnly, registrationMode,
+}: { scopes: Scope[]; initialStudents: Student[]; initialOrganizationId?: string; searchTerm: string; activationPendingOnly: boolean; registrationMode?: Tab }) {
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("manual");
+  const [tab, setTab] = useState<Tab>(registrationMode ?? "manual");
   const [organizationId, setOrganizationId] = useState(initialOrganizationId ?? scopes[0]?.id ?? "");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -45,7 +47,8 @@ export function OrganizationStudentWorkspace({
 
   async function submitManual(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); setBusy(true); setError(""); setMessage("");
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
     const student = Object.fromEntries(form.entries());
     const response = await fetch("/api/organization/students", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -55,7 +58,7 @@ export function OrganizationStudentWorkspace({
     setBusy(false);
     if (!response.ok) { setError(result.error === "duplicate" ? "این شماره یا کدملی قبلاً در این سازمان ثبت شده است." : "ثبت دانش‌آموز انجام نشد؛ اطلاعات و دسترسی را بررسی کنید."); return; }
     setMessage("پروندهٔ سازمانی ثبت شد. حساب با تأیید شمارهٔ موبایل توسط خود دانش‌آموز فعال می‌شود.");
-    event.currentTarget.reset(); router.refresh();
+    formElement.reset(); router.refresh();
   }
 
   async function submitBulk(event: React.FormEvent<HTMLFormElement>) {
@@ -129,7 +132,7 @@ export function OrganizationStudentWorkspace({
             params.set("organizationId", nextOrganizationId);
             if (activationPendingOnly) params.set("activation", "pending");
             if (searchTerm) params.set("q", searchTerm);
-            router.push(`/organization/students?${params.toString()}`);
+            router.push(`${registrationMode ? `/organization/students/registration/${registrationMode}` : "/organization/students"}?${params.toString()}`);
           }}>
             {scopes.map((scope) => <option key={scope.id} value={scope.id}>{scope.name}</option>)}
           </select>
@@ -137,12 +140,12 @@ export function OrganizationStudentWorkspace({
       </section>
 
       <section className="space-y-4">
-        <div role="tablist" aria-label="روش ثبت دانش‌آموز" className="flex flex-wrap gap-2">
+        {!registrationMode && <div role="tablist" aria-label="روش ثبت دانش‌آموز" className="flex flex-wrap gap-2">
           {([ ["manual", "ثبت دستی"], ["bulk", "ورود گروهی"], ["api", "اتصال API"] ] as const).map(([key, label]) => (
             <button key={key} role="tab" aria-selected={tab === key} onClick={() => { setTab(key); setError(""); setMessage(""); setImportErrors([]); if (key === "api") void refreshKeys(); }}
               className={tab === key ? buttonClassName() : buttonClassName("secondary")}>{label}</button>
           ))}
-        </div>
+        </div>}
         {error && <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-800">{error}</p>}
         {message && <p role="status" className="rounded-xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">{message}</p>}
         {importErrors.length > 0 && <ul aria-label="ردیف‌های نیازمند اصلاح" className="space-y-1 rounded-xl bg-amber-50 p-4 text-sm text-amber-900">
@@ -205,7 +208,7 @@ export function OrganizationStudentWorkspace({
         </Card>}
       </section>
 
-      <section className="space-y-4">
+      {!registrationMode && <section className="space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div><h2 className="text-xl font-extrabold">فهرست دانش‌آموزان این سازمان</h2><p className="mt-1 text-sm text-dena-muted">{visibleStudents.length.toLocaleString("fa-IR")} پرونده در این صفحه</p></div>
           <form method="GET" action="/organization/students" className="flex flex-wrap items-end gap-2">
@@ -223,7 +226,7 @@ export function OrganizationStudentWorkspace({
             <table className="w-full min-w-[820px] text-right text-sm">
               <thead className="bg-dena-lavender text-dena-muted"><tr>{["نام", "موبایل", "کدملی", "تاریخ تولد", "جنسیت", "حساب", "عملیات"].map((heading) => <th key={heading} className="px-4 py-3 font-bold">{heading}</th>)}</tr></thead>
               <tbody>{visibleStudents.map((student) => <tr key={student.id} className="border-t border-dena-border">
-                <td className="px-4 py-3 font-bold">{student.firstName} {student.lastName}<span className="block text-xs font-normal text-dena-muted">{organizationNames.get(student.organizationId)}</span></td>
+                <td className="px-4 py-3 font-bold"><Link href={`/organization/students/${student.id}`} className="text-dena-brand hover:underline">{student.firstName} {student.lastName}</Link><span className="block text-xs font-normal text-dena-muted">{organizationNames.get(student.organizationId)}</span></td>
                 <td dir="ltr" className="px-4 py-3 text-right">{student.phoneNumber ?? "—"}</td>
                 <td dir="ltr" className="px-4 py-3 text-right">••••••{student.nationalCodeLast4}</td>
                 <td className="px-4 py-3">{student.birthDate}</td><td className="px-4 py-3">{genderLabel[student.gender] ?? "—"}</td>
@@ -232,7 +235,7 @@ export function OrganizationStudentWorkspace({
               </tr>)}</tbody>
             </table>
           </div>}
-      </section>
+      </section>}
 
       {studentToDelete && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget && !busy) setStudentToDelete(null); }}>
         <section role="alertdialog" aria-modal="true" aria-labelledby="delete-student-title" aria-describedby="delete-student-description" className="w-full max-w-xl space-y-5 rounded-2xl border border-dena-border bg-white p-6 shadow-xl md:p-8">

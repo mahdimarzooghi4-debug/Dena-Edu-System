@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray,sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "../../db";
 import {
@@ -93,6 +93,16 @@ export async function createStudentServiceOrder(
       )).limit(1).for("update");
     if (pendingOrder) throw new StudentServiceOrderError("order_pending_exists");
 
+    const bindings=await tx.execute(sql`SELECT b.contract_id,
+      (c.institute_id=${service.instituteId}::uuid AND c.status='approved' AND c.withdrawn_at IS NULL
+        AND d.status='active' AND d.activated_at<=now()
+        AND d.proposed_start<=(now() AT TIME ZONE 'Asia/Tehran')::date
+        AND (d.proposed_end IS NULL OR d.proposed_end>=(now() AT TIME ZONE 'Asia/Tehran')::date)) AS usable
+      FROM dena_provider_service_contracts b JOIN dena_provider_compensation_drafts d ON d.id=b.contract_id
+      JOIN dena_provider_institute_collaborations c ON c.id=d.collaboration_id
+      WHERE b.service_id=${service.id}::uuid FOR SHARE OF b,d,c`);
+    const binding=bindings[0] as {contract_id:string;usable:boolean}|undefined;
+    if(binding&&!binding.usable) throw new StudentServiceOrderError("service_unavailable");
     const split = calculateInstituteServiceGrossSplit(service.priceToman);
     const status = service.guardianConsentRequired
       ? "awaiting_guardian_consent" as const
@@ -101,6 +111,7 @@ export async function createStudentServiceOrder(
       idempotencyKey: parsed.idempotencyKey,
       studentUserId,
       serviceId: service.id,
+      providerContractId: binding?.contract_id??null,
       instituteId: service.instituteId,
       serviceTitleSnapshot: service.title,
       categorySnapshot: service.category,

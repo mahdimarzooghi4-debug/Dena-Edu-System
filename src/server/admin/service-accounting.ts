@@ -7,9 +7,9 @@ export const adminServiceOrderStatuses = [
 ] as const;
 export type AdminServiceOrderStatus = typeof adminServiceOrderStatuses[number];
 
-export async function getAdminServiceAccountingOverview(status?: AdminServiceOrderStatus) {
+export async function getAdminServiceAccountingOverview(status?: AdminServiceOrderStatus, requestedPage = 1) {
   const db = getDb();
-  const [statusRows, paidTotals, orders] = await Promise.all([
+  const [statusRows, paidTotals] = await Promise.all([
     db.select({ status: instituteServiceOrders.status, total: count() })
       .from(instituteServiceOrders).groupBy(instituteServiceOrders.status),
     db.select({
@@ -17,7 +17,11 @@ export async function getAdminServiceAccountingOverview(status?: AdminServiceOrd
       denaShareRials: sum(instituteServiceOrders.denaShareRials),
       instituteShareRials: sum(instituteServiceOrders.instituteShareRials),
     }).from(instituteServiceOrders).where(eq(instituteServiceOrders.status, "paid")),
-    db.select({
+  ]);
+  const totalOrders = statusRows.reduce((total, row) => total + (status && row.status !== status ? 0 : row.total), 0);
+  const pageCount = Math.max(1, Math.ceil(totalOrders / 100));
+  const page = Math.min(pageCount, Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1);
+  const orders = await db.select({
       id: instituteServiceOrders.id,
       title: instituteServiceOrders.serviceTitleSnapshot,
       category: instituteServiceOrders.categorySnapshot,
@@ -33,8 +37,7 @@ export async function getAdminServiceAccountingOverview(status?: AdminServiceOrd
       eq(verifiedEntities.id, instituteServiceOrders.instituteId),
       eq(verifiedEntities.role, "institute"),
     )).where(status ? eq(instituteServiceOrders.status, status) : undefined)
-      .orderBy(desc(instituteServiceOrders.createdAt), desc(instituteServiceOrders.id)).limit(100),
-  ]);
+      .orderBy(desc(instituteServiceOrders.createdAt), desc(instituteServiceOrders.id)).limit(100).offset((page - 1) * 100);
 
   const totals = Object.fromEntries(adminServiceOrderStatuses.map((key) => [
     key, statusRows.find((row) => row.status === key)?.total ?? 0,
@@ -44,6 +47,9 @@ export async function getAdminServiceAccountingOverview(status?: AdminServiceOrd
 
   return {
     totals,
+    page,
+    pageCount,
+    totalOrders,
     orderCount: Object.values(totals).reduce((total, value) => total + value, 0),
     paidAccounting: {
       grossToman: toman(paid?.grossRials),

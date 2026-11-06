@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, gt, inArray, lt, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, ilike, inArray, lt, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { getDb } from "../../db";
@@ -41,7 +41,7 @@ export function decodeProviderCourseCursor(token: string) {
 
 /** Scoped display only; publication and ingest must reauthorize transactionally. */
 export async function getProviderDashboardCourses(
-  providerIds: readonly string[], cursorToken?: string,
+  providerIds: readonly string[], cursorToken?: string, search = "",
 ) {
   if (!providerIds.length) {
     return { courses: [], hasMore: false, nextCursor: null, invalidCursor: false };
@@ -50,6 +50,7 @@ export async function getProviderDashboardCourses(
   if (cursorToken && !cursor) {
     return { courses: [], hasMore: false, nextCursor: null, invalidCursor: true };
   }
+  const query = search.trim().slice(0,120);
   const db = getDb();
   const rows = await db.select({
     courseId: courses.id,
@@ -73,6 +74,7 @@ export async function getProviderDashboardCourses(
     eq(providerDashboardInstitute.role, "institute"),
   )).where(and(
     inArray(courses.providerId, [...providerIds]),
+    query ? ilike(courses.title, `%${query.replace(/[\\%_]/g, "\\$&")}%`) : undefined,
     ...(cursor ? [or(
       lt(supervisionGrants.requestedAt, cursor.requestedAt),
       and(

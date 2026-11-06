@@ -18,7 +18,9 @@ const labels = {
   revoked: "رد/لغو شده",
 } as const;
 
-export function CourseSupervisionRequest({ providerIds }: { providerIds: string[] }) {
+export function CourseSupervisionRequest({ providerIds, providers, institutes }: {
+  providerIds: string[]; providers: Array<{id:string;name:string}>; institutes: Array<{id:string;name:string}>;
+}) {
   const [items, setItems] = useState<Course[]>([]);
   const [providerId, setProviderId] = useState(providerIds[0] ?? "");
   const [instituteId, setInstituteId] = useState("");
@@ -27,6 +29,8 @@ export function CourseSupervisionRequest({ providerIds }: { providerIds: string[
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const requestId = useRef<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   async function publish(courseId: string) {
     if (busy) return;
@@ -45,8 +49,9 @@ export function CourseSupervisionRequest({ providerIds }: { providerIds: string[
           : "انتشار ممکن نیست؛ ویدئوی آماده، نظارت معتبر و عضویت فعال لازم است.");
         return;
       }
-      await refresh();
+      setItems((current) => current.map((item) => item.courseId === courseId ? {...item,publicationStatus:"published"} : item));
       setNotice("دوره رایگان منتشر شد؛ ثبت‌نام همچنان نیازمند مجوز همان دانش‌آموز است.");
+      try { await refresh(); } catch { setError("انتشار ثبت شد، اما دریافت فهرست تازه ممکن نشد. فهرست را تازه‌سازی کنید."); }
     } catch {
       setError("ارتباط برقرار نشد؛ وضعیت انتشار دوره را دوباره بررسی کنید.");
     } finally {
@@ -60,7 +65,7 @@ export function CourseSupervisionRequest({ providerIds }: { providerIds: string[
     });
     if (!result.ok) throw new Error("list_unavailable");
     const data = await result.json() as { courses: Course[] };
-    setItems(data.courses);
+    setItems(data.courses); setLoaded(true);
   }
   useEffect(() => {
     const controller = new AbortController();
@@ -70,16 +75,16 @@ export function CourseSupervisionRequest({ providerIds }: { providerIds: string[
       if (!result.ok) throw new Error("list_unavailable");
       return result.json() as Promise<{ courses: Course[] }>;
     }).then((data) => {
-      if (!controller.signal.aborted) setItems(data.courses);
+      if (!controller.signal.aborted) { setItems(data.courses); setLoaded(true); setLoading(false); }
     }).catch(() => {
-      if (!controller.signal.aborted) setError("فهرست درخواست‌های دوره در دسترس نیست.");
+      if (!controller.signal.aborted) { setError("فهرست درخواست‌های دوره در دسترس نیست."); setLoading(false); }
     });
     return () => controller.abort();
   }, []);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (busy) return;
+    if (busy || !providerId || !instituteId) return;
     setBusy(true); setError(""); setNotice("");
     requestId.current ??= crypto.randomUUID();
     try {
@@ -99,11 +104,11 @@ export function CourseSupervisionRequest({ providerIds }: { providerIds: string[
             : "درخواست دوره ثبت نشد. اطلاعات و مجوز خود را بررسی کنید.");
         return;
       }
-      await refresh();
       requestId.current = null;
       setTitle("");
       setInstituteId("");
       setNotice("دوره در وضعیت «در انتظار بررسی مؤسسه» ثبت شد؛ هنوز مجوز نظارتی ندارد.");
+      try { await refresh(); } catch { setError("دوره ثبت شد، اما دریافت فهرست تازه ممکن نشد. فهرست را تازه‌سازی کنید."); }
     } catch {
       setError("ارتباط قطع شد. بدون تغییر اطلاعات دوباره تلاش کنید؛ درخواست تکراری ساخته نمی‌شود.");
     } finally {
@@ -121,7 +126,7 @@ export function CourseSupervisionRequest({ providerIds }: { providerIds: string[
             className="mt-2 min-h-12 w-full rounded-xl border border-dena-border bg-white px-4"
             required>
             {providerIds.map((id) =>
-              <option key={id} value={id}>{id}</option>)}
+              <option key={id} value={id}>{providers.find((provider) => provider.id === id)?.name ?? "هویت ارائه‌دهنده"}</option>)}
           </select>
         </label>
         <label htmlFor="course-title" className="block text-sm font-bold">
@@ -133,28 +138,35 @@ export function CourseSupervisionRequest({ providerIds }: { providerIds: string[
             placeholder="عنوان پیشنهادی دوره" />
         </label>
         <label htmlFor="course-institute-id" className="block text-sm font-bold">
-          شناسه مؤسسه ناظر
-          <input id="course-institute-id" value={instituteId} dir="ltr"
+          مؤسسهٔ ناظر
+          <select id="course-institute-id" value={instituteId}
             onChange={(event) => { setInstituteId(event.target.value); requestId.current = null; }}
-            required placeholder="UUID اعلام‌شده توسط مؤسسه"
-            className="mt-2 min-h-12 w-full rounded-xl border border-dena-border bg-white px-4 text-left" />
+            required className="mt-2 min-h-12 w-full rounded-xl border border-dena-border bg-white px-4">
+            <option value="">انتخاب مؤسسهٔ ناظر</option>
+            {institutes.map((institute) => <option key={institute.id} value={institute.id}>{institute.name}</option>)}
+          </select>
         </label>
-        <p className="text-xs leading-7 text-dena-muted">
-          شناسه مؤسسه را از نماینده مجاز آن دریافت کنید؛ این فرم مؤسسه را به صورت
-          خودکار ناظر دوره نمی‌کند. برای دریافت مجوز همان دوره تأیید مستقل مؤسسه لازم است.
-        </p>
-        <Button type="submit" disabled={busy || !providerId}
+        {!institutes.length && <p className="text-sm text-dena-muted">مؤسسهٔ ناظر فعالی برای انتخاب وجود ندارد.</p>}
+        <p className="text-xs leading-7 text-dena-muted">مؤسسه‌های دارای نمایندهٔ فعال در این فهرست قرار دارند. مؤسسه باید نظارت همین دوره را مستقل بررسی کند.</p>
+        <Button type="submit" disabled={busy || !providerId || !instituteId}
           className="w-full disabled:opacity-50">
           {busy ? "در حال ثبت…" : "ثبت درخواست نظارت"}
         </Button>
       </form>
       <div role="status" aria-live="polite" className="text-sm leading-7">
         {error && <p className="text-red-700">{error}</p>}
-        {!error && notice && <p className="text-dena-deep">{notice}</p>}
+        {notice && <p className="text-dena-deep">{notice}</p>}
       </div>
       <section aria-labelledby="provider-course-status" className="border-t border-dena-border pt-7">
         <h2 id="provider-course-status" className="text-lg font-extrabold">دوره‌ها و وضعیت نظارت</h2>
-        {items.length === 0
+        <Button type="button" variant="outline" className="mt-4" disabled={busy || loading} onClick={async () => {
+          setLoading(true); setError("");
+          try { await refresh(); } catch { setError("دریافت فهرست دوره‌ها ممکن نشد."); }
+          finally { setLoading(false); }
+        }}>تازه‌سازی فهرست دوره‌ها</Button>
+        {loading ? <p role="status" className="mt-4 text-sm text-dena-muted">در حال دریافت دوره‌ها…</p>
+          : !loaded ? null
+          : items.length === 0
           ? <p className="mt-4 text-sm text-dena-muted">درخواست دوره‌ای ثبت نشده است.</p>
           : <ul className="mt-4 space-y-3">
             {items.map((item) =>

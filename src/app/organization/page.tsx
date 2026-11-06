@@ -76,40 +76,8 @@ export default async function OrganizationHomePage() {
     return `${x},${y}`;
   }).join(" ");
   return (
-    <div id="main-content" dir="rtl" className="min-h-screen bg-[#f8f7fc] lg:flex">
-      <aside className="hidden h-screen w-[260px] shrink-0 flex-col justify-between bg-[#1e1145] p-6 text-white lg:sticky lg:top-0 lg:flex">
-        <div>
-          <Link href="/organization" aria-label="خانهٔ پنل سازمان"
-            className="flex items-center justify-end gap-3">
-            <span className="text-right">
-              <span className="block text-base font-extrabold">سامانه دنا</span>
-              <span className="mt-0.5 block text-[11px] text-[#b08cff]">پنل سازمان</span>
-            </span>
-            <span aria-hidden="true" className="grid size-8 place-items-center rounded-lg bg-[#5b4ce2] text-lg font-black">د</span>
-          </Link>
-          <nav aria-label="منوی سازمان" className="mt-8">
-            <ul className="space-y-1">
-              {navigation.map((item) => {
-                const active = item.href === "/organization";
-                return (
-                  <li key={item.href}>
-                    <Link href={item.href} aria-current={active ? "page" : undefined}
-                      className={`flex min-h-11 items-center rounded-lg px-4 text-sm transition-colors ${active
-                        ? "bg-[#382973] font-bold text-[#b08cff]"
-                        : "text-[#e5e1ed] hover:bg-[#382973] hover:text-white"}`}>
-                      {item.label}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </nav>
-        </div>
-        <div className="space-y-1 border-t border-white/15 pt-4">
-          <Link href="/support" className="flex min-h-11 items-center rounded-lg px-4 text-sm text-[#e5e1ed] hover:bg-[#382973]">پشتیبانی آنلاین</Link>
-          <Link href="/account" className="flex min-h-11 items-center rounded-lg px-4 text-sm text-[#e5e1ed] hover:bg-[#382973]">حساب من</Link>
-        </div>
-      </aside>
+    <div id="main-content" dir="rtl" className="min-h-screen bg-[#f8f7fc]">
+
 
       <div className="min-w-0 flex-1">
         <header className="flex min-h-[84px] items-center justify-between gap-4 border-b border-[#e5e1ed] bg-white px-5 py-4 md:px-8">

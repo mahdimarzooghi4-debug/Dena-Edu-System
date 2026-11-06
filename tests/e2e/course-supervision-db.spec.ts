@@ -441,9 +441,7 @@ test.describe("course-scoped provider requests and independent institute decisio
       domain: "localhost", path: "/", httpOnly: true, secure: false, sameSite: "Lax",
     }]);
     await page.goto("http://localhost:3000/provider");
-    await expect(page.getByRole("heading", {
-      name: "دوره‌های من و وضعیت نظارت",
-    })).toBeVisible();
+    await expect(page.getByText("پنل ارائه‌دهنده · دوره‌ها و وضعیت نظارت")).toBeVisible();
     await page.getByRole("link", {
       name: "جزئیات و وضعیت همین دوره",
     }).first().click();
@@ -462,7 +460,7 @@ test.describe("course-scoped provider requests and independent institute decisio
     })).toBeVisible();
     const uiTitle = "دوره مرور عملی درخواست و پاسخ مؤسسه";
     await page.getByLabel("عنوان دوره").fill(uiTitle);
-    await page.getByLabel("شناسه مؤسسه ناظر").fill(scopes.institute);
+    await page.getByLabel("مؤسسهٔ ناظر").selectOption(scopes.institute);
     const createResponse = page.waitForResponse((response) =>
       response.url().endsWith("/api/provider/courses") &&
       response.request().method() === "POST",

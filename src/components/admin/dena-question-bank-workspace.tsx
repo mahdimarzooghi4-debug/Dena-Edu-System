@@ -94,23 +94,23 @@ function QuestionEditor({ question, onCancel }: {
   );
 }
 
-export function DenaQuestionBankWorkspace({ questions }: { questions: DenaBankQuestion[] }) {
+export function DenaQuestionBankWorkspace({ questions, filtered = false }: { questions: DenaBankQuestion[]; filtered?: boolean }) {
   const [editor, setEditor] = useState<"new" | DenaBankQuestion | null>(null);
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-dena-muted">
-          {questions.length.toLocaleString("fa-IR")} سؤال اخیر · حداکثر ۱۰۰ مورد
+          {questions.length.toLocaleString("fa-IR")} سؤال در این صفحه · حداکثر ۱۰۰ مورد
         </p>
         {editor === null && <Button onClick={() => setEditor("new")}>افزودن سؤال به بانک دنا</Button>}
       </div>
       {editor !== null && (
-        <QuestionEditor question={editor === "new" ? undefined : editor}
+        <QuestionEditor key={editor === "new" ? "new" : editor.id} question={editor === "new" ? undefined : editor}
           onCancel={() => setEditor(null)} />
       )}
       {questions.length === 0 ? (
         <div className="rounded-xl border border-dena-border bg-white p-6 text-sm leading-7 text-dena-muted">
-          هنوز سؤالی در بانک دنا ثبت نشده است.
+          {filtered ? "سؤالی مطابق جست‌وجوی شما پیدا نشد." : "هنوز سؤالی در بانک دنا ثبت نشده است."}
         </div>
       ) : (
         <ol className="space-y-3">
@@ -131,7 +131,7 @@ export function DenaQuestionBankWorkspace({ questions }: { questions: DenaBankQu
                     ثبت‌شده در {new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium", timeZone: "Asia/Tehran" }).format(question.createdAt)}
                   </p>
                 </div>
-                <Button variant="outline" onClick={() => setEditor(question)}>ویرایش</Button>
+                <Button variant="outline" disabled={editor !== null} onClick={() => setEditor(question)}>ویرایش</Button>
               </div>
             </li>
           ))}

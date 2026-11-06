@@ -22,6 +22,14 @@ export function RoleReviewQueue() {
   const [problem, setProblem] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState("");
+  const [role, setRole] = useState<Application["role"] | "all">("all");
+  const filtered = items.filter((item) =>
+    (role === "all" || item.role === role) &&
+    `${item.proposedName} ${item.id} ${roleNames[item.role]}`.toLocaleLowerCase("fa")
+      .includes(query.trim().toLocaleLowerCase("fa")),
+  );
 
   const reload = useCallback(async () => {
     const response = await fetch("/api/admin/role-applications", {
@@ -40,9 +48,9 @@ export function RoleReviewQueue() {
       if (!response.ok) throw new Error("queue_unavailable");
       return response.json() as Promise<{ pending: Application[] }>;
     }).then((data) => {
-      if (!controller.signal.aborted) setItems(data.pending);
+      if (!controller.signal.aborted) { setItems(data.pending); setLoading(false); }
     }).catch(() => {
-      if (!controller.signal.aborted) setProblem("دریافت درخواست‌های در انتظار بررسی ممکن نشد.");
+      if (!controller.signal.aborted) { setProblem("دریافت درخواست‌های در انتظار بررسی ممکن نشد."); setLoading(false); }
     });
     return () => controller.abort();
   }, []);
@@ -79,7 +87,10 @@ export function RoleReviewQueue() {
         return;
       }
       setNotice("تصمیم و سوابق آن ثبت شد.");
-      await reload();
+      try { await reload(); } catch {
+        setItems((current) => current.filter((item) => item.id !== id));
+        setProblem("تصمیم ثبت شد، اما تازه‌سازی صف ممکن نشد. صف را دوباره دریافت کنید.");
+      }
     } catch {
       setProblem("ارتباط برقرار نشد. دوباره تلاش کنید.");
     } finally {
@@ -89,19 +100,48 @@ export function RoleReviewQueue() {
 
   return (
     <div className="space-y-5">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
+        <div role="group" aria-label="فیلتر نقش" className="flex flex-wrap gap-2">
+          {(["all", "institute", "organization", "provider", "benefactor"] as const).map((value) => (
+            <button key={value} type="button" aria-pressed={role === value}
+              onClick={() => setRole(value)}
+              className={`min-h-10 rounded-full border px-3 text-xs ${role === value
+                ? "border-dena-brand bg-dena-lavender font-bold text-dena-brand"
+                : "border-dena-border text-dena-muted"}`}>
+              {value === "all" ? "همه نقش‌ها" : roleNames[value]}
+            </button>
+          ))}
+        </div>
+        <label className="flex-1 text-xs text-dena-muted">
+          <span className="sr-only">جست‌وجوی درخواست</span>
+          <input type="search" value={query} onChange={(event) => setQuery(event.target.value)}
+            placeholder="جست‌وجو با نام، شناسه یا نقش…"
+            className="min-h-10 w-full rounded-lg border border-dena-border bg-dena-bg px-3 text-sm" />
+        </label>
+      </div>
       <p className="rounded-xl bg-dena-lavender p-4 text-sm leading-7 text-dena-deep">
         تأیید فقط پس از بررسی مستقل مدارک و ثبت شناسه مرجع محرمانه مجاز است.
         هر تأیید یک محدوده دسترسی جدید با شناسه تولیدشده در سرور می‌سازد.
         این فرایند مجوز آموزشی رسمی یا رابطه نظارتی با دوره ایجاد نمی‌کند.
       </p>
+      <p className="text-xs text-dena-muted">صف شامل حداکثر ۵۰ درخواست قدیمی‌تر است؛ جست‌وجو و فیلتر روی همین صف اعمال می‌شود.</p>
       <div role="status" aria-live="polite" className="text-sm leading-7">
         {problem && <p className="text-red-700">{problem}</p>}
         {!problem && notice && <p className="text-dena-deep">{notice}</p>}
       </div>
-      {items.length === 0
-        ? <p className="text-sm text-dena-muted">درخواستی در صف بررسی نیست.</p>
-        : <ul className="space-y-5">
-            {items.map((item) => <li key={item.id} id={`application-${item.id}`}
+      {problem && <Button type="button" variant="outline" disabled={loading || Boolean(busyId)}
+        onClick={async () => {
+          setLoading(true); setProblem("");
+          try { await reload(); } catch { setProblem("دریافت صف ممکن نشد. دوباره تلاش کنید."); }
+          finally { setLoading(false); }
+        }}>دریافت دوبارهٔ صف</Button>}
+      {loading ? <p role="status" className="text-sm text-dena-muted">در حال دریافت درخواست‌ها…</p>
+        : !problem && items.length === 0
+          ? <p className="text-sm text-dena-muted">درخواستی در صف بررسی نیست.</p>
+          : !problem && filtered.length === 0
+            ? <p className="text-sm text-dena-muted">درخواستی با این جست‌وجو و نقش پیدا نشد.</p>
+        : <ul className="space-y-5" aria-label="درخواست‌های در انتظار بررسی">
+            {filtered.map((item) => <li key={item.id} id={`application-${item.id}`}
               className="rounded-xl border border-dena-border p-5">
               <h2 className="font-extrabold">{roleNames[item.role]} · {item.proposedName}</h2>
               <p className="mt-2 text-xs text-dena-muted">

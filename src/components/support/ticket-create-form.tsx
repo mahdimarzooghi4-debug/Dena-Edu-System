@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "../ui/button";
 
-export function TicketCreateForm() {
+export function TicketCreateForm({ detailBase = "/support" }: { detailBase?: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -26,7 +26,7 @@ export function TicketCreateForm() {
       });
       const result = await response.json() as { ticket?: { id: string } };
       if (!response.ok || !result.ticket?.id) throw new Error();
-      router.push(`/support/${result.ticket.id}`);
+      router.push(`${detailBase}/${result.ticket.id}`);
       router.refresh();
     } catch {
       setError("ثبت درخواست انجام نشد؛ ورودی‌ها را بررسی و دوباره تلاش کنید.");

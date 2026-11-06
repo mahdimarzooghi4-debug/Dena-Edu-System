@@ -65,6 +65,11 @@ export default async function OrganizationStudentsPage({
           : "/organization/students"}
           className={buttonClassName("secondary")}>نمایش همهٔ پرونده‌ها</Link>
       </Card>}
+      <nav aria-label="روش ثبت دانش‌آموز" className="grid gap-3 sm:grid-cols-3">
+        {([["manual", "ثبت دستی"], ["bulk", "ورود گروهی"], ["api", "مدیریت کلید API"]] as const).map(([method, label]) =>
+          <Link key={method} className={buttonClassName("secondary")}
+            href={`/organization/students/registration/${method}?organizationId=${selectedOrganization.id}`}>{label}</Link>)}
+      </nav>
       <OrganizationStudentWorkspace scopes={scopes} initialStudents={studentPage.students}
         initialOrganizationId={selectedOrganization?.id} searchTerm={q?.trim() ?? ""}
         activationPendingOnly={activationPendingOnly} />
