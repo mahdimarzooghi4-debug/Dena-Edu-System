@@ -421,6 +421,13 @@
       "when": 1792577719187,
       "tag": "0061_provider_contact_profiles",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1792577719188,
+      "tag": "0062_provider_compensation_drafts",
+      "breakpoints": true
     }
   ]
 }

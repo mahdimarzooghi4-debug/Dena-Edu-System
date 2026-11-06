@@ -20,6 +20,7 @@ export const navigation = {
     { href: "/student/profile", title: "پروفایل", figmaNode: "160:118" },
   ],
   institute: [
+    { href: "/institute/provider-contracts", title: "قراردادهای ارائه‌دهندگان", figmaNode: undefined },
     { href: "/institute", title: "خانه مؤسسه", figmaNode: "164:145" },
     { href: "/institute/courses", title: "دوره‌های مؤسسه", figmaNode: "166:16" },
     { href: "/institute/assessments", title: "تمرین‌ها و آزمون‌ها", figmaNode: "167:44" },

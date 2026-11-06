@@ -1,0 +1,47 @@
+import { readFileSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+import { expect,test,vi } from "vitest";
+import { PGlite } from "@electric-sql/pglite";
+import { PgDialect } from "drizzle-orm/pg-core";
+
+test("financial drafts remain scoped, replay-safe and unable to become active",async()=>{
+  const pg=new PGlite(),dialect=new PgDialect();
+  const execute=(db:Pick<PGlite,"query">)=>async(query:Parameters<PgDialect["sqlToQuery"]>[0])=>{
+    const compiled=dialect.sqlToQuery(query);return(await db.query(compiled.sql,compiled.params)).rows;
+  };
+  vi.doMock("../../db",()=>({getDb:()=>({execute:execute(pg),transaction:(fn:(tx:{execute:ReturnType<typeof execute>})=>Promise<unknown>)=>pg.transaction(tx=>fn({execute:execute(tx)}))})}));
+  try{
+    const {createCompensationDraft,listCompensationDrafts,getCompensationCollaborations}=await import("./compensation");
+    await pg.exec(`CREATE TABLE "user"(id uuid PRIMARY KEY);
+      CREATE TABLE dena_verified_entities(id uuid PRIMARY KEY,name text,role text);
+      CREATE TABLE dena_memberships(id uuid PRIMARY KEY,user_id uuid,institute_id uuid,provider_id uuid,role text,status text);
+      CREATE TABLE dena_provider_institute_collaborations(id uuid PRIMARY KEY,provider_id uuid,institute_id uuid,status text,withdrawn_at timestamptz);`);
+    await pg.exec(readFileSync("drizzle/0062_provider_compensation_drafts.sql","utf8"));
+    const instituteActor=randomUUID(),providerActor=randomUUID(),outsider=randomUUID(),institute=randomUUID(),provider=randomUUID(),collaboration=randomUUID();
+    for(const id of[instituteActor,providerActor,outsider])await pg.query('INSERT INTO "user" VALUES ($1)',[id]);
+    await pg.query("INSERT INTO dena_verified_entities VALUES ($1,'Institute','institute'),($2,'Provider','provider')",[institute,provider]);
+    await pg.query("INSERT INTO dena_memberships VALUES ($1,$2,$3,NULL,'institute','active'),($4,$5,NULL,$6,'provider','active')",[randomUUID(),instituteActor,institute,randomUUID(),providerActor,provider]);
+    await pg.query("INSERT INTO dena_provider_institute_collaborations VALUES ($1,$2,$3,'approved',NULL)",[collaboration,provider,institute]);
+    const input={collaborationId:collaboration,clientRequestId:randomUUID(),reference:"Contract reference",shareBasis:"institute_after_fee",shareBasisPoints:4500,proposedStart:"2026-11-06",proposedEnd:null,settlementTerms:"شرایط پیشنهادی پرداخت مطابق قرارداد مؤسسه"};
+    expect(await getCompensationCollaborations(instituteActor)).toHaveLength(1);
+    expect(await getCompensationCollaborations(providerActor)).toEqual([]);
+    expect(await createCompensationDraft(instituteActor,input)).toBe("saved");
+    expect(await createCompensationDraft(instituteActor,input)).toBe("saved");
+    expect(await createCompensationDraft(instituteActor,{...input,shareBasisPoints:4600})).toBe("conflict");
+    expect(await createCompensationDraft(providerActor,{...input,clientRequestId:randomUUID()})).toBe("forbidden");
+    expect(await createCompensationDraft(outsider,{...input,clientRequestId:randomUUID()})).toBe("forbidden");
+    expect(await listCompensationDrafts(providerActor,"provider")).toHaveLength(1);
+    expect(await listCompensationDrafts(instituteActor,"institute")).toHaveLength(1);
+    expect(await listCompensationDrafts(outsider,"provider")).toEqual([]);
+    const rows=await pg.query<{total:number}>("SELECT count(*)::int AS total FROM dena_provider_compensation_drafts");
+    expect(rows.rows[0].total).toBe(1);
+    await expect(pg.exec("UPDATE dena_provider_compensation_drafts SET status='active'")).rejects.toThrow();
+    expect(await createCompensationDraft(instituteActor,{...input,shareBasisPoints:10001})).toBe("invalid");
+    expect(await createCompensationDraft(instituteActor,{...input,proposedEnd:"2020-01-01"})).toBe("invalid");
+    await pg.query("UPDATE dena_provider_institute_collaborations SET status='awaiting_dena'");
+    expect(await createCompensationDraft(instituteActor,{...input,clientRequestId:randomUUID()})).toBe("forbidden");
+    await pg.query("UPDATE dena_memberships SET status='suspended'");
+    expect(await listCompensationDrafts(providerActor,"provider")).toEqual([]);
+    expect(await listCompensationDrafts(instituteActor,"institute")).toEqual([]);
+  }finally{vi.doUnmock("../../db");await pg.close();}
+},30_000);
