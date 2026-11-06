@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { DemoState, ServiceKind } from "../../server/student/demo-engine";
 
 type Course = { id: string; title: string; provider: string; subject: string; lessonCount: number; completedLessons: number; accent: string };
@@ -102,10 +102,6 @@ export function DemoWorkspace({ route }: StudentWorkspaceProps) {
   }, []);
 
   useEffect(() => { void refresh(); }, [refresh]);
-  useEffect(() => {
-    setFeedback(""); setError(""); setChoice(null); setQuizResult(null);
-    setDraftNote(""); setReviewMode(false);
-  }, [route]);
 
   const act = useCallback(async (action: Action) => {
     setBusy(true); setError(""); setFeedback("");
@@ -142,7 +138,7 @@ export function DemoWorkspace({ route }: StudentWorkspaceProps) {
       Number(key.split(":")[1]) > course.completedLessons).length;
     return Math.min(course.lessonCount, course.completedLessons + doneExtra);
   };
-  const completedAll = useMemo(() => courses.reduce((total, course) => total + lessonsDone(course), 0), [data]);
+  const completedAll = courses.reduce((total, course) => total + lessonsDone(course), 0);
   const notifications = [
     { id:"welcome", title:"به فضای دانش‌آموز دنا خوش آمدی", body:"نمونهٔ برنامه؛ اطلاعات آموزشی واقعی نیست." },
     ...(state?.completed.length ? [{id:"lesson", title:"درس تازه تکمیل شد", body:"پیشرفت نمونه به‌روزرسانی شد."}] : []),
