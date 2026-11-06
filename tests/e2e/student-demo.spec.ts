@@ -6,6 +6,17 @@ test.describe("isolated installable synthetic Dena student app", () => {
     await expect(page.getByText("نسخهٔ آزمایشی با دادهٔ ساختگی").first()).toBeVisible();
   });
 
+  test("accepts same-host JSON mutations with signed synthetic cookie", async ({ page }) => {
+    const outcome = await page.evaluate(async () => {
+      const response = await fetch("/api/student/demo/actions", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({type: "completeLesson", lesson: "physics-10:4"}),
+      });
+      return { status: response.status, body: await response.text() };
+    });
+    expect(outcome.status, outcome.body).toBe(200);
+    expect(outcome.body).toContain("signed-cookie-only");
+  });
   test("navigates home, course detail, learning, notes and persisted progress", async ({ page }) => {
     await expect(page.getByRole("heading", { name: /سلام،/ })).toBeVisible();
     await page.getByRole("link", { name: "مشاهده جزئیات دوره" }).first().click();

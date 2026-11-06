@@ -8,8 +8,17 @@ export const dynamic = "force-dynamic";
 export async function POST(request: NextRequest) {
   if (!isStudentDemoEnabled()) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const origin = request.headers.get("origin");
-  if (origin && origin !== request.nextUrl.origin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  if (request.headers.get("sec-fetch-site") === "cross-site") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const publicHost = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
+  const acceptableHosts = [request.headers.get("host"), publicHost, request.nextUrl.host].filter(Boolean);
+  let sameOrigin = request.headers.get("sec-fetch-site") !== "cross-site";
+  if (origin) {
+    try {
+      const parsedOrigin = new URL(origin);
+      sameOrigin = sameOrigin && (parsedOrigin.protocol === "http:" || parsedOrigin.protocol === "https:") &&
+        acceptableHosts.includes(parsedOrigin.host);
+    } catch { sameOrigin = false; }
+  }
+  if (!sameOrigin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   if (request.headers.get("content-type")?.split(";")[0].trim() !== "application/json") {
     return NextResponse.json({ error: "JSON required" }, { status: 415 });
   }
