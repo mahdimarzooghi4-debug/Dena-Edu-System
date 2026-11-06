@@ -463,6 +463,13 @@
       "when": 1792577719193,
       "tag": "0067_service_refund_requests",
       "breakpoints": true
+    },
+    {
+      "idx": 66,
+      "version": "7",
+      "when": 1793973069118,
+      "tag": "0068_dena_schema_snapshot_sync",
+      "breakpoints": true
     }
   ]
 }
