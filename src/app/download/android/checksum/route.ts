@@ -1,4 +1,4 @@
-import { denaAndroidPreview as preview } from "@/lib/dena-android-download";
+import { denaAndroidPreview as preview } from "../../../../lib/dena-android-download";
 
 export function GET(): Response {
   return new Response(preview.sha256 + "  dena-student-android-v0.1.1.apk\n", {

@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { denaAndroidPreview as preview } from "@/lib/dena-android-download";
+import { denaAndroidPreview as preview } from "../../../../lib/dena-android-download";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
