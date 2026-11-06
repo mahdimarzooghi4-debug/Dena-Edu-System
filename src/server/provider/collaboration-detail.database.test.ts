@@ -17,6 +17,7 @@ test("a collaboration detail only returns the active provider's exact request an
     const { getProviderCollaborations } = await import("./collaborations");
     const { getProviderMetrics } = await import("./metrics");
     const { getProviderCollaborationEvents } = await import("./collaboration-events");
+    const { getLatestProviderCollaboration } = await import("./latest-collaboration");
     await pg.exec(`
       CREATE TABLE dena_courses (provider_id uuid,publication_status text);
       CREATE TABLE dena_memberships (user_id uuid,provider_id uuid,institute_id uuid,role text,status text);
@@ -50,6 +51,10 @@ test("a collaboration detail only returns the active provider's exact request an
       FROM generate_series(1,101) RETURNING id
     ) INSERT INTO dena_provider_institute_collaboration_events
       SELECT gen_random_uuid(),id,'requested',NULL,'2020-01-01'::timestamptz FROM added`,[provider,institute]);
+    const latest = await getLatestProviderCollaboration(actor,provider);
+    expect([own,anotherOwn]).toContain(latest?.id);
+    expect(latest?.institute_name).toBe("Institute");
+    expect(await getLatestProviderCollaboration(actor,otherProvider)).toBeNull();
     const first = await getProviderCollaborations(actor);
     const second = await getProviderCollaborations(actor,undefined,first.nextCursor!);
     expect(first.collaborations).toHaveLength(100);
@@ -66,6 +71,7 @@ test("a collaboration detail only returns the active provider's exact request an
     await pg.query("UPDATE dena_memberships SET status='suspended'");
     expect((await getProviderCollaborations(actor,own)).collaborations).toEqual([]);
     expect(await getProviderMetrics(actor)).toBeNull();
+    expect(await getLatestProviderCollaboration(actor,provider)).toBeNull();
     expect((await getProviderCollaborationEvents(actor)).events).toEqual([]);
   } finally { vi.doUnmock("../../db"); await pg.close(); }
 },30_000);
