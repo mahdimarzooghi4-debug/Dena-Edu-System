@@ -101,7 +101,24 @@ export function DemoWorkspace({ route }: StudentWorkspaceProps) {
     } finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { void refresh(); }, [refresh]);
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/student/demo", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Unavailable");
+        return await response.json() as Snapshot;
+      })
+      .then((json) => {
+        if (cancelled) return;
+        if (json.mode !== "synthetic" || json.formal !== false) throw new Error("Invalid mode");
+        setData(json); setDraftName(json.state.name); setDraftGrade(json.state.grade);
+        setLoading(false);
+      })
+      .catch(() => {
+        if (!cancelled) { setError("اتصال به بک‌اند آزمایشی برقرار نشد."); setLoading(false); }
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   const act = useCallback(async (action: Action) => {
     setBusy(true); setError(""); setFeedback("");
