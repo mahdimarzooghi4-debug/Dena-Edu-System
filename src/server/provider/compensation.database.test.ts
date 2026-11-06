@@ -11,7 +11,7 @@ test("financial drafts remain scoped, replay-safe and unable to become active",a
   };
   vi.doMock("../../db",()=>({getDb:()=>({execute:execute(pg),transaction:(fn:(tx:{execute:ReturnType<typeof execute>})=>Promise<unknown>)=>pg.transaction(tx=>fn({execute:execute(tx)}))})}));
   try{
-    const {createCompensationDraft,listCompensationDrafts,getCompensationCollaborations}=await import("./compensation");
+    const {createCompensationDraft,listCompensationDrafts,getCompensationCollaborations,decideCompensationDraft}=await import("./compensation");
     await pg.exec(`CREATE TABLE "user"(id uuid PRIMARY KEY);
       CREATE TABLE dena_verified_entities(id uuid PRIMARY KEY,name text,role text);
       CREATE TABLE dena_memberships(id uuid PRIMARY KEY,user_id uuid,institute_id uuid,provider_id uuid,role text,status text);
@@ -36,10 +36,25 @@ test("financial drafts remain scoped, replay-safe and unable to become active",a
     const rows=await pg.query<{total:number}>("SELECT count(*)::int AS total FROM dena_provider_compensation_drafts");
     expect(rows.rows[0].total).toBe(1);
     await expect(pg.exec("UPDATE dena_provider_compensation_drafts SET status='active'")).rejects.toThrow();
+    await pg.exec(readFileSync("drizzle/0063_provider_compensation_decisions.sql","utf8"));
+    const [draft]=await listCompensationDrafts(providerActor,"provider");
+    expect(await decideCompensationDraft(outsider,draft.id,"accepted")).toBe("forbidden");
+    expect(await decideCompensationDraft(instituteActor,draft.id,"accepted")).toBe("forbidden");
+    expect(await decideCompensationDraft(providerActor,"bad-id","accepted")).toBe("invalid");
+    expect(await decideCompensationDraft(providerActor,draft.id,"accepted")).toBe("saved");
+    expect(await decideCompensationDraft(providerActor,draft.id,"accepted")).toBe("saved");
+    expect(await decideCompensationDraft(providerActor,draft.id,"rejected")).toBe("conflict");
+    expect((await listCompensationDrafts(instituteActor,"institute"))[0].status).toBe("accepted");
+    const second={...input,clientRequestId:randomUUID(),reference:"Second proposal"};
+    expect(await createCompensationDraft(instituteActor,second)).toBe("saved");
+    const rejected=(await listCompensationDrafts(providerActor,"provider")).find(row=>row.reference==="Second proposal")!;
+    expect(await decideCompensationDraft(providerActor,rejected.id,"rejected")).toBe("saved");
+    await expect(pg.exec("UPDATE dena_provider_compensation_drafts SET status='active'")).rejects.toThrow();
     expect(await createCompensationDraft(instituteActor,{...input,shareBasisPoints:10001})).toBe("invalid");
     expect(await createCompensationDraft(instituteActor,{...input,proposedEnd:"2020-01-01"})).toBe("invalid");
     await pg.query("UPDATE dena_provider_institute_collaborations SET status='awaiting_dena'");
     expect(await createCompensationDraft(instituteActor,{...input,clientRequestId:randomUUID()})).toBe("forbidden");
+    expect(await decideCompensationDraft(providerActor,rejected.id,"rejected")).toBe("forbidden");
     await pg.query("UPDATE dena_memberships SET status='suspended'");
     expect(await listCompensationDrafts(providerActor,"provider")).toEqual([]);
     expect(await listCompensationDrafts(instituteActor,"institute")).toEqual([]);

@@ -49,3 +49,25 @@ export async function createCompensationDraft(userId:string,raw:unknown) {
     return replay.length ? "saved" as const : "conflict" as const;
   });
 }
+
+/** Provider acknowledgement only: accepted terms do not activate payments or revenue allocation. */
+export async function decideCompensationDraft(userId:string, draftId:string, decision:"accepted"|"rejected") {
+  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(draftId) || !["accepted","rejected"].includes(decision)) return "invalid" as const;
+  return getDb().transaction(async(tx)=>{
+    // Lock the same collaboration used by proposal creation and lock membership against suspension.
+    const allowed=await tx.execute(sql`SELECT c.id FROM dena_provider_compensation_drafts d
+      JOIN dena_provider_institute_collaborations c ON c.id=d.collaboration_id
+      JOIN dena_memberships m ON m.provider_id=c.provider_id
+      WHERE d.id=${draftId}::uuid AND c.status='approved' AND c.withdrawn_at IS NULL
+      AND m.user_id=${userId}::uuid AND m.role='provider' AND m.status='active'
+      FOR SHARE OF c,m`);
+    if(!allowed.length) return "forbidden" as const;
+    const updated=await tx.execute(sql`UPDATE dena_provider_compensation_drafts
+      SET status=${decision},decided_by=${userId}::uuid,decided_at=now()
+      WHERE id=${draftId}::uuid AND status='draft' RETURNING id`);
+    if(updated.length) return "saved" as const;
+    const replay=await tx.execute(sql`SELECT id FROM dena_provider_compensation_drafts
+      WHERE id=${draftId}::uuid AND status=${decision}`);
+    return replay.length ? "saved" as const : "conflict" as const;
+  });
+}

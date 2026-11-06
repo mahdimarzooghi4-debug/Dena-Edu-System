@@ -428,6 +428,13 @@
       "when": 1792577719188,
       "tag": "0062_provider_compensation_drafts",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1792577719189,
+      "tag": "0063_provider_compensation_decisions",
+      "breakpoints": true
     }
   ]
 }
