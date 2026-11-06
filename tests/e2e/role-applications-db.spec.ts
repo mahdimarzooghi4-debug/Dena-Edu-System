@@ -518,7 +518,7 @@ test.describe("reviewed role requests, scoped grants and audit on PostgreSQL", (
     const reports = await applicant.get("/benefactor/reports");
     expect(reports.status()).toBe(200);
     const reportsHtml = await reports.text();
-    expect(reportsHtml).toContain("گزارش مالی هنوز فعال نشده است");
+    expect(reportsHtml).toContain("گزارش‌های دانش‌آموزان تحت حمایت");
     expect(reportsHtml).not.toContain("حامی دیگر خصوصی");
     expect(reportsHtml).not.toContain("private-review/");
     expect(reportsHtml).not.toContain("تومان");
@@ -526,7 +526,7 @@ test.describe("reviewed role requests, scoped grants and audit on PostgreSQL", (
     const students = await applicant.get("/benefactor/students");
     expect(students.status()).toBe(200);
     const studentsHtml = await students.text();
-    expect(studentsHtml).toContain("فهرست دانش‌آموزان یا پیوندی به پروندهٔ فردی ارائه نمی‌شود");
+    expect(studentsHtml).toContain("هنوز حمایت مالی تأییدشده‌ای برای نمایش گزارش ثبت نشده است.");
     expect(studentsHtml).not.toContain("حامی دیگر خصوصی");
     expect(studentsHtml).not.toContain("private-review/");
     expect(studentsHtml).not.toContain("تومان");
@@ -534,7 +534,7 @@ test.describe("reviewed role requests, scoped grants and audit on PostgreSQL", (
     const growth = await applicant.get("/benefactor/growth");
     expect(growth.status()).toBe(200);
     const growthHtml = await growth.text();
-    expect(growthHtml).toContain("شاخص تجمیعیِ مصوبی هم برای این نقش تعریف نشده است");
+    expect(growthHtml).toContain("گزارش رشد آموزشی هنوز برای این حساب در دسترس نیست.");
     expect(growthHtml).not.toContain("حامی دیگر خصوصی");
     expect(growthHtml).not.toContain("private-review/");
     expect(growthHtml).not.toContain("تومان");
@@ -542,7 +542,7 @@ test.describe("reviewed role requests, scoped grants and audit on PostgreSQL", (
     const notifications = await applicant.get("/benefactor/notifications");
     expect(notifications.status()).toBe(200);
     const notificationsHtml = await notifications.text();
-    expect(notificationsHtml).toContain("سامانهٔ اعلان خیر هنوز فعال نشده است");
+    expect(notificationsHtml).toContain("اعلان‌ها و پیگیری‌ها");
     expect(notificationsHtml).not.toContain("حامی دیگر خصوصی");
     expect(notificationsHtml).not.toContain("private-review/");
     expect(await (await applicant.get("/account")).text())
