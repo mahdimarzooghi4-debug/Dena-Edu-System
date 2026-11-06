@@ -88,6 +88,8 @@ test("role preview landmarks and navigation work with keyboard in RTL", async ({
 
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto(`/preview/${role}`);
+    // Wait for App Router hydration before sending native <details> keyboard events.
+    await page.waitForLoadState("networkidle");
     const mobileMenu = page.getByTestId("mobile-preview-menu");
     const summary = mobileMenu.locator("summary");
     await summary.focus();
