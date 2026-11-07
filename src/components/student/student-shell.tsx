@@ -225,7 +225,7 @@ export function StudentShell({ active, title, children, demo = false, mobileNav 
               aria-label="اعلان‌ها"><Icon name="bell" className="size-4" /></Link>
           </div> : <>
           <Link href={hrefFor("/student", demo)} className="order-1 lg:hidden" aria-label="دنا، خانه دانش‌آموز">
-            <Image src="/dena-app-logo.png" alt="دنا" width={55} height={33} priority />
+            <Image src="/dena-app-logo.png" alt="دنا" width={64} height={37} priority />
           </Link>
           <div dir="ltr" className="order-2 flex items-center gap-2 lg:hidden">
             <Link href={hrefFor("/student/notifications", demo)} className={"grid size-10 place-items-center rounded-xl hover:bg-dena-bg " + (notificationsActive ? "bg-dena-lavender text-dena-brand" : "text-dena-muted")} aria-label="اعلان‌های پشتیبانی" aria-current={notificationsActive ? "page" : undefined}>
