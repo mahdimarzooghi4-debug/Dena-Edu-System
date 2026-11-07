@@ -1,13 +1,17 @@
-# Dena Student Android Preview
+# Dena Student Android preview
 
-The Android launcher icon follows the approved Dena mark-only app tile in the Dena Figma file:
-- Figma file: `8Bo8BNS5LVQfTJhxwCYQmo`
-- Logo mark: `03A.H / Hybrid Ridge-D Mark`, node `17:7`
-- App tile: `Dena / Mark Only App Tile`, node `14:39`
-- Student app design page: `03 - Student App V2`
+This Android application is a small, first-party WebView host for the Dena Student V2 experience. The actual student screens are served by the Figma-aligned Dena student preview at `https://dena-student-demo.onrender.com/student-demo`.
 
-The Activity is intentionally a thin host. It must not add a native title bar or duplicate navigation; the first-party student web app owns the Figma-aligned header, bottom navigation and screens.
+## Launcher icon
 
-The preview APK opens `https://dena-student-demo.onrender.com/student-demo`. This is a synthetic showcase and requires internet access. It is not a production APK and does not connect to real student accounts.
+The launcher uses the mark-only Dena symbol from the supplied brand mark, with the white rounded app tile shown in Figma's **Dena / Mark Only App Tile** (node `14:39`). The purple and mint colors are preserved; no wordmark or purple square is placed behind the symbol. Android adaptive icons use a vector foreground and white background.
 
-CI runs unit tests, checks the preview route, installs and launches the APK on Android API 28 and API 35 emulators, and verifies that the student home screen is rendered without a process crash.
+## Build
+
+Debug builds without a configured URL intentionally show a configuration notice. The distributable preview must be built with an approved HTTPS student route:
+
+```sh
+gradle -p android-student assembleDebug -PdenaStudentUrl=https://dena-student-demo.onrender.com/student-demo
+```
+
+The app requires internet access. It uses synthetic preview data only; it is not a production account or payment app.
