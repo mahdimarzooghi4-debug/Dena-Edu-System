@@ -6,6 +6,8 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -43,6 +45,18 @@ public final class MainActivity extends Activity {
     private TextView errorText;
     private Button retryButton;
     private ProgressBar progress;
+    private final Handler retryHandler = new Handler(Looper.getMainLooper());
+    private static final int[] RETRY_DELAYS_MS = {5000, 10000, 15000, 20000, 25000, 30000};
+    private int retryAttempt = 0;
+    private boolean retryPending = false;
+    private boolean mainFrameFailed = false;
+    private final Runnable retryRunnable = () -> {
+        retryPending = false;
+        if (webView != null && startUri != null) {
+            mainFrameFailed = false;
+            webView.loadUrl(startUri.toString());
+        }
+    };
 
     private static final int BG = Color.rgb(247, 246, 251);
     private static final int BRAND = Color.rgb(91, 76, 226);
@@ -96,7 +110,11 @@ public final class MainActivity extends Activity {
         retryButton.setText(getString(R.string.retry));
         retryButton.setOnClickListener(view -> {
             if (webView != null && startUri != null) {
-                errorPane.setVisibility(View.GONE);
+                retryHandler.removeCallbacks(retryRunnable);
+                retryPending = false;
+                retryAttempt = 0;
+                mainFrameFailed = false;
+                showConnecting();
                 webView.loadUrl(startUri.toString());
             }
         });
@@ -131,6 +149,7 @@ public final class MainActivity extends Activity {
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
         configureWebView();
+        showConnecting();
         webView.loadUrl(startUri.toString());
     }
 
@@ -184,14 +203,28 @@ public final class MainActivity extends Activity {
 
             @Override
             public void onPageStarted(WebView view, String url, android.graphics.Bitmap icon) {
-                errorPane.setVisibility(View.GONE);
+                mainFrameFailed = false;
                 progress.setVisibility(View.VISIBLE);
                 super.onPageStarted(view, url, icon);
             }
 
             @Override
+            public void onPageCommitVisible(WebView view, String url) {
+                mainFrameFailed = false;
+                retryAttempt = 0;
+                retryPending = false;
+                retryHandler.removeCallbacks(retryRunnable);
+                errorPane.setVisibility(View.GONE);
+                super.onPageCommitVisible(view, url);
+            }
+
+            @Override
             public void onPageFinished(WebView view, String url) {
                 progress.setVisibility(View.GONE);
+                if (!mainFrameFailed && !retryPending) {
+                    retryAttempt = 0;
+                    errorPane.setVisibility(View.GONE);
+                }
                 super.onPageFinished(view, url);
             }
 
@@ -199,14 +232,19 @@ public final class MainActivity extends Activity {
             public void onReceivedError(
                 WebView view, WebResourceRequest request, WebResourceError error) {
                 if (request.isForMainFrame()) {
-                    showError(getString(R.string.connection_error), true);
+                    mainFrameFailed = true;
+                    scheduleRetry();
                 }
             }
 
             @Override
             public void onReceivedHttpError(
                 WebView view, WebResourceRequest request, WebResourceResponse response) {
-                if (request.isForMainFrame() && response.getStatusCode() >= 400) {
+                if (!request.isForMainFrame()) return;
+                mainFrameFailed = true;
+                if (response.getStatusCode() >= 500) {
+                    scheduleRetry();
+                } else if (response.getStatusCode() >= 400) {
                     showError(getString(R.string.connection_error), true);
                 }
             }
@@ -238,6 +276,25 @@ public final class MainActivity extends Activity {
             new ByteArrayInputStream(new byte[0]));
     }
 
+    private void showConnecting() {
+        if (progress != null) progress.setVisibility(View.VISIBLE);
+        if (errorText != null) errorText.setText(getString(R.string.connecting));
+        if (retryButton != null) retryButton.setVisibility(View.GONE);
+        if (errorPane != null) errorPane.setVisibility(View.VISIBLE);
+    }
+
+    private void scheduleRetry() {
+        if (retryPending) return;
+        if (retryAttempt >= RETRY_DELAYS_MS.length) {
+            showError(getString(R.string.connection_error), true);
+            return;
+        }
+        int delay = RETRY_DELAYS_MS[retryAttempt++];
+        retryPending = true;
+        showConnecting();
+        retryHandler.postDelayed(retryRunnable, delay);
+    }
+
     private void showError(String message, boolean retryable) {
         if (progress != null) progress.setVisibility(View.GONE);
         if (errorText != null) errorText.setText(message);
@@ -256,6 +313,7 @@ public final class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        retryHandler.removeCallbacks(retryRunnable);
         if (webView != null) {
             webView.stopLoading();
             webView.destroy();
