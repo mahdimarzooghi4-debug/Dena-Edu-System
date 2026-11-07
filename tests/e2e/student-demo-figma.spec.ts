@@ -10,8 +10,8 @@ test("student mobile home follows the approved Dena V2 shell and home screen", a
   await expect(page.getByRole("heading", { name: "معلم هوشمند" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "ریاضی دهم" }).first()).toBeVisible();
   await expect(page.getByText("حالت نمایش اپ دانش‌آموز")).toHaveCount(0);
-  await expect(page.locator('nav[aria-label="ناوبری خدمات دانش‌آموز"]')).toBeVisible();
   const studentNav = page.locator('nav[aria-label="منوی پایین دانش‌آموز"]');
+  await expect(studentNav).toBeVisible();
   await expect(studentNav.getByRole("link", { name: "خانه" })).toHaveAttribute("href", "/student-demo");
   await expect(studentNav.getByRole("link", { name: "دوره‌ها" })).toHaveAttribute("href", "/student-demo/courses");
   const navHrefs = await studentNav.locator("a").evaluateAll(links => links.map(link => (link as HTMLAnchorElement).getAttribute("href")));
@@ -25,7 +25,7 @@ test("student courses and course detail use compact Figma cards", async ({ page 
   await expect(page.getByRole("heading", { name: "دوره‌های من" })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "فیلتر دوره‌ها" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "ریاضی دهم" })).toBeVisible();
-  await expect(page.locator("svg").filter({ has: page.locator("path") }).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: "ادامه یادگیری" }).first()).toBeVisible();
 
   await page.goto("/student-demo/courses/math-7");
   await expect(page.getByRole("heading", { name: "جلسه جاری" })).toBeVisible();
