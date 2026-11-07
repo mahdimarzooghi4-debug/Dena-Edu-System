@@ -27,13 +27,18 @@ test("student courses and course detail use compact Figma cards", async ({ page 
   await expect(page.getByRole("navigation", { name: "فیلتر دوره‌ها" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "ریاضی دهم" })).toBeVisible();
   await expect(page.getByText("۷۵٪ پیشرفت").first()).toBeVisible();
+  await expect(page.getByText("۴۵٪ پیشرفت").first()).toBeVisible();
+  await expect(page.getByText("تابع و نمودار · جلسه ۸ از ۲۴")).toBeVisible();
+  await expect(page.getByText("آخرین فعالیت: امروز")).toBeVisible();
   await expect(page.getByText("جلسه ۸ از ۲۴").first()).toBeVisible();
   await expect(page.getByRole("link", { name: "ادامه یادگیری" }).first()).toBeVisible();
 
   await page.goto("/student-demo/courses/math-7");
   await expect(page.getByText("۲۹٪ پیشرفت")).toBeVisible();
   await expect(page.getByText("جلسه ۸ از ۲۴")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "جلسه جاری" })).toBeVisible();
+  await expect(page.getByText("استاد احمدی").first()).toBeVisible();
+  await expect(page.getByText("سارا کریمی")).toBeVisible();
+  await expect(page.getByText("مهدی رضایی")).toBeVisible();
   await expect(page.getByRole("heading", { name: "تیم آموزشی دوره" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "محتوای دوره" })).toBeVisible();
 });
@@ -72,5 +77,5 @@ test("student assessments, growth and profile screens remain reachable on mobile
   await expect(page.getByText("۶۸").first()).toBeVisible();
   await page.goto("/student-demo/profile");
   await expect(page.getByText("محمد علوی").first()).toBeVisible();
-  await expect(page.getByText("۰۹۱۲••••••••")).toBeVisible();
+  await expect(page.getByText("۰۹۱۲••••••••").first()).toBeVisible();
 });

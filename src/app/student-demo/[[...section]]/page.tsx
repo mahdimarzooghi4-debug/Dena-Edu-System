@@ -29,6 +29,8 @@ type DemoCourse = {
   done: number;
   total: number;
   currentSession?: number;
+  progressOverride?: number;
+  lastActivity?: string;
   lessons: string[];
 };
 
@@ -40,6 +42,8 @@ const demoCourses: DemoCourse[] = [
     done: 18,
     total: 24,
     currentSession: 8,
+    progressOverride: 75,
+    lastActivity: "امروز",
     lessons: ["دامنه تابع", "مفهوم تابع", "تابع و نمودار", "انواع نمودار"],
   },
   {
@@ -49,16 +53,18 @@ const demoCourses: DemoCourse[] = [
     done: 12,
     total: 20,
     currentSession: 5,
+    progressOverride: 60,
+    lastActivity: "دیروز",
     lessons: ["نیرو و حرکت", "نور", "کار و انرژی", "گرما"],
   },
-  { id: "chemistry-10", title: "شیمی دهم", provider: "مرکز علمی پژوهان", done: 8, total: 18, currentSession: 2, lessons: ["ساختار اتم", "جدول تناوبی", "پیوند شیمیایی"] },
-  { id: "science-9", title: "علوم نهم", provider: "دبیرستان فرزانگان", done: 16, total: 16, currentSession: 16, lessons: ["علوم پایه", "مرور فصل‌ها"] },
+  { id: "chemistry-10", title: "شیمی دهم", provider: "مرکز علمی پژوهان", done: 8, total: 18, currentSession: 2, progressOverride: 45, lastActivity: "۳ روز پیش", lessons: ["ساختار اتم", "جدول تناوبی", "پیوند شیمیایی"] },
+  { id: "science-9", title: "علوم نهم", provider: "دبیرستان فرزانگان", done: 16, total: 16, currentSession: 16, progressOverride: 100, lastActivity: "۱ هفته پیش", lessons: ["علوم پایه", "مرور فصل‌ها"] },
 ];
 
 const teamRoles = [
-  { id: "teacher", title: "مدرس", name: "خانم رضایی", detail: "آموزش و محتوای دوره" },
-  { id: "supporter", title: "پشتیبان تحصیلی", name: "آقای محمدی", detail: "رفع اشکال و پیگیری یادگیری" },
-  { id: "counselor", title: "مشاور", name: "خانم احمدی", detail: "راهنمایی در چارچوب خدمات مؤسسه" },
+  { id: "teacher", title: "مدرس", name: "استاد احمدی", detail: "آموزش و محتوای دوره" },
+  { id: "supporter", title: "پشتیبان تحصیلی", name: "سارا کریمی", detail: "رفع اشکال و پیگیری یادگیری" },
+  { id: "counselor", title: "مشاور", name: "مهدی رضایی", detail: "راهنمایی در چارچوب خدمات مؤسسه" },
 ] as const;
 
 const pages: Record<string, { title: string; active: StudentSection }> = {
@@ -203,10 +209,10 @@ function CourseGlyph({ courseId }: { courseId: string }) {
 
 function CourseList({ filter = "all" }: { filter?: string }) {
   const catalog = [
-    { ...demoCourses[0], title: "ریاضی دهم", provider: "مؤسسه آموزشی البرز", teacher: "استاد احمدی", done: 18, total: 24, currentSession: 8, topic: "تابع و نمودار" },
-    { ...demoCourses[1], title: "فیزیک دهم", provider: "آموزشگاه نور دانش", teacher: "استاد محمدی", done: 12, total: 20, currentSession: 5, topic: "نیرو و حرکت" },
-    { id: "chemistry-10", title: "شیمی دهم", provider: "مرکز علمی پژوهان", teacher: "استاد رضایی", done: 8, total: 18, currentSession: 2, lessons: ["ساختار اتم", "جدول تناوبی", "پیوند شیمیایی"], topic: "ساختار اتم" },
-    { id: "science-9", title: "علوم نهم", provider: "دبیرستان فرزانگان", teacher: "استاد کریمی", done: 16, total: 16, currentSession: 16, lessons: ["علوم پایه", "مرور فصل‌ها"], topic: "تکمیل دوره" },
+    { ...demoCourses[0], title: "ریاضی دهم", provider: "مؤسسه آموزشی البرز", teacher: "استاد احمدی", done: 18, total: 24, currentSession: 8, progressOverride: 75, lastActivity: "امروز", topic: "تابع و نمودار" },
+    { ...demoCourses[1], title: "فیزیک دهم", provider: "آموزشگاه نور دانش", teacher: "استاد محمدی", done: 12, total: 20, currentSession: 5, progressOverride: 60, lastActivity: "دیروز", topic: "نیرو و حرکت" },
+    { id: "chemistry-10", title: "شیمی دهم", provider: "مرکز علمی پژوهان", teacher: "استاد رضایی", done: 8, total: 18, currentSession: 2, progressOverride: 45, lastActivity: "۳ روز پیش", lessons: ["ساختار اتم", "جدول تناوبی", "پیوند شیمیایی"], topic: "ساختار اتم" },
+    { id: "science-9", title: "علوم نهم", provider: "دبیرستان فرزانگان", teacher: "استاد کریمی", done: 16, total: 16, currentSession: 16, progressOverride: 100, lastActivity: "۱ هفته پیش", lessons: ["علوم پایه", "مرور فصل‌ها"], topic: "تکمیل دوره" },
   ];
   const visibleCatalog = catalog.filter(course => filter === "all" || (filter === "completed" ? course.done === course.total : course.done < course.total));
   return (
@@ -225,15 +231,15 @@ function CourseList({ filter = "all" }: { filter?: string }) {
       </nav>
       <div className="space-y-3">
         {visibleCatalog.map(course => {
-          const progress = Math.round(course.done / course.total * 100);
+          const progress = course.progressOverride ?? Math.round(course.done / course.total * 100);
           const completed = progress === 100;
           return (
             <Card key={course.id} className="space-y-3 rounded-[20px] p-4 md:p-5">
               <div className="flex items-center gap-3">
                 <div className="min-w-0 flex-1 text-right">
                   <h3 className="font-extrabold text-dena-deep">{course.title}</h3>
-                  <p className="mt-1 text-xs leading-5 text-dena-muted">{course.provider} · {course.teacher}</p>
-                  <p className="mt-1 text-xs text-dena-muted">جلسه {(course.currentSession ?? course.done).toLocaleString("fa-IR")} از {course.total.toLocaleString("fa-IR")}</p>
+                  <p className="mt-1 text-xs leading-5 text-dena-muted">{course.topic} · جلسه {(course.currentSession ?? course.done).toLocaleString("fa-IR")} از {course.total.toLocaleString("fa-IR")}</p>
+                  <p className="mt-1 text-xs text-dena-muted">{course.provider}</p>
                 </div>
                 <div className="grid size-12 shrink-0 place-items-center rounded-xl bg-dena-lavender text-dena-brand">
                   <CourseGlyph courseId={course.id} />
@@ -241,7 +247,7 @@ function CourseList({ filter = "all" }: { filter?: string }) {
               </div>
               <div className="flex items-center justify-between gap-3 text-xs text-dena-muted">
                 <span>{progress.toLocaleString("fa-IR")}٪ پیشرفت</span>
-                <span>{completed ? "دوره تکمیل شده" : `موضوع فعلی: ${course.topic}`}</span>
+                <span>آخرین فعالیت: {course.lastActivity ?? "امروز"}</span>
               </div>
               <div className="h-1.5 overflow-hidden rounded-full bg-dena-lavender">
                 <div className="h-full rounded-full bg-dena-mint" style={{ width: `${progress}%` }} />
@@ -262,7 +268,7 @@ function CourseList({ filter = "all" }: { filter?: string }) {
 }
 
 function CourseDetail({ course }: { course: DemoCourse }) {
-  const progress = course.id === "math-7" ? 29 : Math.round(course.done / course.total * 100);
+  const progress = course.id === "math-7" ? 29 : (course.progressOverride ?? Math.round(course.done / course.total * 100));
   const currentSession = course.currentSession ?? course.done;
   const currentLesson = course.id === "math-7" ? "تابع و نمودار" : course.lessons[Math.max(0, course.lessons.length - 1)];
   const lessonPath = course.id === "math-7" ? 3 : Math.max(1, course.lessons.length);
@@ -273,9 +279,8 @@ function CourseDetail({ course }: { course: DemoCourse }) {
           <div className="min-w-0 text-right">
             <p className="text-xs font-bold text-dena-brand">{course.provider}</p>
             <h2 className="mt-2 text-xl font-extrabold text-dena-deep">{course.title}</h2>
-            <p className="mt-1 text-sm text-dena-muted">موضوع فعلی: {currentLesson}</p>
+            <p className="mt-1 text-sm text-dena-muted">{currentLesson}</p>
           </div>
-          <span className="shrink-0 rounded-full bg-dena-lavender px-3 py-1.5 text-xs font-bold text-dena-brand">در حال یادگیری</span>
         </div>
         <div className="flex items-center justify-between gap-3 text-xs text-dena-muted">
           <span>{progress.toLocaleString("fa-IR")}٪ پیشرفت</span>
@@ -289,12 +294,8 @@ function CourseDetail({ course }: { course: DemoCourse }) {
 
       <Card className="space-y-3 rounded-[20px] p-4 md:p-5">
         <div className="flex items-center justify-between gap-3">
-          <span className="rounded-full bg-dena-lavender px-3 py-1.5 text-xs font-bold text-dena-brand">در حال یادگیری</span>
-          <h3 className="font-extrabold text-dena-deep">جلسه جاری</h3>
-        </div>
-        <div className="text-right">
-          <p className="font-bold text-dena-deep">جلسه {currentSession.toLocaleString("fa-IR")} — {currentLesson}</p>
-          <p className="mt-1 text-xs text-dena-muted">مدرس: استاد احمدی</p>
+          <h3 className="font-extrabold text-dena-deep">جلسه {currentSession.toLocaleString("fa-IR")} — {currentLesson}</h3>
+          <span className="shrink-0 rounded-full bg-dena-lavender px-3 py-1.5 text-xs font-bold text-dena-brand">در حال یادگیری</span>
         </div>
         <Link href={`/student-demo/courses/${course.id}/lessons/${lessonPath}`} className={buttonClassName("outline") + " flex w-full justify-center"}>ادامه جلسه</Link>
       </Card>
