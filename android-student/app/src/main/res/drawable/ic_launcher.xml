@@ -7,7 +7,7 @@
         </shape>
     </item>
     <item
-        android:drawable="@drawable/dena_launcher_foreground"
+        android:drawable="@drawable/dena_mark_foreground"
         android:width="108dp"
         android:height="108dp"
         android:gravity="center" />
