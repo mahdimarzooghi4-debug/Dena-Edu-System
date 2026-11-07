@@ -13,15 +13,13 @@ permissions:
 jobs:
   android-debug:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 55
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
-      # Ubuntu runners already include Android command-line tools. The
-      # setup-android v3 action tries to install removed package "tools".
       - name: Install Android SDK platform
         run: |
           SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
@@ -36,17 +34,108 @@ jobs:
           gradle-version: "8.11.1"
       - name: JVM tests and fail-closed Android debug APK
         run: gradle -p android-student --no-daemon testDebugUnitTest assembleDebug
-      - name: Build Android APK using existing synthetic Render showcase
+      - name: Build Figma-aligned Android preview APK
         run: |
           gradle -p android-student --no-daemon --rerun-tasks \
             -PdenaStudentUrl=https://dena-student-demo.onrender.com/student-demo \
             assembleDebug
-      - name: Publish Android debug APK
+      - name: Publish Android debug APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: dena-student-android-showcase-${{ github.sha }}
           path: android-student/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+      - name: Verify the student app entry page is reachable
+        env:
+          STUDENT_URL: https://dena-student-demo.onrender.com/student-demo
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 12); do
+            if curl --fail --silent --show-error --max-time 20 "$STUDENT_URL" -o /tmp/dena-student-entry.html; then
+              break
+            fi
+            if [ "$attempt" = "12" ]; then
+              echo "Dena student showcase did not become reachable."
+              exit 1
+            fi
+            sleep 5
+          done
+          grep -Fq 'سلام محمد' /tmp/dena-student-entry.html
+      - name: Install and launch on Android 9 emulator (API 28)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 28
+          arch: x86_64
+          target: google_apis
+          profile: pixel_2
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          disable-animations: true
+          script: |
+            set -euo pipefail
+            adb logcat -c
+            adb install -r android-student/app/build/outputs/apk/debug/app-debug.apk
+            adb shell monkey -p ir.dena.student.debug 1
+            sleep 25
+            adb shell pidof ir.dena.student.debug
+            adb shell dumpsys activity activities | grep -F 'ir.dena.student.debug'
+            adb shell uiautomator dump /sdcard/window.xml >/dev/null
+            adb pull /sdcard/window.xml /tmp/dena-window.xml >/dev/null
+            if ! grep -Fq 'سلام محمد' /tmp/dena-window.xml; then
+              adb shell screencap -p /sdcard/dena-api28.png
+              adb pull /sdcard/dena-api28.png dena-android-api28.png
+              cat /tmp/dena-window.xml
+              adb logcat -d -s AndroidRuntime:E chromium:E
+              echo "The Android 9 WebView did not render the Dena student home screen."
+              exit 1
+            fi
+            adb shell screencap -p /sdcard/dena-api28.png
+            adb pull /sdcard/dena-api28.png dena-android-api28.png
+            adb logcat -d -s AndroidRuntime:E > /tmp/dena-api28-runtime.log
+            if grep -Fq 'ir.dena.student.debug' /tmp/dena-api28-runtime.log; then
+              cat /tmp/dena-api28-runtime.log
+              exit 1
+            fi
+      - name: Install and launch on Android 15 emulator (API 35)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          profile: pixel_2
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          disable-animations: true
+          script: |
+            set -euo pipefail
+            adb logcat -c
+            adb install -r android-student/app/build/outputs/apk/debug/app-debug.apk
+            adb shell monkey -p ir.dena.student.debug 1
+            sleep 25
+            adb shell pidof ir.dena.student.debug
+            adb shell dumpsys activity activities | grep -F 'ir.dena.student.debug'
+            adb shell uiautomator dump /sdcard/window.xml >/dev/null
+            adb pull /sdcard/window.xml /tmp/dena-window.xml >/dev/null
+            if ! grep -Fq 'سلام محمد' /tmp/dena-window.xml; then
+              adb shell screencap -p /sdcard/dena-api35.png
+              adb pull /sdcard/dena-api35.png dena-android-api35.png
+              cat /tmp/dena-window.xml
+              adb logcat -d -s AndroidRuntime:E chromium:E
+              echo "The Android 15 WebView did not render the Dena student home screen."
+              exit 1
+            fi
+            adb shell screencap -p /sdcard/dena-api35.png
+            adb pull /sdcard/dena-api35.png dena-android-api35.png
+            adb logcat -d -s AndroidRuntime:E > /tmp/dena-api35-runtime.log
+            if grep -Fq 'ir.dena.student.debug' /tmp/dena-api35-runtime.log; then
+              cat /tmp/dena-api35-runtime.log
+              exit 1
+            fi
+      - name: Upload Android emulator screenshots
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dena-android-emulator-screenshots-${{ github.sha }}
+          path: dena-android-api*.png
+          if-no-files-found: warn
       - name: Prepare versioned preview APK and checksum
         run: |
           cp android-student/app/build/outputs/apk/debug/app-debug.apk dena-student-android-demo.apk
@@ -57,17 +146,13 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          tag=dena-student-demo-v0.1.1-preview
+          tag=dena-student-demo-v0.1.2-preview
           if gh release view "$tag" >/dev/null 2>&1; then
-            if gh release view "$tag" --json assets --jq '.assets[].name' | grep -qx 'dena-student-android-demo.apk'; then
-              echo "Existing versioned release is immutable; keeping previously published debug APK."
-            else
-              gh release upload "$tag" dena-student-android-demo.apk dena-student-android-demo.apk.sha256
-            fi
-          else
-            gh release create "$tag" dena-student-android-demo.apk dena-student-android-demo.apk.sha256 \
-              --target "${{ github.event.pull_request.head.sha }}" \
-              --prerelease \
-              --title "Dena Student Android — demo 0.1.1 (official Dena icon)" \
-              --notes "Android-only demo APK pointing to the already deployed synthetic Dena student showcase. Preview, not production. No real accounts, payments or SMS. Internet required. Signed with an ephemeral Android debug certificate. Do not use for production distribution."
+            echo "Versioned preview release already exists; never replace a published APK."
+            exit 1
           fi
+          gh release create "$tag" dena-student-android-demo.apk dena-student-android-demo.apk.sha256 \
+            --target "${{ github.event.pull_request.head.sha }}" \
+            --prerelease \
+            --title "Dena Student Android — demo 0.1.2 (Figma-aligned launcher and runtime)" \
+            --notes "Preview APK for the Dena Student App V2 showcase. Uses the Figma-aligned student web experience at dena-student-demo.onrender.com. Synthetic preview data only; no real account, payments or SMS. Internet connection required. Signed with a one-run Android debug certificate; uninstall an older preview APK before installing this version if Android reports a signature conflict."

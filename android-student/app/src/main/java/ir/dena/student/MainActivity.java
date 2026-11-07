@@ -4,14 +4,11 @@ import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.graphics.Color;
-import android.graphics.Insets;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.WindowInsets;
 import android.webkit.CookieManager;
 import android.webkit.PermissionRequest;
 import android.webkit.SslErrorHandler;
@@ -33,10 +30,11 @@ import java.io.ByteArrayInputStream;
 import java.net.URI;
 
 /**
- * Android-only container for the existing Dena student web app.
+ * Thin Android host for the Dena student experience.
  *
- * Authentication, student permissions, exams, progress and data are provided
- * exclusively by the Dena backend; no fake native data or tokens are injected.
+ * The Figma-aligned navigation, header and screens are rendered by the
+ * first-party Dena student web app. This Activity must not add a second
+ * toolbar or duplicate navigation around that experience.
  */
 public final class MainActivity extends Activity {
     private URI startUri;
@@ -57,50 +55,17 @@ public final class MainActivity extends Activity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        getWindow().setStatusBarColor(BG);
+        getWindow().setNavigationBarColor(BG);
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         root.setBackgroundColor(BG);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            root.setOnApplyWindowInsetsListener((view, insets) -> {
-                Insets safe = insets.getInsets(WindowInsets.Type.systemBars());
-                view.setPadding(safe.left, safe.top, safe.right, safe.bottom);
-                return insets;
-            });
-        } else {
-            root.setFitsSystemWindows(true);
-        }
+        // Keep Android system bars outside the web content. The Dena web shell
+        // owns its own Figma-aligned top bar and bottom navigation.
+        root.setFitsSystemWindows(true);
         setContentView(root);
-
-        LinearLayout toolbar = new LinearLayout(this);
-        toolbar.setGravity(Gravity.CENTER_VERTICAL);
-        toolbar.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        toolbar.setPadding(dp(16), 0, dp(16), 0);
-        toolbar.setBackgroundColor(Color.WHITE);
-
-        TextView title = new TextView(this);
-        title.setText(getString(R.string.app_name));
-        title.setTextColor(DARK);
-        title.setTextSize(19);
-        title.setTypeface(null, 1);
-        toolbar.addView(title, new LinearLayout.LayoutParams(0, dp(56), 1));
-
-        TextView refresh = new TextView(this);
-        refresh.setText("⟳");
-        refresh.setTextColor(BRAND);
-        refresh.setTextSize(29);
-        refresh.setGravity(Gravity.CENTER);
-        refresh.setContentDescription(getString(R.string.retry));
-        refresh.setOnClickListener(view -> {
-            if (webView != null && startUri != null) {
-                errorPane.setVisibility(View.GONE);
-                webView.reload();
-            }
-        });
-        toolbar.addView(refresh, new LinearLayout.LayoutParams(dp(48), dp(56)));
-        root.addView(toolbar, new LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, dp(56)));
 
         progress = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
         progress.setMax(100);
@@ -108,7 +73,7 @@ public final class MainActivity extends Activity {
         progress.setProgressTintList(android.content.res.ColorStateList.valueOf(BRAND));
         progress.setVisibility(View.GONE);
         root.addView(progress, new LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, dp(3)));
+            ViewGroup.LayoutParams.MATCH_PARENT, dp(2)));
 
         FrameLayout frame = new FrameLayout(this);
         root.addView(frame, new LinearLayout.LayoutParams(
@@ -139,24 +104,30 @@ public final class MainActivity extends Activity {
             ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         retryParams.topMargin = dp(18);
         errorPane.addView(retryButton, retryParams);
-
-        frame.addView(errorPane, new FrameLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         errorPane.setVisibility(View.GONE);
 
         try {
             startUri = AppAddress.validatedStart(BuildConfig.STUDENT_START_URL);
         } catch (IllegalArgumentException invalid) {
             showError(getString(R.string.configuration_missing), false);
+            frame.addView(errorPane, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
             return;
         }
         if (startUri == null) {
             showError(getString(R.string.configuration_missing), false);
+            frame.addView(errorPane, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
             return;
         }
 
         webView = new WebView(this);
-        frame.addView(webView, 0, new FrameLayout.LayoutParams(
+        webView.setBackgroundColor(BG);
+        webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        webView.setVerticalScrollBarEnabled(false);
+        frame.addView(webView, new FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        frame.addView(errorPane, new FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
         configureWebView();
@@ -174,6 +145,8 @@ public final class MainActivity extends Activity {
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         settings.setJavaScriptCanOpenWindowsAutomatically(false);
         settings.setSupportMultipleWindows(false);
+        settings.setSupportZoom(false);
+        settings.setBuiltInZoomControls(false);
         settings.setMediaPlaybackRequiresUserGesture(true);
         settings.setSafeBrowsingEnabled(true);
 
@@ -204,11 +177,8 @@ public final class MainActivity extends Activity {
             public WebResourceResponse shouldInterceptRequest(
                 WebView view, WebResourceRequest request) {
                 String scheme = request.getUrl().getScheme();
-                if ("http".equalsIgnoreCase(scheme)) return blocked();
-                if ("https".equalsIgnoreCase(scheme) &&
-                    !AppAddress.sameOrigin(startUri, request.getUrl().toString())) {
-                    return blocked();
-                }
+                if (!"https".equalsIgnoreCase(scheme)) return blocked();
+                if (!AppAddress.sameOrigin(startUri, request.getUrl().toString())) return blocked();
                 return null;
             }
 
@@ -229,6 +199,14 @@ public final class MainActivity extends Activity {
             public void onReceivedError(
                 WebView view, WebResourceRequest request, WebResourceError error) {
                 if (request.isForMainFrame()) {
+                    showError(getString(R.string.connection_error), true);
+                }
+            }
+
+            @Override
+            public void onReceivedHttpError(
+                WebView view, WebResourceRequest request, WebResourceResponse response) {
+                if (request.isForMainFrame() && response.getStatusCode() >= 400) {
                     showError(getString(R.string.connection_error), true);
                 }
             }
@@ -262,9 +240,9 @@ public final class MainActivity extends Activity {
 
     private void showError(String message, boolean retryable) {
         if (progress != null) progress.setVisibility(View.GONE);
-        errorText.setText(message);
-        retryButton.setVisibility(retryable ? View.VISIBLE : View.GONE);
-        errorPane.setVisibility(View.VISIBLE);
+        if (errorText != null) errorText.setText(message);
+        if (retryButton != null) retryButton.setVisibility(retryable ? View.VISIBLE : View.GONE);
+        if (errorPane != null) errorPane.setVisibility(View.VISIBLE);
     }
 
     @Override
