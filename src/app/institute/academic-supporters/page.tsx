@@ -17,7 +17,7 @@ export default async function InstituteAcademicSupportersPage() {
   const actor = await getServerAccessContext();
   if (!actor) redirect("/login");
   const instituteIds = [...new Set(actor.memberships.flatMap((membership) =>
-    membership.role === "institute" && membership.status === "active"
+    membership.role === "institute"
       ? [membership.instituteId] : []))];
   if (!instituteIds.length) notFound();
 

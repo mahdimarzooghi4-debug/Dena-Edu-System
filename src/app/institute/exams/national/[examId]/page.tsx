@@ -37,7 +37,7 @@ export default async function InstituteNationalAssessmentPage({
   const actor = await getServerAccessContext();
   if (!actor) redirect("/login");
   if (!actor.memberships.some((membership) =>
-    membership.role === "institute" && membership.status === "active")) notFound();
+    membership.role === "institute")) notFound();
 
   const { examId } = await params;
   if (!z.uuid().safeParse(examId).success) notFound();

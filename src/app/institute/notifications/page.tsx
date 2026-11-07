@@ -35,7 +35,7 @@ export default async function InstituteNotificationsPage({
   const actor = await getServerAccessContext();
   if (!actor) redirect("/login");
   if (!actor.memberships.some((membership) =>
-    membership.role === "institute" && membership.status === "active")) notFound();
+    membership.role === "institute")) notFound();
 
   const params = await searchParams;
   const tab: Tab = params.tab === "unread" || params.tab === "system" ? params.tab : "all";
