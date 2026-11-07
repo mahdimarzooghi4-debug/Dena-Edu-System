@@ -67,9 +67,9 @@ test("student assessments, growth and profile screens remain reachable on mobile
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   }
   await page.goto("/student-demo/growth");
-  await expect(page.getByText("۴۲")).toBeVisible();
-  await expect(page.getByText("+۲۶")).toBeVisible();
-  await expect(page.getByText("۶۸")).toBeVisible();
+  await expect(page.getByText("۴۲").first()).toBeVisible();
+  await expect(page.getByText("+۲۶").first()).toBeVisible();
+  await expect(page.getByText("۶۸").first()).toBeVisible();
   await page.goto("/student-demo/profile");
   await expect(page.getByText("محمد علوی").first()).toBeVisible();
   await expect(page.getByText("۰۹۱۲••••••••")).toBeVisible();
