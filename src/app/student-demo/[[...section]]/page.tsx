@@ -28,6 +28,7 @@ type DemoCourse = {
   provider: string;
   done: number;
   total: number;
+  currentSession?: number;
   lessons: string[];
 };
 
@@ -38,6 +39,7 @@ const demoCourses: DemoCourse[] = [
     provider: "مؤسسه آموزشی البرز",
     done: 18,
     total: 24,
+    currentSession: 8,
     lessons: ["دامنه تابع", "مفهوم تابع", "تابع و نمودار", "انواع نمودار"],
   },
   {
@@ -46,10 +48,11 @@ const demoCourses: DemoCourse[] = [
     provider: "آموزشگاه نور دانش",
     done: 12,
     total: 20,
+    currentSession: 5,
     lessons: ["نیرو و حرکت", "نور", "کار و انرژی", "گرما"],
   },
-  { id: "chemistry-10", title: "شیمی دهم", provider: "مرکز علمی پژوهان", done: 8, total: 18, lessons: ["ساختار اتم", "جدول تناوبی", "پیوند شیمیایی"] },
-  { id: "biology-10", title: "زیست‌شناسی دهم", provider: "دبیرستان فرزانگان", done: 16, total: 16, lessons: ["دنیای زنده", "گوارش و جذب مواد"] },
+  { id: "chemistry-10", title: "شیمی دهم", provider: "مرکز علمی پژوهان", done: 8, total: 18, currentSession: 2, lessons: ["ساختار اتم", "جدول تناوبی", "پیوند شیمیایی"] },
+  { id: "science-9", title: "علوم نهم", provider: "دبیرستان فرزانگان", done: 16, total: 16, currentSession: 16, lessons: ["علوم پایه", "مرور فصل‌ها"] },
 ];
 
 const teamRoles = [
@@ -76,8 +79,8 @@ const pages: Record<string, { title: string; active: StudentSection }> = {
 function Home() {
   const courses = [
     { id: "math-7", title: "ریاضی دهم", institute: "مؤسسه آموزشی البرز", progress: 33, lesson: "جلسه ۸ از ۲۴", topic: "تابع و نمودار", last: "امروز" },
-    { id: "science-7", title: "فیزیک دهم", institute: "مرکز آموزش نوین", progress: 27, lesson: "جلسه ۵ از ۱۸", topic: "نیرو و حرکت", last: "دیروز" },
-    { id: "chemistry-10", title: "شیمی دهم", institute: "آکادمی علم", progress: 12, lesson: "جلسه ۲ از ۱۶", topic: "ساختار اتم", last: "۳ روز پیش" },
+    { id: "science-7", title: "فیزیک دهم", institute: "فیزیک ۱", progress: 27, lesson: "جلسه ۵ از ۱۸", topic: "فیزیک ۱", last: "دیروز" },
+    { id: "chemistry-10", title: "شیمی دهم", institute: "ساختار اتم", progress: 12, lesson: "جلسه ۲ از ۱۶", topic: "ساختار اتم", last: "۳ روز پیش" },
   ];
   const assessments = [
     { title: "آزمون فصل سوم ریاضی", course: "ریاضی دهم", status: "آماده انجام", color: "bg-dena-lavender text-dena-brand", href: "/student-demo/assessments/math-7-practice" },
@@ -200,17 +203,17 @@ function CourseGlyph({ courseId }: { courseId: string }) {
 
 function CourseList({ filter = "all" }: { filter?: string }) {
   const catalog = [
-    { ...demoCourses[0], title: "ریاضی دهم", provider: "مؤسسه آموزشی البرز", teacher: "استاد احمدی", done: 18, total: 24, topic: "تابع و نمودار" },
-    { ...demoCourses[1], title: "فیزیک دهم", provider: "آموزشگاه نور دانش", teacher: "استاد محمدی", done: 12, total: 20, topic: "نیرو و حرکت" },
-    { id: "chemistry-10", title: "شیمی دهم", provider: "مرکز علمی پژوهان", teacher: "استاد رضایی", done: 8, total: 18, lessons: ["ساختار اتم", "جدول تناوبی", "پیوند شیمیایی"], topic: "ساختار اتم" },
-    { id: "biology-10", title: "زیست‌شناسی دهم", provider: "دبیرستان فرزانگان", teacher: "استاد کریمی", done: 16, total: 16, lessons: ["دنیای زنده", "گوارش و جذب مواد"], topic: "تکمیل دوره" },
+    { ...demoCourses[0], title: "ریاضی دهم", provider: "مؤسسه آموزشی البرز", teacher: "استاد احمدی", done: 18, total: 24, currentSession: 8, topic: "تابع و نمودار" },
+    { ...demoCourses[1], title: "فیزیک دهم", provider: "آموزشگاه نور دانش", teacher: "استاد محمدی", done: 12, total: 20, currentSession: 5, topic: "نیرو و حرکت" },
+    { id: "chemistry-10", title: "شیمی دهم", provider: "مرکز علمی پژوهان", teacher: "استاد رضایی", done: 8, total: 18, currentSession: 2, lessons: ["ساختار اتم", "جدول تناوبی", "پیوند شیمیایی"], topic: "ساختار اتم" },
+    { id: "science-9", title: "علوم نهم", provider: "دبیرستان فرزانگان", teacher: "استاد کریمی", done: 16, total: 16, currentSession: 16, lessons: ["علوم پایه", "مرور فصل‌ها"], topic: "تکمیل دوره" },
   ];
   const visibleCatalog = catalog.filter(course => filter === "all" || (filter === "completed" ? course.done === course.total : course.done < course.total));
   return (
     <div className="space-y-5">
       <header className="space-y-2 text-right">
         <h2 className="text-2xl font-extrabold text-dena-deep">دوره‌های من</h2>
-        <p className="text-sm leading-6 text-dena-muted">دوره‌های آموزشی و میزان پیشرفت یادگیری‌ات را دنبال کن.</p>
+        <p className="text-sm leading-6 text-dena-muted">دوره‌هایی که در آن‌ها ثبت‌نام کرده‌ای</p>
       </header>
       <nav aria-label="فیلتر دوره‌ها" className="flex flex-wrap justify-start gap-2">
         {[[ "all", "همه" ], [ "learning", "در حال یادگیری" ], [ "completed", "تکمیل‌شده" ]].map(([key, label]) => (
@@ -230,14 +233,14 @@ function CourseList({ filter = "all" }: { filter?: string }) {
                 <div className="min-w-0 flex-1 text-right">
                   <h3 className="font-extrabold text-dena-deep">{course.title}</h3>
                   <p className="mt-1 text-xs leading-5 text-dena-muted">{course.provider} · {course.teacher}</p>
-                  <p className="mt-1 text-xs text-dena-muted">{course.done} از {course.total} جلسه</p>
+                  <p className="mt-1 text-xs text-dena-muted">جلسه {(course.currentSession ?? course.done).toLocaleString("fa-IR")} از {course.total.toLocaleString("fa-IR")}</p>
                 </div>
                 <div className="grid size-12 shrink-0 place-items-center rounded-xl bg-dena-lavender text-dena-brand">
                   <CourseGlyph courseId={course.id} />
                 </div>
               </div>
               <div className="flex items-center justify-between gap-3 text-xs text-dena-muted">
-                <span>{progress}٪ پیشرفت</span>
+                <span>{progress.toLocaleString("fa-IR")}٪ پیشرفت</span>
                 <span>{completed ? "دوره تکمیل شده" : `موضوع فعلی: ${course.topic}`}</span>
               </div>
               <div className="h-1.5 overflow-hidden rounded-full bg-dena-lavender">
@@ -259,7 +262,8 @@ function CourseList({ filter = "all" }: { filter?: string }) {
 }
 
 function CourseDetail({ course }: { course: DemoCourse }) {
-  const progress = Math.round(course.done / course.total * 100);
+  const progress = course.id === "math-7" ? 29 : Math.round(course.done / course.total * 100);
+  const currentSession = course.currentSession ?? course.done;
   const currentLesson = course.id === "math-7" ? "تابع و نمودار" : course.lessons[Math.max(0, course.lessons.length - 1)];
   const lessonPath = course.id === "math-7" ? 3 : Math.max(1, course.lessons.length);
   return (
@@ -274,8 +278,8 @@ function CourseDetail({ course }: { course: DemoCourse }) {
           <span className="shrink-0 rounded-full bg-dena-lavender px-3 py-1.5 text-xs font-bold text-dena-brand">در حال یادگیری</span>
         </div>
         <div className="flex items-center justify-between gap-3 text-xs text-dena-muted">
-          <span>{progress}٪ پیشرفت</span>
-          <span>{course.done} از {course.total} جلسه</span>
+          <span>{progress.toLocaleString("fa-IR")}٪ پیشرفت</span>
+          <span>جلسه {currentSession.toLocaleString("fa-IR")} از {course.total.toLocaleString("fa-IR")}</span>
         </div>
         <div className="h-2 overflow-hidden rounded-full bg-dena-lavender">
           <div className="h-full rounded-full bg-dena-mint" style={{ width: `${progress}%` }} />
@@ -289,7 +293,7 @@ function CourseDetail({ course }: { course: DemoCourse }) {
           <h3 className="font-extrabold text-dena-deep">جلسه جاری</h3>
         </div>
         <div className="text-right">
-          <p className="font-bold text-dena-deep">جلسه {course.id === "math-7" ? "۸" : course.done} — {currentLesson}</p>
+          <p className="font-bold text-dena-deep">جلسه {currentSession.toLocaleString("fa-IR")} — {currentLesson}</p>
           <p className="mt-1 text-xs text-dena-muted">مدرس: استاد احمدی</p>
         </div>
         <Link href={`/student-demo/courses/${course.id}/lessons/${lessonPath}`} className={buttonClassName("outline") + " flex w-full justify-center"}>ادامه جلسه</Link>
@@ -375,7 +379,7 @@ function LessonDetail({ course, lessonNumber, tab = "sessions" }: { course: Demo
                       <span className={`shrink-0 text-[11px] font-semibold ${selected ? "text-dena-brand" : completed ? "text-emerald-700" : "text-dena-muted"}`}>
                         {selected ? "در حال یادگیری" : completed ? "تکمیل‌شده" : "شروع‌نشده"}
                       </span>
-                      <span className={`text-sm font-semibold ${selected ? "text-dena-brand" : "text-dena-deep"}`}>جلسه {session.number} — {session.title}</span>
+                      <span className={`text-sm font-semibold ${selected ? "text-dena-brand" : "text-dena-deep"}`}>جلسه {session.number.toLocaleString("fa-IR")} — {session.title}</span>
                     </Link>
                   </li>
                 );
@@ -396,8 +400,8 @@ function LessonDetail({ course, lessonNumber, tab = "sessions" }: { course: Demo
             </div>
             <div className="space-y-3 bg-[#1c1a30] p-3">
               <div className="relative h-1.5 rounded-full bg-[#4e4a75]" aria-label="پیشرفت نمونهٔ ویدئو">
-                <div className="h-full w-[41%] rounded-full bg-dena-brand" />
-                <span className="absolute left-[41%] top-1/2 size-3 -translate-y-1/2 rounded-full border-2 border-white bg-dena-brand" />
+                <div className="h-full w-[47%] rounded-full bg-dena-brand" />
+                <span className="absolute left-[47%] top-1/2 size-3 -translate-y-1/2 rounded-full border-2 border-white bg-dena-brand" />
               </div>
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3 text-xs text-white">
