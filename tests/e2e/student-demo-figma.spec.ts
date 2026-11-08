@@ -79,3 +79,30 @@ test("student assessments, growth and profile screens remain reachable on mobile
   await expect(page.getByText("محمد علوی").first()).toBeVisible();
   await expect(page.getByText("۰۹۱۲••••••••").first()).toBeVisible();
 });
+
+
+test("consultation video page is a safe interactive demo with no live media or payments", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const postRequests: string[] = [];
+  page.on("request", (request) => {
+    if (request.method() !== "GET") postRequests.push(request.url());
+  });
+  await page.goto("/student-demo/services");
+  await page.getByRole("link", { name: "مشاهده نمایشی تماس تصویری" }).click();
+  await expect(page).toHaveURL(/\/student-demo\/video-consultation$/);
+  await expect(page.getByRole("heading", { name: "جلسه مشاوره تصویری" })).toBeVisible();
+  await expect(page.getByText("فقط نمایش · بدون تماس واقعی")).toBeVisible();
+  await expect(page.getByRole("status")).toHaveText("آماده پیش‌نمایش");
+  await page.getByRole("button", { name: "شروع پیش‌نمایش تصویری" }).click();
+  await expect(page.getByRole("status")).toHaveText("در حال نمایش جلسه");
+  await page.getByRole("button", { name: "خاموش کردن دوربین نمایشی" }).click();
+  await expect(page.getByText("دوربین نمایشی خاموش")).toBeVisible();
+  await page.getByRole("button", { name: "خاموش کردن میکروفن نمایشی" }).click();
+  await expect(page.getByText("میکروفن نمادین خاموش", { exact: false })).toBeVisible();
+  await page.getByRole("button", { name: "پایان جلسه نمایشی" }).click();
+  await expect(page.getByRole("alertdialog")).toBeVisible();
+  await page.getByRole("button", { name: "تأیید پایان نمایشی" }).click();
+  await expect(page.getByRole("status")).toHaveText("جلسه نمایشی پایان یافت");
+  expect(postRequests).toEqual([]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
