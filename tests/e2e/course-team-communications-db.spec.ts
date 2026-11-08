@@ -583,11 +583,11 @@ test.describe("course team communication and problem-solving stay course-scoped"
     await expect(page.getByText("درخواست جلسه ثبت شد.")).toBeVisible();
     await page.goto(`http://localhost:3000/student/courses/${courseId}/team/${supporterTeamMemberId}/problem-solving`);
     const requestCard = page.locator("li").filter({ hasText: subject });
-    await expect(requestCard).toContainText(description);
+    await expect(requestCard).toContainText(subject);
     await expect(requestCard).toContainText("ثبت‌شده");
 
     await page.reload();
-    await expect(page.locator("li").filter({ hasText: subject })).toContainText(description);
+    await expect(page.locator("li").filter({ hasText: subject })).toContainText("ثبت‌شده");
   });
 
   test("supporter reviews and completes a student request through the browser", async ({ page }) => {

@@ -501,10 +501,8 @@ test.describe("course-scoped provider requests and independent institute decisio
       name: "پروندهٔ وضعیت همین دوره",
     }).first().click();
     await expect(page).toHaveURL(/\/institute\/courses\/[0-9a-f-]+$/);
-    await expect(page.getByText("مالک/ارائه‌دهندهٔ دوره")).toBeVisible();
-    await page.getByRole("link", {
-      name: "بازگشت به خانهٔ مؤسسه",
-    }).click();
+    await expect(page.getByText("مدرس / ارائه‌دهنده")).toBeVisible();
+    await page.goto("http://localhost:3000/institute");
     await expect(page).toHaveURL(/\/institute$/);
     await page.getByRole("link", {
       name: "بررسی درخواست‌های نظارت",

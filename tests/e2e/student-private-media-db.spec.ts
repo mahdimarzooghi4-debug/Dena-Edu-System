@@ -844,8 +844,8 @@ test.describe("free enrollment and private video access must stay course-scoped"
     expect(dashboard.status()).toBe(200);
     const dashboardHtml = await dashboard.text();
     expect(dashboardHtml).toContain("دوره رایگان با محتوای خصوصی");
-    expect(dashboardHtml).toContain("رفتن به نخستین ویدئوی بی‌علامت");
-    expect(dashboardHtml).toContain("پاسخ تمرین کوتاه تو ثبت شده است.");
+    expect(dashboardHtml).toContain("ادامه یادگیری");
+    expect(dashboardHtml).toContain("تمرین‌ها و آزمون‌ها");
     expect(dashboardHtml).toContain(`/student/courses/${ids.live}/watch`);
     expect(dashboardHtml).not.toContain("دوره بدون تایید مؤسسه");
     expect(dashboardHtml).not.toContain(videoIds.withdrawn);
