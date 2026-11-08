@@ -279,8 +279,8 @@ test.describe("course-scoped provider requests and independent institute decisio
     const instituteLearning = await institute.get("/institute/learning");
     expect(instituteLearning.status()).toBe(200);
     const instituteLearningHtml = await instituteLearning.text();
-    expect(instituteLearningHtml).toContain("آمادگی آموزشی دوره‌ها");
-    expect(instituteLearningHtml).toContain("دوره آزمایشی نظارت مستقل دنا");
+    expect(instituteLearningHtml).toContain("مسیر رشد دانش‌آموزان");
+    expect(instituteLearningHtml).toContain("نمودار مراحل رشد دانش‌آموز");
     expect(instituteLearningHtml).not.toContain("studentPracticeAttempts");
     const ownInstituteOverview = await institute.get(
       `/api/institute/courses/${courseIds[0]}/overview`,

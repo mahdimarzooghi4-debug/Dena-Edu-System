@@ -263,8 +263,8 @@ test.describe("shared technical support tickets", () => {
     const subject = `رابط پشتیبانی ${randomUUID().slice(0, 8)}`;
     const initialMessage = "در رابط کاربری برای ورود به حساب با مشکل روبه‌رو شدم.";
     await page.getByLabel("موضوع").fill(subject);
-    await page.getByLabel("شرح درخواست").fill(initialMessage);
-    await page.getByRole("button", { name: "ثبت درخواست" }).click();
+    await page.getByLabel("پیام شما").fill(initialMessage);
+    await page.getByRole("button", { name: "ارسال درخواست" }).click();
     await expect(page).toHaveURL(/\/support\/[0-9a-f-]+$/);
     await expect(page.getByRole("heading", { name: subject })).toBeVisible();
     await expect(page.getByText(initialMessage)).toBeVisible();

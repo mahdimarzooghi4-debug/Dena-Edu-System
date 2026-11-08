@@ -387,14 +387,19 @@ test.describe("institute service order guardian consent", () => {
     await page.goto("http://localhost:3000/student/services/orders");
     const liveCall = page.getByRole("region", { name: "تماس زنده" });
     await expect(liveCall).toBeVisible();
-    const mediaDisclosure = liveCall.getByRole("checkbox").first();
+    // Consent is shown in a separate dialog; entering the call is forbidden
+    // until the student explicitly accepts the audio/video disclosure.
+    await expect(liveCall.getByRole("button", { name: "ورود فقط با صدا" })).toBeVisible();
+    await liveCall.getByRole("button", { name: "شروع مسیر" }).click();
+    const consentDialog = liveCall.getByRole("alertdialog", { name: "پیش از ورود به جلسه" });
+    await expect(consentDialog).toBeVisible();
+    const mediaDisclosure = consentDialog.getByRole("checkbox");
     await expect(mediaDisclosure).not.toBeChecked();
-    const audioOnly = liveCall.getByRole("checkbox", { name: "ورود فقط با صدا" });
-    await expect(audioOnly).not.toBeChecked();
-    const joinButton = liveCall.getByRole("button", { name: "ورود به جلسه" });
+    const joinButton = consentDialog.getByRole("button", { name: "تأیید و ورود" });
     await expect(joinButton).toBeDisabled();
     await mediaDisclosure.check();
     await expect(joinButton).toBeEnabled();
+    await consentDialog.getByRole("button", { name: "بازگشت" }).click();
     expect(await startInstituteServiceCall(
       users.institute, serviceCallId, new Date(Date.parse(scheduledAt) + 2_000),
     )).toMatchObject({ status: "started", duplicate: true });

@@ -422,7 +422,7 @@ test.describe("course team communication and problem-solving stay course-scoped"
 
     await page.goto(`http://localhost:3000/student/courses/${courseId}`);
     await page.getByRole("link", { name: /پشتیبان آزمون/ }).click();
-    await page.getByRole("link", { name: "مشاهده گفت‌وگو" }).click();
+    await page.getByRole("link", { name: "گفت‌وگو", exact: true }).click();
 
     const message = "برای ادامهٔ درس از رابط دانش‌آموز پیام می‌فرستم.";
     await page.getByLabel("پیام خود را بنویسید").fill(message);

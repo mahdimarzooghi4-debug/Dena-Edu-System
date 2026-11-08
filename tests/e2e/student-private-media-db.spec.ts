@@ -709,8 +709,8 @@ test.describe("free enrollment and private video access must stay course-scoped"
       `/student/courses/${ids.live}/watch#next-unmarked-video`,
     );
     const firstHome = await (await student.get("/student")).text();
-    expect(firstHome).toContain("علامت‌خورده به انتخاب خودت");
-    expect(firstHome).toContain("رفتن به نخستین ویدئوی بی‌علامت");
+    expect(firstHome).toContain("بر پایهٔ علامت‌های اختیاری خودت");
+    expect(firstHome).toContain(`/student/courses/${ids.live}/watch?video=`);
     expect(firstHome).not.toContain("correctOption");
     expect(firstHome).not.toContain("objectKey");
     // All self-marked videos and an unanswered approved question recommend
@@ -723,10 +723,8 @@ test.describe("free enrollment and private video access must stay course-scoped"
       `/student/courses/${ids.live}/watch#course-practice-heading`,
     );
     const nextHome = await (await student.get("/student")).text();
-    expect(nextHome).toContain("پاسخ به تمرین کوتاه تأییدشده");
-    expect(nextHome).toContain(
-      `/student/courses/${ids.live}/watch#course-practice-heading`,
-    );
+    expect(nextHome).toContain("تمرین‌ها و آزمون‌ها");
+    expect(nextHome).toContain(`/student/courses/${ids.live}/watch?video=`);
     expect((await student.delete(progressPath(ids.live, videoIds.ready), {
       headers: { Origin: "http://localhost:3000" },
     })).status()).toBe(200);
