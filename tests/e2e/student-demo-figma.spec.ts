@@ -29,7 +29,7 @@ test("student courses and course detail use compact Figma cards", async ({ page 
   await expect(page.getByText("۷۵٪ پیشرفت").first()).toBeVisible();
   await expect(page.getByText("۴۵٪ پیشرفت").first()).toBeVisible();
   await expect(page.getByText("تابع و نمودار · جلسه ۸ از ۲۴")).toBeVisible();
-  await expect(page.getByText("آخرین فعالیت: امروز")).toBeVisible();
+  await expect(page.getByText("آخرین فعالیت: امروز", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("جلسه ۸ از ۲۴").first()).toBeVisible();
   await expect(page.getByRole("link", { name: "ادامه یادگیری" }).first()).toBeVisible();
 
