@@ -1,0 +1,148 @@
+name: Android Student APK
+
+on:
+  pull_request:
+    paths:
+      - "android-student/**"
+      - ".github/workflows/android-student.yml"
+  workflow_dispatch:
+    inputs:
+      publish_preview:
+        description: "Explicitly publish a new immutable Android preview release"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  android-debug:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Install Android SDK platform
+        run: |
+          SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -name sdkmanager -type f | sort -r | head -n 1)"
+          if [ ! -x "$SDKMANAGER" ]; then
+            echo "Android SDK manager not available on runner"
+            exit 1
+          fi
+          "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
+      - name: Install checksum-verified Gradle from official distribution
+        run: |
+          set -euo pipefail
+          base=https://downloads.gradle.org/distributions/gradle-8.11.1-bin.zip
+          curl --fail --location --retry 5 --retry-all-errors --connect-timeout 15 --max-time 180 "$base.sha256" -o /tmp/gradle.sha256
+          checksum=$(tr -d '[:space:]' < /tmp/gradle.sha256)
+          [[ "$checksum" =~ ^[0-9a-f]{64}$ ]]
+          verified=false
+          for url in "$base" "https://repo.huaweicloud.com/gradle/gradle-8.11.1-bin.zip"; do
+            if curl --fail --location --retry 2 --retry-all-errors --connect-timeout 15 --max-time 180 "$url" -o /tmp/gradle.zip &&
+              printf '%s  /tmp/gradle.zip\n' "$checksum" | sha256sum --check --strict; then
+              verified=true
+              break
+            fi
+            rm -f /tmp/gradle.zip
+          done
+          test "$verified" = true
+          unzip -q /tmp/gradle.zip -d "$RUNNER_TEMP/dena-gradle"
+          echo "$RUNNER_TEMP/dena-gradle/gradle-8.11.1/bin" >> "$GITHUB_PATH"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: JVM tests and fail-closed Android debug APK
+        run: gradle -p android-student --no-daemon testDebugUnitTest assembleDebug
+      - name: Build Figma-aligned Android preview APK
+        run: |
+          gradle -p android-student --no-daemon --rerun-tasks \
+            -PdenaStudentUrl=https://dena-student-demo.onrender.com/student-demo \
+            assembleDebug
+      - name: Publish Android debug APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dena-student-android-showcase-${{ github.sha }}
+          path: android-student/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+      - name: Verify the student app entry page is reachable
+        env:
+          STUDENT_URL: https://dena-student-demo.onrender.com/student-demo
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 12); do
+            if curl --fail --silent --show-error --max-time 20 "$STUDENT_URL" -o /tmp/dena-student-entry.html; then
+              break
+            fi
+            if [ "$attempt" = "12" ]; then
+              echo "Dena student showcase did not become reachable."
+              exit 1
+            fi
+            sleep 5
+          done
+          grep -Fq 'سلام محمد' /tmp/dena-student-entry.html
+      - name: Enable KVM for hardware-accelerated Android emulators
+        run: |
+          test -e /dev/kvm
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          # Some hosted runners do not apply udev rules to the existing node.
+          if [ ! -r /dev/kvm ] || [ ! -w /dev/kvm ]; then sudo chmod 0666 /dev/kvm; fi
+          test -r /dev/kvm && test -w /dev/kvm
+      - name: Install and launch on Android 9 emulator (API 28)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 28
+          arch: x86_64
+          target: google_apis
+          profile: pixel_2
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -dns-server 1.1.1.1,8.8.8.8
+          disable-linux-hw-accel: false
+          emulator-boot-timeout: 300
+          disable-animations: true
+          script: bash android-student/scripts/smoke-emulator.sh 28
+      - name: Install and launch on Android 15 emulator (API 35)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          profile: pixel_2
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -dns-server 1.1.1.1,8.8.8.8
+          disable-linux-hw-accel: false
+          emulator-boot-timeout: 300
+          disable-animations: true
+          script: bash android-student/scripts/smoke-emulator.sh 35
+      - name: Upload Android emulator screenshots
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dena-android-emulator-screenshots-${{ github.sha }}
+          path: |
+            dena-android-api*.png
+            dena-android-api*-runtime.log
+          if-no-files-found: warn
+      - name: Prepare versioned preview APK and checksum
+        run: |
+          cp android-student/app/build/outputs/apk/debug/app-debug.apk dena-student-android-demo.apk
+          sha256sum dena-student-android-demo.apk > dena-student-android-demo.apk.sha256
+      - name: Publish public demo APK as a GitHub pre-release
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_preview == true }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag=dena-student-demo-v0.1.4-preview
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Versioned preview release already exists; never replace a published APK."
+            exit 1
+          fi
+          gh release create "$tag" dena-student-android-demo.apk dena-student-android-demo.apk.sha256 \
+            --target "${{ github.event.pull_request.head.sha }}" \
+            --prerelease \
+            --title "Dena Student Android — demo 0.1.4 (Figma-aligned launcher and runtime)" \
+            --notes "Preview APK for the Dena Student App V2 showcase. Uses the Figma-aligned student web experience at dena-student-demo.onrender.com. Synthetic preview data only; no real account, payments or SMS. Internet connection required. Signed with a one-run Android debug certificate; uninstall an older preview APK before installing this version if Android reports a signature conflict."
