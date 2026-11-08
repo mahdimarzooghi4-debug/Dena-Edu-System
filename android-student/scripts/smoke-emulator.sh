@@ -24,6 +24,14 @@ for attempt in $(seq 1 18); do
     rendered=true
     break
   fi
+  # A failing system launcher must not obscure the app under test. Match the
+  # exact system dialog; a Dena crash/ANR is never dismissed by this helper.
+  button=$(python3 android-student/scripts/launcher-dialog-button.py "$window")
+  if [ -n "$button" ]; then
+    read -r x y <<< "$button"
+    adb shell input tap "$x" "$y"
+    adb shell am start -W -n "$package/ir.dena.student.MainActivity"
+  fi
   sleep 5
 done
 if [ "$rendered" != true ]; then
