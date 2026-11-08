@@ -38,7 +38,14 @@ public class AppAddressTest {
             "https://localhost/student",
             "https://dena.invalid/student",
             "https://stage.edu-example.org:8443/student",
-            "https://stage.edu-example.org/student#fragment"
+            "https://stage.edu-example.org/student#fragment",
+            "https://10.0.0.1/student",
+            "https://192.168.1.1/student",
+            "https://169.254.169.254/student",
+            "https://8.8.8.8/student",
+            "https://dev.internal/student",
+            "https://device.local/student",
+            "https://demo.localhost/student"
         }) {
             try {
                 AppAddress.validatedStart(candidate);
