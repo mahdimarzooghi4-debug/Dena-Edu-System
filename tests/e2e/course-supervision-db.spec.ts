@@ -271,15 +271,16 @@ test.describe("course-scoped provider requests and independent institute decisio
     expect(instituteHtml).toContain("ویدئوهای آماده:");
     expect(instituteHtml).toContain("سؤال تمرینی:");
     expect(instituteHtml).toContain("ثبت نشده");
-    expect(instituteHtml).toContain("سؤال‌های تمرینی در انتظار بازبینی");
+    expect(instituteHtml).toContain("ارزیابی‌های در انتظار بازبینی");
+    expect(instituteHtml).toContain("در انتظار بازبینی:");
     expect(instituteHtml).toContain(
       `/institute/courses/${courseIds[0]}`,
     );
     const instituteLearning = await institute.get("/institute/learning");
     expect(instituteLearning.status()).toBe(200);
     const instituteLearningHtml = await instituteLearning.text();
-    expect(instituteLearningHtml).toContain("آمادگی آموزشی دوره‌ها");
-    expect(instituteLearningHtml).toContain("دوره آزمایشی نظارت مستقل دنا");
+    expect(instituteLearningHtml).toContain("مسیر رشد دانش‌آموزان");
+    expect(instituteLearningHtml).toContain("نمودار مراحل رشد دانش‌آموز");
     expect(instituteLearningHtml).not.toContain("studentPracticeAttempts");
     const ownInstituteOverview = await institute.get(
       `/api/institute/courses/${courseIds[0]}/overview`,
@@ -298,7 +299,7 @@ test.describe("course-scoped provider requests and independent institute decisio
     const pendingInstitutePage = await (await institute.get(
       `/institute/courses/${courseIds[0]}`,
     )).text();
-    expect(pendingInstitutePage).toContain("پروندهٔ نظارت و محتوای همین دوره");
+    expect(pendingInstitutePage).toContain("پروندهٔ دوره");
     expect(pendingInstitutePage).toContain("provider A");
     expect(pendingInstitutePage).toContain("رفتن به صف بررسی نظارت");
     expect(pendingInstitutePage).not.toContain(
@@ -500,10 +501,8 @@ test.describe("course-scoped provider requests and independent institute decisio
       name: "پروندهٔ وضعیت همین دوره",
     }).first().click();
     await expect(page).toHaveURL(/\/institute\/courses\/[0-9a-f-]+$/);
-    await expect(page.getByText("مالک/ارائه‌دهندهٔ دوره")).toBeVisible();
-    await page.getByRole("link", {
-      name: "بازگشت به خانهٔ مؤسسه",
-    }).click();
+    await expect(page.getByText("مدرس / ارائه‌دهنده")).toBeVisible();
+    await page.goto("http://localhost:3000/institute");
     await expect(page).toHaveURL(/\/institute$/);
     await page.getByRole("link", {
       name: "بررسی درخواست‌های نظارت",

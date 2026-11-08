@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Card } from "../../../components/ui/card";
 import { ServiceOrderConsent } from "../../../components/institute/service-order-consent";
@@ -87,6 +88,10 @@ export default async function InstituteServiceOrdersPage() {
           {order.calls.filter((call) => call.status === "ended").map((call) => (
             <ServiceCallFollowUpForm key={call.id} callId={call.id} initial={call.followUp} />
           ))}
+          {order.status === "paid" && <Link href={`/service-orders/${order.id}/messages`}
+            className="inline-flex min-h-11 items-center justify-center rounded-xl border border-dena-brand bg-white px-4 py-2 text-sm font-bold text-dena-brand">
+            گفت‌وگوی امن با دانش‌آموز
+          </Link>}
           {order.status === "awaiting_guardian_consent" && <ServiceOrderConsent orderId={order.id} />}
         </Card></li>)}
       </ul>

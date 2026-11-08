@@ -10,8 +10,9 @@ function unavailable():Response {
   });
 }
 export async function GET():Promise<Response> {
+  if (!(process.env.DENA_PUBLIC_ANDROID_APK_ENABLED === "1")) return unavailable();
   try {
-    const bytes=await readFile(join(process.cwd(),"public","downloads",preview.localFile));
+    const bytes=await readFile(join(process.cwd(),"private-assets","android",preview.localFile));
     if(bytes.byteLength!==preview.size||createHash("sha256").update(bytes).digest("hex")!==preview.sha256) return unavailable();
     return new Response(new Uint8Array(bytes),{status:200,headers:{
       "content-type":"application/vnd.android.package-archive",

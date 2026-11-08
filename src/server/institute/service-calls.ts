@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getDb } from "../../db";
 import {
   auditLogs, instituteServiceCalls, instituteServiceOrders, memberships,
-  serviceCallFollowUps, serviceTimeLedger, verifiedEntities,
+  serviceCallFollowUps, serviceOrderAttachments, serviceTimeLedger, verifiedEntities,
 } from "../../db/schema";
 import { auditLogRecord } from "../admin/audit";
 import type { FinancialJournalTransaction } from "../finance/ledger";
@@ -92,6 +92,8 @@ export async function addInstituteServiceCallSchedules<T extends { id: string }>
     serviceOrderId: instituteServiceCalls.serviceOrderId,
     scheduledAt: instituteServiceCalls.scheduledAt,
     status: instituteServiceCalls.status,
+    connectedSeconds: instituteServiceCalls.connectedSeconds,
+    noShowAt: instituteServiceCalls.noShowAt,
   }).from(instituteServiceCalls).where(inArray(
     instituteServiceCalls.serviceOrderId, orders.map((order) => order.id),
   )).orderBy(asc(instituteServiceCalls.scheduledAt), asc(instituteServiceCalls.id));
@@ -106,6 +108,14 @@ export async function addInstituteServiceCallSchedules<T extends { id: string }>
   const followUpByCall = new Map(followUps.map((item) => [item.serviceCallId, {
     summary: item.summary, nextSteps: item.nextSteps, publishedAt: item.publishedAt,
   }]));
+  const sharedFiles = await getDb().select({
+    serviceOrderId: serviceOrderAttachments.serviceOrderId,
+    count: sql<number>`count(*)::int`,
+  }).from(serviceOrderAttachments).where(and(
+    inArray(serviceOrderAttachments.serviceOrderId, orders.map((order) => order.id)),
+    eq(serviceOrderAttachments.status, "ready"),
+  )).groupBy(serviceOrderAttachments.serviceOrderId);
+  const sharedFileCountByOrder = new Map(sharedFiles.map((item) => [item.serviceOrderId, item.count]));
   const byOrder = new Map<string, typeof calls>();
   for (const call of calls) byOrder.set(call.serviceOrderId, [
     ...(byOrder.get(call.serviceOrderId) ?? []), call,
@@ -113,7 +123,10 @@ export async function addInstituteServiceCallSchedules<T extends { id: string }>
   return orders.map((order) => ({
     ...order,
     calls: (byOrder.get(order.id) ?? []).map((call) => ({
-      ...call, followUp: followUpByCall.get(call.id) ?? null,
+      ...call,
+      sharedFileCount: sharedFileCountByOrder.get(order.id) ?? 0,
+      canRecordNoShow: call.status === "scheduled" && call.scheduledAt.getTime() <= Date.now(),
+      followUp: followUpByCall.get(call.id) ?? null,
     })),
   }));
 }
@@ -337,9 +350,12 @@ export async function endStudentServiceCall(userId: string, callId: string, now 
 export async function cancelInstituteServiceCall(userId: string, callId: string, now = new Date()) {
   return transitionInstituteServiceCall(userId, callId, "cancel", now);
 }
+export async function recordInstituteServiceCallNoShow(userId: string, callId: string, now = new Date()) {
+  return transitionInstituteServiceCall(userId, callId, "no_show", now);
+}
 
 async function transitionInstituteServiceCall(
-  userId: string, callId: string, action: "start" | "end" | "cancel", now: Date,
+  userId: string, callId: string, action: "start" | "end" | "cancel" | "no_show", now: Date,
 ) {
   const result = await getDb().transaction(async (tx) => {
     const instituteIds = await getInstituteIds(tx, userId);
@@ -375,18 +391,29 @@ async function transitionInstituteServiceCall(
       if (!started?.startedAt || now.getTime() < started.startedAt.getTime()) {
         throw new InstituteServiceCallError("call_unavailable");
       }
-    } else {
+    } else if (action === "cancel") {
       if (call.status === "cancelled") return { id: call.id, status: call.status, duplicate: true };
       if (call.status !== "scheduled") throw new InstituteServiceCallError("call_unavailable");
+    } else {
+      if (call.status === "cancelled") {
+        const [recorded] = await tx.select({ noShowAt: instituteServiceCalls.noShowAt })
+          .from(instituteServiceCalls).where(eq(instituteServiceCalls.id, call.id)).limit(1);
+        if (recorded?.noShowAt) return { id: call.id, status: call.status, duplicate: true };
+      }
+      if (call.status !== "scheduled") throw new InstituteServiceCallError("call_unavailable");
+      if (now.getTime() < call.scheduledAt.getTime()) throw new InstituteServiceCallError("call_too_early");
     }
-    const status = action === "start" ? "started" as const : action === "end" ? "ended" as const : "cancelled" as const;
+    const status = action === "start" ? "started" as const
+      : action === "end" ? "ended" as const : "cancelled" as const;
     await tx.update(instituteServiceCalls).set({
       status,
       ...(action === "start" ? { startedAt: now } : {}),
       ...(action === "end" ? { endedAt: now } : {}),
+      ...(action === "no_show" ? { noShowAt: now, noShowByUserId: userId } : {}),
       updatedAt: now,
     }).where(eq(instituteServiceCalls.id, call.id));
-    const actionName = action === "start" ? "started" : action === "end" ? "ended" : "cancelled";
+    const actionName = action === "start" ? "started" : action === "end" ? "ended"
+      : action === "no_show" ? "no_show" : "cancelled";
     await tx.insert(auditLogs).values(auditLogRecord({
       actorId: userId, actorRole: "institute", action: `institute.service_call.${actionName}`,
       entityType: "SERVICE_CALL", entityId: call.id,

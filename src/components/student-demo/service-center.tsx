@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { buttonClassName } from "@/components/ui/button";
@@ -151,6 +152,14 @@ export function StudentDemoServiceCenter() {
                   <button type="button" onClick={() => requestService(service)} className={buttonClassName()}>
                     {orders.some((order) => order.serviceId === service.id && order.status !== "cancelled") ? "دیدن درخواست باز" : "درخواست نمونهٔ این خدمت"}
                   </button>
+                  {service.id === "weekly-study-consultation" && (
+                    <Link
+                      href="/student-demo/video-consultation"
+                      className="inline-flex min-h-11 items-center justify-center rounded-xl border border-dena-brand bg-white px-4 py-2 text-sm font-bold text-dena-brand"
+                    >
+                      مشاهده نمایشی تماس تصویری
+                    </Link>
+                  )}
                   {service.guardianConsentRequired && <p className="text-xs leading-6 text-dena-muted">ابتدا تأیید مؤسسه دربارهٔ رضایت سرپرست لازم است؛ سپس پرداخت قابل پیگیری خواهد بود.</p>}
                 </div>
               </Card>

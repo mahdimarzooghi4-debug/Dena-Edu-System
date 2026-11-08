@@ -5,6 +5,7 @@ import {
   courseConversationMessages,
   courseConversations,
   courseTeamMembers,
+  courses,
   studentEnrollments,
   user,
 } from "../../db/schema";
@@ -210,4 +211,18 @@ export async function sendStudentCourseMessage(
       },
     };
   });
+}
+
+
+/** Returns a course title only after confirming the student still has course entitlement. */
+export async function getStudentCourseConversationCourseTitle(
+  studentUserId: string,
+  courseId: string,
+) {
+  if (!await hasStudentEntitlement(studentUserId, courseId)) return null;
+  const [course] = await getDb().select({ title: courses.title })
+    .from(courses)
+    .where(eq(courses.id, courseId))
+    .limit(1);
+  return course?.title ?? null;
 }

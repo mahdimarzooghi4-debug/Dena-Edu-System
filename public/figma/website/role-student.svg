@@ -1,0 +1,24 @@
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="48" height="48" fill="#F5F5F5"/>
+<g id="dena-homepage-desktop">
+<rect width="1440" height="5858" transform="translate(-1140 -3610)" fill="#F7F6FB"/>
+<g id="Ecosystem Section">
+<rect width="1440" height="855" transform="translate(-1140 -287)" fill="white"/>
+<g id="Ecosystem Network">
+<g id="Participants">
+<g id="Student Node">
+<rect x="-99.5" y="-23.5" width="247" height="191" rx="19.5" fill="#F7F6FB"/>
+<rect x="-99.5" y="-23.5" width="247" height="191" rx="19.5" stroke="#352B68"/>
+<g id="Student Icon / Growth Path">
+<rect width="48" height="48" rx="14" fill="#EAE7FF"/>
+<circle id="Student / Head" cx="24" cy="12" r="4" fill="#5B4CE2"/>
+<rect id="Student / Body" x="20.5" y="18" width="7" height="13" rx="3.5" fill="#5B4CE2"/>
+<line id="Student / Growth Path" x1="13.432" y1="35.3922" x2="31.7902" y2="42.8094" stroke="#42CFA7" stroke-width="2.2" stroke-linecap="round"/>
+<circle id="Student / Growth Node" cx="38" cy="27" r="3" fill="#42CFA7"/>
+</g>
+</g>
+</g>
+</g>
+</g>
+</g>
+</svg>

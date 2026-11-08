@@ -5,7 +5,10 @@ import { z } from "zod";
 import { Card } from "@/components/ui/card";
 import { StudentShell } from "@/components/student/student-shell";
 import { getServerAccessContext } from "@/server/access/actor";
-import { getStudentCourseConversationList } from "@/server/student/course-conversation";
+import {
+  getStudentCourseConversationCourseTitle,
+  getStudentCourseConversationList,
+} from "@/server/student/course-conversation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,12 +17,18 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-function roleLabel(
-  role: "teacher" | "academic_supporter" | "counselor",
-) {
+function roleLabel(role: "teacher" | "academic_supporter" | "counselor") {
   if (role === "academic_supporter") return "پشتیبان تحصیلی";
-  if (role === "counselor") return "مشاور";
+  if (role === "counselor") return "مشاور دوره";
   return "مدرس";
+}
+
+function messageTime(value: Date) {
+  return value.toLocaleString("fa-IR", {
+    timeZone: "Asia/Tehran",
+    dateStyle: "short",
+    timeStyle: "short",
+  });
 }
 
 export default async function CourseConversationsPage({
@@ -37,69 +46,61 @@ export default async function CourseConversationsPage({
   const { courseId } = await params;
   if (!z.uuid().safeParse(courseId).success) notFound();
 
-  const conversations = await getStudentCourseConversationList(
-    actor.userId,
-    courseId,
-  );
-  if (!conversations) notFound();
+  const [conversations, courseTitle] = await Promise.all([
+    getStudentCourseConversationList(actor.userId, courseId),
+    getStudentCourseConversationCourseTitle(actor.userId, courseId),
+  ]);
+  if (!conversations || !courseTitle) notFound();
 
   return (
     <StudentShell active="courses" title="گفت‌وگوهای دوره">
-      <div className="space-y-6">
-        <Link
-          href={`/student/courses/${courseId}`}
-          className="text-sm font-bold text-dena-brand hover:underline"
-        >
+      <div className="mx-auto max-w-2xl space-y-3 md:space-y-5">
+        <Link href={`/student/courses/${courseId}`}
+          className="hidden text-sm font-bold text-dena-brand hover:underline md:inline-flex">
           بازگشت به جزئیات دوره
         </Link>
 
-        <div>
-          <h2 className="text-2xl font-extrabold">گفت‌وگوهای دوره</h2>
-          <p className="mt-2 text-sm leading-8 text-dena-muted">
-            فقط گفت‌وگوهای واقعی شما با پشتیبان تحصیلی یا مشاور همین دوره
-            در این بخش نمایش داده می‌شوند.
-          </p>
-        </div>
+        <Card className="rounded-[22px] px-5 py-3.5">
+          <h2 className="text-lg font-extrabold text-dena-deep">گفت‌وگوهای دوره</h2>
+          <p className="mt-1 text-sm text-dena-muted">{courseTitle}</p>
+        </Card>
 
-        {conversations.length === 0 ? (
-          <Card className="rounded-[22px] p-6">
-            <p className="font-bold">هنوز گفت‌وگویی در این دوره ندارید.</p>
-            <p className="mt-2 text-sm leading-7 text-dena-muted">
-              از بخش تیم آموزشی دوره وارد پروفایل پشتیبان تحصیلی یا مشاور شوید
-              و در صورت فعال بودن ارتباط، گفت‌وگو را آغاز کنید.
-            </p>
-          </Card>
-        ) : (
-          <ul className="space-y-3">
-            {conversations.map((conversation) => (
-              <li key={conversation.conversationId}>
-                <Link
-                  href={`/student/courses/${courseId}/team/${conversation.teamMemberId}/conversation`}
-                  className="block rounded-[22px] border border-dena-border bg-white p-5 transition hover:border-dena-brand hover:shadow-sm"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="text-xs font-bold text-dena-brand">
-                        {roleLabel(conversation.role)}
-                      </p>
-                      <h3 className="mt-2 text-lg font-extrabold">
-                        {conversation.memberName}
-                      </h3>
+        <Card className="rounded-[22px] p-4 sm:p-5">
+          <h2 className="mb-4 text-base font-extrabold text-dena-deep">گفت‌وگوها</h2>
+          {conversations.length === 0 ? (
+            <div className="rounded-2xl bg-dena-bg px-4 py-6 text-center">
+              <p className="font-bold text-dena-deep">هنوز گفت‌وگویی در این دوره ندارید.</p>
+              <p className="mt-2 text-sm leading-7 text-dena-muted">
+                از صفحهٔ پشتیبان یا مشاور دوره، گفت‌وگو را شروع کنید.
+              </p>
+            </div>
+          ) : (
+            <ul className="space-y-3">
+              {conversations.map((conversation) => (
+                <li key={conversation.conversationId}>
+                  <Link
+                    href={`/student/courses/${courseId}/team/${conversation.teamMemberId}/conversation`}
+                    className="block rounded-2xl border border-dena-border bg-dena-bg p-3 transition-colors hover:border-dena-brand/50"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <h3 className="truncate text-sm font-extrabold text-dena-deep">{conversation.memberName}</h3>
+                        <p className="mt-1 text-xs text-dena-muted">
+                          {roleLabel(conversation.role)}
+                          {conversation.lastMessageAt && <> · {messageTime(conversation.lastMessageAt)}</>}
+                        </p>
+                      </div>
+                      <span aria-hidden="true" className="shrink-0 text-sm text-dena-muted">‹</span>
                     </div>
-                    {conversation.lastMessageAt && (
-                      <time className="text-xs text-dena-muted">
-                        {conversation.lastMessageAt.toLocaleString("fa-IR")}
-                      </time>
-                    )}
-                  </div>
-                  <p className="mt-3 text-sm text-dena-muted">
-                    بازکردن گفت‌وگوی همین دوره
-                  </p>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="mt-5 border-t border-dena-border pt-4 text-center text-xs leading-6 text-dena-muted">
+            شماره تماس و ایمیل شخصی اعضای تیم نمایش داده نمی‌شود.
+          </p>
+        </Card>
       </div>
     </StudentShell>
   );

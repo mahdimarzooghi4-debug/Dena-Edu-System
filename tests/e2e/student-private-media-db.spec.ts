@@ -403,7 +403,7 @@ test.describe("free enrollment and private video access must stay course-scoped"
     ]);
     const beforeEnrollmentHome = await student.get("/student");
     expect(beforeEnrollmentHome.status()).toBe(200);
-    expect(await beforeEnrollmentHome.text()).toContain("فعلاً دورهٔ قابل ادامه‌ای نداری");
+    expect(await beforeEnrollmentHome.text()).toContain("دورهٔ قابل ادامه‌ای نداری");
     const emptyOverview = await student.get("/api/student/progress");
     expect(emptyOverview.status()).toBe(200);
     expect(emptyOverview.headers()["cache-control"]).toContain("no-store");
@@ -613,20 +613,20 @@ test.describe("free enrollment and private video access must stay course-scoped"
         name: "جست‌وجوی عنوان دوره",
       }).fill("آزمایش صفحه‌بندی");
       await page.getByRole("button", { name: "جست‌وجو" }).click();
-      await expect(page.locator("ul > li").filter({
+      await expect(page.locator("#available-courses ul > li").filter({
         hasText: "آزمایش صفحه‌بندی",
       })).toHaveCount(20);
       await page.getByRole("button", {
         name: "نمایش دوره‌های بیشتر",
       }).click();
-      await expect(page.locator("ul > li").filter({
+      await expect(page.locator("#available-courses ul > li").filter({
         hasText: "آزمایش صفحه‌بندی",
       })).toHaveCount(40);
       await page.getByRole("checkbox", {
         name: "فقط ثبت‌نام‌های من",
       }).check();
       await page.getByRole("button", { name: "جست‌وجو" }).click();
-      await expect(page.locator("ul > li").filter({
+      await expect(page.locator("#available-courses ul > li").filter({
         hasText: "آزمایش صفحه‌بندی",
       })).toHaveCount(1);
       await expect(page.getByRole("link", {
@@ -709,8 +709,8 @@ test.describe("free enrollment and private video access must stay course-scoped"
       `/student/courses/${ids.live}/watch#next-unmarked-video`,
     );
     const firstHome = await (await student.get("/student")).text();
-    expect(firstHome).toContain("علامت‌خورده به انتخاب خودت");
-    expect(firstHome).toContain("رفتن به نخستین ویدئوی بی‌علامت");
+    expect(firstHome).toContain("بر پایهٔ علامت‌های اختیاری خودت");
+    expect(firstHome).toContain(`/student/courses/${ids.live}/watch?video=`);
     expect(firstHome).not.toContain("correctOption");
     expect(firstHome).not.toContain("objectKey");
     // All self-marked videos and an unanswered approved question recommend
@@ -723,10 +723,8 @@ test.describe("free enrollment and private video access must stay course-scoped"
       `/student/courses/${ids.live}/watch#course-practice-heading`,
     );
     const nextHome = await (await student.get("/student")).text();
-    expect(nextHome).toContain("پاسخ به تمرین کوتاه تأییدشده");
-    expect(nextHome).toContain(
-      `/student/courses/${ids.live}/watch#course-practice-heading`,
-    );
+    expect(nextHome).toContain("تمرین‌ها و آزمون‌ها");
+    expect(nextHome).toContain(`/student/courses/${ids.live}/watch?video=`);
     expect((await student.delete(progressPath(ids.live, videoIds.ready), {
       headers: { Origin: "http://localhost:3000" },
     })).status()).toBe(200);
@@ -800,6 +798,7 @@ test.describe("free enrollment and private video access must stay course-scoped"
     expect(firstSummary.courses).toEqual([{
       courseId: ids.live, title: "دوره رایگان با محتوای خصوصی",
       readyVideos: 1, markedVideos: 0,
+      lastActivityAt: expect.any(String),
       practice: {
         state: "answered", selectedOption: 1, correct: false,
         submittedAt: expect.any(String),
@@ -845,8 +844,8 @@ test.describe("free enrollment and private video access must stay course-scoped"
     expect(dashboard.status()).toBe(200);
     const dashboardHtml = await dashboard.text();
     expect(dashboardHtml).toContain("دوره رایگان با محتوای خصوصی");
-    expect(dashboardHtml).toContain("رفتن به نخستین ویدئوی بی‌علامت");
-    expect(dashboardHtml).toContain("پاسخ تمرین کوتاه تو ثبت شده است.");
+    expect(dashboardHtml).toContain("ادامه یادگیری");
+    expect(dashboardHtml).toContain("تمرین‌ها و آزمون‌ها");
     expect(dashboardHtml).toContain(`/student/courses/${ids.live}/watch`);
     expect(dashboardHtml).not.toContain("دوره بدون تایید مؤسسه");
     expect(dashboardHtml).not.toContain(videoIds.withdrawn);
@@ -1058,7 +1057,7 @@ test.describe("free enrollment and private video access must stay course-scoped"
     }]);
     await page.goto("http://localhost:3000/student/courses");
     await expect(page.getByRole("heading", {
-      name: "دوره‌های رایگان منتشرشده",
+      name: "دوره‌های رایگان قابل ثبت‌نام",
     })).toBeVisible();
     await expect(page.getByText("دوره رایگان با محتوای خصوصی")).toBeVisible();
     const ownCard = page.locator("li").filter({
@@ -1088,14 +1087,16 @@ test.describe("free enrollment and private video access must stay course-scoped"
       new RegExp(`/student/courses/${ids.live}/watch$`),
     );
     await page.goto("http://localhost:3000/student");
-    await expect(page.getByRole("heading", { name: "نمای کلی یادگیری" })).toBeVisible();
+    await expect(page.locator("#student-home-title")).toBeVisible();
     await expect(page.locator("#student-continue-course")).toHaveText(
       "دوره رایگان با محتوای خصوصی",
     );
     await page.getByRole("link", {
-      name: "پیگیری یادگیری",
+      name: "مشاهده مسیر رشد",
     }).click();
-    await expect(page).toHaveURL(/\/student\/progress$/);
+    await expect(page).toHaveURL(/\/student\/growth$/);
+    await expect(page.locator("#student-growth-courses")).toBeVisible();
+    await page.goto("http://localhost:3000/student/progress");
     await expect(page.getByRole("heading", {
       name: "پیگیری شخصی به تفکیک دوره",
     })).toBeVisible();
@@ -1110,23 +1111,21 @@ test.describe("free enrollment and private video access must stay course-scoped"
       name: "دنا، خانه دانش‌آموز",
     }).click();
     await expect(page).toHaveURL(/\/student$/);
-    await page.getByRole("link", {
-      name: "رفتن به نخستین ویدئوی بی‌علامت",
-    }).first().click();
+    await page.getByRole("link", { name: "ادامه یادگیری" }).first().click();
     await expect(page).toHaveURL(new RegExp(
-      `/student/courses/${ids.live}/watch#next-unmarked-video$`,
+      `/student/courses/${ids.live}/watch\\?video=${videoIds.ready}$`,
     ));
     const player = page.locator("video");
     await expect(player).toHaveCount(1);
     await expect(player).toHaveAttribute("src",
       mediaPath(ids.live, videoIds.ready));
-    await expect(page.locator("#next-unmarked-video")).toContainText(
-      "بخش اول دوره",
-    );
-    await page.getByRole("link", {
-      name: "رفتن به نخستین ویدئوی بی‌علامت",
-    }).click();
-    await expect(page).toHaveURL(/#next-unmarked-video$/);
+    // Selects the video in place, rather than using the former hash anchor.
+    await expect(page.getByRole("button", {
+      name: "ادامه از جلسهٔ بعدی",
+    })).toBeVisible();
+    await page.getByRole("button", { name: "ادامه از جلسهٔ بعدی" }).click();
+    await expect(player).toHaveAttribute("src",
+      mediaPath(ids.live, videoIds.ready));
     await expect(page.getByRole("heading", {
       name: "تمرین کوتاه این دوره",
     })).toBeVisible();
@@ -1204,22 +1203,27 @@ test.describe("free enrollment and private video access must stay course-scoped"
     await expect(page.getByRole("textbox", {
       name: "یادداشت شخصی برای بخش اول دوره",
     })).toHaveValue("");
-    await expect(page.getByText("هنوز انجام‌شده علامت نخورده")).toBeVisible();
+    await expect(page.getByRole("button", {
+      name: "علامت‌گذاری به‌عنوان تکمیل‌شده",
+    })).toBeVisible();
     const markResponse = page.waitForResponse((response) =>
       response.url().endsWith(progressPath(ids.live, videoIds.ready)) &&
       response.request().method() === "POST",
     );
     await page.getByRole("button", {
-      name: "علامت‌گذاری به‌عنوان انجام‌شده",
+      name: "علامت‌گذاری به‌عنوان تکمیل‌شده",
     }).click();
     expect((await markResponse).status()).toBe(201);
-    await expect(page.getByText("به انتخاب شما انجام‌شده")).toBeVisible();
-    await expect(page.locator("#next-unmarked-video")).toHaveCount(0);
-    await expect(page.getByRole("link", {
-      name: "رفتن به نخستین ویدئوی بی‌علامت",
+    await expect(page.getByRole("button", {
+      name: "برداشتن علامت تکمیل",
+    })).toBeVisible();
+    await expect(page.getByRole("button", {
+      name: "ادامه از جلسهٔ بعدی",
     })).toHaveCount(0);
     await page.reload();
-    await expect(page.getByText("به انتخاب شما انجام‌شده")).toBeVisible();
+    await expect(page.getByRole("button", {
+      name: "برداشتن علامت تکمیل",
+    })).toBeVisible();
     await page.goto("http://localhost:3000/student/progress");
     const progressCard = page.locator("li").filter({
       hasText: "دوره رایگان با محتوای خصوصی",
@@ -1258,10 +1262,12 @@ test.describe("free enrollment and private video access must stay course-scoped"
       response.request().method() === "DELETE",
     );
     await page.getByRole("button", {
-      name: "برداشتن علامت انجام‌شده",
+      name: "برداشتن علامت تکمیل",
     }).click();
     expect((await unmarkResponse).status()).toBe(200);
-    await expect(page.getByText("هنوز انجام‌شده علامت نخورده")).toBeVisible();
+    await expect(page.getByRole("button", {
+      name: "علامت‌گذاری به‌عنوان تکمیل‌شده",
+    })).toBeVisible();
     const other = await client("otherStudent");
     expect((await other.get(mediaPath(ids.live, videoIds.ready), {
       headers: { Range: "bytes=0-3" },
@@ -1578,9 +1584,15 @@ test.describe("free enrollment and private video access must stay course-scoped"
       domain: "localhost", path: "/", httpOnly: true, secure: false,
       sameSite: "Lax",
     }]);
-    await page.goto("http://localhost:3000/student");
-    await page.getByRole("link", { name: "مدیریت یادداشت‌های شخصی" }).click();
+    // Privacy tools are reachable from the actual student account panel.
+    await page.goto("http://localhost:3000/student/profile");
+    await page.getByRole("link", {
+      name: "مشاهده تنظیمات حریم خصوصی",
+    }).click();
     await expect(page).toHaveURL(/\/student\/privacy$/);
+    await page.locator("summary").filter({
+      hasText: "مدیریت یادداشت‌های شخصی",
+    }).click();
     await expect(page.getByRole("heading", {
       name: "پاک‌کردن همهٔ یادداشت‌های شخصی",
     })).toBeVisible();
@@ -1607,6 +1619,9 @@ test.describe("free enrollment and private video access must stay course-scoped"
       "یادداشت ویدئویی ذخیره‌شده‌ای برای پاک‌کردن باقی نمانده است.",
     )).toBeVisible();
     await page.reload();
+    await page.locator("summary").filter({
+      hasText: "مدیریت یادداشت‌های شخصی",
+    }).click();
     await expect(page.getByText(
       "یادداشت ویدئویی ذخیره‌شده‌ای برای پاک‌کردن باقی نمانده است.",
     )).toBeVisible();

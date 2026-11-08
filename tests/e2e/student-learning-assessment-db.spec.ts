@@ -404,7 +404,7 @@ test.describe("student learning assessment lifecycle", () => {
     const home = await student.get("/student");
     expect(home.status()).toBe(200);
     const html = await home.text();
-    expect(html).toContain("آزمون‌های من");
+    expect(html).toContain("تمرین‌ها و آزمون‌ها");
     expect(html).toContain("آزمون هماهنگ دنا");
     expect(html).toContain("آزمون مؤسسه");
     expect(html).toContain("/student/assessments");
@@ -425,7 +425,11 @@ test.describe("student learning assessment lifecycle", () => {
     await page.goto("http://localhost:3000/student/assessments");
     const card = page.locator("article").filter({ hasText: "آزمون رابط کاربری" });
     await expect(card).toBeVisible();
-    await card.getByRole("button", { name: "شروع آزمون" }).click();
+    await card.getByRole("link", { name: /مشاهده جزئیات و شروع آزمون/ }).click();
+    await expect(page).toHaveURL(new RegExp(`/student/exams/${uiExamId}$`));
+    await page.getByRole("button", { name: "شروع آزمون" }).click();
+    await expect(page.getByRole("dialog", { name: "آماده‌ای آزمون را شروع کنی؟" })).toBeVisible();
+    await page.getByRole("dialog").getByRole("button", { name: "شروع آزمون" }).click();
     await expect(page).toHaveURL(new RegExp(`/student/exams/${uiExamId}/attempt/`));
     await expect(page.getByText("زمان باقی‌مانده:")).toBeVisible();
     await expect(page.getByText("پرسش آزمون رابط کاربری 1 چیست؟")).toBeVisible();
@@ -1329,7 +1333,9 @@ test.describe("student learning assessment lifecycle", () => {
     expect(instituteCourses.status()).toBe(200);
     const instituteCoursesHtml = await instituteCourses.text();
     expect(instituteCoursesHtml).toContain("دوره ارزیابی یادگیری");
-    expect(instituteCoursesHtml).toContain(
+    const instituteCourseDetail = await institute.get(`/institute/courses/${courseId}`);
+    expect(instituteCourseDetail.status()).toBe(200);
+    expect(await instituteCourseDetail.text()).toContain(
       `/institute/courses/${courseId}/assessments`,
     );
     expect((await student.get("/institute/courses")).status()).toBe(404);
@@ -1352,7 +1358,7 @@ test.describe("student learning assessment lifecycle", () => {
     const instituteLearning = await institute.get("/institute/learning");
     expect(instituteLearning.status()).toBe(200);
     const instituteLearningHtml = await instituteLearning.text();
-    expect(instituteLearningHtml).toContain("آمادگی آموزشی دوره‌ها");
+    expect(instituteLearningHtml).toContain("مسیر رشد دانش‌آموزان");
     expect(instituteLearningHtml).not.toContain("پرسش خصوصی ارزیابی در انتظار بازبینی چیست؟");
     expect((await student.get("/institute/learning")).status()).toBe(404);
 

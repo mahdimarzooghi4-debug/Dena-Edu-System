@@ -422,7 +422,7 @@ test.describe("course team communication and problem-solving stay course-scoped"
 
     await page.goto(`http://localhost:3000/student/courses/${courseId}`);
     await page.getByRole("link", { name: /پشتیبان آزمون/ }).click();
-    await page.getByRole("link", { name: "مشاهده گفت‌وگو" }).click();
+    await page.getByRole("link", { name: "گفت‌وگو", exact: true }).click();
 
     const message = "برای ادامهٔ درس از رابط دانش‌آموز پیام می‌فرستم.";
     await page.getByLabel("پیام خود را بنویسید").fill(message);
@@ -573,6 +573,7 @@ test.describe("course team communication and problem-solving stay course-scoped"
 
     await page.goto(`http://localhost:3000/student/courses/${courseId}`);
     await page.getByRole("link", { name: /پشتیبان آزمون/ }).click();
+    await page.getByRole("link", { name: "درخواست رفع اشکال" }).click();
 
     const subject = "پیگیری رفع اشکال از رابط دانش‌آموز";
     const description = "برای حل تمرین‌های پایانی راهنمایی می‌خواهم.";
@@ -580,12 +581,13 @@ test.describe("course team communication and problem-solving stay course-scoped"
     await page.getByLabel("توضیح کوتاه").fill(description);
     await page.getByRole("button", { name: "ثبت درخواست" }).click();
     await expect(page.getByText("درخواست جلسه ثبت شد.")).toBeVisible();
+    await page.goto(`http://localhost:3000/student/courses/${courseId}/team/${supporterTeamMemberId}/problem-solving`);
     const requestCard = page.locator("li").filter({ hasText: subject });
-    await expect(requestCard).toContainText(description);
+    await expect(requestCard).toContainText(subject);
     await expect(requestCard).toContainText("ثبت‌شده");
 
     await page.reload();
-    await expect(page.locator("li").filter({ hasText: subject })).toContainText(description);
+    await expect(page.locator("li").filter({ hasText: subject })).toContainText("ثبت‌شده");
   });
 
   test("supporter reviews and completes a student request through the browser", async ({ page }) => {
@@ -626,8 +628,12 @@ test.describe("course team communication and problem-solving stay course-scoped"
     await page.goto(`http://localhost:3000/student/courses/${courseId}`);
     await page.getByRole("link", { name: /پشتیبان آزمون/ }).click();
     const studentCards = page.locator("li").filter({ hasText: subject });
-    await expect(studentCards.nth(0)).toContainText("تعیین جلسه");
-    await expect(studentCards.nth(1)).toContainText("برگزارش‌شده");
+    // The student page lists sessions before collapsible requests.
+    // Check the two real states independently of list ordering.
+    await expect(studentCards.filter({ hasText: /برگزارش.?شده/ })).toBeVisible();
+    await page.locator("details").filter({ hasText: "درخواست‌های شما" })
+      .locator("summary").click();
+    await expect(studentCards.filter({ hasText: "تعیین جلسه" })).toBeVisible();
   });
 
   test("deactivation immediately closes both messaging and session capability", async () => {

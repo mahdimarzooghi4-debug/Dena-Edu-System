@@ -9,6 +9,8 @@ type ServiceCall = {
   id: string;
   scheduledAt: string;
   status: "scheduled" | "started" | "ended" | "cancelled";
+  noShowAt: string | Date | null;
+  canRecordNoShow: boolean;
 };
 
 type Props = {
@@ -81,8 +83,11 @@ export function InstituteServiceCallManagement({
     }
   }
 
-  async function transition(callId: string, action: "start" | "end" | "cancel") {
+  async function transition(callId: string, action: "start" | "end" | "cancel" | "no_show") {
     if (busy) return;
+    if (action === "no_show" && !window.confirm(
+      "عدم حضور برای این نوبت به‌صورت دستی ثبت شود؟ هیچ سهمیه یا بازپرداختی به‌طور خودکار تغییر نمی‌کند.",
+    )) return;
     setBusy(true);
     setMessage("");
     try {
@@ -96,12 +101,15 @@ export function InstituteServiceCallManagement({
       if (!response.ok) {
         const body = await response.json().catch(() => null) as { error?: string } | null;
         setMessage(body?.error === "call_too_early"
-          ? "شروع جلسه پس از زمان برنامه‌ریزی‌شده ممکن است."
+          ? action === "no_show" ? "ثبت عدم حضور فقط پس از زمان نوبت ممکن است."
+            : "شروع جلسه پس از زمان برنامه‌ریزی‌شده ممکن است."
           : "تغییر وضعیت جلسه انجام نشد؛ صفحه را تازه کنید و دوباره تلاش کنید.");
         return;
       }
       setMessage(action === "start" ? "جلسه شروع شد."
-        : action === "end" ? "پایان جلسه ثبت شد." : "جلسه لغو شد.");
+        : action === "end" ? "پایان جلسه ثبت شد."
+          : action === "no_show" ? "عدم حضور برای این نوبت ثبت شد."
+            : "جلسه لغو شد.");
       router.refresh();
     } catch {
       setMessage("ارتباط با سرور برقرار نشد؛ دوباره تلاش کنید.");
@@ -120,7 +128,7 @@ export function InstituteServiceCallManagement({
     {calls.length > 0 ? <ul className="space-y-3">
       {calls.map((call) => <li key={call.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-dena-bg p-3">
         <p className="text-sm text-dena-deep">
-          {dateFormatter.format(new Date(call.scheduledAt))} · {statusLabel[call.status]}
+          {dateFormatter.format(new Date(call.scheduledAt))} · {call.noShowAt ? "عدم حضور ثبت‌شده" : statusLabel[call.status]}
         </p>
         <div className="flex flex-wrap gap-2">
           {call.status === "scheduled" && <>
@@ -131,6 +139,12 @@ export function InstituteServiceCallManagement({
             <button type="button" disabled={busy} onClick={() => void transition(call.id, "cancel")}
               className="min-h-10 rounded-lg border border-dena-line px-3 py-2 text-xs font-bold text-dena-deep disabled:opacity-50">
               لغو جلسه
+            </button>
+            <button type="button" disabled={busy || !call.canRecordNoShow}
+              onClick={() => void transition(call.id, "no_show")}
+              aria-label={call.canRecordNoShow ? "ثبت عدم حضور" : "ثبت عدم حضور پس از زمان نوبت ممکن است"}
+              className="min-h-10 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-900 disabled:opacity-50">
+              ثبت عدم حضور
             </button>
           </>}
           {call.status === "started" && <button type="button" disabled={busy}

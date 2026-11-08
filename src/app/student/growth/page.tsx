@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Card } from "../../../components/ui/card";
 import { StudentShell } from "../../../components/student/student-shell";
 import { getServerAccessContext } from "../../../server/access/actor";
 import { getStudentAssessmentGrowth } from "../../../server/student/growth-trend";
+import { getStudentProgressOverview } from "../../../server/student/progress-overview";
+import { getStudentExamCatalog } from "../../../server/assessments/exam-management";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -107,22 +110,94 @@ export default async function StudentGrowthPage() {
   if (!actor) redirect("/login");
   if (!actor.memberships.some((entry) => entry.role === "student")) notFound();
 
-  const series = await getStudentAssessmentGrowth(actor.userId);
+  const [series, progress, examCatalog] = await Promise.all([
+    getStudentAssessmentGrowth(actor.userId),
+    getStudentProgressOverview(actor.userId),
+    getStudentExamCatalog(actor.userId),
+  ]);
+  const completedExams = examCatalog?.exams.filter((exam) =>
+    exam.attemptStatus === "submitted" || exam.attemptStatus === "expired") ?? [];
   return (
     <StudentShell active="growth" title="مسیر رشد">
       <div className="space-y-6">
         <section className="rounded-[22px] bg-dena-lavender px-6 py-7 md:px-8">
-          <p className="text-sm font-bold text-dena-brand">روند ارزیابی‌های خودت</p>
+          <p className="text-sm font-bold text-dena-brand">مسیر رشد دنا</p>
           <h1 className="mt-2 text-2xl font-extrabold text-dena-deep md:text-3xl">
-            مسیر یادگیری، به تفکیک ارزیابی
+            روند یادگیری‌ات را در طول زمان ببین
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-8 text-dena-muted">
-            درصد پاسخ درست از تلاش‌های ثبت‌شدهٔ خودت محاسبه می‌شود و فقط در
-            همان ارزیابی مقایسه می‌شود. برای مقایسه، فرض شده نسخه‌های تصادفی
-            سؤال‌ها دشواری هم‌تراز دارند؛ این روند به‌تنهایی اثبات یادگیری یا
-            نمرهٔ رسمی نیست.
+پیشرفت جلسات آموزشی، تمرین‌ها، نتایج آزمون‌ها و عملکرد درسی در کنار هم نمایش داده می‌شوند. نمودار ارزیابی‌ها فقط تلاش‌های ثبت‌شدهٔ خودت را در همان ارزیابی مقایسه می‌کند و نمرهٔ رسمی نیست.
           </p>
         </section>
+
+
+        <section className="space-y-4" aria-labelledby="student-growth-courses">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 id="student-growth-courses" className="text-xl font-extrabold text-dena-deep">پیشرفت دوره‌های من</h2>
+              <p className="mt-1 text-sm text-dena-muted">تکمیل جلسه‌ها به انتخاب خودت ثبت می‌شود.</p>
+            </div>
+            <span className="text-xs text-dena-muted">{progress.courses.length.toLocaleString("fa-IR")} دورهٔ در دسترس</span>
+          </div>
+          {progress.courses.length === 0 ? (
+            <Card className="rounded-[22px] p-5 text-sm leading-7 text-dena-muted">
+              هنوز دورهٔ فعال و محتوای آماده‌ای برای نمایش در مسیر رشد وجود ندارد.
+            </Card>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">
+              {progress.courses.slice(0, 4).map((course) => {
+                const percent = course.readyVideos
+                  ? Math.round(course.markedVideos / course.readyVideos * 100) : 0;
+                return <Card key={course.courseId} className="space-y-4 rounded-[22px] p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="font-extrabold text-dena-deep">{course.title}</h3>
+                    <span className="text-sm font-bold text-dena-brand">{percent.toLocaleString("fa-IR")}٪</span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-dena-lavender" role="progressbar"
+                    aria-label={`درصد جلسه‌های تکمیل‌شده به انتخاب خودت در ${course.title}`}
+                    aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}>
+                    <div className="h-full rounded-full bg-dena-mint" style={{ width: `${percent}%` }} />
+                  </div>
+                  <p className="text-xs leading-6 text-dena-muted">
+                    {course.markedVideos.toLocaleString("fa-IR")} از {course.readyVideos.toLocaleString("fa-IR")} جلسه به‌صورت خوداظهاری تکمیل‌شده علامت خورده است.
+                  </p>
+                  <Link href={`/student/courses/${course.courseId}`} className="text-sm font-bold text-dena-brand hover:underline">
+                    مشاهده دوره
+                  </Link>
+                </Card>;
+              })}
+            </div>
+          )}
+          <p className="text-xs leading-6 text-dena-muted">
+            علامت تکمیل فقط انتخاب خود دانش‌آموز است و زمان تماشا، یادگیری یا نمرهٔ رسمی را اثبات نمی‌کند.
+          </p>
+        </section>
+
+        {completedExams.length > 0 && (
+          <section className="space-y-4" aria-labelledby="student-growth-exams">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2 id="student-growth-exams" className="text-xl font-extrabold text-dena-deep">نتایج آزمون‌های برنامه‌ریزی‌شده</h2>
+                <p className="mt-1 text-sm text-dena-muted">آخرین نتیجهٔ ثبت‌شدهٔ هر آزمون در این بخش پیوند دارد.</p>
+              </div>
+              <Link href="/student/assessments" className="text-sm font-bold text-dena-brand hover:underline">همه آزمون‌ها</Link>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              {completedExams.slice(0, 4).map((exam) => (
+                <Card key={exam.id} className="space-y-3 rounded-[22px] p-5">
+                  <p className="text-xs font-bold text-dena-brand">{exam.courseTitle ?? "آزمون هماهنگ دنا"}</p>
+                  <h3 className="font-extrabold text-dena-deep">{exam.title}</h3>
+                  <p className="text-sm text-dena-muted">
+                    {exam.attemptStatus === "expired" ? "زمان آزمون به پایان رسید" : "نتیجهٔ آخرین تلاش"}
+                    {exam.earnedPoints !== null && <> · {exam.earnedPoints} از {exam.totalPoints ?? exam.questionCount} امتیاز</>}
+                  </p>
+                  <Link href={"/student/exams/" + encodeURIComponent(exam.id)}
+                    className="text-sm font-bold text-dena-brand hover:underline">مشاهده آزمون و نتیجه</Link>
+                </Card>
+              ))}
+            </div>
+          </section>
+        )}
 
         {series.length === 0 ? (
           <Card className="space-y-3 rounded-[22px] p-6 md:p-8">

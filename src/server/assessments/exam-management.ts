@@ -78,7 +78,7 @@ export async function getInstituteExams(userId: string) {
       eq(memberships.status, "active"),
     ));
   const ids = scopes.map((scope) => scope.id);
-  if (!ids.length) return { exams: [], denaExams: [] };
+  if (!ids.length) return { exams: [], denaExams: [], asOf: new Date() };
   const [exams, denaExams] = await Promise.all([
     getDb().select({
       id: assessmentExams.id, title: assessmentExams.title,
@@ -104,7 +104,7 @@ export async function getInstituteExams(userId: string) {
         eq(assessmentExams.status, "published")))
       .orderBy(desc(assessmentExams.startsAt), asc(assessmentExams.id)).limit(100),
   ]);
-  return { exams: collapseCount(exams), denaExams: collapseCount(denaExams) };
+  return { exams: collapseCount(exams), denaExams: collapseCount(denaExams), asOf: new Date() };
 }
 
 export async function getDenaExams(userId: string) {
@@ -135,6 +135,7 @@ export async function getExamReport(
     id: string; title: string; examType: "institute_planned" | "dena_coordinated";
     status: "draft" | "published" | "cancelled"; startsAt: Date; endsAt: Date;
     durationMinutes: number; attemptLimit: number; courseTitle: string | null;
+    createdByUserId: string; courseId: string | null; instructions: string;
   } | undefined;
   if (role === "admin") {
     const [admin] = await db.select({ id: memberships.id }).from(memberships)
@@ -146,7 +147,10 @@ export async function getExamReport(
       examType: assessmentExams.examType, status: assessmentExams.status,
       startsAt: assessmentExams.startsAt, endsAt: assessmentExams.endsAt,
       durationMinutes: assessmentExams.durationMinutes,
-      attemptLimit: assessmentExams.attemptLimit, courseTitle: sql.raw("NULL").mapWith({
+      attemptLimit: assessmentExams.attemptLimit,
+      createdByUserId: assessmentExams.createdByUserId,
+      courseId: assessmentExams.courseId, instructions: assessmentExams.instructions,
+      courseTitle: sql.raw("NULL").mapWith({
         mapFromDriverValue: (value) => value === null ? null : String(value),
       }),
     }).from(assessmentExams).where(and(
@@ -160,7 +164,10 @@ export async function getExamReport(
       examType: assessmentExams.examType, status: assessmentExams.status,
       startsAt: assessmentExams.startsAt, endsAt: assessmentExams.endsAt,
       durationMinutes: assessmentExams.durationMinutes,
-      attemptLimit: assessmentExams.attemptLimit, courseTitle: courses.title,
+      attemptLimit: assessmentExams.attemptLimit,
+      createdByUserId: assessmentExams.createdByUserId,
+      courseId: assessmentExams.courseId, instructions: assessmentExams.instructions,
+      courseTitle: courses.title,
     }).from(assessmentExams).innerJoin(memberships, and(
       eq(memberships.instituteId, assessmentExams.ownerId),
       eq(memberships.userId, userId),
@@ -184,10 +191,21 @@ export async function getExamReport(
     sql`${assessmentExamAttempts.startedAt} < ${cursor.startedAt}::timestamptz`,
     and(sql`${assessmentExamAttempts.startedAt} = ${cursor.startedAt}::timestamptz`, lt(assessmentExamAttempts.id, cursor.id)),
   )!);
-  const [questionCount, summary, attemptRows] = await Promise.all([
-    db.select({ value: sql.raw("count(*)").mapWith(Number) })
-      .from(assessmentExamQuestions)
-      .where(eq(assessmentExamQuestions.examId, examId)),
+  const [questionRows, summary, attemptRows, creatorRows] = await Promise.all([
+    db.select({
+      id: assessmentExamQuestions.id,
+      bankQuestionId: assessmentExamQuestions.bankQuestionId,
+      prompt: assessmentExamQuestions.prompt,
+      option0: assessmentExamQuestions.option0,
+      option1: assessmentExamQuestions.option1,
+      option2: assessmentExamQuestions.option2,
+      option3: assessmentExamQuestions.option3,
+      correctOption: assessmentExamQuestions.correctOption,
+      points: assessmentExamQuestions.points,
+      position: assessmentExamQuestions.position,
+    }).from(assessmentExamQuestions)
+      .where(eq(assessmentExamQuestions.examId, examId))
+      .orderBy(asc(assessmentExamQuestions.position)),
     db.select({
       participants: sql.raw("count(DISTINCT student_user_id)").mapWith(Number),
       totalAttempts: sql.raw("count(*)").mapWith(Number),
@@ -197,6 +215,15 @@ export async function getExamReport(
       averageScorePercent: sql.raw(
         "coalesce(avg(earned_points::numeric * 100 / NULLIF(total_points, 0)) " +
         "FILTER (WHERE status IN ('submitted', 'expired')), 0)",
+      ).mapWith(Number),
+      averageEarnedScore: sql.raw(
+        "coalesce(avg(earned_points) FILTER (WHERE status IN ('submitted', 'expired')), 0)",
+      ).mapWith(Number),
+      maxEarnedScore: sql.raw(
+        "coalesce(max(earned_points) FILTER (WHERE status IN ('submitted', 'expired')), 0)",
+      ).mapWith(Number),
+      maxTotalPoints: sql.raw(
+        "coalesce(max(total_points) FILTER (WHERE status IN ('submitted', 'expired')), 0)",
       ).mapWith(Number),
     }).from(assessmentExamAttempts).where(eq(assessmentExamAttempts.examId, examId)),
     db.select({
@@ -213,13 +240,17 @@ export async function getExamReport(
       .where(and(...attemptConditions))
       .orderBy(desc(assessmentExamAttempts.startedAt), desc(assessmentExamAttempts.id))
       .limit(pageSize + 1),
+    db.select({ name: user.name }).from(user)
+      .where(eq(user.id, exam.createdByUserId)).limit(1),
   ]);
   const hasMore = attemptRows.length > pageSize;
   const rows = hasMore ? attemptRows.slice(0, pageSize) : attemptRows;
   const last = rows.at(-1);
   const totals = summary[0]!;
   return {
-    exam: { ...exam, questionCount: questionCount[0]?.value ?? 0 },
+    asOf: new Date(),
+    exam: { ...exam, questionCount: questionRows.length, createdByName: creatorRows[0]?.name ?? "—" },
+    questions: questionRows,
     summary: {
       participants: totals.participants,
       totalAttempts: totals.totalAttempts,
@@ -227,6 +258,9 @@ export async function getExamReport(
       submitted: totals.submitted,
       expired: totals.expired,
       averageScorePercent: Math.round(totals.averageScorePercent * 10) / 10,
+      averageEarnedScore: Math.round(totals.averageEarnedScore * 10) / 10,
+      maxEarnedScore: totals.maxEarnedScore,
+      maxTotalPoints: totals.maxTotalPoints,
     },
     filters: { status: query.status ?? "", search: query.search ?? "" },
     attempts: rows.map((attempt) => ({
@@ -236,10 +270,10 @@ export async function getExamReport(
       status: attempt.status,
       startedAt: attempt.startedAt,
       submittedAt: attempt.submittedAt,
-      correctCount: attempt.correctCount,
-      totalPoints: attempt.totalPoints,
-      earnedPoints: attempt.earnedPoints,
-      scorePercent: attempt.totalPoints && attempt.earnedPoints !== null
+      correctCount: role === "admin" ? attempt.correctCount : null,
+      totalPoints: role === "admin" ? attempt.totalPoints : null,
+      earnedPoints: role === "admin" ? attempt.earnedPoints : null,
+      scorePercent: role === "admin" && attempt.totalPoints && attempt.earnedPoints !== null
         ? Math.round(attempt.earnedPoints / attempt.totalPoints * 1000) / 10
         : null,
     })),
@@ -432,6 +466,9 @@ export async function getStudentExamCatalog(studentUserId: string) {
       endsAt: assessmentExams.endsAt, durationMinutes: assessmentExams.durationMinutes,
       attemptLimit: assessmentExams.attemptLimit, status: assessmentExams.status,
       questionCount: assessmentExamQuestions.id,
+      courseId: sql.raw("NULL").mapWith({
+        mapFromDriverValue: (value) => value === null ? null : String(value),
+      }),
       courseTitle: sql.raw("NULL").mapWith({
         mapFromDriverValue: (value) => value === null ? null : String(value),
       }),
@@ -450,7 +487,7 @@ export async function getStudentExamCatalog(studentUserId: string) {
         instructions: assessmentExams.instructions, startsAt: assessmentExams.startsAt,
         endsAt: assessmentExams.endsAt, durationMinutes: assessmentExams.durationMinutes,
         attemptLimit: assessmentExams.attemptLimit, status: assessmentExams.status,
-        questionCount: assessmentExamQuestions.id, courseTitle: courses.title,
+        questionCount: assessmentExamQuestions.id, courseId: assessmentExams.courseId, courseTitle: courses.title,
       }).from(assessmentExams).innerJoin(courses, eq(courses.id, assessmentExams.courseId))
         .leftJoin(assessmentExamQuestions, eq(assessmentExamQuestions.examId, assessmentExams.id))
         .where(and(
@@ -475,14 +512,14 @@ export async function getStudentExamCatalog(studentUserId: string) {
     const attempt = latestAttempt.get(exam.id);
     const inProgress = attempt?.status === "in_progress";
     return {
-      id: exam.id, title: exam.title, instructions: exam.instructions,
+      id: exam.id, title: exam.title, instructions: exam.instructions, courseId: exam.courseId,
       startsAt: exam.startsAt, endsAt: exam.endsAt,
       durationMinutes: exam.durationMinutes, attemptLimit: exam.attemptLimit,
       status: exam.status,
       examType: exam.courseTitle ? "institute_planned" as const : "dena_coordinated" as const,
       courseTitle: exam.courseTitle, questionCount: exam.questionCount,
       attemptNumber: attempt?.attemptNumber ?? null, attemptStatus: attempt?.status ?? null,
-      attemptId: inProgress ? attempt.id : null, correctCount: attempt?.correctCount ?? null,
+      attemptId: inProgress ? attempt.id : null, latestAttemptId: attempt?.id ?? null, correctCount: attempt?.correctCount ?? null,
       totalPoints: attempt?.totalPoints ?? null, earnedPoints: attempt?.earnedPoints ?? null,
       canStart: exam.status === "published" && now >= exam.startsAt && now < exam.endsAt &&
         (inProgress || (attempt?.attemptNumber ?? 0) < exam.attemptLimit),
@@ -739,4 +776,100 @@ async function saveQuestions(
       correctOption: question.correctOption, points: 1,
     };
   }));
+}
+
+
+export async function updateInstituteExam(
+  userId: string, examId: string, input: InstituteExamInput,
+) {
+  return getDb().transaction(async (tx) => {
+    const scopes = await tx.select({ id: verifiedEntities.id })
+      .from(memberships).innerJoin(verifiedEntities, and(
+        eq(verifiedEntities.id, memberships.instituteId),
+        eq(verifiedEntities.role, "institute"),
+      )).where(and(
+        eq(memberships.userId, userId),
+        eq(memberships.role, "institute"),
+        eq(memberships.status, "active"),
+      )).for("share");
+    const instituteIds = [...new Set(scopes.map((scope) => scope.id))];
+    if (!instituteIds.length) throw new ExamManagementError("scope_unavailable");
+
+    const [current] = await tx.select({
+      id: assessmentExams.id,
+      ownerId: assessmentExams.ownerId,
+      status: assessmentExams.status,
+      startsAt: assessmentExams.startsAt,
+    }).from(assessmentExams).where(and(
+      eq(assessmentExams.id, examId),
+      eq(assessmentExams.examType, "institute_planned"),
+      eq(assessmentExams.ownerType, "institute"),
+      inArray(assessmentExams.ownerId, instituteIds),
+    )).limit(1).for("update");
+    if (!current) throw new ExamManagementError("exam_unavailable");
+
+    const [attempt] = await tx.select({ id: assessmentExamAttempts.id })
+      .from(assessmentExamAttempts)
+      .where(eq(assessmentExamAttempts.examId, examId)).limit(1);
+    const canEdit = current.status === "draft" ||
+      (current.status === "published" && current.startsAt > new Date());
+    if (!canEdit || attempt) throw new ExamManagementError("exam_unavailable");
+
+    const [course] = await tx.select({
+      id: courses.id,
+      instituteId: courses.responsibleInstituteId,
+    }).from(courses).innerJoin(supervisionGrants, and(
+      eq(supervisionGrants.courseId, courses.id),
+      eq(supervisionGrants.providerId, courses.providerId),
+      eq(supervisionGrants.instituteId, courses.responsibleInstituteId),
+      eq(supervisionGrants.status, "approved"),
+    )).where(and(
+      eq(courses.id, input.courseId),
+      eq(courses.responsibleInstituteId, current.ownerId),
+    )).limit(1).for("share");
+    if (!course) throw new ExamManagementError("course_unavailable");
+
+    const [bank] = await tx.select({ id: assessmentQuestionBanks.id })
+      .from(assessmentQuestionBanks).where(and(
+        eq(assessmentQuestionBanks.ownerType, "institute"),
+        eq(assessmentQuestionBanks.ownerId, current.ownerId),
+      )).limit(1).for("share");
+    if (!bank) throw new ExamManagementError("questions_unavailable");
+    const questions = await tx.select().from(assessmentQuestionBankQuestions).where(and(
+      eq(assessmentQuestionBankQuestions.bankId, bank.id),
+      eq(assessmentQuestionBankQuestions.ownerType, "institute"),
+      eq(assessmentQuestionBankQuestions.ownerId, current.ownerId),
+      eq(assessmentQuestionBankQuestions.courseId, input.courseId),
+      inArray(assessmentQuestionBankQuestions.id, input.questionIds),
+    )).for("share");
+    if (questions.length !== input.questionIds.length) {
+      throw new ExamManagementError("questions_unavailable");
+    }
+
+    const [updated] = await tx.update(assessmentExams).set({
+      courseId: input.courseId,
+      bankId: bank.id,
+      title: input.title,
+      instructions: input.instructions,
+      startsAt: new Date(input.startsAt),
+      endsAt: new Date(input.endsAt),
+      durationMinutes: input.durationMinutes,
+      attemptLimit: input.attemptLimit,
+      updatedAt: new Date(),
+    }).where(eq(assessmentExams.id, examId))
+      .returning({ id: assessmentExams.id });
+    if (!updated) throw new ExamManagementError("exam_unavailable");
+    await tx.delete(assessmentExamQuestions)
+      .where(eq(assessmentExamQuestions.examId, examId));
+    await saveQuestions(tx, examId, bank.id, "institute", current.ownerId,
+      questions, input.questionIds);
+    await tx.insert(auditLogs).values(auditLogRecord({
+      actorId: userId,
+      actorRole: "institute",
+      action: "institute.exam.updated",
+      entityType: "ASSESSMENT_EXAM",
+      entityId: examId,
+    }));
+    return updated;
+  });
 }
