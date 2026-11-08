@@ -573,6 +573,7 @@ test.describe("course team communication and problem-solving stay course-scoped"
 
     await page.goto(`http://localhost:3000/student/courses/${courseId}`);
     await page.getByRole("link", { name: /پشتیبان آزمون/ }).click();
+    await page.getByRole("link", { name: "درخواست رفع اشکال" }).click();
 
     const subject = "پیگیری رفع اشکال از رابط دانش‌آموز";
     const description = "برای حل تمرین‌های پایانی راهنمایی می‌خواهم.";
@@ -580,6 +581,7 @@ test.describe("course team communication and problem-solving stay course-scoped"
     await page.getByLabel("توضیح کوتاه").fill(description);
     await page.getByRole("button", { name: "ثبت درخواست" }).click();
     await expect(page.getByText("درخواست جلسه ثبت شد.")).toBeVisible();
+    await page.goto(`http://localhost:3000/student/courses/${courseId}/team/${supporterTeamMemberId}/problem-solving`);
     const requestCard = page.locator("li").filter({ hasText: subject });
     await expect(requestCard).toContainText(description);
     await expect(requestCard).toContainText("ثبت‌شده");

@@ -509,7 +509,7 @@ test.describe("institute service order guardian consent", () => {
     const studentHistory = await client("student");
     const studentHistoryBody = await (await studentHistory.get("/student/services/orders")).text();
     expect(studentHistoryBody).toContain("زمان جلسه");
-    expect(studentHistoryBody).toContain("خلاصهٔ قابل‌مشاهدهٔ جلسه");
+    expect(studentHistoryBody).toContain("خلاصه و گام‌های بعدی");
     expect(studentHistoryBody).toContain("برنامهٔ مرور هفتگی با سه بازهٔ کوتاه آماده شد.");
     expect(studentHistoryBody).toContain("مرور فصل سوم تا پنجشنبه");
     expect(studentHistoryBody).toContain("مصرف ثبت‌شده");

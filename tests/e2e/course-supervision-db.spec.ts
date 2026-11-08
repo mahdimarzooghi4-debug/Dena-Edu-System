@@ -299,7 +299,7 @@ test.describe("course-scoped provider requests and independent institute decisio
     const pendingInstitutePage = await (await institute.get(
       `/institute/courses/${courseIds[0]}`,
     )).text();
-    expect(pendingInstitutePage).toContain("پروندهٔ نظارت و محتوای همین دوره");
+    expect(pendingInstitutePage).toContain("پروندهٔ دوره");
     expect(pendingInstitutePage).toContain("provider A");
     expect(pendingInstitutePage).toContain("رفتن به صف بررسی نظارت");
     expect(pendingInstitutePage).not.toContain(

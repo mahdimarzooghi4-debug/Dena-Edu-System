@@ -798,6 +798,7 @@ test.describe("free enrollment and private video access must stay course-scoped"
     expect(firstSummary.courses).toEqual([{
       courseId: ids.live, title: "دوره رایگان با محتوای خصوصی",
       readyVideos: 1, markedVideos: 0,
+      lastActivityAt: expect.any(String),
       practice: {
         state: "answered", selectedOption: 1, correct: false,
         submittedAt: expect.any(String),

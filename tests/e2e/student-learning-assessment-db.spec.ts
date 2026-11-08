@@ -1333,7 +1333,9 @@ test.describe("student learning assessment lifecycle", () => {
     expect(instituteCourses.status()).toBe(200);
     const instituteCoursesHtml = await instituteCourses.text();
     expect(instituteCoursesHtml).toContain("دوره ارزیابی یادگیری");
-    expect(instituteCoursesHtml).toContain(
+    const instituteCourseDetail = await institute.get(`/institute/courses/${courseId}`);
+    expect(instituteCourseDetail.status()).toBe(200);
+    expect(await instituteCourseDetail.text()).toContain(
       `/institute/courses/${courseId}/assessments`,
     );
     expect((await student.get("/institute/courses")).status()).toBe(404);
