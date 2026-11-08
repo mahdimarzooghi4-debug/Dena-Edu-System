@@ -1,12 +1,12 @@
-/** Public pre-release location. The release is immutable per version and hosts the real APK. */
+/** Versioned preview APK bundled with the site; downloads require no third-party host. */
 export const denaAndroidPreview = {
-  version: "0.1.1-debug",
+  version: "0.1.4-debug",
   minAndroid: "اندروید ۸ و بالاتر",
-  name: "dena-student-android-demo.apk",
+  name: "dena-student-android-v0.1.4-preview.apk",
   href: "/download/android/apk",
-  sourceHref: "https://github.com/mahdimarzooghi4-debug/Dena-Edu-System/releases/download/dena-student-demo-v0.1.1-preview/dena-student-android-demo.apk",
-  size: 18989,
-  sha256: "381750defd2a7e9cd54370c94c0aaadf77651f7c4ae09748fccfbdf345d7abc8",
+  localFile: "dena-student-android-v0.1.4-preview.apk",
+  size: 41253,
+  sha256: "9b2eb1dcd4200aab6cd632335a30cf2ed33401a973ea58953971b0cb51661a48",
   checksumHref: "/download/android/checksum",
   browserPreviewHref: "https://dena-student-demo.onrender.com/student-demo",
 } as const;
