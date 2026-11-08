@@ -36,8 +36,16 @@ jobs:
           curl --fail --location --retry 5 --retry-all-errors --connect-timeout 15 --max-time 180 "$base.sha256" -o /tmp/gradle.sha256
           checksum=$(tr -d '[:space:]' < /tmp/gradle.sha256)
           [[ "$checksum" =~ ^[0-9a-f]{64}$ ]]
-          curl --fail --location --retry 5 --retry-all-errors --connect-timeout 15 --max-time 180 "$base" -o /tmp/gradle.zip
-          printf '%s  /tmp/gradle.zip\n' "$checksum" | sha256sum --check --strict
+          verified=false
+          for url in "$base" "https://repo.huaweicloud.com/gradle/gradle-8.11.1-bin.zip"; do
+            if curl --fail --location --retry 2 --retry-all-errors --connect-timeout 15 --max-time 180 "$url" -o /tmp/gradle.zip &&
+              printf '%s  /tmp/gradle.zip\n' "$checksum" | sha256sum --check --strict; then
+              verified=true
+              break
+            fi
+            rm -f /tmp/gradle.zip
+          done
+          test "$verified" = true
           unzip -q /tmp/gradle.zip -d "$RUNNER_TEMP/dena-gradle"
           echo "$RUNNER_TEMP/dena-gradle/gradle-8.11.1/bin" >> "$GITHUB_PATH"
       - uses: gradle/actions/setup-gradle@v4
