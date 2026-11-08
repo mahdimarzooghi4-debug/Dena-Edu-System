@@ -41,13 +41,13 @@ export default async function InstituteNationalAssessmentPage({
 
   const { examId } = await params;
   if (!z.uuid().safeParse(examId).success) notFound();
-  const { denaExams } = await getInstituteExams(actor.userId);
+  const { denaExams, asOf } = await getInstituteExams(actor.userId);
   const exam = denaExams.find((item) => item.id === examId);
   if (!exam) notFound();
 
   const status = exam.status === "cancelled" ? "لغوشده"
     : exam.status === "draft" ? "پیش‌نویس"
-      : exam.endsAt.getTime() < Date.now() ? "پایان‌یافته" : "فعال";
+      : exam.endsAt.getTime() < asOf.getTime() ? "پایان‌یافته" : "فعال";
 
   return (
     <main id="main-content" dir="rtl" className="min-h-screen bg-[#f8f7fc]">

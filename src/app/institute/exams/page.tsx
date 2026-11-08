@@ -34,7 +34,7 @@ export default async function InstituteExamsPage({
     ? params.status as ExamStatusFilter
     : "all";
   const result = await getInstituteExams(actor.userId);
-  const now = Date.now();
+  const now = result.asOf.getTime();
   const filtered = result.exams.filter((exam) => {
     const matchesSearch = !search || exam.title.toLocaleLowerCase("fa-IR")
       .includes(search.toLocaleLowerCase("fa-IR"));

@@ -14,7 +14,8 @@ const date = (value: Date | null) => value
 export function ExamReport({ report, backHref, activeView = "overview" }: {
   report: Report; backHref: string; activeView?: ExamView;
 }) {
-  const { exam, summary, attempts, questions, filters, nextCursor } = report;
+  const { exam, summary, attempts, questions, filters, nextCursor, asOf } = report;
+  const now = asOf.getTime();
   const queryString = (includeCursor = false) => {
     const params = new URLSearchParams();
     if (filters.search) params.set("search", filters.search);
@@ -27,9 +28,9 @@ export function ExamReport({ report, backHref, activeView = "overview" }: {
   const exportHref = (backHref.startsWith("/admin") ? "/api/admin" : "/api/institute") +
     "/exams/" + encodeURIComponent(exam.id) + "/report.csv" + queryString();
   const tabHref = (view: ExamView) => baseHref + "?view=" + view;
-  const isFinished = exam.status === "published" && exam.endsAt.getTime() < Date.now();
+  const isFinished = exam.status === "published" && exam.endsAt.getTime() < now;
   const canEdit = summary.totalAttempts === 0 && exam.status !== "cancelled" &&
-    (exam.status === "draft" || (exam.status === "published" && exam.startsAt.getTime() > Date.now()));
+    (exam.status === "draft" || (exam.status === "published" && exam.startsAt.getTime() > now));
   const statusLabel = exam.status === "draft" ? "پیش‌نویس"
     : exam.status === "cancelled" ? "لغوشده" : isFinished ? "پایان‌یافته" : "فعال";
   const statusColor = exam.status === "draft" ? "bg-[#fff9e6] text-[#f59e0b]"

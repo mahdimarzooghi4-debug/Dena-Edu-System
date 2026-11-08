@@ -78,7 +78,7 @@ export async function getInstituteExams(userId: string) {
       eq(memberships.status, "active"),
     ));
   const ids = scopes.map((scope) => scope.id);
-  if (!ids.length) return { exams: [], denaExams: [] };
+  if (!ids.length) return { exams: [], denaExams: [], asOf: new Date() };
   const [exams, denaExams] = await Promise.all([
     getDb().select({
       id: assessmentExams.id, title: assessmentExams.title,
@@ -104,7 +104,7 @@ export async function getInstituteExams(userId: string) {
         eq(assessmentExams.status, "published")))
       .orderBy(desc(assessmentExams.startsAt), asc(assessmentExams.id)).limit(100),
   ]);
-  return { exams: collapseCount(exams), denaExams: collapseCount(denaExams) };
+  return { exams: collapseCount(exams), denaExams: collapseCount(denaExams), asOf: new Date() };
 }
 
 export async function getDenaExams(userId: string) {
@@ -248,6 +248,7 @@ export async function getExamReport(
   const last = rows.at(-1);
   const totals = summary[0]!;
   return {
+    asOf: new Date(),
     exam: { ...exam, questionCount: questionRows.length, createdByName: creatorRows[0]?.name ?? "—" },
     questions: questionRows,
     summary: {
