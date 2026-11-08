@@ -30,6 +30,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
   const { orderId } = await params;
   if (!z.uuid().safeParse(orderId).success) return NextResponse.json({ error: "Not found" }, { status: 404, headers: noStore });
+  // Do not disclose scanner configuration to unauthorized tenants or orders.
+  const existing = await listServiceOrderAttachments(actor.userId, orderId);
+  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404, headers: noStore });
   if (!supportAttachmentUploadAvailable()) return NextResponse.json({ error: "Attachment storage or scanner is unavailable" }, { status: 503, headers: noStore });
 
   const contentLength = Number(request.headers.get("content-length") ?? 0);
@@ -48,8 +51,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         !(file instanceof File) || file.size < 1 || file.size > MAX_SUPPORT_ATTACHMENT_BYTES)) {
     return NextResponse.json({ error: "Invalid attachments" }, { status: 400, headers: noStore });
   }
-  const existing = await listServiceOrderAttachments(actor.userId, orderId);
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404, headers: noStore });
   const remaining = MAX_SUPPORT_ATTACHMENTS_PER_TICKET - existing.filter((file) => file.status !== "failed").length;
   if (files.length > remaining) return NextResponse.json({ error: "Attachment limit reached" }, { status: 409, headers: noStore });
 

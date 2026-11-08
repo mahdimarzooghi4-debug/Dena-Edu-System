@@ -7,8 +7,8 @@ import { getDb } from "../../src/db";
 import {
   auditLogs, financialEntries, financialJournals, instituteServiceCatalog,
   instituteServiceCalls, instituteServiceOrders, memberships, serviceCallFollowUps,
-  serviceCallMediaEvents, serviceTimeLedger,
-  session, user, verifiedEntities,
+  serviceCallMediaEvents, serviceTimeLedger, serviceOrderMessages,
+  serviceOrderAttachments, session, user, verifiedEntities,
 } from "../../src/db/schema";
 import { captureInstituteServiceOrderPayment } from "../../src/server/finance/service-order-payments";
 import { endInstituteServiceCall, startInstituteServiceCall } from "../../src/server/institute/service-calls";
@@ -93,6 +93,8 @@ test.describe("institute service order guardian consent", () => {
   });
 
   test.afterAll(async () => {
+    await db.delete(serviceOrderAttachments).where(eq(serviceOrderAttachments.serviceOrderId, orderId));
+    await db.delete(serviceOrderMessages).where(eq(serviceOrderMessages.serviceOrderId, orderId));
     if (createdServiceCallIds.length) {
       await db.delete(serviceCallFollowUps).where(inArray(
         serviceCallFollowUps.serviceCallId, createdServiceCallIds,
@@ -302,6 +304,127 @@ test.describe("institute service order guardian consent", () => {
     await orderCard.getByRole("button", { name: "لغو جلسه" }).last().click();
     await expect(orderCard.getByText("لغوشده")).toBeVisible();
     await institute.dispose();
+  });
+
+  test("paid service conversation scopes participants, replay and unavailable storage", async ({ page }) => {
+    const messagesPath = "/api/service-orders/" + orderId + "/messages";
+    const attachmentsPath = "/api/service-orders/" + orderId + "/attachments";
+    const unauthenticated = await client();
+    expect((await unauthenticated.get(messagesPath)).status()).toBe(404);
+    expect((await unauthenticated.get(attachmentsPath)).status()).toBe(401);
+    expect((await post(unauthenticated, messagesPath, {
+      body: "anonymous", idempotencyKey: randomUUID(),
+    })).status()).toBe(404);
+    await unauthenticated.dispose();
+
+    const outsider = await client("otherInstitute");
+    expect((await outsider.get(messagesPath)).status()).toBe(404);
+    expect((await post(outsider, messagesPath, {
+      body: "foreign organization", idempotencyKey: randomUUID(),
+    })).status()).toBe(404);
+    expect((await outsider.get(attachmentsPath)).status()).toBe(404);
+    // Check authorization before revealing scanner availability.
+    expect((await outsider.post(attachmentsPath, {
+      data: { files: "invalid" }, headers: { Origin: "http://localhost:3000" },
+    })).status()).toBe(404);
+    await outsider.dispose();
+
+    const student = await client("student");
+    const institute = await client("institute");
+    expect((await student.get("/api/service-orders/" + randomUUID() + "/messages")).status()).toBe(404);
+    expect((await student.post(messagesPath, { data: {
+      body: "forged origin", idempotencyKey: randomUUID(),
+    }, headers: { Origin: "https://attacker.invalid" } })).status()).toBe(403);
+    expect((await post(student, messagesPath, {
+      body: "x".repeat(4001), idempotencyKey: randomUUID(),
+    })).status()).toBe(400);
+    expect((await post(student, messagesPath, {
+      body: "contains unknown field", idempotencyKey: randomUUID(), role: "admin",
+    })).status()).toBe(400);
+
+    const firstKey = randomUUID();
+    const first = await post(student, messagesPath, {
+      body: "پیام آزمایشی دانش‌آموز", idempotencyKey: firstKey,
+    });
+    expect(first.status()).toBe(201);
+    const firstBody = await first.json();
+    expect(firstBody.message).toMatchObject({
+      body: "پیام آزمایشی دانش‌آموز", duplicate: false,
+      senderUserId: users.student,
+    });
+
+    const replay = await post(student, messagesPath, {
+      body: "پیام آزمایشی دانش‌آموز", idempotencyKey: firstKey,
+    });
+    expect(replay.status()).toBe(200);
+    expect((await replay.json()).message).toMatchObject({
+      id: firstBody.message.id, duplicate: true,
+    });
+    expect((await post(student, messagesPath, {
+      body: "متن متفاوت با همان شناسه", idempotencyKey: firstKey,
+    })).status()).toBe(409);
+
+    // Two simultaneous retries must not produce duplicate messages.
+    const concurrentKey = randomUUID();
+    const [raceA, raceB] = await Promise.all([
+      post(student, messagesPath, { body: "پیام هم‌زمان", idempotencyKey: concurrentKey }),
+      post(student, messagesPath, { body: "پیام هم‌زمان", idempotencyKey: concurrentKey }),
+    ]);
+    expect([raceA.status(), raceB.status()].sort()).toEqual([200, 201]);
+    const [responseA, responseB] = await Promise.all([raceA.json(), raceB.json()]);
+    expect(responseA.message.id).toBe(responseB.message.id);
+
+    const fromInstitute = await post(institute, messagesPath, {
+      body: "پاسخ مؤسسه", idempotencyKey: randomUUID(),
+    });
+    expect(fromInstitute.status()).toBe(201);
+    const studentConversation = await student.get(messagesPath);
+    const instituteConversation = await institute.get(messagesPath);
+    expect(studentConversation.status()).toBe(200);
+    expect(instituteConversation.status()).toBe(200);
+    const studentData = (await studentConversation.json()).conversation;
+    const instituteData = (await instituteConversation.json()).conversation;
+    expect(studentData.role).toBe("student");
+    expect(instituteData.role).toBe("institute");
+    expect(studentData.messages.map((message: { body: string }) => message.body))
+      .toEqual(expect.arrayContaining(["پیام آزمایشی دانش‌آموز", "پیام هم‌زمان", "پاسخ مؤسسه"]));
+    expect(studentData.messages).toHaveLength(3);
+    expect(instituteData.messages).toHaveLength(3);
+    expect(studentConversation.headers()["cache-control"]).toContain("no-store");
+
+    const files = await student.get(attachmentsPath);
+    expect(files.status()).toBe(200);
+    expect(await files.json()).toMatchObject({
+      attachments: [], uploadAvailable: false,
+    });
+    expect((await student.post(attachmentsPath, {
+      data: { files: "invalid" }, headers: { Origin: "http://localhost:3000" },
+    })).status()).toBe(503); // No configured scanner: fail closed
+    expect((await student.get(attachmentsPath + "/" + randomUUID())).status()).toBe(404);
+
+    const signedStudent = await serializeSignedCookie(
+      "better-auth.session_token", tokens.student, process.env.BETTER_AUTH_SECRET!,
+    );
+    const cookiePair = signedStudent.split(";")[0];
+    await page.context().addCookies([{
+      name: "better-auth.session_token", value: cookiePair.slice(cookiePair.indexOf("=") + 1),
+      url: "http://localhost:3000",
+    }]);
+    await page.goto("http://localhost:3000/service-orders/" + orderId + "/messages");
+    await expect(page.getByRole("heading", { name: "مشاورهٔ آزمایشی" })).toBeVisible();
+    await expect(page.getByText("پیام آزمایشی دانش‌آموز")).toBeVisible();
+    await expect(page.getByText("پاسخ مؤسسه")).toBeVisible();
+    await expect(page.getByText("ذخیره‌سازی امن یا اسکن فایل در این محیط تنظیم نشده است.")).toBeVisible();
+    await expect(page.getByRole("button", { name: "اشتراک‌گذاری فایل" })).toBeDisabled();
+    await page.getByRole("textbox", { name: "متن پیام" }).fill("پیام ثبت‌شده از مرورگر");
+    const sent = page.waitForResponse((response) =>
+      response.url().endsWith(messagesPath) && response.request().method() === "POST",
+    );
+    await page.getByRole("button", { name: "ارسال پیام" }).click();
+    expect((await sent).status()).toBe(201);
+    await expect(page.getByText("پیام ثبت‌شده از مرورگر")).toBeVisible();
+
+    await Promise.all([student.dispose(), institute.dispose()]);
   });
 
   test("scopes call scheduling to paid consented service quotas and audits its lifecycle", async ({ page }) => {
