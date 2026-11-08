@@ -2216,6 +2216,8 @@ export const instituteServiceCalls = pgTable("dena_institute_service_calls", {
   status: instituteServiceCallStatus("status").notNull().default("scheduled"),
   startedAt: timestamp("started_at", { withTimezone: true }),
   endedAt: timestamp("ended_at", { withTimezone: true }),
+  noShowAt: timestamp("no_show_at", { withTimezone: true }),
+  noShowByUserId: uuid("no_show_by_user_id").references(() => user.id, { onDelete: "restrict" }),
   connectedSeconds: integer("connected_seconds").notNull().default(0),
   createdByUserId: uuid("created_by_user_id").notNull()
     .references(() => user.id, { onDelete: "restrict" }),
@@ -2228,10 +2230,15 @@ export const instituteServiceCalls = pgTable("dena_institute_service_calls", {
   uniqueIndex("dena_institute_service_call_order_open_uidx").on(table.serviceOrderId)
     .where(sql`${table.status} IN ('scheduled', 'started')`),
   check("dena_institute_service_call_state_ck", sql`
-    (status = 'scheduled' AND started_at IS NULL AND ended_at IS NULL)
-    OR (status = 'started' AND started_at IS NOT NULL AND ended_at IS NULL)
-    OR (status = 'ended' AND started_at IS NOT NULL AND ended_at >= started_at)
-    OR (status = 'cancelled' AND started_at IS NULL AND ended_at IS NULL)
+    (status = 'scheduled' AND started_at IS NULL AND ended_at IS NULL
+      AND no_show_at IS NULL AND no_show_by_user_id IS NULL)
+    OR (status = 'started' AND started_at IS NOT NULL AND ended_at IS NULL
+      AND no_show_at IS NULL AND no_show_by_user_id IS NULL)
+    OR (status = 'ended' AND started_at IS NOT NULL AND ended_at >= started_at
+      AND no_show_at IS NULL AND no_show_by_user_id IS NULL)
+    OR (status = 'cancelled' AND started_at IS NULL AND ended_at IS NULL
+      AND ((no_show_at IS NULL AND no_show_by_user_id IS NULL)
+        OR (no_show_at IS NOT NULL AND no_show_by_user_id IS NOT NULL)))
   `),
   check("dena_institute_service_call_connected_seconds_ck", sql`connected_seconds >= 0`),
 ]);
@@ -2279,5 +2286,53 @@ export const serviceCallFollowUps = pgTable("dena_service_call_follow_ups", {
   `),
   check("dena_service_call_follow_up_steps_ck", sql`
     jsonb_typeof(next_steps) = 'array' AND jsonb_array_length(next_steps) <= 10
+  `),
+]);
+
+export const serviceOrderMessages = pgTable("dena_service_order_messages", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  serviceOrderId: uuid("service_order_id").notNull()
+    .references(() => instituteServiceOrders.id, { onDelete: "restrict" }),
+  senderUserId: uuid("sender_user_id").notNull()
+    .references(() => user.id, { onDelete: "restrict" }),
+  idempotencyKey: uuid("idempotency_key").notNull(),
+  body: text("body").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("dena_service_order_message_idempotency_uidx")
+    .on(table.serviceOrderId, table.senderUserId, table.idempotencyKey),
+  index("dena_service_order_message_order_created_idx")
+    .on(table.serviceOrderId, table.createdAt, table.id),
+  check("dena_service_order_message_body_ck", sql`
+    char_length(body) BETWEEN 1 AND 4000 AND btrim(body) <> ''
+  `),
+]);
+
+/** Private order files stay quarantined until the configured scanner approves them. */
+export const serviceOrderAttachments = pgTable("dena_service_order_attachments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  serviceOrderId: uuid("service_order_id").notNull()
+    .references(() => instituteServiceOrders.id, { onDelete: "restrict" }),
+  uploadedByUserId: uuid("uploaded_by_user_id").notNull()
+    .references(() => user.id, { onDelete: "restrict" }),
+  fileName: text("file_name").notNull(),
+  contentType: text("content_type").notNull(),
+  byteSize: integer("byte_size").notNull(),
+  sha256: text("sha256").notNull(),
+  objectKey: text("object_key").notNull().unique(),
+  status: text("status").notNull().default("quarantined"),
+  scannedAt: timestamp("scanned_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("dena_service_order_attachment_order_created_idx").on(table.serviceOrderId, table.createdAt),
+  check("dena_service_order_attachment_name_ck", sql`char_length(file_name) BETWEEN 1 AND 180`),
+  check("dena_service_order_attachment_type_ck", sql`
+    content_type IN ('application/pdf', 'image/jpeg', 'image/png')
+  `),
+  check("dena_service_order_attachment_size_ck", sql`byte_size BETWEEN 1 AND 10485760`),
+  check("dena_service_order_attachment_hash_ck", sql`sha256 ~ '^[0-9a-f]{64}$'`),
+  check("dena_service_order_attachment_status_ck", sql`
+    (status IN ('uploading', 'quarantined', 'failed') AND scanned_at IS NULL)
+    OR (status IN ('ready', 'rejected') AND scanned_at IS NOT NULL)
   `),
 ]);
