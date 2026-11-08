@@ -48,7 +48,6 @@ export function DenaHomepage() {
             <Link href="/assessments">آزمون‌ها</Link>
             <Link href="/growth">مسیر رشد</Link>
             <Link href="/courses">دوره‌ها</Link>
-            <Link href="/download/android">اپ اندروید</Link>
             <Link className="is-active" href="/">خانه</Link>
           </nav>
           <Brand />

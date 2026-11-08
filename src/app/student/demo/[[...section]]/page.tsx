@@ -30,5 +30,5 @@ export default async function DemoStudentApp({params}: {params:Promise<{section?
   const route=(section?.join("/") || "home");
   if (route.length>90 || (section?.length ?? 0)>3 || section?.some(x=>!(/^[a-z0-9-]+$/u.test(x)))) notFound();
   const {title,active}=current(route);
-  return <StudentShell demo="synthetic" active={active} title={title}><DemoWorkspace key={route} route={route}/></StudentShell>;
+  return <StudentShell demo="session" active={active} title={title}><DemoWorkspace key={route} route={route}/></StudentShell>;
 }

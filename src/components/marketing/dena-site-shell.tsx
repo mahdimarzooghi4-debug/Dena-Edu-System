@@ -9,7 +9,6 @@ const siteLinks = [
   ["مسیر رشد", "/growth"],
   ["دوره‌ها", "/courses"],
   ["خانه", "/"],
-  ["اپ اندروید", "/download/android"],
 ];
 
 /** Last header action: an icon linking to the Android app download page. */
