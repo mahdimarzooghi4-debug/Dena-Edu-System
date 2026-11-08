@@ -628,8 +628,12 @@ test.describe("course team communication and problem-solving stay course-scoped"
     await page.goto(`http://localhost:3000/student/courses/${courseId}`);
     await page.getByRole("link", { name: /پشتیبان آزمون/ }).click();
     const studentCards = page.locator("li").filter({ hasText: subject });
-    await expect(studentCards.nth(0)).toContainText("تعیین جلسه");
-    await expect(studentCards.nth(1)).toContainText("برگزارش‌شده");
+    // The student page lists sessions before collapsible requests.
+    // Check the two real states independently of list ordering.
+    await expect(studentCards.filter({ hasText: /برگزارش.?شده/ })).toBeVisible();
+    await page.locator("details").filter({ hasText: "وضعیت درخواست‌های شما" })
+      .locator("summary").click();
+    await expect(studentCards.filter({ hasText: "جلسه تعیین شد" })).toBeVisible();
   });
 
   test("deactivation immediately closes both messaging and session capability", async () => {

@@ -157,7 +157,9 @@ export default async function StudentHomePage() {
               <p className="text-xs leading-6 text-dena-muted">این درصد بر پایهٔ علامت‌های اختیاری خودت است و تماشای کامل یا نمرهٔ رسمی را ثابت نمی‌کند.</p>
             </div>
             {featuredCourse.currentVideo ? <Link href={`/student/courses/${featuredCourse.courseId}/watch?video=${encodeURIComponent(featuredCourse.currentVideo.assetId)}`} className={buttonClassName()}>
-              ادامه یادگیری
+              {featuredCourse.readyVideos > 0 && featuredCourse.markedVideos >= featuredCourse.readyVideos
+                ? "مرور محتوای دوره"
+                : "ادامه یادگیری"}
             </Link> : <Link href={`/student/courses/${featuredCourse.courseId}`} className={buttonClassName()}>مشاهده دوره</Link>}
           </Card>
         ) : (
