@@ -210,18 +210,17 @@ public final class MainActivity extends Activity {
 
             @Override
             public void onPageCommitVisible(WebView view, String url) {
-                mainFrameFailed = false;
-                retryAttempt = 0;
-                retryPending = false;
-                retryHandler.removeCallbacks(retryRunnable);
-                errorPane.setVisibility(View.GONE);
+                // Chromium can commit its built-in DNS/HTTP error page too.
+                // Only a completed, error-free load may dismiss the retry overlay.
                 super.onPageCommitVisible(view, url);
             }
 
             @Override
             public void onPageFinished(WebView view, String url) {
                 progress.setVisibility(View.GONE);
-                if (!mainFrameFailed && !retryPending) {
+                if (!mainFrameFailed) {
+                    retryHandler.removeCallbacks(retryRunnable);
+                    retryPending = false;
                     retryAttempt = 0;
                     errorPane.setVisibility(View.GONE);
                 }
@@ -252,6 +251,10 @@ public final class MainActivity extends Activity {
             @Override
             public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
                 handler.cancel();
+                // Never dismiss a TLS failure just because an error page committed.
+                mainFrameFailed = true;
+                retryHandler.removeCallbacks(retryRunnable);
+                retryPending = false;
                 showError(getString(R.string.connection_error), true);
             }
         });
