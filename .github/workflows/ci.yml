@@ -21,6 +21,7 @@ jobs:
         run: npm install --global npm@11 --no-audit --no-fund
       - name: Install from committed lockfile
         run: npm ci --no-audit --no-fund
+      - run: npm run check:migrations
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run test
@@ -114,6 +115,8 @@ jobs:
           quota_token=$(openssl rand -hex 32)
           echo "::add-mask::$quota_token"
           echo "DENA_LIVEKIT_QUOTA_WORKER_TOKEN=$quota_token" >> "$GITHUB_ENV"
+      - name: Validate migration history
+        run: npm run check:migrations
       - name: Generate reviewed Drizzle migration candidate
         run: npx drizzle-kit generate
       - name: Preserve generated migration for review

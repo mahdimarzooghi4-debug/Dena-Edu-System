@@ -10,6 +10,7 @@
     "build": "next build && node scripts/prepare-next-standalone.mjs",
     "start": "node scripts/start-next-standalone.mjs",
     "db:migrate": "drizzle-kit migrate",
+    "check:migrations": "node --test scripts/check-drizzle-journal.test.mjs && node scripts/check-drizzle-journal.mjs",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
