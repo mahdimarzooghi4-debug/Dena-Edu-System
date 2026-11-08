@@ -403,7 +403,7 @@ test.describe("free enrollment and private video access must stay course-scoped"
     ]);
     const beforeEnrollmentHome = await student.get("/student");
     expect(beforeEnrollmentHome.status()).toBe(200);
-    expect(await beforeEnrollmentHome.text()).toContain("فعلاً دورهٔ قابل ادامه‌ای نداری");
+    expect(await beforeEnrollmentHome.text()).toContain("دورهٔ قابل ادامه‌ای نداری");
     const emptyOverview = await student.get("/api/student/progress");
     expect(emptyOverview.status()).toBe(200);
     expect(emptyOverview.headers()["cache-control"]).toContain("no-store");

@@ -271,7 +271,8 @@ test.describe("course-scoped provider requests and independent institute decisio
     expect(instituteHtml).toContain("ویدئوهای آماده:");
     expect(instituteHtml).toContain("سؤال تمرینی:");
     expect(instituteHtml).toContain("ثبت نشده");
-    expect(instituteHtml).toContain("سؤال‌های تمرینی در انتظار بازبینی");
+    expect(instituteHtml).toContain("ارزیابی‌های در انتظار بازبینی");
+    expect(instituteHtml).toContain("در انتظار بازبینی:");
     expect(instituteHtml).toContain(
       `/institute/courses/${courseIds[0]}`,
     );

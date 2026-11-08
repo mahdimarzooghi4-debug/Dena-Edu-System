@@ -404,7 +404,7 @@ test.describe("student learning assessment lifecycle", () => {
     const home = await student.get("/student");
     expect(home.status()).toBe(200);
     const html = await home.text();
-    expect(html).toContain("آزمون‌های من");
+    expect(html).toContain("تمرین‌ها و آزمون‌ها");
     expect(html).toContain("آزمون هماهنگ دنا");
     expect(html).toContain("آزمون مؤسسه");
     expect(html).toContain("/student/assessments");
