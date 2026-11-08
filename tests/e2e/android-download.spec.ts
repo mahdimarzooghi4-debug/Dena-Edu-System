@@ -12,7 +12,7 @@ test("site header's last icon links to a single Android APK download button", as
   const button = page.getByRole("link", { name: "دانلود اپ اندروید دنا" });
   await expect(button).toBeVisible();
   await expect(button).toHaveAttribute("href", "/download/android/apk");
-  await expect(button).toHaveAttribute("download", "dena-student-android-v0.1.1.apk");
+  await expect(button).toHaveAttribute("download", "dena-student-android-v0.1.4-preview.apk");
   await expect(page.locator("main a")).toHaveCount(1);
   await expect(page.locator("main button")).toHaveCount(0);
   await expect(page.locator("main h1, main h2, main p, main ul, main ol")).toHaveCount(0);
