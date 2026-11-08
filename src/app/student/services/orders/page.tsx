@@ -114,6 +114,10 @@ export default async function StudentServiceOrdersPage() {
                 <LiveKitCallRoom key={call.id} callId={call.id} />)}
             </section>}
 
+            {order.status === "paid" && <Link href={`/service-orders/${order.id}/messages`}
+              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-dena-brand bg-white px-4 py-2 text-sm font-bold text-dena-brand">
+              پیام امن به مؤسسه
+            </Link>}
             <ServiceOrderAction
               serviceId={order.serviceId}
               guardianConsentRequired={order.guardianConsentRequired}
