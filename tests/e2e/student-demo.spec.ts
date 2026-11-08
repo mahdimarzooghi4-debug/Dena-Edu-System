@@ -113,6 +113,8 @@ test.describe("isolated installable synthetic Dena student app", () => {
       await page.setViewportSize({ width, height: 840 });
       await page.goto("/student/demo");
       await expect(page.getByRole("navigation", { name: "منوی پایین دانش‌آموز" })).toBeVisible();
+      const links=await page.getByRole("navigation", { name: "منوی پایین دانش‌آموز" }).locator("a").evaluateAll(items=>items.map(item=>item.getAttribute("href")));
+      expect(links.every(href=>href?.startsWith("/student/demo"))).toBe(true);
       const noOverflow = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
       expect(noOverflow, "student app must not overflow at " + width).toBe(true);
     }

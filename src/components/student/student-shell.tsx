@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { InstallStudentApp } from "./install-app";
 import type { ReactNode } from "react";
 
 type StudentSection =
@@ -18,13 +19,13 @@ type Props = {
   active: StudentSection;
   title: string;
   children: ReactNode;
-  demo?: boolean;
+  demo?: boolean | "synthetic";
   mobileNav?: "student" | "service";
   mobileServiceActive?: "center" | "orders" | "home";
 };
 
-function hrefFor(href: string, demo: boolean) {
-  return demo ? href.replace(/^\/student(?=\/|$)/, "/student-demo") : href;
+function hrefFor(href: string, demo: boolean | "synthetic") {
+  return demo ? href.replace(/^\/student(?=\/|$)/, demo === "synthetic" ? "/student/demo" : "/student-demo") : href;
 }
 
 type IconName =
@@ -103,7 +104,7 @@ function Icon({ name, className = "size-5" }: { name: IconName; className?: stri
   }
 }
 
-function DesktopNavigation({ active, demo }: { active: StudentSection; demo: boolean }) {
+function DesktopNavigation({ active, demo }: { active: StudentSection; demo: boolean | "synthetic" }) {
   return (
     <nav aria-label="منوی دانش‌آموز" className="mt-7">
       <ul className="space-y-2">
@@ -134,7 +135,7 @@ function DesktopNavigation({ active, demo }: { active: StudentSection; demo: boo
 
 function MobileNavigation({ active, demo, variant = "student", serviceActive = "center" }: {
   active: StudentSection;
-  demo: boolean;
+  demo: boolean | "synthetic";
   variant?: "student" | "service";
   serviceActive?: "center" | "orders" | "home";
 }) {
@@ -200,7 +201,7 @@ export function StudentShell({ active, title, children, demo = false, mobileNav 
         <DesktopNavigation active={active} demo={demo} />
 
         <div className="mt-auto border-t border-dena-border pt-4">
-          <Link href={demo ? "/student-demo/support" : "/support"} className="flex min-h-[44px] items-center gap-3 rounded-xl px-4 text-sm text-dena-muted hover:bg-dena-bg hover:text-dena-ink">
+          <Link href={demo ? hrefFor("/student/support",demo) : "/support"} className="flex min-h-[44px] items-center gap-3 rounded-xl px-4 text-sm text-dena-muted hover:bg-dena-bg hover:text-dena-ink">
             <Icon name="help" />
             <span>پشتیبانی آنلاین</span>
           </Link>
@@ -257,6 +258,7 @@ export function StudentShell({ active, title, children, demo = false, mobileNav 
         </header>
 
         <main id="main-content" className="mx-auto w-full max-w-[1180px] px-4 py-5 pb-24 md:px-7 md:py-7 lg:px-10 lg:py-10 lg:pb-10">
+          {demo === "synthetic" && <><div role="status" className="mb-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-xs font-bold leading-6 text-amber-900">نسخهٔ آزمایشی با دادهٔ ساختگی؛ اطلاعات، نمره‌ها، پرداخت و عضویت واقعی نیستند.</div><InstallStudentApp /></>}
           {children}
         </main>
       </div>
