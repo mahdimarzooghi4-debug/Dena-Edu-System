@@ -1584,9 +1584,15 @@ test.describe("free enrollment and private video access must stay course-scoped"
       domain: "localhost", path: "/", httpOnly: true, secure: false,
       sameSite: "Lax",
     }]);
-    await page.goto("http://localhost:3000/student");
-    await page.getByRole("link", { name: "مدیریت یادداشت‌های شخصی" }).click();
+    // Privacy tools are reachable from the actual student account panel.
+    await page.goto("http://localhost:3000/student/profile");
+    await page.getByRole("link", {
+      name: "مشاهده تنظیمات حریم خصوصی",
+    }).click();
     await expect(page).toHaveURL(/\/student\/privacy$/);
+    await page.locator("summary").filter({
+      hasText: "مدیریت یادداشت‌های شخصی",
+    }).click();
     await expect(page.getByRole("heading", {
       name: "پاک‌کردن همهٔ یادداشت‌های شخصی",
     })).toBeVisible();
@@ -1613,6 +1619,9 @@ test.describe("free enrollment and private video access must stay course-scoped"
       "یادداشت ویدئویی ذخیره‌شده‌ای برای پاک‌کردن باقی نمانده است.",
     )).toBeVisible();
     await page.reload();
+    await page.locator("summary").filter({
+      hasText: "مدیریت یادداشت‌های شخصی",
+    }).click();
     await expect(page.getByText(
       "یادداشت ویدئویی ذخیره‌شده‌ای برای پاک‌کردن باقی نمانده است.",
     )).toBeVisible();
