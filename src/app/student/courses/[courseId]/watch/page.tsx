@@ -5,10 +5,12 @@ import { z } from "zod";
 import { Card } from "@/components/ui/card";
 import { StudentShell } from "@/components/student/student-shell";
 import { VideoProgress } from "@/components/student/video-progress";
+import { StudentCoursePractice } from "@/components/student/course-practice";
 import { getServerAccessContext } from "@/server/access/actor";
 import { hasStudentEntitlement } from "@/server/student/entitlement";
 import { configuredPrivateMediaOrigin } from "@/server/student/private-media";
 import { getStudentVideoProgress } from "@/server/student/video-progress";
+import { getStudentPractice } from "@/server/student/course-practice";
 import { getStudentCourseDetail } from "@/server/student/course-detail";
 import { getStudentCourseTeam } from "@/server/student/course-team";
 
@@ -35,9 +37,10 @@ export default async function CourseWatchPage({
 
   const detail = await getStudentCourseDetail(actor.userId, courseId);
   if (!detail || detail.enrollmentStatus !== "active") notFound();
-  const [videos, team] = await Promise.all([
+  const [videos, team, practice] = await Promise.all([
     getStudentVideoProgress(actor.userId, courseId),
     getStudentCourseTeam(actor.userId, courseId),
+    getStudentPractice(actor.userId, courseId),
   ]);
   const enabled = Boolean(configuredPrivateMediaOrigin());
   const teacherName = (team ?? []).find((member) => member.role === "teacher")?.name ?? null;
@@ -57,6 +60,14 @@ export default async function CourseWatchPage({
         )}
         <VideoProgress courseId={courseId} initialVideoId={initialVideoId} courseTitle={detail.title}
           providerName={providerName} teacherName={teacherName} videos={videos} />
+        {practice && (
+          <StudentCoursePractice courseId={courseId} question={{
+            ...practice,
+            attempt: practice.attempt
+              ? { ...practice.attempt, submittedAt: practice.attempt.submittedAt.toISOString() }
+              : null,
+          }} />
+        )}
         <p className="text-xs leading-7 text-dena-muted">
           دسترسی به هر ویدئو در هر درخواست دوباره با نشست دانش‌آموز، ثبت‌نام فعال و وضعیت نظارت همان دوره بررسی می‌شود.
         </p>

@@ -631,9 +631,9 @@ test.describe("course team communication and problem-solving stay course-scoped"
     // The student page lists sessions before collapsible requests.
     // Check the two real states independently of list ordering.
     await expect(studentCards.filter({ hasText: /برگزارش.?شده/ })).toBeVisible();
-    await page.locator("details").filter({ hasText: "وضعیت درخواست‌های شما" })
+    await page.locator("details").filter({ hasText: "درخواست‌های شما" })
       .locator("summary").click();
-    await expect(studentCards.filter({ hasText: "جلسه تعیین شد" })).toBeVisible();
+    await expect(studentCards.filter({ hasText: "تعیین جلسه" })).toBeVisible();
   });
 
   test("deactivation immediately closes both messaging and session capability", async () => {
