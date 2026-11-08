@@ -27,9 +27,12 @@ public final class AppAddress {
                 throw new IllegalArgumentException("Student Android URL must be a clean HTTPS student path");
             }
             String normalized = host.toLowerCase(Locale.ROOT);
-            if (normalized.equals("localhost") || normalized.endsWith(".localhost") ||
-                normalized.endsWith(".local") || normalized.endsWith(".invalid") ||
-                normalized.equals("127.0.0.1") || normalized.startsWith("127.")) {
+            // A configured endpoint must be a DNS name, not an IP literal
+            // or a local-only development hostname.
+            if (normalized.matches("[0-9.]+") || normalized.contains(":") ||
+                normalized.equals("localhost") || normalized.endsWith(".localhost") ||
+                normalized.endsWith(".local") || normalized.endsWith(".internal") ||
+                normalized.endsWith(".invalid")) {
                 throw new IllegalArgumentException("Local and invalid endpoints are not allowed");
             }
             return uri;
