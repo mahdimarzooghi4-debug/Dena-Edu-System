@@ -7,8 +7,8 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "build": "next build && node scripts/prepare-next-standalone.mjs",
+    "start": "node scripts/start-next-standalone.mjs",
     "db:migrate": "drizzle-kit migrate",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
@@ -39,7 +39,6 @@
     "zod": "^4.1.0"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.5.15",
     "@playwright/test": "^1.55.0",
     "@tailwindcss/postcss": "^4.3.1",
     "@types/node": "^22.0.0",
@@ -52,6 +51,7 @@
     "postcss": "^8.4.49",
     "tailwindcss": "^4.3.1",
     "typescript": "^5.9.0",
-    "vitest": "^4.0.0"
+    "vitest": "^4.0.0",
+    "@electric-sql/pglite": "^0.5.15"
   }
 }

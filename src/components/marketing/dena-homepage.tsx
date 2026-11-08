@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import "./dena-homepage.css";
-import { DenaRoleIcon } from "./dena-site-shell";
+import { DenaAndroidHeaderLink, DenaRoleIcon } from "./dena-site-shell";
 
 const steps = [
   ["۱", "انتخاب دوره از مؤسسه", "مرور دوره‌های ساختارمند مؤسسات آموزشی دارای مجوز و ارائه‌دهندگان تحت نظارت"],
@@ -39,6 +39,7 @@ export function DenaHomepage() {
         <div className="dena-header__actions">
           <Link className="dena-button dena-button--outline" href="/login">ورود</Link>
           <Link className="dena-button dena-button--primary" href="/signup">ثبت‌نام</Link>
+          <DenaAndroidHeaderLink />
         </div>
         <div className="dena-header__right">
           <nav className="dena-nav" aria-label="ناوبری اصلی">
@@ -90,6 +91,7 @@ export function DenaHomepage() {
             <div className="dena-hero__actions">
             <Link className="dena-button dena-button--primary" href="/login">ورود به دنا</Link>
               <Link className="dena-button dena-button--text" href="/courses">مشاهده دوره‌ها</Link>
+              <Link className="dena-button dena-button--outline" href="/download/android">دانلود اپ اندروید</Link>
             </div>
           </div>
         </div>
@@ -219,6 +221,24 @@ export function DenaHomepage() {
         </div>
       </section>
 
+      <section className="dena-android-strip dena-section" aria-labelledby="dena-android-title">
+        <div className="dena-android-strip__art" aria-hidden="true">
+          <div className="dena-android-strip__phone">
+            <Image src="/dena-app-logo.png" alt="" width={90} height={52} />
+            <span>خانهٔ دانش‌آموز</span>
+            <i /><i /><i />
+            <strong>یادگیری، همراه تو</strong>
+          </div>
+        </div>
+        <div className="dena-android-strip__copy">
+          <span className="eyebrow">فقط اندروید · نسخهٔ آزمایشی</span>
+          <h2 id="dena-android-title">دنا را روی گوشی‌ات داشته باش</h2>
+          <p>اپ اندروید دنا با تجربهٔ موبایل دانش‌آموز آمادهٔ آزمایش است. فعلاً با اطلاعات نمونه کار می‌کند و برای نمایش درس‌ها به اینترنت نیاز دارد.</p>
+          <Link className="dena-button dena-button--primary" href="/download/android">دانلود اپ دانش‌آموز دنا</Link>
+          <small>Android 8 به بالا · APK آزمایشی · بدون نیاز به سرویس پیامک یا درگاه پرداخت</small>
+        </div>
+      </section>
+
       <section className="dena-cta" id="assessments">
         <h2>مسیر رشدت را از همین‌جا شروع کن</h2>
         <p>یادگیری، تمرین و ارزیابی را در یک مسیر منسجم دنبال کن.</p>
@@ -233,7 +253,7 @@ export function DenaHomepage() {
       <footer className="dena-footer">
         <div className="dena-footer__main">
           <div className="dena-footer__brand"><Brand footer /><p>آموزش تنها نیست؛ رشد همراه است.</p><small>اکوسیستم آموزشی دنا</small></div>
-          <div><h3>دنا</h3><Link href="/courses">دوره‌ها</Link><Link href="/growth">مسیر رشد</Link><Link href="/elite-club">باشگاه نخبگان</Link><Link href="/assessments">آزمون‌ها</Link><Link href="/about">درباره دنا</Link></div>
+          <div><h3>دنا</h3><Link href="/courses">دوره‌ها</Link><Link href="/growth">مسیر رشد</Link><Link href="/elite-club">باشگاه نخبگان</Link><Link href="/assessments">آزمون‌ها</Link><Link href="/about">درباره دنا</Link><Link href="/download/android">دانلود اپ اندروید</Link></div>
           <div><h3>همکاری با دنا</h3><Link href="/institutes/request">ثبت‌نام مؤسسات</Link><Link href="/institutes/collaboration">سازمان‌ها و حامیان</Link></div>
           <div><h3>راهنما</h3><Link href="/support">پشتیبانی فنی</Link><Link href="/student/privacy">قوانین و حریم خصوصی</Link></div>
           <div><h3>تماس با دنا</h3><span>تلفن: ۰۲۱-۶۶۴۸۵۳۷۴</span><span>ایمیل: info@denaedu.ir</span><span>خیابان انقلاب، خیابان رازی، کوچه شهبازیان، پلاک ۲۲</span></div>
