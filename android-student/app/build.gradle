@@ -11,7 +11,12 @@ if (!studentUrl.isEmpty()) {
     if (uri.scheme != 'https' || !uri.host || uri.userInfo != null || uri.query != null ||
         uri.fragment != null || !(uri.port == -1 || uri.port == 443) ||
         !(path == '/student' || path.startsWith('/student/') || path == '/student-demo' || path.startsWith('/student-demo/')) ||
-        !uri.host.contains('.') || uri.host.equalsIgnoreCase('localhost')) {
+        !uri.host.contains('.') ||
+        uri.host ==~ /[0-9.]+/ || uri.host.contains(':') ||
+        uri.host.toLowerCase(java.util.Locale.ROOT).endsWith('.localhost') ||
+        uri.host.toLowerCase(java.util.Locale.ROOT).endsWith('.local') ||
+        uri.host.toLowerCase(java.util.Locale.ROOT).endsWith('.internal') ||
+        uri.host.toLowerCase(java.util.Locale.ROOT).endsWith('.invalid')) {
         throw new GradleException('denaStudentUrl must be an HTTPS student route on a DNS host, without credentials, query or fragment')
     }
 }
