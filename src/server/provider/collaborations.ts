@@ -1,10 +1,11 @@
-import { and, asc, desc, eq, inArray, isNotNull, ne, notExists, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, lt, isNotNull, ne, notExists, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { getDb } from "../../db";
 import {
   auditLogs, memberships, providerInstituteCollaborationEvents,
   providerInstituteCollaborations, verifiedEntities,
 } from "../../db/schema";
+import { decodeCollaborationCursor, encodeCollaborationCursor } from "./collaboration-cursor";
 import { auditLogRecord } from "../admin/audit";
 import type { CollaborationDecision, ProviderCollaborationStatus } from "./collaboration-contracts";
 
@@ -17,19 +18,21 @@ export class CollaborationWorkflowError extends Error {
   constructor(readonly kind: CollaborationWorkflowFailure) { super(kind); }
 }
 
-export async function getProviderCollaborations(userId: string) {
+export async function getProviderCollaborations(userId: string, collaborationId?: string, cursorToken?: string) {
   const db = getDb();
   const scopes = await db.select({ id: memberships.providerId }).from(memberships)
     .where(and(eq(memberships.userId, userId), eq(memberships.role, "provider"),
       eq(memberships.status, "active")));
   const providerIds = [...new Set(scopes.flatMap((item) => item.id ? [item.id] : []))];
-  if (!providerIds.length) return { institutes: [], collaborations: [] };
+  if (!providerIds.length) return { institutes: [], collaborations: [], nextCursor: null, invalidCursor: false };
+  const cursor = cursorToken ? decodeCollaborationCursor(cursorToken) : null;
+  if (cursorToken && !cursor) return { institutes: [], collaborations: [], nextCursor: null, invalidCursor: true };
   const activeInstituteScopes = await db.select({ id: memberships.instituteId }).from(memberships)
     .where(and(eq(memberships.role, "institute"), eq(memberships.status, "active"),
       isNotNull(memberships.instituteId)));
   const instituteIds = [...new Set(activeInstituteScopes.flatMap((item) => item.id ? [item.id] : []))];
 
-  const [institutes, collaborations] = await Promise.all([
+  const [institutes, collaborationRows] = await Promise.all([
     instituteIds.length ? db.select({ id: verifiedEntities.id, name: verifiedEntities.name })
       .from(verifiedEntities).where(and(eq(verifiedEntities.role, "institute"),
         inArray(verifiedEntities.id, instituteIds)))
@@ -50,9 +53,13 @@ export async function getProviderCollaborations(userId: string) {
     }).from(providerInstituteCollaborations).innerJoin(verifiedEntities, and(
       eq(verifiedEntities.id, providerInstituteCollaborations.instituteId),
       eq(verifiedEntities.role, "institute"),
-    )).where(inArray(providerInstituteCollaborations.providerId, providerIds))
-      .orderBy(desc(providerInstituteCollaborations.createdAt), desc(providerInstituteCollaborations.id)).limit(100),
+    )).where(and(inArray(providerInstituteCollaborations.providerId, providerIds),
+      collaborationId ? eq(providerInstituteCollaborations.id, collaborationId) : undefined,
+      cursor ? or(lt(providerInstituteCollaborations.createdAt,cursor.createdAt),
+        and(eq(providerInstituteCollaborations.createdAt,cursor.createdAt),lt(providerInstituteCollaborations.id,cursor.id))) : undefined))
+      .orderBy(desc(providerInstituteCollaborations.createdAt), desc(providerInstituteCollaborations.id)).limit(101),
   ]);
+  const collaborations = collaborationRows.slice(0,100);
   const collaborationIds = collaborations.map((item) => item.id);
   const events = collaborationIds.length ? await db.select({
     id: providerInstituteCollaborationEvents.id,
@@ -72,6 +79,8 @@ export async function getProviderCollaborations(userId: string) {
   }
   return {
     institutes,
+    nextCursor: collaborationRows.length > 100 ? encodeCollaborationCursor(collaborations[collaborations.length-1]) : null,
+    invalidCursor: false,
     collaborations: collaborations.map((item) => ({
       ...item, events: eventsByCollaboration.get(item.id) ?? [],
     })),

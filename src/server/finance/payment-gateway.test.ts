@@ -105,6 +105,15 @@ describe("vendor-neutral payment webhook boundary", () => {
     });
   });
 
+  it("forwards verified capture time and fee without accepting a browser contract", async () => {
+    const event={...captureEvent,capturedAt:"2026-11-06T12:00:00Z",gatewayFeeRials:1000};
+    const capture=vi.fn(async()=>({status:"paid"}));
+    await handleServicePaymentWebhook(request,adapter(event),capture);
+    expect(capture).toHaveBeenCalledWith({orderId:event.orderId,gatewayEventId:`selected-gateway:${event.eventId}`,
+      grossRials:event.grossRials,capturedAt:event.capturedAt,gatewayFeeRials:event.gatewayFeeRials});
+    await expect(handleServicePaymentWebhook(request,adapter({...event,contractId:captureEvent.orderId}),capture)).rejects.toBeInstanceOf(PaymentGatewayBoundaryError);
+  });
+
   it("does not capture missing, non-captured, wrong-currency, or extra fields", async () => {
     const capture = vi.fn(async () => undefined);
     for (const event of [null, { ...captureEvent, state: "authorized" },

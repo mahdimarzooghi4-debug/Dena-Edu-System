@@ -1,71 +1,27 @@
 import Link from "next/link";
-import type { Metadata } from "next";
-import { notFound, redirect } from "next/navigation";
-import { buttonClassName } from "../../../components/ui/button";
 import { Card } from "../../../components/ui/card";
-import { getServerAccessContext } from "../../../server/access/actor";
-import { getBenefactorScopes } from "../../../server/benefactor/scopes";
+import { BenefactorPageHeader } from "../../../components/benefactor/page-header";
+import { requireBenefactorAccess } from "../../../server/benefactor/require-access";
 
-export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = {
-  title: "رشد و پیشرفت | دنا",
-  robots: { index: false, follow: false },
-};
+export const metadata = { title: "رشد و پیشرفت | دنا", robots: { index: false, follow: false } };
 
 export default async function BenefactorGrowthPage() {
-  if (!process.env.DATABASE_URL || !process.env.BETTER_AUTH_SECRET ||
-      !process.env.BETTER_AUTH_URL) redirect("/login");
-  const actor = await getServerAccessContext();
-  if (!actor) redirect("/login");
-  if (!actor.memberships.some((membership) => membership.role === "benefactor")) {
-    notFound();
-  }
-  const scopes = await getBenefactorScopes(actor.userId);
-  if (!scopes.length) notFound();
-
-  return (
-    <main id="main-content" className="mx-auto min-h-screen max-w-4xl space-y-8 px-5 py-8 md:px-10 md:py-12">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <Link href="/benefactor" className="text-sm font-bold text-dena-brand hover:underline">
-          بازگشت به خانهٔ خیر و حامی
-        </Link>
-        <Link href="/account" className={buttonClassName("secondary")}>
-          حساب من
-        </Link>
-      </header>
-
-      <section className="rounded-[20px] bg-dena-lavender px-6 py-7 md:px-8">
-        <p className="text-sm font-bold text-dena-brand">گزارش حافظ حریم خصوصی</p>
-        <h1 className="mt-2 text-[27px] font-extrabold leading-relaxed text-dena-deep md:text-[31px]">
-          رشد و پیشرفت
-        </h1>
-        <p className="mt-2 max-w-3xl text-sm leading-8 text-dena-muted">
-          نتیجهٔ آموزشی فردی دانش‌آموزان در این پنل نمایش داده نمی‌شود.
-          شاخص تجمیعیِ مصوبی هم برای این نقش تعریف نشده است؛ بنابراین
-          نمودار یا شمار پیشرفت در این نسخه وجود ندارد.
-        </p>
-      </section>
-
-      <Card className="space-y-4">
-        <h2 className="text-lg font-extrabold">گزارش پیشرفت هنوز فعال نشده است</h2>
-        <p className="text-sm leading-8 text-dena-muted">
-          این صفحه تلاش‌ها، نمره‌ها، نام دانش‌آموزان یا جمع‌های آماریِ تأییدنشده
-          را نمی‌خواند و نمایش نمی‌دهد. وضعیت گزارش‌های مالی صندوق نیز جداگانه
-          در صفحهٔ گزارش‌ها مشخص شده است.
-        </p>
-        <div className="flex flex-wrap gap-3">
-          <Link href="/benefactor" className={buttonClassName()}>
-            خانهٔ خیر و حامی
-          </Link>
-          <Link href="/benefactor/students" className={buttonClassName("secondary")}>
-            حریم خصوصی دانش‌آموزان
-          </Link>
-          <Link href="/benefactor/reports" className={buttonClassName("secondary")}>
-            وضعیت گزارش‌های صندوق
-          </Link>
-        </div>
+  await requireBenefactorAccess();
+  return <div>
+    <BenefactorPageHeader title="رشد و پیشرفت دانش‌آموزان تحت حمایت" section="رشد و پیشرفت" />
+    <main id="main-content" className="space-y-5 p-5 md:p-8">
+      <Card className="overflow-x-auto">
+        <h2 className="mb-4 font-extrabold">نمای کلی پیشرفت آموزشی</h2>
+        <table className="w-full min-w-[36rem] text-right text-sm">
+          <thead className="bg-dena-bg text-dena-muted"><tr>
+            {["شناسهٔ ناشناس", "دورهٔ تحصیلی", "شروع مسیر", "وضعیت فعلی", "آخرین تغییر"].map((label) =>
+              <th key={label} scope="col" className="px-4 py-3">{label}</th>)}
+          </tr></thead>
+          <tbody><tr><td colSpan={5} className="px-4 py-6 text-dena-muted">گزارش رشد آموزشی هنوز برای این حساب در دسترس نیست.</td></tr></tbody>
+        </table>
       </Card>
+      <Link href="/benefactor/reports/growth" className="inline-block text-sm font-bold text-dena-brand hover:underline">مشاهدهٔ گزارش تجمیعی رشد</Link>
     </main>
-  );
+  </div>;
 }

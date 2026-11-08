@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq, ilike } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "../../db";
 import {
@@ -36,7 +36,7 @@ async function hasActiveAdmin(tx: Parameters<Parameters<ReturnType<typeof getDb>
   return Boolean(row);
 }
 
-export async function getDenaQuestionBank(userId: string) {
+export async function getDenaQuestionBank(userId: string, filters: { query?: string; page?: number } = {}) {
   const db = getDb();
   const [admin] = await db.select({ id: memberships.id }).from(memberships)
     .where(and(
@@ -52,6 +52,17 @@ export async function getDenaQuestionBank(userId: string) {
       eq(assessmentQuestionBanks.ownerId, DENA_ASSESSMENT_OWNER_ID),
     )).limit(1);
   if (!bank) throw new Error("dena_assessment_bank_not_seeded");
+  const query = (filters.query ?? "").trim().slice(0, 200);
+  const scope = and(
+    eq(assessmentQuestionBankQuestions.bankId, bank.id),
+    eq(assessmentQuestionBankQuestions.ownerType, "dena"),
+    eq(assessmentQuestionBankQuestions.ownerId, DENA_ASSESSMENT_OWNER_ID),
+    query ? ilike(assessmentQuestionBankQuestions.prompt, `%${query.replace(/[\\%_]/g, "\\$&")}%`) : undefined,
+  );
+  const [total] = await db.select({ value: count() }).from(assessmentQuestionBankQuestions).where(scope);
+  const pageCount = Math.max(1, Math.ceil(total.value / 100));
+  const requestedPage = filters.page ?? 1;
+  const page = Math.min(pageCount, Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1);
   const questions = await db.select({
     id: assessmentQuestionBankQuestions.id,
     prompt: assessmentQuestionBankQuestions.prompt,
@@ -61,13 +72,9 @@ export async function getDenaQuestionBank(userId: string) {
     option3: assessmentQuestionBankQuestions.option3,
     correctOption: assessmentQuestionBankQuestions.correctOption,
     createdAt: assessmentQuestionBankQuestions.createdAt,
-  }).from(assessmentQuestionBankQuestions).where(and(
-    eq(assessmentQuestionBankQuestions.bankId, bank.id),
-    eq(assessmentQuestionBankQuestions.ownerType, "dena"),
-    eq(assessmentQuestionBankQuestions.ownerId, DENA_ASSESSMENT_OWNER_ID),
-  )).orderBy(desc(assessmentQuestionBankQuestions.createdAt),
-    desc(assessmentQuestionBankQuestions.id)).limit(100);
-  return { questions };
+  }).from(assessmentQuestionBankQuestions).where(scope).orderBy(desc(assessmentQuestionBankQuestions.createdAt),
+    desc(assessmentQuestionBankQuestions.id)).limit(100).offset((page - 1) * 100);
+  return { questions, query, page, pageCount, total: total.value };
 }
 
 export async function createDenaQuestion(actorUserId: string, input: DenaQuestionInput) {

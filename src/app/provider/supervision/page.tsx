@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { Card } from "../../../components/ui/card";
 import { CourseSupervisionRequest } from "../../../components/provider/course-supervision-request";
+import { getProviderCollaborations } from "../../../server/provider/collaborations";
+import { getProviderProfile } from "../../../server/provider/profile";
 import { getServerAccessContext } from "../../../server/access/actor";
 
 export const runtime = "nodejs";
@@ -19,6 +21,7 @@ export default async function ProviderSupervisionPage() {
   const ids = [...new Set(actor.memberships.flatMap((item) =>
     item.role === "provider" ? [item.providerId] : []))];
   if (!ids.length) notFound();
+  const [data, providers] = await Promise.all([getProviderCollaborations(actor.userId), getProviderProfile(ids)]);
   return (
     <main id="main-content" className="mx-auto min-h-screen max-w-3xl px-5 py-8 md:py-14">
       <Link href="/account" className="text-sm font-bold text-dena-brand hover:underline">
@@ -31,7 +34,7 @@ export default async function ProviderSupervisionPage() {
           پذیرش نقش ارائه‌دهنده به‌تنهایی مجوز مدیریت یا انتشار دوره نیست.
           مؤسسه مسئول باید درخواست مربوط به <strong>همین دوره</strong> را مستقل تأیید کند.
         </p>
-        <CourseSupervisionRequest providerIds={ids} />
+        <CourseSupervisionRequest providerIds={ids} providers={providers.map(({id,name}) => ({id,name}))} institutes={data.institutes} />
       </Card>
     </main>
   );

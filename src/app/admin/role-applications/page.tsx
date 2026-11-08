@@ -22,12 +22,12 @@ export default async function AdminRoleReviewPage() {
   );
   return (
     <AdminShell active="role-applications" canHandleSupport={canHandleSupport}>
-    <main id="main-content" className="mx-auto min-h-screen max-w-4xl px-5 py-8 md:py-14">
-      <Card className="mt-6 rounded-[24px] p-6 md:p-10">
-        <p className="text-sm font-bold text-dena-brand">پنل محدود بررسی هویت</p>
+    <main id="main-content" className="mx-auto min-h-screen max-w-7xl px-5 py-6 md:px-8">
+      <Card className="rounded-xl p-5 md:p-6">
+        <p className="text-sm font-bold text-dena-brand">مدیریت / درخواست‌های نقش</p>
         <h1 className="mt-3 text-2xl font-extrabold">درخواست‌های نقش سازمانی</h1>
         <p className="mb-7 mt-3 text-sm leading-8 text-dena-muted">
-          این صفحه فقط برای نشست ادمین معتبر است و جایگزین پنل کامل ادمین نیست.
+          درخواست‌ها را بررسی کنید و نتیجه را همراه با دلیل ثبت کنید.
           هیچ کاربری نمی‌تواند درخواست خودش را تأیید کند.
         </p>
         <RoleReviewQueue />

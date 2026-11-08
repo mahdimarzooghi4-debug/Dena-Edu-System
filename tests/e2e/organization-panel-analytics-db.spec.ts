@@ -255,8 +255,15 @@ test.describe("organization reports use only active tenant scopes", () => {
       expect(keyList.status()).toBe(200);
       const listed = await keyList.json();
       expect(listed.keys).toEqual(expect.arrayContaining([
-        expect.objectContaining({ id: keyId, prefix: keyResult.key.prefix }),
+        expect.objectContaining({
+          id: keyId, organizationId, prefix: keyResult.key.prefix,
+        }),
       ]));
+      // The UI filters by organizationId; omitting it silently hides all keys.
+      expect(listed.keys.filter((key: { organizationId: string }) =>
+        key.organizationId === organizationId)).toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: keyId })]),
+      );
       expect(JSON.stringify(listed)).not.toContain(secret);
 
       const student = {
@@ -284,6 +291,13 @@ test.describe("organization reports use only active tenant scopes", () => {
       rotatedKeyId = rotatedResult.key.id;
       rotatedSecret = rotatedResult.key.secret;
       expect(rotatedSecret).not.toBe(secret);
+      const keyListAfterRotation = await organization.get("/api/organization/api-keys");
+      expect(keyListAfterRotation.status()).toBe(200);
+      const keysAfterRotation = (await keyListAfterRotation.json()).keys;
+      expect(keysAfterRotation).toEqual(expect.arrayContaining([
+        expect.objectContaining({ id: keyId, organizationId, revokedAt: expect.any(String) }),
+        expect.objectContaining({ id: rotatedKeyId, organizationId, revokedAt: null }),
+      ]));
 
       const oldKeyRequest = await organization.post("/api/v1/organization/students", {
         headers: { Authorization: `Bearer ${secret}` },

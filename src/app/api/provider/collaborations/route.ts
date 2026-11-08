@@ -12,13 +12,15 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 const cache = { "Cache-Control": "no-store" };
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const actor = await getServerAccessContext();
   if (!actor) return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: cache });
   if (!actor.memberships.some((item) => item.role === "provider")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403, headers: cache });
   }
-  return NextResponse.json(await getProviderCollaborations(actor.userId), { headers: cache });
+  const data = await getProviderCollaborations(actor.userId, undefined, request.nextUrl.searchParams.get("cursor") ?? undefined);
+  if (data.invalidCursor) return NextResponse.json({error:"Invalid cursor"}, {status:400,headers:cache});
+  return NextResponse.json(data, { headers: cache });
 }
 
 export async function POST(request: NextRequest) {

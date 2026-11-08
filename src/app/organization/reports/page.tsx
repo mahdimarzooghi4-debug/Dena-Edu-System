@@ -34,6 +34,10 @@ export default async function OrganizationReportsPage() {
         <h1 className="mt-2 text-[27px] font-extrabold leading-relaxed text-dena-deep md:text-[31px]">گزارش ثبت و فعال‌سازی</h1>
         <p className="mt-2 max-w-3xl text-sm leading-8 text-dena-muted">گزارش زنده از پرونده‌های ثبت‌شده در سازمان‌های دارای دسترسی این حساب.</p>
       </section>
+      <Link href="/organization/reports/growth" className={buttonClassName("secondary")}>
+        گزارش تفصیلی روند ثبت و فعال‌سازی
+      </Link>
+      <Link href="/organization/reports/course" className={buttonClassName("secondary")}>گزارش دورهٔ آموزشی</Link>
       <OrganizationPanelAnalytics snapshot={snapshot} view="reports" />
     </main>
   );

@@ -11,14 +11,6 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-const navigation = [
-  { href: "/benefactor", label: "داشبورد" },
-  { href: "/benefactor/students", label: "حریم خصوصی دانش‌آموزان" },
-  { href: "/benefactor/growth", label: "رشد و پیشرفت" },
-  { href: "/benefactor/reports", label: "گزارش‌ها" },
-  { href: "/benefactor/notifications", label: "اعلان‌ها" },
-] as const;
-
 const shortDate = (date: Date) => new Intl.DateTimeFormat("fa-IR", {
   dateStyle: "medium", timeZone: "Asia/Tehran",
 }).format(date);
@@ -64,43 +56,11 @@ export default async function BenefactorHomePage() {
   ];
 
   return (
-    <div id="main-content" dir="rtl" className="min-h-screen bg-[#f8f7fc] lg:flex">
-      <aside className="hidden h-screen w-[260px] shrink-0 flex-col justify-between bg-[#1e1145] p-6 text-white lg:sticky lg:top-0 lg:flex">
-        <div>
-          <Link href="/benefactor" aria-label="خانهٔ پنل خیر"
-            className="flex items-center justify-end gap-3">
-            <span className="text-right">
-              <span className="block text-base font-extrabold">سامانه دنا</span>
-              <span className="mt-0.5 block text-[11px] text-[#b08cff]">پنل خیر</span>
-            </span>
-            <span aria-hidden="true" className="grid size-8 place-items-center rounded-lg bg-[#5b4ce2] text-lg font-black">د</span>
-          </Link>
-          <nav aria-label="منوی خیر" className="mt-8">
-            <ul className="space-y-1">
-              {navigation.map((item) => {
-                const active = item.href === "/benefactor";
-                return (
-                  <li key={item.href}>
-                    <Link href={item.href} aria-current={active ? "page" : undefined}
-                      className={`flex min-h-11 items-center rounded-lg px-4 text-sm transition-colors ${active
-                        ? "bg-[#382973] font-bold text-[#b08cff]"
-                        : "text-[#e5e1ed] hover:bg-[#382973] hover:text-white"}`}>
-                      {item.label}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </nav>
-        </div>
-        <div className="space-y-1 border-t border-white/15 pt-4">
-          <Link href="/support" className="flex min-h-11 items-center rounded-lg px-4 text-sm text-[#e5e1ed] hover:bg-[#382973]">پشتیبانی آنلاین</Link>
-          <Link href="/account" className="flex min-h-11 items-center rounded-lg px-4 text-sm text-[#e5e1ed] hover:bg-[#382973]">حساب من</Link>
-        </div>
-      </aside>
+    <div className="min-h-screen bg-[#f8f7fc]">
+
 
       <div className="min-w-0 flex-1">
-        <header className="flex min-h-[84px] items-center justify-between gap-4 border-b border-[#e5e1ed] bg-white px-5 py-4 md:px-8">
+        <header className="flex min-h-[72px] items-center justify-between gap-4 border-b border-[#e5e1ed] bg-white px-5 py-4 md:px-8">
           <div>
             <p className="text-[11px] text-[#7e7a94]">داشبورد خیر</p>
             <h1 className="mt-1 text-xl font-extrabold text-[#1e1a33]">داشبورد خیر</h1>
@@ -120,17 +80,9 @@ export default async function BenefactorHomePage() {
           </div>
         </header>
 
-        <nav aria-label="دسترسی سریع پنل خیر" className="flex gap-2 overflow-x-auto border-b border-[#e5e1ed] bg-white px-5 py-3 lg:hidden">
-          {navigation.map((item) => (
-            <Link key={item.href} href={item.href}
-              aria-current={item.href === "/benefactor" ? "page" : undefined}
-              className={`shrink-0 rounded-lg px-3 py-2 text-xs font-bold ${item.href === "/benefactor" ? "bg-[#eeeaff] text-[#5b4ce2]" : "text-[#7e7a94] hover:bg-[#f8f7fc]"}`}>
-              {item.label}
-            </Link>
-          ))}
-        </nav>
 
-        <main className="space-y-6 p-5 md:p-8">
+
+        <main id="main-content" className="space-y-6 p-5 md:p-8">
           <section aria-label="وضعیت پنل خیر" className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
             {metrics.map((metric) => (
               <article key={metric.label} className="flex min-h-[98px] items-center gap-4 rounded-xl border border-[#e5e1ed] bg-white p-5">

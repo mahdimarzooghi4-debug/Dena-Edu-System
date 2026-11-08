@@ -30,7 +30,7 @@ const formatDate = (date: Date) => new Intl.DateTimeFormat("fa-IR", {
   dateStyle: "medium", timeZone: "Asia/Tehran",
 }).format(date);
 
-type SearchParams = Promise<{ status?: string; order?: string }>;
+type SearchParams = Promise<{ status?: string; order?: string; page?: string }>;
 
 export default async function AdminServiceAccountingPage({ searchParams }: { searchParams: SearchParams }) {
   if (!process.env.DATABASE_URL || !process.env.BETTER_AUTH_SECRET || !process.env.BETTER_AUTH_URL) redirect("/login");
@@ -40,9 +40,10 @@ export default async function AdminServiceAccountingPage({ searchParams }: { sea
   const canHandleSupport = actor.memberships.some((item) => item.role === "admin" && item.canHandleTechnicalSupport);
   const params = await searchParams;
   const status = adminServiceOrderStatuses.find((item) => item === params.status);
-  const overview = await getAdminServiceAccountingOverview(status);
+  const overview = await getAdminServiceAccountingOverview(status, Number(params.page ?? 1));
   const selectedOrder = overview.orders.find((order) => order.id === params.order);
 
+  const pageHref = (page: number) => `/admin/service-accounting?${status ? `status=${status}&` : ""}page=${page}`;
   const statusFilters: Array<AdminServiceOrderStatus | undefined> = [undefined, ...adminServiceOrderStatuses];
 
   return <AdminShell active="service-accounting" canHandleSupport={canHandleSupport}>
@@ -71,9 +72,9 @@ export default async function AdminServiceAccountingPage({ searchParams }: { sea
             <p className="mt-1 text-xs leading-6 text-dena-muted">بر اساس وضعیت سفارش‌ها؛ این ارقام به معنی تسویهٔ بانکی نیستند.</p></div>
         </div>
         <div className="grid gap-3 sm:grid-cols-3">
-          <Metric label="مبلغ ناخالص" value={formatToman(overview.paidAccounting.grossToman)} note="معادل ریالی قیمت سفارش‌ها" />
+          <Metric label="مبلغ ناخالص" value={formatToman(overview.paidAccounting.grossToman)} note="مجموع مبلغ سفارش‌ها به تومان" />
           <Metric label="سهم دنا · ۱۰٪" value={formatToman(overview.paidAccounting.denaShareToman)} note="پیش از هرگونه ثبت کارمزد درگاه" />
-          <Metric label="سهم مؤسسه" value={formatToman(overview.paidAccounting.instituteShareToman)} note="پیش از کسر کارمزد درگاه" />
+          <Metric label="سهم پایهٔ مؤسسه · ۹۰٪" value={formatToman(overview.paidAccounting.instituteShareToman)} note="پیش از سهم ارائه‌دهنده و کارمزد درگاه" />
         </div>
       </section>
 
@@ -81,7 +82,7 @@ export default async function AdminServiceAccountingPage({ searchParams }: { sea
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div><h2 id="orders-title" className="text-lg font-extrabold text-dena-deep">صف سفارش‌های خدمات</h2>
             <p className="mt-1 text-sm text-dena-muted">نام و شناسهٔ دانش‌آموز در این گزارش نمایش داده نمی‌شود.</p></div>
-          <p className="text-xs text-dena-muted">حداکثر ۱۰۰ سفارش اخیر در هر فیلتر</p>
+          <p className="text-xs text-dena-muted">{formatNumber(overview.totalOrders)} سفارش · صفحهٔ {formatNumber(overview.page)} از {formatNumber(overview.pageCount)}</p>
         </div>
         <div className="flex flex-wrap gap-2" aria-label="فیلتر وضعیت سفارش">
           {statusFilters.map((filter) => {
@@ -111,21 +112,27 @@ export default async function AdminServiceAccountingPage({ searchParams }: { sea
                   <td className="px-4 py-3 whitespace-nowrap">{formatToman(Math.floor(order.denaShareRials / 10))}</td>
                   <td className="px-4 py-3"><span className="inline-flex rounded-full bg-dena-lavender px-2.5 py-1 text-xs font-bold text-dena-brand">{statusLabels[order.status]}</span></td>
                   <td className="px-4 py-3 whitespace-nowrap text-xs text-dena-muted">{formatDate(order.createdAt)}</td>
-                  <td className="px-4 py-3"><Link href={`/admin/service-accounting?${status ? `status=${status}&` : ""}order=${order.id}#order-detail`} className="font-bold text-dena-brand hover:underline">مشاهده</Link></td>
+                  <td className="px-4 py-3"><Link href={`/admin/service-accounting?${status ? `status=${status}&` : ""}page=${overview.page}&order=${order.id}#order-detail`} className="font-bold text-dena-brand hover:underline">مشاهده</Link></td>
                 </tr>)}
               </tbody>
             </table>
           </div> : <div className="p-6 text-sm text-dena-muted">برای این وضعیت سفارشی ثبت نشده است.</div>}
         </Card>
+        <nav aria-label="صفحه‌بندی سفارش‌ها" className="flex items-center justify-between gap-3 text-sm">
+          {overview.page > 1 ? <Link href={pageHref(overview.page - 1)} className="rounded-lg border border-dena-border bg-white px-4 py-2 font-bold text-dena-brand">صفحهٔ قبل</Link> : <span />}
+          <span className="text-xs text-dena-muted">هر صفحه حداکثر ۱۰۰ سفارش</span>
+          {overview.page < overview.pageCount ? <Link href={pageHref(overview.page + 1)} className="rounded-lg border border-dena-border bg-white px-4 py-2 font-bold text-dena-brand">صفحهٔ بعد</Link> : <span />}
+        </nav>
       </section>
 
+      {params.order && !selectedOrder && <Card role="status" className="text-sm text-dena-muted">این سفارش در صفحه و فیلتر فعلی وجود ندارد. صفحه یا فیلتر سفارش‌ها را بررسی کنید.</Card>}
       {selectedOrder && <Card id="order-detail" className="space-y-4 scroll-mt-6">
         <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-bold text-dena-brand">جزئیات سفارش</p>
           <h2 className="mt-1 text-lg font-extrabold text-dena-deep">{selectedOrder.title}</h2></div>
           <span className="rounded-full bg-dena-lavender px-3 py-1.5 text-xs font-bold text-dena-brand">{statusLabels[selectedOrder.status]}</span></div>
         <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Detail label="مؤسسه" value={selectedOrder.instituteName} /><Detail label="قیمت ثبت‌شده" value={formatToman(selectedOrder.priceToman)} />
-          <Detail label="سهم دنا" value={formatToman(Math.floor(selectedOrder.denaShareRials / 10))} /><Detail label="سهم مؤسسه" value={formatToman(Math.floor(selectedOrder.instituteShareRials / 10))} />
+          <Detail label="سهم دنا" value={formatToman(Math.floor(selectedOrder.denaShareRials / 10))} /><Detail label="سهم پایهٔ مؤسسه، پیش از سهم ارائه‌دهنده و کارمزد" value={formatToman(Math.floor(selectedOrder.instituteShareRials / 10))} />
           <Detail label="تاریخ سفارش" value={formatDate(selectedOrder.createdAt)} /><Detail label="تاریخ پرداخت" value={selectedOrder.paidAt ? formatDate(selectedOrder.paidAt) : "پرداخت ثبت نشده"} />
           <Detail label="شناسهٔ سفارش" value={selectedOrder.id} />
         </dl>

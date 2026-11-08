@@ -393,6 +393,83 @@
       "when": 1792577719183,
       "tag": "0057_dena_student_service_flows",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1792577719184,
+      "tag": "0058_organization_contact_profiles",
+      "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1792577719185,
+      "tag": "0059_benefactor_contact_profiles",
+      "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1792577719186,
+      "tag": "0060_benefactor_learning_grants",
+      "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1792577719187,
+      "tag": "0061_provider_contact_profiles",
+      "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1792577719188,
+      "tag": "0062_provider_compensation_drafts",
+      "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1792577719189,
+      "tag": "0063_provider_compensation_decisions",
+      "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1792577719190,
+      "tag": "0064_provider_compensation_activation",
+      "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1792577719191,
+      "tag": "0065_provider_revenue_allocations",
+      "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1792577719192,
+      "tag": "0066_provider_service_order_binding",
+      "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "7",
+      "when": 1792577719193,
+      "tag": "0067_service_refund_requests",
+      "breakpoints": true
+    },
+    {
+      "idx": 66,
+      "version": "7",
+      "when": 1793973069118,
+      "tag": "0068_dena_schema_snapshot_sync",
+      "breakpoints": true
     }
   ]
 }

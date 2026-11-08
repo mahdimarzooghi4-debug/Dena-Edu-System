@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { InstallStudentApp } from "./install-app";
 
 type StudentSection =
   | "home"
@@ -18,13 +19,15 @@ type Props = {
   active: StudentSection;
   title: string;
   children: ReactNode;
-  demo?: boolean;
+  demo?: boolean | "session";
   mobileNav?: "student" | "service";
   mobileServiceActive?: "center" | "orders" | "home";
 };
 
-function hrefFor(href: string, demo: boolean) {
-  return demo ? href.replace(/^\/student(?=\/|$)/, "/student-demo") : href;
+function hrefFor(href: string, demo: boolean | "session") {
+  if (!demo) return href;
+  const root = demo === "session" ? "/student/demo" : "/student-demo";
+  return href.replace(/^\/student(?=\/|$)/, root);
 }
 
 type IconName =
@@ -103,7 +106,7 @@ function Icon({ name, className = "size-5" }: { name: IconName; className?: stri
   }
 }
 
-function DesktopNavigation({ active, demo }: { active: StudentSection; demo: boolean }) {
+function DesktopNavigation({ active, demo }: { active: StudentSection; demo: boolean | "session" }) {
   return (
     <nav aria-label="منوی دانش‌آموز" className="mt-7">
       <ul className="space-y-2">
@@ -134,7 +137,7 @@ function DesktopNavigation({ active, demo }: { active: StudentSection; demo: boo
 
 function MobileNavigation({ active, demo, variant = "student", serviceActive = "center" }: {
   active: StudentSection;
-  demo: boolean;
+  demo: boolean | "session";
   variant?: "student" | "service";
   serviceActive?: "center" | "orders" | "home";
 }) {
@@ -191,7 +194,7 @@ export function StudentShell({ active, title, children, demo = false, mobileNav 
   const eliteActive = active === "elite";
   const notificationsActive = active === "notifications";
   return (
-    <div className="min-h-screen bg-dena-bg lg:flex">
+    <div dir="rtl" className="min-h-screen bg-dena-bg lg:flex">
       <aside className="hidden h-screen w-[260px] shrink-0 border-l border-dena-border bg-white lg:sticky lg:top-0 lg:flex lg:flex-col lg:px-4 lg:py-5">
         <Link href={hrefFor("/student", demo)} aria-label="دنا، خانه دانش‌آموز" className="inline-flex px-3">
           <Image src="/dena-app-logo.png" alt="دنا" width={84} height={48} priority />
@@ -200,20 +203,20 @@ export function StudentShell({ active, title, children, demo = false, mobileNav 
         <DesktopNavigation active={active} demo={demo} />
 
         <div className="mt-auto border-t border-dena-border pt-4">
-          <Link href={demo ? "/student-demo/support" : "/support"} className="flex min-h-[44px] items-center gap-3 rounded-xl px-4 text-sm text-dena-muted hover:bg-dena-bg hover:text-dena-ink">
+          <Link href={demo === "session" ? "/student/demo/support" : demo ? "/student-demo/support" : "/support"} className="flex min-h-[44px] items-center gap-3 rounded-xl px-4 text-sm text-dena-muted hover:bg-dena-bg hover:text-dena-ink">
             <Icon name="help" />
             <span>پشتیبانی آنلاین</span>
           </Link>
           <div className="mt-2 flex min-h-[44px] items-center gap-3 rounded-xl px-4 text-sm text-dena-muted">
             <Icon name="user" />
-            <span>دانش‌آموز دنا</span>
+            <span>{demo ? "دانش‌آموز نمونه" : "دانش‌آموز دنا"}</span>
           </div>
           <Link
-            href={demo ? "/" : "/account"}
+            href={demo === "session" ? "/student/demo/profile" : demo ? "/" : "/account"}
             className="mt-4 flex min-h-[44px] items-center gap-3 rounded-xl px-4 text-sm font-semibold text-red-600 hover:bg-red-50"
           >
             <Icon name="logout" />
-            <span>خروج / حساب کاربری</span>
+            <span>{demo === "session" ? "حساب آزمایشی" : "خروج / حساب کاربری"}</span>
           </Link>
         </div>
       </aside>
@@ -257,6 +260,8 @@ export function StudentShell({ active, title, children, demo = false, mobileNav 
         </header>
 
         <main id="main-content" className="mx-auto w-full max-w-[1180px] px-4 py-5 pb-24 md:px-7 md:py-7 lg:px-10 lg:py-10 lg:pb-10">
+          {demo && <div role="status" className="mb-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-xs font-bold leading-6 text-amber-900">نسخهٔ آزمایشی با دادهٔ ساختگی؛ اطلاعات، نمره‌ها، پرداخت و عضویت واقعی نیستند.</div>}
+          <InstallStudentApp />
           {children}
         </main>
       </div>

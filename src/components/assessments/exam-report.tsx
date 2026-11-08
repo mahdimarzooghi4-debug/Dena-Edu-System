@@ -84,7 +84,7 @@ export function ExamReport({ report, backHref }: {
         <button className="min-h-11 rounded-lg bg-dena-brand px-4 font-bold text-white">اعمال فیلتر</button>
         <a href={exportHref} className="min-h-11 rounded-lg border border-dena-brand px-4 py-2.5 text-sm font-bold text-dena-brand">دریافت CSV نتایج فیلترشده</a>
       </form>
-      {attempts.length === 0 ? <Card><p className="text-sm text-dena-muted">هنوز دانش‌آموزی در این آزمون شرکت نکرده است.</p></Card> :
+      {attempts.length === 0 ? <Card><p className="text-sm text-dena-muted">{filters.search || filters.status ? "تلاشی مطابق فیلترهای انتخاب‌شده پیدا نشد." : "هنوز دانش‌آموزی در این آزمون شرکت نکرده است."}</p></Card> :
         <div className="overflow-x-auto rounded-xl border border-dena-border bg-white">
           <table className="w-full min-w-[760px] border-collapse text-right text-sm">
             <thead className="bg-dena-bg"><tr>

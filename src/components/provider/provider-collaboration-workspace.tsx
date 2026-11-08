@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import Link from "next/link";
+import { useRef, useState, type FormEvent } from "react";
 import { Button } from "../ui/button";
 
 type Institute = { id: string; name: string };
@@ -33,23 +34,27 @@ const eventLabels: Record<Collaboration["events"][number]["kind"], string> = {
   provider_withdrew: "درخواست توسط ارائه‌دهنده پس گرفته شد",
 };
 
-export function ProviderCollaborationWorkspace({ providerIds, institutes, initialCollaborations }: {
-  providerIds: string[]; institutes: Institute[]; initialCollaborations: Collaboration[];
+export function ProviderCollaborationWorkspace({ providerIds, institutes, initialCollaborations, initialNextCursor = null }: {
+  providerIds: string[]; institutes: Institute[]; initialCollaborations: Collaboration[]; initialNextCursor?: string | null;
 }) {
   const [items, setItems] = useState(initialCollaborations);
+  const [nextCursor, setNextCursor] = useState(initialNextCursor);
   const [providerId, setProviderId] = useState(providerIds[0] ?? "");
   const [instituteId, setInstituteId] = useState(institutes[0]?.id ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [search, setSearch] = useState("");
+  const requestKey = useRef<{ scope: string; id: string } | null>(null);
+  const visibleInstitutes = institutes.filter((institute) => institute.name.includes(search.trim()));
 
   async function refresh() {
     const response = await fetch("/api/provider/collaborations", {
       credentials: "same-origin", cache: "no-store",
     });
     if (!response.ok) throw new Error("list_unavailable");
-    const result = await response.json() as { collaborations: Collaboration[] };
-    setItems(result.collaborations);
+    const result = await response.json() as { collaborations: Collaboration[]; nextCursor: string | null };
+    setItems(result.collaborations); setNextCursor(result.nextCursor);
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -60,7 +65,11 @@ export function ProviderCollaborationWorkspace({ providerIds, institutes, initia
       const response = await fetch("/api/provider/collaborations", {
         method: "POST", credentials: "same-origin", cache: "no-store",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ providerId, instituteId, clientRequestId: crypto.randomUUID() }),
+        body: JSON.stringify({ providerId, instituteId, clientRequestId: (() => {
+          const scope = `${providerId}:${instituteId}`;
+          if (requestKey.current?.scope !== scope) requestKey.current = { scope, id: crypto.randomUUID() };
+          return requestKey.current.id;
+        })() }),
       });
       const body = await response.json().catch(() => null) as { error?: string } | null;
       if (!response.ok) {
@@ -69,8 +78,9 @@ export function ProviderCollaborationWorkspace({ providerIds, institutes, initia
           : "ثبت درخواست انجام نشد؛ عضویت و اطلاعات را بررسی کنید.");
         return;
       }
-      await refresh();
+      requestKey.current = null;
       setNotice("درخواست ثبت شد و برای تصمیم اولیه به مؤسسه ارسال شد.");
+      try { await refresh(); } catch { setError("درخواست ثبت شد، اما دریافت فهرست تازه ممکن نشد. از تازه‌سازی استفاده کنید."); }
     } catch {
       setError("ارتباط برقرار نشد؛ فهرست را تازه کنید و وضعیت درخواست را بررسی کنید.");
     } finally {
@@ -92,8 +102,10 @@ export function ProviderCollaborationWorkspace({ providerIds, institutes, initia
           : "پس‌گرفتن درخواست انجام نشد؛ مجوز و وضعیت آن را بررسی کنید.");
         return;
       }
-      await refresh();
+      setItems((current) => current.map((item) => item.id === collaborationId ? { ...item, status: "withdrawn" } : item));
+      requestKey.current = null;
       setNotice("درخواست همکاری پس گرفته شد. در صورت نیاز می‌توانید درخواست تازه‌ای ثبت کنید.");
+      try { await refresh(); } catch { setError("پس‌گرفتن درخواست ثبت شد، اما دریافت فهرست تازه ممکن نشد."); }
     } catch { setError("ارتباط برقرار نشد؛ فهرست را تازه کنید و وضعیت درخواست را بررسی کنید."); }
     finally { setBusy(false); }
   }
@@ -113,23 +125,33 @@ export function ProviderCollaborationWorkspace({ providerIds, institutes, initia
           {providerIds.map((id) => <option key={id} value={id}>{id}</option>)}
         </select>
       </label>}
+      <label className="block text-sm font-bold">جست‌وجوی مؤسسهٔ ناظر
+        <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} className="mt-2 min-h-11 w-full rounded-lg border border-dena-border bg-dena-bg px-3 text-sm" />
+      </label>
       <label className="block text-sm font-bold">
         مؤسسهٔ مقصد
         <select value={instituteId} onChange={(event) => setInstituteId(event.target.value)} required
           className="mt-2 min-h-12 w-full rounded-xl border border-dena-border bg-white px-4">
-          {institutes.map((institute) => <option key={institute.id} value={institute.id}>{institute.name} · دارای نشان آبی</option>)}
+          {institutes.filter((institute) => institute.id === instituteId || visibleInstitutes.some((visible) => visible.id === institute.id)).map((institute) => <option key={institute.id} value={institute.id}>{institute.name} · دارای نشان آبی</option>)}
         </select>
       </label>
+      {!institutes.length && <p className="text-sm text-dena-muted">هنوز مؤسسهٔ ناظر فعالی برای ثبت همکاری وجود ندارد.</p>}
+      {search && !visibleInstitutes.length && <p className="text-sm text-dena-muted">مؤسسه‌ای مطابق جست‌وجو پیدا نشد؛ انتخاب فعلی تغییر نکرده است.</p>}
       <Button type="submit" disabled={busy || !institutes.length} className="disabled:opacity-50">
         {busy ? "در حال ثبت…" : "ارسال درخواست همکاری"}
       </Button>
       <div role="status" aria-live="polite" className="text-sm leading-7">
         {error && <p className="text-red-700">{error}</p>}
-        {!error && notice && <p className="text-dena-deep">{notice}</p>}
+        {notice && <p className="text-dena-deep">{notice}</p>}
       </div>
     </form>
 
     <section aria-labelledby="provider-collaborations-list">
+      <Button type="button" variant="outline" disabled={busy} className="mb-4" onClick={async () => {
+        setBusy(true); setError("");
+        try { await refresh(); } catch { setError("دریافت فهرست همکاری‌ها ممکن نشد."); }
+        finally { setBusy(false); }
+      }}>تازه‌سازی درخواست‌ها</Button>
       <h2 id="provider-collaborations-list" className="text-lg font-extrabold text-dena-deep">وضعیت درخواست‌های من</h2>
       {!items.length ? <p className="mt-3 text-sm text-dena-muted">درخواستی ثبت نشده است.</p>
         : <ul className="mt-4 space-y-3">{items.map((item) => <li key={item.id} className="rounded-xl border border-dena-border p-5">
@@ -139,6 +161,7 @@ export function ProviderCollaborationWorkspace({ providerIds, institutes, initia
             {item.status === "approved" && <span title="ارائه‌دهندهٔ تحت نظارت دنا" className="rounded-full bg-orange-100 px-3 py-1 text-xs font-bold text-orange-800">● نشان نارنجی · همکاری تأییدشده</span>}
           </div>
           <p className="mt-3 text-sm font-semibold text-dena-deep">{statusLabel[item.status]}</p>
+          <Link href={`/provider/collaborations/${item.id}`} className="mt-3 inline-flex text-sm font-bold text-dena-brand">جزئیات بررسی مؤسسه و دنا</Link>
           {item.instituteDecisionReason && <p className="mt-2 text-sm leading-7 text-dena-muted">یادداشت مؤسسه: {item.instituteDecisionReason}</p>}
           {item.denaDecisionReason && <p className="mt-2 text-sm leading-7 text-dena-muted">یادداشت دنا: {item.denaDecisionReason}</p>}
           <div className="mt-4 rounded-xl bg-dena-bg p-4">
@@ -162,6 +185,17 @@ export function ProviderCollaborationWorkspace({ providerIds, institutes, initia
             {busy ? "در حال ثبت…" : "پس‌گرفتن درخواست"}
           </Button>}
         </li>)}</ul>}
+      {nextCursor && <Button type="button" variant="outline" disabled={busy} className="mt-4" onClick={async () => {
+        setBusy(true); setError("");
+        try {
+          const response = await fetch(`/api/provider/collaborations?cursor=${encodeURIComponent(nextCursor)}`, {credentials:"same-origin",cache:"no-store"});
+          if (!response.ok) throw new Error("list_unavailable");
+          const data = await response.json() as {collaborations:Collaboration[];nextCursor:string|null};
+          setItems((current) => [...new Map([...current,...data.collaborations].map((item) => [item.id,item])).values()]);
+          setNextCursor(data.nextCursor);
+        } catch { setError("دریافت درخواست‌های قدیمی‌تر ممکن نشد؛ دوباره تلاش کنید."); }
+        finally { setBusy(false); }
+      }}>درخواست‌های قدیمی‌تر</Button>}
     </section>
   </div>;
 }

@@ -1,3 +1,6 @@
+import { listServiceRefunds } from "../../../../server/finance/service-refunds";
+import { RefundRequests } from "../../../../components/services/refund-requests";
+import { RefundRequestForm } from "../../../../components/services/refund-forms";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -36,7 +39,7 @@ export default async function StudentServiceOrdersPage() {
   if (!actor) redirect("/login");
   if (!actor.memberships.some((membership) => membership.role === "student")) notFound();
 
-  const orders = await getStudentServiceOrders(actor.userId);
+  const [orders,refunds] = await Promise.all([getStudentServiceOrders(actor.userId),listServiceRefunds(actor.userId,"student")]);
 
   return <StudentShell active="services" title="درخواست‌های خدمات من">
     <div className="space-y-6">
@@ -57,6 +60,8 @@ export default async function StudentServiceOrdersPage() {
         ثبت درخواست به معنی خرید نیست. پرداخت آنلاین هنوز فعال نشده و تا اتصال درگاه هیچ مبلغی دریافت نمی‌شود.
       </Card>
 
+      <RefundRequests rows={refunds}/>
+      {orders.filter(order=>order.status==="paid"&&!refunds.some(refund=>refund.order_id===order.id)).map(order=><Card key={`refund-${order.id}`}><details><summary className="cursor-pointer text-sm font-bold">درخواست بازپرداخت · {order.title}</summary><RefundRequestForm orderId={order.id}/></details></Card>)}
       {orders.length === 0 ? <Card className="space-y-3 text-center">
         <h3 className="font-extrabold text-dena-deep">هنوز درخواستی ثبت نکرده‌ای</h3>
         <p className="text-sm leading-7 text-dena-muted">خدمات تکمیلی مؤسسه‌ها را ببین و در صورت نیاز درخواست ثبت کن.</p>

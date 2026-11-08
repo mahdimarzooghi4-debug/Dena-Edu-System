@@ -15,6 +15,7 @@ function newSecret() {
 export async function listOrganizationApiKeys(actorUserId: string, organizationId: string) {
   const rows = await getDb().select({
     id: organizationApiKeys.id,
+    organizationId: organizationApiKeys.organizationId,
     prefix: organizationApiKeys.prefix,
     label: organizationApiKeys.label,
     createdAt: organizationApiKeys.createdAt,

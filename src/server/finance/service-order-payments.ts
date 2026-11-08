@@ -1,3 +1,4 @@
+import { recordVerifiedProviderRevenueInTransaction } from "./provider-revenue";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "../../db";
@@ -11,6 +12,8 @@ import {
 export const instituteServicePaymentCaptureInput = z.object({
   orderId: z.uuid(),
   gatewayEventId: z.string().regex(/^[A-Za-z0-9._:-]{8,140}$/),
+  capturedAt: z.iso.datetime({offset:true}).optional(),
+  gatewayFeeRials: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).optional(),
   grossRials: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
 }).strict();
 export type InstituteServicePaymentCaptureInput = z.infer<
@@ -38,6 +41,7 @@ export async function captureInstituteServiceOrderPayment(
   return getDb().transaction(async (tx) => {
     const [order] = await tx.select({
       id: instituteServiceOrders.id,
+      providerContractId: instituteServiceOrders.providerContractId,
       priceToman: instituteServiceOrders.priceToman,
       grossRials: instituteServiceOrders.grossRials,
       status: instituteServiceOrders.status,
@@ -52,7 +56,7 @@ export async function captureInstituteServiceOrderPayment(
       throw new InstituteServicePaymentError("amount_mismatch");
     }
     if (order.status === "paid" && order.paidAt) {
-      const journal = await postCaptureJournal(tx, parsed, order.priceToman);
+      const journal = await postOrderCapture(tx, parsed, order.priceToman, order.providerContractId);
       if (!journal.duplicate) throw new InstituteServicePaymentError("event_reused");
       await grantPurchasedQuota(tx, order.id, order.includedMinutes);
       return { orderId: order.id, status: "paid" as const, duplicate: true };
@@ -62,7 +66,7 @@ export async function captureInstituteServiceOrderPayment(
       throw new InstituteServicePaymentError("order_not_payable");
     }
 
-    const journal = await postCaptureJournal(tx, parsed, order.priceToman);
+    const journal = await postOrderCapture(tx, parsed, order.priceToman, order.providerContractId);
     if (journal.duplicate) {
       // A journal without the matching paid order would violate the atomic
       // transition contract. Roll back and surface a conflict for review.
@@ -103,4 +107,13 @@ async function postCaptureJournal(
     priceToman,
     paymentEventId: input.gatewayEventId,
   }));
+}
+
+async function postOrderCapture(tx:FinancialJournalTransaction,input:InstituteServicePaymentCaptureInput,priceToman:number,providerContractId:string|null) {
+  if(!providerContractId) return postCaptureJournal(tx,input,priceToman);
+  if(input.capturedAt===undefined||input.gatewayFeeRials===undefined) throw new InstituteServicePaymentError("order_not_payable");
+  return recordVerifiedProviderRevenueInTransaction(tx,{
+    eventKey:input.gatewayEventId,sourceId:input.orderId,contractId:providerContractId,
+    capturedAt:input.capturedAt,grossRials:input.grossRials,gatewayFeeRials:input.gatewayFeeRials,
+  });
 }

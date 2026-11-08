@@ -125,7 +125,7 @@ export function decodeAuditCursor(token: string) {
 }
 
 /** Bounded, stable keyset pagination for the admin audit panel. */
-export async function getRecentAuditLogs(cursorToken?: string) {
+export async function getRecentAuditLogs(cursorToken?: string, action?: AuditAction) {
   const cursor = cursorToken ? decodeAuditCursor(cursorToken) : null;
   if (cursorToken && !cursor) {
     return { events: [], nextCursor: null, invalidCursor: true };
@@ -138,11 +138,13 @@ export async function getRecentAuditLogs(cursorToken?: string) {
     entityType: auditLogs.entityType,
     entityId: auditLogs.entityId,
     createdAt: auditLogs.createdAt,
-  }).from(auditLogs).where(cursor ? or(
+  }).from(auditLogs).where(and(
+    action ? eq(auditLogs.action, action) : undefined,
+    cursor ? or(
     lt(auditLogs.createdAt, cursor.createdAt),
     and(eq(auditLogs.createdAt, cursor.createdAt),
       lt(auditLogs.id, cursor.id)),
-  ) : undefined)
+  ) : undefined))
     .orderBy(desc(auditLogs.createdAt), desc(auditLogs.id))
     .limit(51);
   const events = rows.slice(0, 50);

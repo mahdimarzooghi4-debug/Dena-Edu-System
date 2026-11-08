@@ -1,0 +1,6 @@
+import type { ServiceRefundRow } from "../../server/finance/service-refunds";
+import { RefundReviewForm } from "./refund-forms";
+import { Card } from "../ui/card";
+export function RefundRequests({rows,canReview=false}:{rows:ServiceRefundRow[];canReview?:boolean}) {
+  return <section className="space-y-4"><h2 className="text-lg font-extrabold">پیگیری بازپرداخت</h2><p className="text-xs leading-7 text-dena-muted">۱۰۰ درخواست اخیر. تأیید بررسی به معنی برگشت وجه نیست؛ بازپرداخت بانکی هنوز متصل نشده است.</p>{!rows.length?<Card><p className="text-sm text-dena-muted">درخواستی ثبت نشده است.</p></Card>:rows.map(row=><Card key={row.id} className="space-y-3"><h3 className="font-bold">{row.title}</h3><p className="text-sm">مبلغ اصلی سفارش: {BigInt(row.gross_rials).toLocaleString("fa-IR")} ریال</p><p className="text-xs font-bold text-dena-brand">{row.status==="pending"?"در انتظار بررسی":row.status==="approved"?"تأیید برای پیگیری · وجه برگشت داده نشده":"درخواست رد شده"}</p><p className="whitespace-pre-wrap break-words text-sm leading-7">{row.reason}</p>{row.review_note&&<p className="whitespace-pre-wrap break-words rounded-lg bg-dena-bg p-3 text-sm leading-7">پاسخ مؤسسه: {row.review_note}</p>}{canReview&&row.status==="pending"&&<RefundReviewForm requestId={row.id}/>}</Card>)}</section>;
+}
