@@ -163,7 +163,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          tag=dena-student-demo-v0.1.3-preview
+          tag=dena-student-demo-v0.1.4-preview
           if gh release view "$tag" >/dev/null 2>&1; then
             echo "Versioned preview release already exists; never replace a published APK."
             exit 1
@@ -171,5 +171,5 @@ jobs:
           gh release create "$tag" dena-student-android-demo.apk dena-student-android-demo.apk.sha256 \
             --target "${{ github.event.pull_request.head.sha }}" \
             --prerelease \
-            --title "Dena Student Android — demo 0.1.3 (Figma-aligned launcher and runtime)" \
+            --title "Dena Student Android — demo 0.1.4 (Figma-aligned launcher and runtime)" \
             --notes "Preview APK for the Dena Student App V2 showcase. Uses the Figma-aligned student web experience at dena-student-demo.onrender.com. Synthetic preview data only; no real account, payments or SMS. Internet connection required. Signed with a one-run Android debug certificate; uninstall an older preview APK before installing this version if Android reports a signature conflict."

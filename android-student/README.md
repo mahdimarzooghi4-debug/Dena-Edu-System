@@ -4,7 +4,9 @@ This Android application is a small, first-party WebView host for the Dena Stude
 
 ## Launcher icon
 
-The launcher uses the mark-only Dena symbol from the supplied brand mark, with the white rounded app tile shown in Figma's **Dena / Mark Only App Tile** (node `14:39`). The purple and mint colors are preserved; no wordmark or purple square is placed behind the symbol. Android adaptive icons use a vector foreground and white background.
+The launcher uses the exact transparent PNG supplied by the owner on 2026-11-08 (`dena_user_mark.png`), without redrawing, recoloring, or altering the source image. Both standard and round Android adaptive icons reference the same padded bitmap foreground on the existing white background. The XML inset keeps the mark inside the adaptive icon safe area.
+
+Version 0.1.4 contains this icon; earlier APK files keep their previous icon until rebuilt and reinstalled.
 
 ## Build
 
