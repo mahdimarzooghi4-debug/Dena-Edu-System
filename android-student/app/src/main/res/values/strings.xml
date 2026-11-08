@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">دنا | دانش‌آموز</string>
+    <string name="connecting">در حال اتصال به دنا...</string>
+    <string name="connection_error">اتصال به دنا برقرار نشد. اینترنت یا سرویس را بررسی کن.</string>
+    <string name="configuration_missing">نشانی HTTPS سرویس دانش‌آموز دنا برای این نسخه تنظیم نشده است. این APK آزمایشی به حساب یا سرور واقعی وصل نیست.</string>
+    <string name="retry">تلاش دوباره</string>
+</resources>
