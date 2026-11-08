@@ -613,20 +613,20 @@ test.describe("free enrollment and private video access must stay course-scoped"
         name: "جست‌وجوی عنوان دوره",
       }).fill("آزمایش صفحه‌بندی");
       await page.getByRole("button", { name: "جست‌وجو" }).click();
-      await expect(page.locator("ul > li").filter({
+      await expect(page.locator("#available-courses ul > li").filter({
         hasText: "آزمایش صفحه‌بندی",
       })).toHaveCount(20);
       await page.getByRole("button", {
         name: "نمایش دوره‌های بیشتر",
       }).click();
-      await expect(page.locator("ul > li").filter({
+      await expect(page.locator("#available-courses ul > li").filter({
         hasText: "آزمایش صفحه‌بندی",
       })).toHaveCount(40);
       await page.getByRole("checkbox", {
         name: "فقط ثبت‌نام‌های من",
       }).check();
       await page.getByRole("button", { name: "جست‌وجو" }).click();
-      await expect(page.locator("ul > li").filter({
+      await expect(page.locator("#available-courses ul > li").filter({
         hasText: "آزمایش صفحه‌بندی",
       })).toHaveCount(1);
       await expect(page.getByRole("link", {
@@ -1058,7 +1058,7 @@ test.describe("free enrollment and private video access must stay course-scoped"
     }]);
     await page.goto("http://localhost:3000/student/courses");
     await expect(page.getByRole("heading", {
-      name: "دوره‌های رایگان منتشرشده",
+      name: "دوره‌های رایگان قابل ثبت‌نام",
     })).toBeVisible();
     await expect(page.getByText("دوره رایگان با محتوای خصوصی")).toBeVisible();
     const ownCard = page.locator("li").filter({
@@ -1087,6 +1087,21 @@ test.describe("free enrollment and private video access must stay course-scoped"
     await expect(page).toHaveURL(
       new RegExp(`/student/courses/${ids.live}/watch$`),
     );
+    // Verify authorized, self-reported progress filters on the actual student route.
+    await page.goto("http://localhost:3000/student/courses?status=learning");
+    await expect(page.getByRole("heading", {
+      name: "دوره‌های ثبت‌نام‌شده",
+    })).toBeVisible();
+    const ownCourse = page.locator('[aria-labelledby="student-my-courses"] li')
+      .filter({ hasText: "دوره رایگان با محتوای خصوصی" });
+    await expect(ownCourse).toContainText("در حال یادگیری");
+    await expect(ownCourse).toContainText("۰ از ۱");
+    await page.getByRole("navigation", { name: "فیلتر دوره‌ها" })
+      .getByRole("link", { name: "تکمیل‌شده" }).click();
+    await expect(page).toHaveURL(/\/student\/courses\?status=complete$/);
+    await expect(page.getByRole("heading", {
+      name: "دوره‌ای با این وضعیت پیدا نشد",
+    })).toBeVisible();
     await page.goto("http://localhost:3000/student");
     await expect(page.getByRole("heading", { name: "نمای کلی یادگیری" })).toBeVisible();
     await expect(page.locator("#student-continue-course")).toHaveText(
