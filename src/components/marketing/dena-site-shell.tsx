@@ -12,12 +12,40 @@ const siteLinks = [
   ["اپ اندروید", "/download/android"],
 ];
 
+/** Last header action: an icon linking to the Android app download page. */
+export function DenaAndroidHeaderLink() {
+  return (
+    <Link
+      className="dena-header__app-icon"
+      href="/download/android"
+      aria-label="دانلود اپ اندروید دنا"
+      title="دانلود اپ اندروید دنا"
+    >
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <rect x="5" y="2.5" width="14" height="19" rx="2.8" />
+        <path d="M10 8.5v6m0 0-2.3-2.3M10 14.5l2.3-2.3" />
+        <path d="M14.5 16h-1m-2.5 2.5h2" />
+      </svg>
+      <span className="sr-only">دانلود اپ اندروید دنا</span>
+    </Link>
+  );
+}
+
 export function DenaSiteHeader() {
   return (
     <header className="dena-header">
       <div className="dena-header__actions">
         <Link className="dena-button dena-button--outline" href="/login">ورود</Link>
         <Link className="dena-button dena-button--primary" href="/signup">ثبت‌نام</Link>
+        <DenaAndroidHeaderLink />
       </div>
       <div className="dena-header__right">
         <nav className="dena-nav" aria-label="ناوبری اصلی">

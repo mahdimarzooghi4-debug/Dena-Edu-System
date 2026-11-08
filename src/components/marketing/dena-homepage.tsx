@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import "./dena-homepage.css";
-import { DenaRoleIcon } from "./dena-site-shell";
+import { DenaAndroidHeaderLink, DenaRoleIcon } from "./dena-site-shell";
 
 const steps = [
   ["۱", "انتخاب دوره از مؤسسه", "مرور دوره‌های ساختارمند مؤسسات آموزشی دارای مجوز و ارائه‌دهندگان تحت نظارت"],
@@ -39,6 +39,7 @@ export function DenaHomepage() {
         <div className="dena-header__actions">
           <Link className="dena-button dena-button--outline" href="/login">ورود</Link>
           <Link className="dena-button dena-button--primary" href="/signup">ثبت‌نام</Link>
+          <DenaAndroidHeaderLink />
         </div>
         <div className="dena-header__right">
           <nav className="dena-nav" aria-label="ناوبری اصلی">
