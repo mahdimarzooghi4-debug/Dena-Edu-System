@@ -32,6 +32,8 @@ test("catalog filtering and search affect demo cards without creating real order
   await expect(page.locator(".dena-catalog-empty")).toBeVisible();
   await page.getByRole("link", { name: "پاک‌کردن فیلترها" }).click();
   await expect(page.locator(".dena-catalog-card")).toHaveCount(6);
+  await expect(page.getByRole("combobox", { name: "درس" })).toHaveValue("");
+  await expect(page.getByRole("combobox", { name: "وضعیت ارائه‌دهنده" })).toHaveValue("");
   await page.getByRole("searchbox", { name: "نام درس، دوره یا ارائه‌دهنده" }).fill("مبین");
   await page.getByRole("button", { name: "جست‌وجو در دوره‌های نمایشی" }).click();
   await expect(page.locator(".dena-catalog-card")).toHaveCount(1);
