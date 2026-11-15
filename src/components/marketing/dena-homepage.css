@@ -207,7 +207,7 @@
 .dena-footer__main { display:grid; grid-template-columns:1.45fr repeat(4,1fr); gap:32px; }
 .dena-footer__main > div { display:flex; flex-direction:column; align-items:flex-start; gap:12px; }
 .dena-footer h3 { margin:0 0 6px; font-size:13px; }.dena-footer a,.dena-footer span { color:var(--muted); text-decoration:none; font-size:11px; line-height:1.9; }.dena-footer a:hover { color:var(--brand); }
-.dena-footer__brand { align-items:flex-end!important; }.dena-brand--footer { justify-content:flex-end; }.dena-footer__brand p { margin:0; color:var(--ink); font-size:13px; font-weight:800; }.dena-footer__brand small { color:var(--muted); font-size:11px; }
+.dena-footer__brand { align-items:flex-end!important; }.dena-brand--footer { justify-content:flex-end; }.dena-footer__brand p { margin:0; color:var(--muted); font-size:12px; font-weight:500; line-height:1.9; max-width:250px; }
 .dena-footer__legal { margin-top:42px; padding-top:18px; border-top:1px solid var(--line); color:var(--muted); font-size:10px; line-height:1.9; }
 @media (max-width:1100px) {
   .dena-header { padding-inline:28px; }.dena-header__right { gap:24px; }.dena-nav { gap:18px; }.dena-nav a { font-size:12px; }
@@ -283,19 +283,7 @@
 @media(max-width:760px){.dena-auth-page{padding:18px}.dena-auth-stage{grid-template-columns:1fr;gap:24px;padding:28px 0}.dena-auth-illustration{order:2}.auth-network-art{max-width:340px}.dena-auth-illustration>p{font-size:14px}.dena-auth-card{order:1;max-width:560px;padding:24px}.dena-auth-footer{margin-top:12px}}
 @media(max-width:680px){.catalog-intro{padding:36px 18px}.catalog-content{padding:20px 18px 36px}.catalog-search{flex-direction:column}.catalog-filters label{min-width:100%}.catalog-grid{grid-template-columns:1fr;max-width:460px;margin:auto}.site-title-block h1{font-size:24px}.site-split-hero,.course-detail-hero,.growth-page-content,.assessment-sample,.about-platform,.institute-banner,.institute-roles,.institute-form-layout{grid-template-columns:1fr}.site-split-hero{padding:36px 20px;gap:22px}.site-split-hero .network-art{height:190px;order:1}.site-split-hero > div:last-child{order:0}.course-detail-hero{padding-inline:18px}.course-detail-art{min-height:220px}.detail-card-grid{grid-template-columns:1fr 1fr}.trust-cards{grid-template-columns:1fr}.role-note{grid-template-columns:1fr}.growth-page-content{gap:22px}.assessment-sample{gap:22px}.about-platform .trust-cards{grid-template-columns:1fr}.institute-banner{margin:18px;padding:20px}.institute-roles .role-grid{grid-template-columns:1fr 1fr}.request-fields{grid-template-columns:1fr}.request-fields__wide{grid-column:auto}.institute-form-layout aside,.institute-request-form{padding:18px}.lesson-list article{flex-direction:column;gap:8px}.confirmation-state{min-height:480px;padding:52px 20px}}
 
-/* Public Android download area — carries the same Dena visual language. */
-.dena-android-strip { display:grid; grid-template-columns:minmax(250px,.8fr) minmax(0,1.2fr); gap:64px; align-items:center; direction:ltr; background:linear-gradient(145deg,#f4f1ff,#fff 65%); }
-.dena-android-strip__copy { direction:rtl; text-align:right; max-width:660px; }
-.dena-android-strip__copy h2 { margin:18px 0 12px; color:#352b68; font-size:clamp(25px,2.7vw,34px); line-height:1.5; }
-.dena-android-strip__copy p { color:#756f83; line-height:2; font-size:14px; margin:0 0 22px; }
-.dena-android-strip__copy small { display:block; margin-top:12px; line-height:1.8; color:#756f83; font-size:11px; }
-.dena-android-strip__art { display:flex; align-items:center; justify-content:center; min-height:320px; }
-.dena-android-strip__phone { width:196px; height:332px; border:9px solid #322964; border-radius:36px; background:#fff; box-shadow:0 24px 48px #352b6822; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:15px; direction:rtl; }
-.dena-android-strip__phone span { color:#352b68; font-size:14px; font-weight:800; }
-.dena-android-strip__phone i { width:80%; height:22px; border-radius:8px; background:#f0edff; }
-.dena-android-strip__phone i:nth-of-type(2) { width:65%; background:#e4f9f2; }
-.dena-android-strip__phone i:nth-of-type(3) { width:75%; }
-.dena-android-strip__phone strong { color:#5b4ce2; font-size:11px; margin-top:15px; }
+/* Dedicated Android download page; the homepage has no download section. */
 .dena-download-hero { padding:72px max(22px,calc((100vw - 1180px)/2)); background:linear-gradient(135deg,#f6f3ff,#fff 74%); direction:rtl; }
 .dena-download-hero__inner { max-width:1180px; margin:auto; display:grid; grid-template-columns:1.35fr .65fr; gap:48px; align-items:center; }
 .dena-download-hero h1 { color:#352b68; font-size:clamp(29px,3.2vw,46px); line-height:1.35; margin:18px 0 14px; font-weight:900; }
@@ -316,9 +304,7 @@
 .dena-download-details__card a { color:#5b4ce2; font-weight:700; font-size:12px; overflow-wrap:anywhere; }
 .dena-download-notice { border-radius:12px; padding:14px 16px; background:#fff8e8; border:1px solid #eed79c; color:#745116; font-size:12px; line-height:2; margin-top:19px; }
 @media (max-width:760px) {
-  .dena-android-strip,.dena-download-hero__inner,.dena-download-details__grid { grid-template-columns:1fr; gap:24px; }
-  .dena-android-strip__art { min-height:255px; }
-  .dena-android-strip__phone { transform:scale(.75); margin:-30px auto; }
+  .dena-download-hero__inner,.dena-download-details__grid { grid-template-columns:1fr; gap:24px; }
   .dena-download-hero { padding:46px 20px; }
   .dena-download-hero__visual { min-height:180px; }
   .dena-download-details { padding:36px 18px; }
@@ -327,10 +313,11 @@
 
 /* Android download is the last header ACTION, not a scroll-hidden menu item. */
 .dena-header__app-icon {
-  width:44px;
-  height:44px;
+  min-height:44px;
+  padding:0 12px;
   display:inline-flex;
   flex:none;
+  gap:8px;
   align-items:center;
   justify-content:center;
   border:1px solid #ded9fb;
@@ -340,10 +327,12 @@
   text-decoration:none;
   transition:background .15s ease, border-color .15s ease;
 }
-.dena-header__app-icon svg { width:24px; height:24px; display:block; }
+.dena-header__app-icon svg { width:24px; height:24px; display:block; flex:none; }
+.dena-header__app-label { font-size:12px; font-weight:700; white-space:nowrap; line-height:1.5; }
 .dena-header__app-icon:hover { background:#e7e2ff; border-color:#b9adfc; }
 .dena-header__app-icon:focus-visible { outline:3px solid #5b4ce2; outline-offset:3px; }
 @media (max-width:420px) {
-  .dena-header__app-icon { width:42px; height:42px; border-radius:11px; }
+  .dena-header__app-icon { min-height:42px; border-radius:11px; padding-inline:8px; gap:6px; }
+  .dena-header__app-label { font-size:11px; }
   .dena-header__actions { gap:7px; }
 }
