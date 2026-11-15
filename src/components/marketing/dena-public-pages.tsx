@@ -1,14 +1,15 @@
 import Link from "next/link";
 import Image from "next/image";
 import { DenaPublicLayout, DenaRoleIcon } from "./dena-site-shell";
+import { DenaCatalogFilterBar, type DenaCatalogFilters } from "./dena-catalog-filters";
 
 const catalogCourses = [
-  { id:"chemistry-tenth", title:"شیمی دهم (کیهان و ساختار)", provider:"مؤسسه کنکور برتر", teacher:"استاد مریم سهرابی", sessions:"۲۸ جلسه", hours:"۲۲ ساعت محتوای آموزشی", price:"۴,۱۰۰,۰۰۰ تومان", supervised:false, image:"chemistry" },
-  { id:"physics-tenth", title:"فیزیک دهم (مکانیک)", provider:"گروه ماز", teacher:"دکتر رضا علوی", sessions:"۲۰ جلسه", hours:"۱۵ ساعت محتوای آموزشی", price:"۳,۲۰۰,۰۰۰ تومان", supervised:true, image:"physics" },
-  { id:"math-tenth", title:"ریاضی دهم تجربی و ریاضی", provider:"مؤسسه آموزشی نمونه", teacher:"استاد علیرضا احمدی", sessions:"۲۴ جلسه", hours:"۱۸ ساعت محتوای آموزشی", price:"۳,۸۰۰,۰۰۰ تومان", supervised:false, image:"math" },
-  { id:"biology-tenth", title:"زیست‌شناسی دهم (پایه و مفاهیم)", provider:"آکادمی علوم فردا", teacher:"دکتر سارا حسینی", sessions:"۳۲ جلسه", hours:"۲۶ ساعت محتوای آموزشی", price:"۴,۵۰۰,۰۰۰ تومان", supervised:false, image:"biology" },
-  { id:"arabic-tenth", title:"عربی دهم (ترجمه و قواعد)", provider:"گروه آموزشی مبین", teacher:"استاد محمد کریمی", sessions:"۱۶ جلسه", hours:"۱۲ ساعت محتوای آموزشی", price:"۲,۶۰۰,۰۰۰ تومان", supervised:true, image:"arabic" },
-  { id:"literature-tenth", title:"ادبیات فارسی دهم", provider:"آموزشگاه اندیشه", teacher:"استاد نرگس رضایی", sessions:"۱۸ جلسه", hours:"۱۴ ساعت محتوای آموزشی", price:"۲,۹۰۰,۰۰۰ تومان", supervised:false, image:"literature" },
+  { id:"chemistry-tenth", subject:"chemistry", title:"شیمی دهم (کیهان و ساختار)", provider:"مؤسسه کنکور برتر", teacher:"استاد مریم سهرابی", sessions:"۲۸ جلسه", hours:"۲۲ ساعت محتوای آموزشی", price:"۴,۱۰۰,۰۰۰ تومان", priceValue:4100000, supervised:false, installment:true, image:"chemistry" },
+  { id:"physics-tenth", subject:"physics", title:"فیزیک دهم (مکانیک)", provider:"گروه ماز", teacher:"دکتر رضا علوی", supervisor:"مؤسسه آموزشی البرز", sessions:"۲۰ جلسه", hours:"۱۵ ساعت محتوای آموزشی", price:"۳,۲۰۰,۰۰۰ تومان", priceValue:3200000, supervised:true, installment:true, image:"physics" },
+  { id:"math-tenth", subject:"math", title:"ریاضی دهم تجربی و ریاضی", provider:"مؤسسه آموزشی نمونه", teacher:"استاد علیرضا احمدی", sessions:"۲۴ جلسه", hours:"۱۸ ساعت محتوای آموزشی", price:"۳,۸۰۰,۰۰۰ تومان", priceValue:3800000, supervised:false, installment:true, image:"math" },
+  { id:"biology-tenth", subject:"biology", title:"زیست‌شناسی دهم (پایه و مفاهیم)", provider:"آکادمی علوم فردا", teacher:"دکتر سارا حسینی", sessions:"۳۲ جلسه", hours:"۲۶ ساعت محتوای آموزشی", price:"۴,۵۰۰,۰۰۰ تومان", priceValue:4500000, supervised:false, installment:false, image:"biology" },
+  { id:"arabic-tenth", subject:"arabic", title:"عربی دهم (ترجمه و قواعد)", provider:"گروه آموزشی مبین", teacher:"استاد محمد کریمی", supervisor:"آموزشگاه اندیشه", sessions:"۱۶ جلسه", hours:"۱۲ ساعت محتوای آموزشی", price:"۱,۹۰۰,۰۰۰ تومان", priceValue:1900000, supervised:true, installment:true, image:"arabic" },
+  { id:"literature-tenth", subject:"literature", title:"ادبیات فارسی دهم (آرایه‌ها و قرابت)", provider:"مؤسسه فرهنگ و ادب", teacher:"دکتر حسن رضایی", sessions:"۱۸ جلسه", hours:"۱۴ ساعت محتوای آموزشی", price:"۲,۱۰۰,۰۰۰ تومان", priceValue:2100000, supervised:false, installment:false, image:"literature" },
 ];
 
 function Eyebrow({ children }: { children: React.ReactNode }) { return <span className="eyebrow">{children}</span>; }
@@ -20,32 +21,76 @@ function SiteCTA({ title, description, href="/courses", label="مشاهده دو
 }
 function SampleTag() { return <span className="sample-tag">نمونهٔ نمایشی</span>; }
 
-export function DenaCourseCatalogPage() {
+
+function normalizedCatalogText(value: string) {
+  return value.normalize("NFKC").toLocaleLowerCase("fa").replace(/ي/g, "ی").replace(/ك/g, "ک").trim();
+}
+
+export function DenaCourseCatalogPage({ filters = {} }: { filters?: DenaCatalogFilters }) {
+  const query = normalizedCatalogText(filters.q ?? "");
+  const visibleCourses = catalogCourses.filter((course) => {
+    if (filters.grade && filters.grade !== "10") return false;
+    if (filters.subject && filters.subject !== course.subject) return false;
+    if (filters.provider && filters.provider !== (course.supervised ? "supervised" : "licensed")) return false;
+    if (filters.price === "under3" && course.priceValue >= 3000000) return false;
+    if (filters.price === "3to5" && (course.priceValue < 3000000 || course.priceValue > 5000000)) return false;
+    if (query && !normalizedCatalogText([course.title, course.provider, course.teacher, course.supervisor ?? ""].join(" ")).includes(query)) return false;
+    return true;
+  });
+
   return <DenaPublicLayout>
-    <section className="catalog-intro"><TitleBlock eyebrow="دوره‌های آموزشی دنا" title="دوره مناسب مسیر یادگیری‌ات را پیدا کن" text="دوره‌های آموزشی مؤسسات دارای مجوز و ارائه‌دهندگان تحت نظارت را بررسی کن، شرایط هر دوره را ببین و یادگیری را با سرعت خودت ادامه بده." /></section>
-    <section className="catalog-content">
-      <form className="catalog-search" action="/courses"><label className="sr-only" htmlFor="course-search">جست‌وجوی دوره</label><input id="course-search" name="q" placeholder="نام درس، دوره یا ارائه‌دهنده را جست‌وجو کن" /><button className="dena-button dena-button--primary" type="submit">جست‌وجو</button></form>
-      <form className="catalog-filters" action="/courses">
-        <label>درس<select name="subject"><option value="">همهٔ درس‌ها</option><option>ریاضی</option><option>فیزیک</option><option>شیمی</option></select></label>
-        <label>پایه تحصیلی<select name="grade"><option value="">همهٔ پایه‌ها</option><option>دهم</option><option>یازدهم</option><option>دوازدهم</option></select></label>
-        <label>وضعیت ارائه‌دهنده<select name="provider"><option value="">همه</option><option>مؤسسه دارای مجوز</option><option>ارائه‌دهنده تحت نظارت</option></select></label>
-        <label>محدوده قیمت<select name="price"><option value="">همهٔ قیمت‌ها</option><option>کمتر از ۳ میلیون</option><option>۳ تا ۵ میلیون تومان</option></select></label>
-        <Link href="/courses">پاک‌کردن فیلترها</Link>
-      </form>
-      <div className="catalog-grid">
-        {catalogCourses.map((course)=><article className="course-card" key={course.title}>
-          <div className={`course-card__image course-card__image--${course.image}`} role="img" aria-label={`تصویر دورهٔ ${course.title}`}><span className="course-card__image-label">پایه دهم · آموزش آفلاین</span></div>
-          <div className="course-card__body">
-            <div className="course-card__badges"><span>{course.sessions}</span><span className={course.supervised?"badge-supervised":"badge-licensed"}>{course.supervised?"ارائه‌دهنده تحت نظارت":"مؤسسه آموزشی دارای مجوز"}</span></div>
-            <h2>{course.title}</h2><p>ارائه‌دهنده: {course.provider}<br />مدرس: {course.teacher}</p><small>پایه دهم · {course.hours}</small>
-            <div className="course-card__price"><strong>{course.price}</strong><span>۴ قسط مساوی، بدون افزایش قیمت</span></div>
-            <Link className="dena-button dena-button--outline" href={`/courses/${course.id}`}>مشاهده دوره</Link>
+    <div className="dena-catalog-page">
+      <section className="catalog-intro dena-catalog-intro" aria-labelledby="catalog-title">
+        <TitleBlock eyebrow="دوره‌های آموزشی دنا" title="دوره مناسب مسیر یادگیری‌ات را پیدا کن" text="دوره‌های آموزشی مؤسسات دارای مجوز و ارائه‌دهندگان تحت نظارت را بررسی کن، شرایط هر دوره را ببین و یادگیری را با سرعت خودت ادامه بده." />
+      </section>
+      <section className="dena-catalog-filter-section">
+        <DenaCatalogFilterBar filters={filters} />
+      </section>
+      <section className="dena-catalog-results" aria-label="نمونه نمایشی دوره‌ها">
+        <div className="dena-catalog-results__inner">
+          <p className="dena-catalog-results__label">نمونه نمایشی دوره‌ها</p>
+          {visibleCourses.length > 0 ? (
+            <div className="catalog-grid dena-catalog-grid">
+              {visibleCourses.map((course) => (
+                <article className="course-card dena-catalog-card" key={course.id}>
+                  <div className="course-card__image dena-catalog-card__cover" aria-hidden="true" />
+                  <div className="course-card__body dena-catalog-card__body">
+                    <div className="dena-catalog-card__info">
+                      <div className="course-card__badges dena-catalog-card__badges">
+                        <span>{course.sessions}</span>
+                        <span className={course.supervised ? "badge-supervised" : "badge-licensed"}>
+                          {course.supervised ? "ارائه‌دهنده تحت نظارت" : "مؤسسه آموزشی دارای مجوز"}
+                        </span>
+                      </div>
+                      <h2>{course.title}</h2>
+                      <p>ارائه‌دهنده: {course.provider}<br />مدرس: {course.teacher}</p>
+                      {course.supervisor && <p className="dena-catalog-card__supervisor">مؤسسه ناظر: {course.supervisor}</p>}
+                      <small>پایه دهم | {course.hours}</small>
+                      <div className="course-card__price">
+                        <strong>{course.price}</strong>
+                        {course.installment && <span>۴ قسط مساوی، بدون افزایش قیمت</span>}
+                      </div>
+                    </div>
+                    <Link className="dena-button dena-button--catalog" href={`/courses/${course.id}`}>مشاهده دوره</Link>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : <div className="dena-catalog-empty" role="status">دوره‌ای در نمونه‌های نمایشی با این فیلترها پیدا نشد. <Link href="/courses">نمایش همه دوره‌ها</Link></div>}
+          <p className="dena-catalog-results__disclaimer">عنوان‌ها، مدرس‌ها، قیمت‌ها و شرایط پرداخت بالا صرفاً نمونهٔ طراحی هستند؛ این صفحه فروش یا پرداخت واقعی انجام نمی‌دهد.</p>
+        </div>
+      </section>
+      <section className="dena-catalog-trust" aria-labelledby="dena-catalog-trust-title">
+        <div className="dena-catalog-trust__inner">
+          <h2 id="dena-catalog-trust-title">قبل از انتخاب دوره، اطلاعاتش را شفاف ببین</h2>
+          <div className="dena-catalog-trust__grid">
+            <article><h3>ارائه‌دهنده مشخص</h3><p>وضعیت هر ارائه‌دهنده مشخص است؛ برای مؤسسات دارای مجوز، وضعیت مؤسسه و برای ارائه‌دهندگان تحت نظارت، نام مؤسسه ناظر نمایش داده می‌شود.</p></article>
+            <article><h3>قیمت و شرایط پرداخت روشن</h3><p>شفافیت قیمت دوره‌ها و گزینه‌های پرداخت چندمرحله‌ای برای تسهیل فرآیند ثبت‌نام مهیاست.</p></article>
+            <article><h3>محتوا و ساختار دوره قابل بررسی</h3><p>سرفصل‌ها، جلسات آموزشی و زمان یادگیری پیش از شروع مشخص و شفاف برنامه‌ریزی شده است.</p></article>
           </div>
-        </article>)}
-      </div>
-      <p className="content-disclaimer">قیمت‌ها و عنوان‌های این صفحه نمونه‌اند. جزئیات قطعی هر دوره را ارائه‌دهندهٔ مسئول اعلام می‌کند.</p>
-    </section>
-    <section className="dena-section trust-strip"><h2>قبل از انتخاب، جزئیات هر دوره را ببین</h2><div className="trust-cards"><article>هویت ارائه‌دهنده و مؤسسهٔ ناظر روشن است</article><article>ساختار جلسات و محتوای دوره مشخص است</article><article>شرایط ارزیابی و پشتیبانی دوره اعلام می‌شود</article></div></section>
+        </div>
+      </section>
+    </div>
   </DenaPublicLayout>;
 }
 
