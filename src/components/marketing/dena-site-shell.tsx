@@ -11,7 +11,7 @@ const siteLinks = [
   ["خانه", "/"],
 ];
 
-/** Last header action: an icon linking to the Android app download page. */
+/** Shared public header action: Android download icon and visible label. */
 export function DenaAndroidHeaderLink() {
   return (
     <Link
@@ -33,7 +33,7 @@ export function DenaAndroidHeaderLink() {
         <path d="M10 8.5v6m0 0-2.3-2.3M10 14.5l2.3-2.3" />
         <path d="M14.5 16h-1m-2.5 2.5h2" />
       </svg>
-      <span className="sr-only">دانلود اپ اندروید دنا</span>
+      <span className="dena-header__app-label">دانلود اپلیکیشن</span>
     </Link>
   );
 }
@@ -62,8 +62,8 @@ export function DenaSiteFooter() {
   return (
     <footer className="dena-footer">
       <div className="dena-footer__main">
-        <div className="dena-footer__brand"><Link className="dena-brand dena-brand--footer" href="/" aria-label="صفحهٔ اصلی دنا"><Image src="/dena-app-logo.png" alt="دنا" width={83} height={48} /></Link><p>آموزش تنها نیست؛ رشد همراه است.</p><small>اکوسیستم آموزشی دنا</small></div>
-        <div><h3>دنا</h3><Link href="/courses">دوره‌ها</Link><Link href="/growth">مسیر رشد</Link><Link href="/elite-club">باشگاه نخبگان</Link><Link href="/assessments">آزمون‌ها</Link><Link href="/about">درباره دنا</Link><Link href="/download/android">دانلود اپ اندروید</Link></div>
+        <div className="dena-footer__brand"><Link className="dena-brand dena-brand--footer" href="/" aria-label="صفحهٔ اصلی دنا"><Image src="/dena-app-logo.png" alt="دنا" width={83} height={48} /></Link><p>دنا، بستر آموزش، یادگیری و رشد دانش‌آموزان نوآفرین ایران.</p></div>
+        <div><h3>دنا</h3><Link href="/courses">دوره‌ها</Link><Link href="/growth">مسیر رشد</Link><Link href="/elite-club">باشگاه نخبگان</Link><Link href="/assessments">آزمون‌ها</Link><Link href="/about">درباره دنا</Link></div>
         <div><h3>همکاری با دنا</h3><Link href="/institutes/request">ثبت‌نام مؤسسات</Link><Link href="/institutes/collaboration">سازمان‌ها و حامیان</Link></div>
         <div><h3>راهنما</h3><Link href="/support">پشتیبانی فنی</Link><Link href="/student/privacy">قوانین و حریم خصوصی</Link></div>
         <div><h3>تماس با دنا</h3><span>تلفن: ۰۲۱-۶۶۴۸۵۳۷۴</span><span>ایمیل: info@denaedu.ir</span><span>خیابان انقلاب، خیابان رازی، کوچه شهبازیان، پلاک ۲۲</span></div>

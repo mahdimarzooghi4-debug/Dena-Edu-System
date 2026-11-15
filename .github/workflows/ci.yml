@@ -38,7 +38,9 @@ jobs:
           - shard: auth
           - shard: course
           - shard: operations
-    runs-on: ubuntu-latest
+    # PostgreSQL 16 client binaries are available from the Ubuntu 24.04 APT repos.
+    # Keep pg_dump/pg_restore verification reproducible across hosted runner upgrades.
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:16
