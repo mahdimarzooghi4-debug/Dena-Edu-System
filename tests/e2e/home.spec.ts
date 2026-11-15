@@ -29,7 +29,7 @@ test("homepage keeps Android download only in the labeled header action", async 
   await expect(page.locator(".dena-hero a[href='/download/android']")).toHaveCount(0);
   await expect(page.locator(".dena-android-strip")).toHaveCount(0);
   await expect(page.locator("main a[href='/download/android']")).toHaveCount(1);
-  await expect(page.locator(".dena-footer__brand")).toContainText("اکوسیستم آموزشی دنا");
+  await expect(page.locator(".dena-footer__brand")).toContainText("دنا، بستر آموزش، یادگیری و رشد دانش‌آموزان نوآفرین ایران.");
   await expect(page.locator(".dena-footer a[href='/download/android']")).toHaveCount(0);
 });
 
