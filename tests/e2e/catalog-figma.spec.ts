@@ -57,6 +57,7 @@ test("catalog filtering and search affect demo cards without creating real order
   await expect(page.locator(".dena-catalog-card")).toHaveCount(1);
   await expect(page.locator(".dena-catalog-card")).toContainText("فیزیک دهم");
   await page.getByRole("combobox", { name: "وضعیت ارائه‌دهنده" }).selectOption("licensed");
+  await expect(page).toHaveURL(/provider=licensed/);
   await expect(page.locator(".dena-catalog-empty")).toBeVisible();
   await page.getByRole("link", { name: "پاک‌کردن فیلترها" }).click();
   await expect(page.locator(".dena-catalog-card")).toHaveCount(6);
