@@ -260,7 +260,12 @@ export function DenaHomepage() {
           <div><h3>دنا</h3><Link href="/courses">دوره‌ها</Link><Link href="/growth">مسیر رشد</Link><Link href="/elite-club">باشگاه نخبگان</Link><Link href="/assessments">آزمون‌ها</Link><Link href="/about">درباره دنا</Link></div>
           <div><h3>همکاری با دنا</h3><Link href="/institutes/request">ثبت‌نام مؤسسات</Link><Link href="/institutes/collaboration">سازمان‌ها و حامیان</Link></div>
           <div><h3>راهنما</h3><Link href="/support">پشتیبانی فنی</Link><Link href="/student/privacy">قوانین و حریم خصوصی</Link></div>
-          <div><h3>تماس با دنا</h3><span>تلفن: ۰۲۱-۶۶۴۸۵۳۷۴</span><span>ایمیل: info@denaedu.ir</span><span>خیابان انقلاب، خیابان رازی، کوچه شهبازیان، پلاک ۲۲</span></div>
+          <div className="dena-footer__contact">
+            <h3>تماس با دنا</h3>
+            <a href="tel:+982166485374"><Image src="/figma/dena-home/footer-phone.svg" alt="" width={16} height={16} /><span>تلفن:</span><span>۰۲۱-۶۶۴۸۵۳۷۴</span></a>
+            <a href="mailto:info@denaedu.ir"><Image src="/figma/dena-home/footer-mail.svg" alt="" width={16} height={16} /><span>ایمیل:</span><span>info@denaedu.ir</span></a>
+            <p><Image src="/figma/dena-home/footer-map-pin.svg" alt="" width={16} height={16} /><span>آدرس:</span><span>خیابان انقلاب، خیابان رازی، کوچه شهبازیان، پلاک ۲۲</span></p>
+          </div>
         </div>
         <div className="dena-footer__legal">حقوق پلتفرم و هویت دنا محفوظ است. حقوق محتوای آموزشی هر دوره متعلق به مؤسسه یا ارائه‌دهندهٔ آن است.</div>
       </footer>
