@@ -207,7 +207,7 @@
 .dena-footer__main { display:grid; grid-template-columns:1.45fr repeat(4,1fr); gap:32px; }
 .dena-footer__main > div { display:flex; flex-direction:column; align-items:flex-start; gap:12px; }
 .dena-footer h3 { margin:0 0 6px; font-size:13px; }.dena-footer a,.dena-footer span { color:var(--muted); text-decoration:none; font-size:11px; line-height:1.9; }.dena-footer a:hover { color:var(--brand); }
-.dena-footer__brand { align-items:flex-end!important; }.dena-brand--footer { justify-content:flex-end; }.dena-footer__brand p { margin:0; color:var(--muted); font-size:12px; font-weight:500; line-height:1.9; max-width:250px; }
+.dena-footer__brand { direction:rtl; align-items:flex-start!important; text-align:right; }.dena-brand--footer { justify-content:flex-end; }.dena-footer__brand p { margin:0; color:var(--muted); font-size:12px; font-weight:500; line-height:1.9; max-width:250px; }
 .dena-footer__legal { margin-top:42px; padding-top:18px; border-top:1px solid var(--line); color:var(--muted); font-size:10px; line-height:1.9; }
 @media (max-width:1100px) {
   .dena-header { padding-inline:28px; }.dena-header__right { gap:24px; }.dena-nav { gap:18px; }.dena-nav a { font-size:12px; }
