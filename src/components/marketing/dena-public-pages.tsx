@@ -63,9 +63,8 @@ export function DenaCourseCatalogPage({ filters = {} }: { filters?: DenaCatalogF
                         </span>
                       </div>
                       <h2>{course.title}</h2>
-                      <p>ارائه‌دهنده: {course.provider}<br />مدرس: {course.teacher}
-                        {course.supervisor && <><br /><span className="dena-catalog-card__supervisor">مؤسسه ناظر: {course.supervisor}</span></>}
-                      </p>
+                      <p>ارائه‌دهنده: {course.provider}<br />مدرس: {course.teacher}</p>
+                      {course.supervisor && <p className="dena-catalog-card__supervisor">مؤسسه ناظر: {course.supervisor}</p>}
                       <small>پایه دهم | {course.hours}</small>
                       <div className="course-card__price">
                         <strong>{course.price}</strong>
