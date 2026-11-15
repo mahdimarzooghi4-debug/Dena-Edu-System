@@ -710,3 +710,111 @@
   .dena-catalog-trust__grid { grid-template-columns:1fr; gap:12px; }
   .dena-catalog-trust__grid article { min-height:0; }
 }
+
+
+/* Second pass, Figma 134:37: align the public catalog footer's exact 1440px
+   structure and source icons, while preserving the user-approved footer copy.
+   Unlike the homepage's independently composed footer, shared subpage footers
+   are adjacent siblings of .dena-subpage. */
+.dena-catalog-results__label { font-size:14px; font-weight:500; }
+.dena-catalog-trust__grid article { height:130px; min-height:130px; }
+.dena-catalog-trust__grid article:first-child { height:151px; min-height:151px; }
+
+@media (min-width:1101px) {
+  .dena-subpage + .dena-footer {
+    height:378px;
+    box-sizing:border-box;
+    padding:64px max(32px,calc((100vw - 1280px)/2)) 32px;
+  }
+  .dena-subpage + .dena-footer .dena-footer__main {
+    display:grid;
+    direction:rtl;
+    height:195px;
+    grid-template-columns:340px 150px 180px 170px 216px;
+    gap:56px;
+    max-width:1280px;
+    margin:0 auto;
+  }
+  .dena-subpage + .dena-footer .dena-footer__main > div {
+    min-width:0;
+    gap:12px;
+    align-items:flex-start;
+  }
+  .dena-subpage + .dena-footer h3 {
+    height:25px; margin:0; font-size:16px; line-height:25px;
+  }
+  .dena-subpage + .dena-footer .dena-footer__main a:not(.dena-brand) {
+    height:22px; line-height:22px;
+  }
+  .dena-subpage + .dena-footer .dena-footer__main a:not(.dena-brand),
+  .dena-subpage + .dena-footer .dena-footer__main span {
+    font-size:13px;
+  }
+  .dena-subpage + .dena-footer .dena-footer__legal {
+    height:47px; box-sizing:border-box;
+    max-width:1280px; margin:40px auto 0; padding-top:24px;
+    font-size:13px; line-height:22px;
+  }
+}
+.dena-subpage + .dena-footer .dena-footer__brand {
+  direction:rtl;
+  text-align:right;
+  align-items:flex-start!important;
+  gap:14px;
+}
+.dena-subpage + .dena-footer .dena-brand--footer {
+  display:flex; flex:none; align-items:center; justify-content:flex-end;
+  width:119px; height:72px;
+}
+.dena-subpage + .dena-footer .dena-brand--footer img {
+  display:block; width:119px; height:72px; object-fit:contain;
+}
+.dena-subpage + .dena-footer .dena-footer__brand p {
+  max-width:340px; font-size:13px; font-weight:400;
+  line-height:22px; margin:0; text-align:right;
+}
+.dena-subpage + .dena-footer .dena-footer__contact > a,
+.dena-subpage + .dena-footer .dena-footer__contact > p {
+  display:flex; direction:rtl; align-items:flex-start;
+  gap:8px; width:100%; margin:0;
+  text-align:right; font-size:13px; line-height:22px;
+  color:#756f83;
+}
+.dena-subpage + .dena-footer .dena-footer__contact > a { height:22px; }
+.dena-subpage + .dena-footer .dena-footer__contact > p { min-height:66px; }
+.dena-subpage + .dena-footer .dena-footer__contact img {
+  width:16px; height:16px; flex:none; margin-top:3px;
+}
+.dena-subpage + .dena-footer .dena-footer__contact > a span:last-child,
+.dena-subpage + .dena-footer .dena-footer__contact > p span:last-child {
+  flex:1; min-width:0; overflow-wrap:anywhere;
+}
+@media (min-width:761px) and (max-width:1100px) {
+  .dena-subpage + .dena-footer { padding-top:48px; padding-bottom:28px; }
+  .dena-subpage + .dena-footer .dena-footer__main {
+    grid-template-columns:repeat(3,minmax(0,1fr)); gap:28px 24px;
+    height:auto; direction:rtl;
+  }
+  .dena-subpage + .dena-footer .dena-footer__legal {
+    margin-top:30px; font-size:12px;
+  }
+}
+@media (max-width:760px) {
+  .dena-subpage + .dena-footer .dena-footer__main {
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:24px 16px; height:auto; direction:rtl;
+  }
+  .dena-subpage + .dena-footer .dena-footer__brand {
+    grid-column:1/-1; min-width:0;
+  }
+  .dena-subpage + .dena-footer .dena-footer__contact {
+    grid-column:1/-1; width:min(100%,300px); min-width:0;
+  }
+  .dena-subpage + .dena-footer .dena-footer__legal {
+    margin-top:28px; font-size:11px; line-height:1.8;
+  }
+  .dena-catalog-trust__grid article,
+  .dena-catalog-trust__grid article:first-child {
+    height:auto; min-height:0;
+  }
+}
