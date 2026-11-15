@@ -439,7 +439,7 @@
 .dena-home .dena-cta { min-height:384px; box-sizing:border-box; padding:96px 24px; }
 .dena-home .dena-cta h2 { font-size:48px; line-height:70px; }
 .dena-home .dena-cta p { font-size:16px; line-height:26px; margin:16px 0 32px; }
-.dena-home .dena-cta > div { gap:16px; }
+.dena-home .dena-cta > div { gap:16px; direction:ltr; }
 .dena-home .dena-cta .dena-button { min-width:143px; }
 .dena-home .dena-cta .dena-button--primary { min-width:160px; }
 
