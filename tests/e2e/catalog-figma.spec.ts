@@ -18,8 +18,36 @@ test("Figma 134:37 catalog shows six RTL course cards and exact sample informati
   await expect(cards.nth(5).locator(".course-card__price span")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "قبل از انتخاب دوره، اطلاعاتش را شفاف ببین" })).toBeVisible();
   await expect(page.locator(".dena-catalog-trust__grid article")).toHaveCount(3);
-  await expect(page.locator(".dena-header__app-icon")).toContainText("دانلود اپلیکیشن");
-  await expect(page.locator(".dena-footer__brand")).toContainText("دنا، بستر آموزش، یادگیری و رشد دانش‌آموزان نوآفرین ایران.");
+  await expect(page.getByTestId("dena-header-signup")).toBeVisible();
+  await expect(page.locator(".dena-header__app-icon")).toHaveCount(0);
+  await expect(page.locator(".dena-footer__brand")).toContainText("اکوسیستم آموزشی دنا");
+});
+
+
+test("Figma 134:37 header shows the exact login and visible 160px signup action", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/courses");
+  const header = page.locator("header.dena-header");
+  const actions = header.locator(".dena-header__actions--catalog");
+  const login = actions.locator('a[href="/login"]');
+  const signup = page.getByTestId("dena-header-signup");
+  await expect(login).toBeVisible();
+  await expect(login).toHaveText("ورود");
+  await expect(signup).toBeVisible();
+  await expect(signup).toHaveText("ثبت‌نام");
+  await expect(signup).toHaveAttribute("href", "/signup");
+  await expect(actions.locator(".dena-header__app-icon")).toHaveCount(0);
+  const [actionsBox, loginBox, signupBox] = await Promise.all([
+    actions.boundingBox(), login.boundingBox(), signup.boundingBox(),
+  ]);
+  expect(actionsBox).not.toBeNull();
+  expect(loginBox).not.toBeNull();
+  expect(signupBox).not.toBeNull();
+  expect(actionsBox!.width).toBe(247);
+  expect(Math.abs(actionsBox!.x - 80)).toBeLessThanOrEqual(1);
+  expect(loginBox!.width).toBe(75);
+  expect(signupBox!.width).toBe(160);
+  expect(Math.abs(signupBox!.x - loginBox!.x - 87)).toBeLessThanOrEqual(1);
 });
 
 test("catalog filtering and search affect demo cards without creating real orders", async ({ page }) => {
@@ -73,6 +101,7 @@ test("catalog fits mobile widths and leaves shared public footer right-aligned",
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto("/courses");
   await expect(page.locator(".dena-catalog-card")).toHaveCount(6);
+  await expect(page.getByTestId("dena-header-signup")).toBeVisible();
   await expect(page.getByRole("combobox", { name: "محدوده قیمت" })).toBeVisible();
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(2);
@@ -105,14 +134,48 @@ test("Figma 134:37 footer uses the design's 119×72 brand, true contact icons an
   const legal = await footer.locator(".dena-footer__legal").boundingBox();
   expect(legal).not.toBeNull();
   expect(Math.abs(legal!.y - footerBox!.y - 299)).toBeLessThanOrEqual(2);
-  await expect(brand).toContainText("دنا، بستر آموزش، یادگیری و رشد دانش‌آموزان نوآفرین ایران.");
+  await expect(brand).toContainText("اکوسیستم آموزشی دنا");
+  const main = footer.locator(".dena-footer__main");
+  const mainBox = await main.boundingBox();
+  expect(mainBox).not.toBeNull();
+  expect(mainBox!.width).toBe(1280);
+  expect(mainBox!.height).toBe(195);
+  const columns = [
+    [".dena-footer__brand", 1020, 340],
+    [".dena-footer__column--dena", 814, 150],
+    [".dena-footer__column--collaboration", 578, 180],
+    [".dena-footer__column--guide", 352, 170],
+    [".dena-footer__contact", 80, 216],
+  ] as const;
+  for (const [selector, x, width] of columns) {
+    const box = await footer.locator(selector).boundingBox();
+    expect(box, selector).not.toBeNull();
+    expect(Math.abs(box!.x - x), selector + " x").toBeLessThanOrEqual(1);
+    expect(Math.abs(box!.width - width), selector + " width").toBeLessThanOrEqual(1);
+  }
+  for (const [selector, width] of [
+    [".dena-footer__contact-row--phone", 170],
+    [".dena-footer__contact-row--email", 170],
+    [".dena-footer__contact-row--address", 208],
+  ] as const) {
+    const box = await footer.locator(selector).boundingBox();
+    expect(box, selector).not.toBeNull();
+    expect(box!.width).toBe(width);
+  }
+  await expect(footer.locator(".dena-footer__contact-row--phone")).toContainText("تلفن۰۲۱-۶۶۴۸۵۳۷۴");
+  await expect(footer.locator(".dena-footer__contact-row--email")).toContainText("ایمیلinfo@denaes.ir");
+  await expect(footer.locator(".dena-footer__contact-row--address")).toContainText("آدرسخیابان انقلاب، خیابان رازی، کوچه شهبازیان، پلاک ۲۲");
+  await expect(footer.locator(".dena-footer__legal")).toHaveText("حقوق پلتفرم و هویت دنا محفوظ است. حقوق محتوای آموزشی هر دوره متعلق به مؤسسه یا ارائه‌دهنده آن است.");
+  const footerLogo = brand.locator('img[src="/figma/dena-catalog/footer-logo.svg"]');
+  await expect(footerLogo).toBeAttached();
+  expect(await footerLogo.evaluate((node) => (node as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
   const icons = footer.locator(".dena-footer__contact img");
   await expect(icons).toHaveCount(3);
   for (const icon of await icons.all()) {
     expect(await icon.evaluate((node) => (node as HTMLImageElement).naturalWidth)).toBe(16);
   }
   await expect(footer.locator('a[href="tel:+982166485374"]')).toBeVisible();
-  await expect(footer.locator('a[href="mailto:info@denaedu.ir"]')).toBeVisible();
+  await expect(footer.locator('a[href="mailto:info@denaes.ir"]')).toBeVisible();
 });
 
 test("Figma 134:37 trust cards preserve their distinct 151px and 130px heights", async ({ page }) => {
