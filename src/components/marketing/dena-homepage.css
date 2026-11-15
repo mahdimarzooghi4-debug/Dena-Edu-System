@@ -40,7 +40,7 @@
 .auth-form-links { display:flex; justify-content:space-between; gap:12px; margin-top:18px; font-size:12px; }
 .auth-form-links a { color:var(--brand); text-decoration:none; font-weight:700; }
 .dena-auth-footer { padding-top:18px; border-top:1px solid var(--line); color:var(--muted); font-size:11px; line-height:1.9; text-align:center; }
-.dena-header { height: 80px; padding: 16px max(32px, calc((100vw - 1280px) / 2)); display:flex; align-items:center; justify-content:space-between; direction:ltr; background:#fff; border-bottom:1px solid var(--line); }
+.dena-header { --brand:#5b4ce2; --ink:#2b2544; --line:#e5e1ed; height: 80px; padding: 16px max(32px, calc((100vw - 1280px) / 2)); display:flex; align-items:center; justify-content:space-between; direction:ltr; background:#fff; border-bottom:1px solid var(--line); }
 .dena-header__actions,.dena-header__right,.dena-nav { display:flex; align-items:center; }
 .dena-header__actions { gap:12px; }
 .dena-header__right { gap:48px; direction:ltr; }
@@ -203,7 +203,7 @@
 .dena-cta h2 { margin:0; font-size:30px; }.dena-cta p { margin:8px 0 20px; color:#d9d3f0; font-size:13px; }.dena-cta > div { display:flex; justify-content:center; gap:12px; }
 .dena-institute-cta { max-width:1280px; margin:40px auto; padding:30px; display:flex; align-items:center; justify-content:space-between; gap:30px; border:1px solid var(--line); border-radius:18px; background:#fff; }
 .dena-institute-cta h2 { margin:12px 0 6px; font-size:24px; }.dena-institute-cta p { margin:0; color:var(--muted); font-size:12px; line-height:2; }.dena-institute-cta__actions { display:flex; gap:10px; flex:none; }
-.dena-footer { padding:56px max(32px, calc((100vw - 1280px) / 2)) 24px; background:#fff; }
+.dena-footer { --brand:#5b4ce2; --muted:#756f83; --line:#e5e1ed; padding:56px max(32px, calc((100vw - 1280px) / 2)) 24px; background:#fff; }
 .dena-footer__main { display:grid; grid-template-columns:1.45fr repeat(4,1fr); gap:32px; }
 .dena-footer__main > div { display:flex; flex-direction:column; align-items:flex-start; gap:12px; }
 .dena-footer h3 { margin:0 0 6px; font-size:13px; }.dena-footer a,.dena-footer span { color:var(--muted); text-decoration:none; font-size:11px; line-height:1.9; }.dena-footer a:hover { color:var(--brand); }
@@ -337,7 +337,7 @@
   .dena-header__actions { gap:7px; }
 }
 
-/* Figma 59:5 home visual reconciliation. Only the public homepage is affected.
+/* Figma 59:5 home geometry and canonical public-site footer reconciliation.
    1440px desktop reference: Header 80 / Hero 522 / How 476 / Courses 802 /
    Growth 819 / Elite 624 / Ecosystem 855 / Trust 478 / CTA 384 /
    Institute 440 / Footer 378. Downloads remain exclusively in the header. */
@@ -459,30 +459,30 @@
 .dena-home .dena-institute-cta__actions { direction:ltr; justify-content:flex-end; gap:12px; }
 .dena-home .dena-institute-cta__actions .dena-button { min-width:160px; }
 
-.dena-home .dena-footer { min-height:378px; box-sizing:border-box; padding-top:64px; padding-bottom:32px; }
-.dena-home .dena-footer__main { height:195px; grid-template-columns:340px 150px 180px 170px 216px; gap:56px; }
-.dena-home .dena-footer__main > div { gap:12px; }
-.dena-home .dena-footer h3 { height:25px; line-height:25px; font-size:16px; margin:0; }
+.dena-footer { min-height:378px; box-sizing:border-box; padding-top:64px; padding-bottom:32px; }
+.dena-footer__main { height:195px; grid-template-columns:340px 150px 180px 170px 216px; gap:56px; }
+.dena-footer__main > div { gap:12px; }
+.dena-footer h3 { height:25px; line-height:25px; font-size:16px; margin:0; }
 .dena-home .dena-brand--footer { width:119px; height:72px; }
 .dena-home .dena-brand--footer img { width:119px; height:72px; }
-.dena-home .dena-footer a,.dena-home .dena-footer span { font-size:13px; }
-.dena-home .dena-footer__brand p { max-width:340px; font-size:13px; line-height:22px; font-weight:400; text-align:right; }
-.dena-home .dena-footer__legal { font-size:13px; line-height:22px; min-height:47px; box-sizing:border-box; margin-top:40px; padding-top:24px; }
-.dena-home .dena-footer__contact > a,.dena-home .dena-footer__contact > p { width:100%; box-sizing:border-box; display:flex; flex-direction:row; align-items:flex-start; gap:8px; direction:rtl; text-align:right; color:#756f83; text-decoration:none; margin:0; font-size:13px; line-height:22px; }
-.dena-home .dena-footer__contact > a { height:22px; }
-.dena-home .dena-footer__contact > p { height:66px; }
-.dena-home .dena-footer__contact img { flex:none; width:16px; height:16px; margin-top:3px; }
-.dena-home .dena-footer__contact > a span:nth-child(3),.dena-home .dena-footer__contact > p span:nth-child(3) { flex:1; overflow-wrap:anywhere; }
-.dena-home .dena-footer__contact > a:hover { color:#5b4ce2; }
+.dena-footer a,.dena-footer span { font-size:13px; }
+.dena-footer__brand p { max-width:340px; font-size:13px; line-height:22px; font-weight:400; text-align:right; }
+.dena-footer__legal { font-size:13px; line-height:22px; min-height:47px; box-sizing:border-box; margin-top:40px; padding-top:24px; }
+.dena-footer__contact > a,.dena-footer__contact > p { width:100%; box-sizing:border-box; display:flex; flex-direction:row; align-items:flex-start; gap:8px; direction:rtl; text-align:right; color:#756f83; text-decoration:none; margin:0; font-size:13px; line-height:22px; }
+.dena-footer__contact > a { height:22px; }
+.dena-footer__contact > p { height:66px; }
+.dena-footer__contact img { flex:none; width:16px; height:16px; margin-top:3px; }
+.dena-footer__contact > a span:nth-child(3),.dena-footer__contact > p span:nth-child(3) { flex:1; overflow-wrap:anywhere; }
+.dena-footer__contact > a:hover { color:#5b4ce2; }
 
 @media (max-width:1100px) {
   .dena-home .dena-hero,.dena-home .dena-how,.dena-home .dena-courses,
   .dena-home .dena-growth,.dena-home .dena-network,.dena-home .dena-roles,
   .dena-home .dena-support,.dena-home .dena-cta,.dena-home .dena-institute-section,
-  .dena-home .dena-footer { min-height:0; height:auto; }
+  .dena-footer { min-height:0; height:auto; }
   .dena-home .dena-hero__inner { min-height:0; }
   .dena-home .growth-preview { width:100%; height:auto; min-height:0; }
-  .dena-home .dena-footer__main { height:auto; grid-template-columns:repeat(5,minmax(0,1fr)); gap:14px; }
+  .dena-footer__main { height:auto; grid-template-columns:repeat(5,minmax(0,1fr)); gap:14px; }
   .dena-home .learning-steps { min-height:0; }
   .dena-home .dena-network { grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
   .dena-home .dena-network .network-art { width:100%; height:auto; }
@@ -535,10 +535,10 @@
   .dena-home .dena-institute-benefits { order:2; }
   .dena-home .dena-institute-cta__copy { order:1; width:100%; }
   .dena-home .dena-institute-cta__actions { justify-content:flex-end; flex-wrap:wrap; }
-  .dena-home .dena-footer { padding-top:38px; }
-  .dena-home .dena-footer__main { height:auto; grid-template-columns:1fr 1fr; gap:28px 20px; }
-  .dena-home .dena-footer__brand { grid-column:1/-1; }
-  .dena-home .dena-footer__contact { min-width:0; }
+  .dena-footer { padding-top:38px; }
+  .dena-footer__main { height:auto; grid-template-columns:1fr 1fr; gap:28px 20px; }
+  .dena-footer__brand { grid-column:1/-1; }
+  .dena-footer__contact { min-width:0; }
 }
 @media (max-width:420px) {
   .dena-home .learning-steps { grid-template-columns:1fr; }
@@ -712,321 +712,10 @@
 }
 
 
-/* Figma 134:37 — exact catalog header and footer reconciliation.
-   Desktop geometry is taken from the live 1440px source frame. */
+/* Keep the course-catalog trust cards distinct; no page-specific header/footer rules. */
 .dena-catalog-trust__grid article { height:130px; min-height:130px; }
 .dena-catalog-trust__grid article:first-child { height:151px; min-height:151px; }
-
-.dena-header__actions--catalog {
-  width:247px;
-  flex:0 0 247px;
-  gap:12px;
-}
-.dena-header__actions--catalog > a:first-child {
-  width:75px;
-  min-width:75px;
-  height:48px;
-  min-height:48px;
-  flex:0 0 75px;
-  box-sizing:border-box;
-  justify-content:center;
-  padding:0;
-  border-radius:12px;
-  font-size:15px;
-  font-weight:500;
-}
-.dena-header__actions--catalog .dena-header__signup {
-  display:inline-flex;
-  visibility:visible;
-  opacity:1;
-  position:relative;
-  z-index:2;
-  width:160px;
-  min-width:160px;
-  height:48px;
-  min-height:48px;
-  flex:0 0 160px;
-  box-sizing:border-box;
-  justify-content:center;
-  padding:0 24px;
-  border-radius:12px;
-  color:#fff;
-  background:#5b4ce2;
-  border:1px solid #5b4ce2;
-  font-size:15px;
-  font-weight:700;
-  line-height:normal;
-}
-.dena-brand--catalog {
-  width:79.325px;
-  height:48px;
-  overflow:visible;
-}
-.dena-brand--catalog img {
-  display:block;
-  flex:none;
-  width:87px;
-  height:48px;
-  max-width:none;
-  object-fit:fill;
-}
-
-.dena-subpage + .dena-footer {
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:40px;
-  width:100%;
-  height:378px;
-  min-height:378px;
-  box-sizing:border-box;
-  padding:63px max(32px,calc((100vw - 1280px)/2)) 32px;
-  background:#fff;
-  border-top:1px solid #e5e1ed;
-}
-.dena-subpage + .dena-footer .dena-footer__main {
-  display:grid;
-  direction:rtl;
-  grid-template-columns:340px 150px 180px 170px 216px;
-  gap:56px;
-  width:1280px;
-  max-width:100%;
-  height:195px;
-  margin:0 auto;
-  align-items:start;
-}
-.dena-subpage + .dena-footer .dena-footer__main > div {
-  display:flex;
-  flex-direction:column;
-  align-items:flex-start;
-  min-width:0;
-  gap:12px;
-}
-.dena-subpage + .dena-footer .dena-footer__main h3 {
-  width:100%;
-  height:25px;
-  box-sizing:border-box;
-  margin:0;
-  color:#2b2544;
-  font-size:16px;
-  font-weight:700;
-  line-height:25px;
-  text-align:right;
-}
-.dena-subpage + .dena-footer .dena-footer__main > .dena-footer__column--dena h3 { width:150px; }
-.dena-subpage + .dena-footer .dena-footer__main > .dena-footer__column--collaboration h3 { width:180px; }
-.dena-subpage + .dena-footer .dena-footer__main > .dena-footer__column--guide h3 { width:170px; }
-.dena-subpage + .dena-footer .dena-footer__main > .dena-footer__column--dena > a,
-.dena-subpage + .dena-footer .dena-footer__main > .dena-footer__column--collaboration > a,
-.dena-subpage + .dena-footer .dena-footer__main > .dena-footer__column--guide > a {
-  display:block;
-  box-sizing:border-box;
-  width:100%;
-  height:22px;
-  margin:0;
-  color:#756f83;
-  font-size:14px;
-  font-weight:400;
-  line-height:22px;
-  text-align:right;
-  text-decoration:none;
-  white-space:nowrap;
-}
-.dena-subpage + .dena-footer .dena-footer__column--collaboration > .dena-footer__accent-link {
-  color:#5b4ce2;
-  font-weight:500;
-}
-.dena-subpage + .dena-footer .dena-footer__brand {
-  width:340px;
-  gap:14px;
-  direction:rtl;
-  text-align:right;
-  align-items:flex-start;
-}
-.dena-subpage + .dena-footer .dena-brand--footer {
-  display:flex;
-  flex:none;
-  align-items:center;
-  justify-content:flex-end;
-  width:119px;
-  height:72px;
-  overflow:visible;
-}
-.dena-subpage + .dena-footer .dena-brand--footer img {
-  display:block;
-  flex:none;
-  width:123px;
-  height:72px;
-  max-width:none;
-  object-fit:fill;
-}
-.dena-subpage + .dena-footer .dena-footer__brand p {
-  width:340px;
-  height:22px;
-  max-width:340px;
-  margin:0;
-  color:#756f83;
-  font-size:13px;
-  font-weight:400;
-  line-height:22px;
-  text-align:right;
-}
-.dena-subpage + .dena-footer .dena-footer__contact {
-  width:216px;
-  align-items:flex-start;
-}
-.dena-subpage + .dena-footer .dena-footer__contact h3 { width:170px; }
-.dena-subpage + .dena-footer .dena-footer__contact-row {
-  display:flex;
-  flex-direction:row;
-  direction:rtl;
-  align-items:center;
-  gap:8px;
-  box-sizing:border-box;
-  margin:0;
-  padding:0;
-  color:#2b2544;
-  font-size:14px;
-  font-weight:400;
-  line-height:22px;
-  text-align:right;
-  text-decoration:none;
-}
-.dena-subpage + .dena-footer .dena-footer__contact-row img {
-  display:block;
-  width:16px;
-  height:16px;
-  max-width:none;
-  flex:0 0 16px;
-  object-fit:contain;
-}
-.dena-subpage + .dena-footer .dena-footer__contact-row--phone,
-.dena-subpage + .dena-footer .dena-footer__contact-row--email {
-  width:170px;
-  height:22px;
-  flex:0 0 22px;
-}
-.dena-subpage + .dena-footer .dena-footer__contact-label {
-  flex:none;
-  color:#756f83;
-  font-size:14px;
-  font-weight:400;
-  white-space:nowrap;
-}
-.dena-subpage + .dena-footer .dena-footer__contact-value {
-  color:#2b2544;
-  font-size:14px;
-  font-weight:400;
-  line-height:22px;
-  text-align:right;
-}
-.dena-subpage + .dena-footer .dena-footer__contact-row--phone .dena-footer__contact-value,
-.dena-subpage + .dena-footer .dena-footer__contact-row--email .dena-footer__contact-value {
-  flex:1 1 auto;
-  min-width:0;
-}
-.dena-subpage + .dena-footer .dena-footer__contact-row--address {
-  width:208px;
-  height:66px;
-  flex:0 0 66px;
-  align-items:flex-start;
-  justify-content:flex-start;
-}
-.dena-subpage + .dena-footer .dena-footer__contact-row--address img { margin-top:3px; }
-.dena-subpage + .dena-footer .dena-footer__contact-row--address .dena-footer__contact-value {
-  width:121px;
-  flex:0 0 121px;
-  line-height:22px;
-}
-.dena-subpage + .dena-footer .dena-footer__legal {
-  width:1280px;
-  max-width:100%;
-  height:47px;
-  min-height:47px;
-  box-sizing:border-box;
-  margin:0;
-  padding:24px 0 0;
-  border-top:1px solid #e5e1ed;
-  color:#756f83;
-  font-size:13px;
-  font-weight:400;
-  line-height:22px;
-  text-align:right;
-}
-
-@media (min-width:761px) and (max-width:1100px) {
-  .dena-subpage + .dena-footer {
-    height:auto;
-    min-height:0;
-    padding:48px 40px 28px;
-    gap:30px;
-  }
-  .dena-subpage + .dena-footer .dena-footer__main {
-    width:100%;
-    height:auto;
-    grid-template-columns:repeat(3,minmax(0,1fr));
-    gap:28px 24px;
-  }
-  .dena-subpage + .dena-footer .dena-footer__brand {
-    grid-column:1/-1;
-  }
-  .dena-subpage + .dena-footer .dena-footer__legal {
-    width:100%;
-    height:auto;
-    padding-top:20px;
-    font-size:12px;
-  }
-}
-@media (max-width:760px) {
-  .dena-header__actions--catalog {
-    width:247px;
-    flex:0 0 247px;
-    gap:12px;
-  }
-  .dena-header__actions--catalog > a:first-child {
-    width:75px;
-    min-width:75px;
-    flex:0 0 75px;
-    padding:0;
-  }
-  .dena-header__actions--catalog .dena-header__signup {
-    width:160px;
-    min-width:160px;
-    flex:0 0 160px;
-    padding:0 12px;
-  }
-  .dena-brand--catalog { width:79.325px; height:48px; }
-  .dena-subpage + .dena-footer {
-    width:100%;
-    height:auto;
-    min-height:0;
-    padding:38px 18px 24px;
-    gap:28px;
-  }
-  .dena-subpage + .dena-footer .dena-footer__main {
-    width:100%;
-    height:auto;
-    grid-template-columns:repeat(2,minmax(0,1fr));
-    gap:24px 16px;
-  }
-  .dena-subpage + .dena-footer .dena-footer__brand {
-    grid-column:1/-1;
-    width:100%;
-  }
-  .dena-subpage + .dena-footer .dena-footer__brand p {
-    width:100%;
-    max-width:100%;
-  }
-  .dena-subpage + .dena-footer .dena-footer__contact {
-    grid-column:1/-1;
-    width:min(100%,300px);
-  }
-  .dena-subpage + .dena-footer .dena-footer__legal {
-    width:100%;
-    height:auto;
-    min-height:47px;
-    padding-top:18px;
-    font-size:11px;
-    line-height:1.8;
-  }
+@media (max-width:680px) {
+  .dena-catalog-trust__grid article,
+  .dena-catalog-trust__grid article:first-child { height:auto; min-height:0; }
 }

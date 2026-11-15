@@ -38,7 +38,7 @@ export function DenaCourseCatalogPage({ filters = {} }: { filters?: DenaCatalogF
     return true;
   });
 
-  return <DenaPublicLayout showAndroidDownload={false}>
+  return <DenaPublicLayout>
     <div className="dena-catalog-page">
       <section className="catalog-intro dena-catalog-intro" aria-labelledby="catalog-title">
         <TitleBlock eyebrow="دوره‌های آموزشی دنا" title="دوره مناسب مسیر یادگیری‌ات را پیدا کن" text="دوره‌های آموزشی مؤسسات دارای مجوز و ارائه‌دهندگان تحت نظارت را بررسی کن، شرایط هر دوره را ببین و یادگیری را با سرعت خودت ادامه بده." />
