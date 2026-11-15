@@ -14,6 +14,10 @@ test("all public-site pages render the homepage footer with the same content and
     (anchors) => anchors.map((node) => [node.textContent?.trim(), node.getAttribute("href")]),
   );
   const grid = await homepage.locator(".dena-footer__main").evaluate((node) => getComputedStyle(node).gridTemplateColumns);
+  const footerColor = await homepage.locator(".dena-footer__brand p").evaluate((node) => getComputedStyle(node).color);
+  const signupBackground = await page.locator('header.dena-header a[href="/signup"]').evaluate((node) => getComputedStyle(node).backgroundColor);
+  expect(signupBackground).toBe("rgb(91, 76, 226)");
+  expect(footerColor).toBe("rgb(117, 111, 131)");
   const height = (await homepage.boundingBox())!.height;
   for (const path of publicPages) {
     await page.goto(path);
@@ -25,6 +29,8 @@ test("all public-site pages render the homepage footer with the same content and
     ), path).toEqual(links);
     expect(await footer.locator(".dena-footer__main").evaluate((node) => getComputedStyle(node).gridTemplateColumns), path).toBe(grid);
     expect((await footer.boundingBox())!.height, path).toBe(height);
+    expect(await footer.locator(".dena-footer__brand p").evaluate((node) => getComputedStyle(node).color), path).toBe(footerColor);
+    expect(await page.locator('header.dena-header a[href="/signup"]').evaluate((node) => getComputedStyle(node).backgroundColor), path).toBe(signupBackground);
     await expect(page.locator("header.dena-header .dena-header__app-icon")).toBeVisible();
   }
 });
