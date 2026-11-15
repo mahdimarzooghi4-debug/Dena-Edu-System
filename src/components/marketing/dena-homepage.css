@@ -40,7 +40,7 @@
 .auth-form-links { display:flex; justify-content:space-between; gap:12px; margin-top:18px; font-size:12px; }
 .auth-form-links a { color:var(--brand); text-decoration:none; font-weight:700; }
 .dena-auth-footer { padding-top:18px; border-top:1px solid var(--line); color:var(--muted); font-size:11px; line-height:1.9; text-align:center; }
-.dena-header { height: 80px; padding: 16px max(32px, calc((100vw - 1280px) / 2)); display:flex; align-items:center; justify-content:space-between; direction:ltr; background:#fff; border-bottom:1px solid var(--line); }
+.dena-header { --brand:#5b4ce2; --ink:#2b2544; --line:#e5e1ed; height: 80px; padding: 16px max(32px, calc((100vw - 1280px) / 2)); display:flex; align-items:center; justify-content:space-between; direction:ltr; background:#fff; border-bottom:1px solid var(--line); }
 .dena-header__actions,.dena-header__right,.dena-nav { display:flex; align-items:center; }
 .dena-header__actions { gap:12px; }
 .dena-header__right { gap:48px; direction:ltr; }
