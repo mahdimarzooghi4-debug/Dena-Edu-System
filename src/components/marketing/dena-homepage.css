@@ -644,12 +644,14 @@
   line-height:35px; color:#2b2544; letter-spacing:0;
 }
 .dena-catalog-grid .dena-catalog-card p {
-  margin:16px 0 0; font-size:13px; line-height:26px; color:#756f83;
+  margin:16px 0 0; font-size:13px; line-height:23px; color:#756f83;
 }
 .dena-catalog-grid .dena-catalog-card small {
   display:block; margin-top:16px; font-size:12px; line-height:20px; color:#756f83;
 }
-.dena-catalog-card__supervisor { color:#ed873f; font-weight:600; font-size:12px; }
+.dena-catalog-grid .dena-catalog-card p.dena-catalog-card__supervisor {
+  margin:6px 0 0; color:#ed873f; font-size:12px; font-weight:600; line-height:19px;
+}
 .dena-catalog-grid .dena-catalog-card .course-card__price {
   margin:16px 0 0; border-top:1px solid #e5e1ed; padding-top:8px; width:100%;
   display:flex; flex-direction:column; gap:4px;
