@@ -4,7 +4,7 @@ test("Dena homepage is Persian, RTL, and reflects launch readiness", async ({ pa
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1, name: "یک مسیر یکپارچه برای رشد تحصیلی" })).toBeVisible();
   await expect(page.getByText(/دورهٔ واقعی برای ثبت‌نام در این بخش منتشر نشده است/)).toBeVisible();
-  await expect(page.getByRole("link", { name: "ثبت درخواست همکاری مؤسسه" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "ثبت‌نام مؤسسه", exact: true })).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
   await expect(page.locator("html")).toHaveAttribute("lang", "fa");
 });
@@ -46,4 +46,68 @@ test("Android download header action stays visible on narrow mobile", async ({ p
   await expect(page.locator("header.dena-header a.dena-header__app-icon")).toBeVisible();
   await expect(page.locator("header.dena-header a.dena-header__app-label")).toHaveCount(0);
   await expect(page.locator("header.dena-header .dena-header__app-label")).toHaveText("دانلود اپلیکیشن");
+});
+
+
+test("Figma 59:5 homepage restores original imagery, section order and transparency content", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  const sectionClasses = await page.locator("main.dena-home > section").evaluateAll(
+    (nodes) => nodes.map((node) => node.className),
+  );
+  expect(sectionClasses).toHaveLength(9);
+  for (const section of [
+    "dena-hero", "dena-how", "dena-courses", "dena-growth", "dena-network",
+    "dena-roles", "dena-support", "dena-cta", "dena-institute-section",
+  ]) {
+    expect(sectionClasses.some((value) => typeof value === "string" && value.includes(section))).toBe(true);
+  }
+  for (const file of ["math-tenth.jpg", "physics-tenth.jpg", "chemistry-tenth.jpg"]) {
+    const photo = page.locator('.home-course-card .home-course-card__photo[src*="' + file + '"]');
+    await expect(photo).toBeVisible();
+    expect(await photo.evaluate((img) => (img as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+  }
+  const art = page.locator('.dena-network img.network-art[src="/figma/dena-home/elite-network.svg"]');
+  await expect(art).toBeVisible();
+  expect(await art.evaluate((img) => (img as HTMLImageElement).naturalWidth)).toBe(580);
+  await expect(page.locator(".dena-roles .role-card__icon-image")).toHaveCount(4);
+  await expect(page.locator(".dena-ecosystem-hub")).toContainText("بستر اتصال و هماهنگی");
+  await expect(page.getByRole("heading", { name: "شفافیت از انتخاب دوره تا مسیر رشد" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "شرایط پرداخت از قبل مشخص است" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "به اکوسیستم آموزشی دنا بپیوندید" })).toBeVisible();
+  await expect(page.locator(".dena-courses")).toContainText("نمونهٔ نمایشی‌اند");
+});
+
+test("Figma 59:5 desktop section geometry remains close to design after custom download removal", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  const geometry: Array<[string, number]> = [
+    ["header.dena-header", 80],
+    [".dena-hero", 522],
+    [".dena-how", 476],
+    [".dena-courses", 802],
+    [".dena-growth", 819],
+    [".dena-network", 624],
+    [".dena-roles", 855],
+    [".dena-support", 478],
+    [".dena-cta", 384],
+    [".dena-institute-section", 440],
+    ["footer.dena-footer", 378],
+  ];
+  for (const [selector, target] of geometry) {
+    const rect = await page.locator("main.dena-home > " + selector).boundingBox();
+    expect(rect, selector).not.toBeNull();
+    const height = rect!.height;
+    console.log("Figma 59:5", selector, "actual height", height, "target", target);
+    expect(Math.abs(height - target), selector + " height differs from Figma").toBeLessThanOrEqual(48);
+  }
+});
+
+test("Figma home artwork and hub do not overflow small screens", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/");
+  await expect(page.locator(".dena-ecosystem-hub")).toBeVisible();
+  await expect(page.locator(".dena-institute-benefits")).toBeVisible();
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(overflow).toBeLessThanOrEqual(2);
 });
