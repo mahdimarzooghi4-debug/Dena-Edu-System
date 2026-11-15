@@ -32,12 +32,15 @@ test("single download button is visible and tappable on a narrow Android phone",
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
-test("Android icon remains the last header action on other public pages", async ({ page }) => {
-  for (const path of ["/", "/courses", "/about"]) {
+test("Android icon remains the last header action on non-catalog public pages", async ({ page }) => {
+  for (const path of ["/", "/about"]) {
     await page.goto(path);
     const actions = page.locator(".dena-header__actions");
     await expect(actions.locator("a").last()).toHaveAttribute("href", "/download/android");
   }
+  await page.goto("/courses");
+  await expect(page.getByTestId("dena-header-signup")).toBeVisible();
+  await expect(page.locator(".dena-header__app-icon")).toHaveCount(0);
 });
 
 test("download endpoint serves the exact bundled preview APK",async({request})=>{

@@ -38,20 +38,22 @@ export function DenaAndroidHeaderLink() {
   );
 }
 
-export function DenaSiteHeader() {
+export function DenaSiteHeader({ showAndroidDownload = true }: { showAndroidDownload?: boolean }) {
   return (
     <header className="dena-header">
-      <div className="dena-header__actions">
+      <div className={showAndroidDownload ? "dena-header__actions" : "dena-header__actions dena-header__actions--catalog"}>
         <Link className="dena-button dena-button--outline" href="/login">ورود</Link>
-        <Link className="dena-button dena-button--primary" href="/signup">ثبت‌نام</Link>
-        <DenaAndroidHeaderLink />
+        <Link className="dena-button dena-button--primary dena-header__signup" href="/signup" data-testid="dena-header-signup" aria-label="ثبت‌نام در دنا">ثبت‌نام</Link>
+        {showAndroidDownload ? <DenaAndroidHeaderLink /> : null}
       </div>
       <div className="dena-header__right">
         <nav className="dena-nav" aria-label="ناوبری اصلی">
           {siteLinks.map(([label, href]) => <Link className={href === "/" ? "is-active" : undefined} href={href} key={href}>{label}</Link>)}
         </nav>
-        <Link className="dena-brand" href="/" aria-label="دنا، صفحهٔ اصلی">
-          <Image src="/dena-app-logo.png" alt="دنا" width={83} height={48} />
+        <Link className={showAndroidDownload ? "dena-brand" : "dena-brand dena-brand--catalog"} href="/" aria-label="دنا، صفحهٔ اصلی">
+          {showAndroidDownload
+            ? <Image src="/dena-app-logo.png" alt="دنا" width={83} height={48} />
+            : <Image src="/figma/dena-catalog/header-logo.svg" alt="دنا" width={87} height={48} />}
         </Link>
       </div>
     </header>
@@ -62,18 +64,38 @@ export function DenaSiteFooter() {
   return (
     <footer className="dena-footer">
       <div className="dena-footer__main">
-        <div className="dena-footer__brand"><Link className="dena-brand dena-brand--footer" href="/" aria-label="صفحهٔ اصلی دنا"><Image src="/dena-app-logo.png" alt="دنا" width={119} height={72} /></Link><p>دنا، بستر آموزش، یادگیری و رشد دانش‌آموزان نوآفرین ایران.</p></div>
-        <div><h3>دنا</h3><Link href="/courses">دوره‌ها</Link><Link href="/growth">مسیر رشد</Link><Link href="/elite-club">باشگاه نخبگان</Link><Link href="/assessments">آزمون‌ها</Link><Link href="/about">درباره دنا</Link></div>
-        <div><h3>همکاری با دنا</h3><Link href="/institutes/request">ثبت‌نام مؤسسات</Link><Link href="/institutes/collaboration">سازمان‌ها و حامیان</Link></div>
-        <div><h3>راهنما</h3><Link href="/student/privacy">قوانین و حریم خصوصی</Link><Link href="/support">پشتیبانی فنی</Link></div>
+        <div className="dena-footer__brand">
+          <Link className="dena-brand dena-brand--footer" href="/" aria-label="صفحهٔ اصلی دنا">
+            <Image src="/figma/dena-catalog/footer-logo.svg" alt="دنا" width={123} height={72} />
+          </Link>
+          <p>اکوسیستم آموزشی دنا</p>
+        </div>
+        <div className="dena-footer__column dena-footer__column--dena">
+          <h3>دنا</h3><Link href="/courses">دوره‌ها</Link><Link href="/growth">مسیر رشد</Link><Link href="/elite-club">باشگاه نخبگان</Link><Link href="/assessments">آزمون‌ها</Link><Link href="/about">درباره دنا</Link>
+        </div>
+        <div className="dena-footer__column dena-footer__column--collaboration">
+          <h3>همکاری با دنا</h3><Link className="dena-footer__accent-link" href="/institutes/request">ثبت‌نام مؤسسات</Link><Link href="/institutes/collaboration">سازمان‌ها و حامیان</Link>
+        </div>
+        <div className="dena-footer__column dena-footer__column--guide">
+          <h3>راهنما</h3><Link href="/student/privacy">قوانین و حریم خصوصی</Link><Link href="/support">پشتیبانی فنی</Link>
+        </div>
         <div className="dena-footer__contact">
           <h3>تماس با دنا</h3>
-          <a href="tel:+982166485374"><Image src="/figma/dena-catalog/footer-phone.svg" alt="" width={16} height={16} /><span>تلفن:</span><span>۰۲۱-۶۶۴۸۵۳۷۴</span></a>
-          <a href="mailto:info@denaedu.ir"><Image src="/figma/dena-catalog/footer-mail.svg" alt="" width={16} height={16} /><span>ایمیل:</span><span>info@denaedu.ir</span></a>
-          <p><Image src="/figma/dena-catalog/footer-map-pin.svg" alt="" width={16} height={16} /><span>آدرس:</span><span>خیابان انقلاب، خیابان رازی، کوچه شهبازیان، پلاک ۲۲</span></p>
+          <a className="dena-footer__contact-row dena-footer__contact-row--phone" href="tel:+982166485374">
+            <Image src="/figma/dena-catalog/footer-phone.svg" alt="" width={16} height={16} />
+            <span className="dena-footer__contact-label">تلفن</span><span className="dena-footer__contact-value">۰۲۱-۶۶۴۸۵۳۷۴</span>
+          </a>
+          <a className="dena-footer__contact-row dena-footer__contact-row--email" href="mailto:info@denaes.ir">
+            <Image src="/figma/dena-catalog/footer-mail.svg" alt="" width={16} height={16} />
+            <span className="dena-footer__contact-label">ایمیل</span><span className="dena-footer__contact-value">info@denaes.ir</span>
+          </a>
+          <p className="dena-footer__contact-row dena-footer__contact-row--address">
+            <Image src="/figma/dena-catalog/footer-map-pin.svg" alt="" width={16} height={16} />
+            <span className="dena-footer__contact-label">آدرس</span><span className="dena-footer__contact-value">خیابان انقلاب، خیابان رازی، کوچه شهبازیان، پلاک ۲۲</span>
+          </p>
         </div>
       </div>
-      <div className="dena-footer__legal">حقوق پلتفرم و هویت دنا محفوظ است. حقوق محتوای آموزشی هر دوره متعلق به مؤسسه یا ارائه‌دهندهٔ آن است.</div>
+      <div className="dena-footer__legal">حقوق پلتفرم و هویت دنا محفوظ است. حقوق محتوای آموزشی هر دوره متعلق به مؤسسه یا ارائه‌دهنده آن است.</div>
     </footer>
   );
 }
@@ -87,6 +109,6 @@ export function DenaRoleIcon({ kind }: { kind: string }) {
   return <svg {...common}><path d="M20.8 8.8c0 5.1-8.8 10.2-8.8 10.2S3.2 13.9 3.2 8.8A4.8 4.8 0 0 1 12 6.1a4.8 4.8 0 0 1 8.8 2.7Z"/><path d="M8.5 12h7"/></svg>;
 }
 
-export function DenaPublicLayout({ children }: { children: React.ReactNode }) {
-  return <><DenaSiteHeader /><main id="main-content" className="dena-subpage">{children}</main><DenaSiteFooter /></>;
+export function DenaPublicLayout({ children, showAndroidDownload = true }: { children: React.ReactNode; showAndroidDownload?: boolean }) {
+  return <><DenaSiteHeader showAndroidDownload={showAndroidDownload} /><main id="main-content" className="dena-subpage">{children}</main><DenaSiteFooter /></>;
 }
