@@ -14,7 +14,7 @@ export type DenaCatalogFilters = {
 /** GET-only filters for sample course cards; no server-side commerce actions. */
 export function DenaCatalogFilterBar({ filters }: { filters: DenaCatalogFilters }) {
   return (
-    <form className="dena-catalog-filters" method="get" action="/courses"
+    <form key={JSON.stringify(filters)} className="dena-catalog-filters" method="get" action="/courses"
       role="search" aria-label="جست‌وجو و پالایش دوره‌های نمایشی"
       onChange={(event) => {
         if (event.target instanceof HTMLSelectElement) event.currentTarget.requestSubmit();
