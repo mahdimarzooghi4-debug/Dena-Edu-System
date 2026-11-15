@@ -111,3 +111,19 @@ test("Figma home artwork and hub do not overflow small screens", async ({ page }
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(2);
 });
+
+test("footer logo is anchored to the right edge of its brand column on desktop and mobile", async ({ page }) => {
+  for (const viewport of [{ width: 1440, height: 900 }, { width: 375, height: 812 }]) {
+    await page.setViewportSize(viewport);
+    await page.goto("/");
+    const brand = page.locator("footer.dena-footer .dena-footer__brand");
+    const logo = brand.locator("a.dena-brand--footer");
+    await expect(logo).toBeVisible();
+    const brandBox = await brand.boundingBox();
+    const logoBox = await logo.boundingBox();
+    expect(brandBox).not.toBeNull();
+    expect(logoBox).not.toBeNull();
+    expect(Math.abs(logoBox!.x + logoBox!.width - brandBox!.x - brandBox!.width)).toBeLessThanOrEqual(2);
+    await expect(brand.locator("p")).toHaveCSS("text-align", "right");
+  }
+});
