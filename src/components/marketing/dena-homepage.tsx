@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import "./dena-homepage.css";
-import { DenaAndroidHeaderLink } from "./dena-site-shell";
+import { DenaSiteHeader, DenaSiteFooter } from "./dena-site-shell";
 
 const steps = [
   ["۱", "انتخاب دوره از مؤسسه", "مرور دوره‌های ساختارمند مؤسسات آموزشی دارای مجوز و ارائه‌دهندگان تحت نظارت"],
@@ -23,35 +23,10 @@ const roles = [
   { title: "سازمان‌ها و حامیان", description: "تسهیل دسترسی به فرصت‌های برابر رشد برای همه فرزندان ایران", kind: "organization", icon: "/figma/dena-home/role-organization.svg" },
 ] as const;
 
-function Brand({ footer = false }: { footer?: boolean }) {
-  return (
-    <Link className={`dena-brand${footer ? " dena-brand--footer" : ""}`} href="/" aria-label="دنا، صفحهٔ اصلی">
-      <Image src="/dena-app-logo.png" alt="دنا" width={footer ? 119 : 83} height={footer ? 72 : 48} priority={!footer} />
-    </Link>
-  );
-}
-
 export function DenaHomepage() {
   return (
     <main id="main-content" className="dena-home">
-      <header className="dena-header">
-        <div className="dena-header__actions">
-          <Link className="dena-button dena-button--outline" href="/login">ورود</Link>
-          <Link className="dena-button dena-button--primary" href="/signup">ثبت‌نام</Link>
-          <DenaAndroidHeaderLink />
-        </div>
-        <div className="dena-header__right">
-          <nav className="dena-nav" aria-label="ناوبری اصلی">
-            <Link href="/about">درباره دنا</Link>
-            <Link href="/elite-club">باشگاه نخبگان</Link>
-            <Link href="/assessments">آزمون‌ها</Link>
-            <Link href="/growth">مسیر رشد</Link>
-            <Link href="/courses">دوره‌ها</Link>
-            <Link className="is-active" href="/">خانه</Link>
-          </nav>
-          <Brand />
-        </div>
-      </header>
+      <DenaSiteHeader />
 
       <section className="dena-hero" aria-labelledby="hero-title">
         <div className="dena-hero__inner">
@@ -254,21 +229,7 @@ export function DenaHomepage() {
         </div>
       </section>
 
-      <footer className="dena-footer">
-        <div className="dena-footer__main">
-          <div className="dena-footer__brand"><Brand footer /><p>دنا، بستر آموزش، یادگیری و رشد دانش‌آموزان نوآفرین ایران.</p></div>
-          <div><h3>دنا</h3><Link href="/courses">دوره‌ها</Link><Link href="/growth">مسیر رشد</Link><Link href="/elite-club">باشگاه نخبگان</Link><Link href="/assessments">آزمون‌ها</Link><Link href="/about">درباره دنا</Link></div>
-          <div><h3>همکاری با دنا</h3><Link href="/institutes/request">ثبت‌نام مؤسسات</Link><Link href="/institutes/collaboration">سازمان‌ها و حامیان</Link></div>
-          <div><h3>راهنما</h3><Link href="/support">پشتیبانی فنی</Link><Link href="/student/privacy">قوانین و حریم خصوصی</Link></div>
-          <div className="dena-footer__contact">
-            <h3>تماس با دنا</h3>
-            <a href="tel:+982166485374"><Image src="/figma/dena-home/footer-phone.svg" alt="" width={16} height={16} /><span>تلفن:</span><span>۰۲۱-۶۶۴۸۵۳۷۴</span></a>
-            <a href="mailto:info@denaedu.ir"><Image src="/figma/dena-home/footer-mail.svg" alt="" width={16} height={16} /><span>ایمیل:</span><span>info@denaedu.ir</span></a>
-            <p><Image src="/figma/dena-home/footer-map-pin.svg" alt="" width={16} height={16} /><span>آدرس:</span><span>خیابان انقلاب، خیابان رازی، کوچه شهبازیان، پلاک ۲۲</span></p>
-          </div>
-        </div>
-        <div className="dena-footer__legal">حقوق پلتفرم و هویت دنا محفوظ است. حقوق محتوای آموزشی هر دوره متعلق به مؤسسه یا ارائه‌دهندهٔ آن است.</div>
-      </footer>
+      <DenaSiteFooter />
     </main>
   );
 }
