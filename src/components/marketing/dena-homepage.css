@@ -776,7 +776,7 @@
   height:378px;
   min-height:378px;
   box-sizing:border-box;
-  padding:64px max(32px,calc((100vw - 1280px)/2)) 32px;
+  padding:63px max(32px,calc((100vw - 1280px)/2)) 32px;
   background:#fff;
   border-top:1px solid #e5e1ed;
 }
