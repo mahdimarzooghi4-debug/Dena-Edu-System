@@ -19,35 +19,38 @@ test("Figma 134:37 catalog shows six RTL course cards and exact sample informati
   await expect(page.getByRole("heading", { name: "قبل از انتخاب دوره، اطلاعاتش را شفاف ببین" })).toBeVisible();
   await expect(page.locator(".dena-catalog-trust__grid article")).toHaveCount(3);
   await expect(page.getByTestId("dena-header-signup")).toBeVisible();
-  await expect(page.locator(".dena-header__app-icon")).toHaveCount(0);
-  await expect(page.locator(".dena-footer__brand")).toContainText("اکوسیستم آموزشی دنا");
+  await expect(page.locator("header.dena-header .dena-header__app-icon")).toBeVisible();
+  await expect(page.locator(".dena-footer__brand")).toContainText("دنا، بستر آموزش، یادگیری و رشد دانش‌آموزان نوآفرین ایران.");
 });
 
 
-test("Figma 134:37 header shows the exact login and visible 160px signup action", async ({ page }) => {
+test("catalog header contains visible login, signup and download button, like the homepage", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  const homeHeader = await page.locator("header.dena-header").boundingBox();
+  const homeActions = await page.locator("header.dena-header .dena-header__actions").boundingBox();
+  expect(homeHeader).not.toBeNull();
+  expect(homeActions).not.toBeNull();
   await page.goto("/courses");
   const header = page.locator("header.dena-header");
-  const actions = header.locator(".dena-header__actions--catalog");
+  const actions = header.locator(".dena-header__actions");
   const login = actions.locator('a[href="/login"]');
   const signup = page.getByTestId("dena-header-signup");
+  const download = actions.locator('a.dena-header__app-icon');
   await expect(login).toBeVisible();
-  await expect(login).toHaveText("ورود");
   await expect(signup).toBeVisible();
-  await expect(signup).toHaveText("ثبت‌نام");
   await expect(signup).toHaveAttribute("href", "/signup");
-  await expect(actions.locator(".dena-header__app-icon")).toHaveCount(0);
-  const [actionsBox, loginBox, signupBox] = await Promise.all([
-    actions.boundingBox(), login.boundingBox(), signup.boundingBox(),
-  ]);
+  await expect(download).toBeVisible();
+  await expect(download).toContainText("دانلود اپلیکیشن");
+  await expect(download).toHaveAttribute("href", "/download/android");
+  await expect(actions.locator("a").last()).toHaveAttribute("href", "/download/android");
+  const headerBox = await header.boundingBox();
+  const actionsBox = await actions.boundingBox();
+  expect(headerBox).not.toBeNull();
   expect(actionsBox).not.toBeNull();
-  expect(loginBox).not.toBeNull();
-  expect(signupBox).not.toBeNull();
-  expect(actionsBox!.width).toBe(247);
-  expect(Math.abs(actionsBox!.x - 80)).toBeLessThanOrEqual(1);
-  expect(loginBox!.width).toBe(75);
-  expect(signupBox!.width).toBe(160);
-  expect(Math.abs(signupBox!.x - loginBox!.x - 87)).toBeLessThanOrEqual(1);
+  expect(headerBox!.height).toBe(homeHeader!.height);
+  expect(Math.abs(actionsBox!.x - homeActions!.x)).toBeLessThanOrEqual(1);
+  expect(Math.abs(actionsBox!.width - homeActions!.width)).toBeLessThanOrEqual(1);
 });
 
 test("catalog filtering and search affect demo cards without creating real orders", async ({ page }) => {
@@ -103,6 +106,7 @@ test("catalog fits mobile widths and leaves shared public footer right-aligned",
   await page.goto("/courses");
   await expect(page.locator(".dena-catalog-card")).toHaveCount(6);
   await expect(page.getByTestId("dena-header-signup")).toBeVisible();
+  await expect(page.locator("header.dena-header .dena-header__app-icon")).toBeVisible();
   await expect(page.getByRole("combobox", { name: "محدوده قیمت" })).toBeVisible();
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(2);
@@ -115,68 +119,38 @@ test("catalog fits mobile widths and leaves shared public footer right-aligned",
 });
 
 
-test("Figma 134:37 footer uses the design's 119×72 brand, true contact icons and exact desktop columns", async ({ page }) => {
+test("catalog footer is the exact shared homepage footer on desktop", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  const reference = page.locator("footer.dena-footer");
+  const referenceText = await reference.innerText();
+  const referenceBox = await reference.boundingBox();
+  const referenceGrid = await reference.locator(".dena-footer__main").evaluate((node) => getComputedStyle(node).gridTemplateColumns);
+  const referenceColumns = await reference.locator(".dena-footer__main > div").evaluateAll(
+    (nodes) => nodes.map((node) => Math.round(node.getBoundingClientRect().width)),
+  );
+  expect(referenceBox).not.toBeNull();
   await page.goto("/courses");
   const footer = page.locator("footer.dena-footer");
-  const brand = footer.locator(".dena-footer__brand");
-  const logo = brand.locator("a.dena-brand--footer");
-  const [footerBox, brandBox, logoBox] = await Promise.all([
-    footer.boundingBox(), brand.boundingBox(), logo.boundingBox(),
-  ]);
-  expect(footerBox).not.toBeNull();
-  expect(brandBox).not.toBeNull();
-  expect(logoBox).not.toBeNull();
-  expect(footerBox!.height).toBe(378);
-  expect(brandBox!.width).toBe(340);
-  expect(logoBox!.width).toBe(119);
-  expect(logoBox!.height).toBe(72);
-  expect(Math.abs((brandBox!.x + brandBox!.width) - (logoBox!.x + logoBox!.width))).toBeLessThanOrEqual(1);
-  const legal = await footer.locator(".dena-footer__legal").boundingBox();
-  expect(legal).not.toBeNull();
-  expect(Math.abs(legal!.y - footerBox!.y - 299)).toBeLessThanOrEqual(2);
-  await expect(brand).toContainText("اکوسیستم آموزشی دنا");
-  const main = footer.locator(".dena-footer__main");
-  const mainBox = await main.boundingBox();
-  expect(mainBox).not.toBeNull();
-  expect(mainBox!.width).toBe(1280);
-  expect(mainBox!.height).toBe(195);
-  const columns = [
-    [".dena-footer__brand", 1020, 340],
-    [".dena-footer__column--dena", 814, 150],
-    [".dena-footer__column--collaboration", 578, 180],
-    [".dena-footer__column--guide", 352, 170],
-    [".dena-footer__contact", 80, 216],
-  ] as const;
-  for (const [selector, x, width] of columns) {
-    const box = await footer.locator(selector).boundingBox();
-    expect(box, selector).not.toBeNull();
-    expect(Math.abs(box!.x - x), selector + " x").toBeLessThanOrEqual(1);
-    expect(Math.abs(box!.width - width), selector + " width").toBeLessThanOrEqual(1);
-  }
-  for (const [selector, width] of [
-    [".dena-footer__contact-row--phone", 170],
-    [".dena-footer__contact-row--email", 170],
-    [".dena-footer__contact-row--address", 208],
-  ] as const) {
-    const box = await footer.locator(selector).boundingBox();
-    expect(box, selector).not.toBeNull();
-    expect(box!.width).toBe(width);
-  }
-  await expect(footer.locator(".dena-footer__contact-row--phone")).toContainText("تلفن۰۲۱-۶۶۴۸۵۳۷۴");
-  await expect(footer.locator(".dena-footer__contact-row--email")).toContainText("ایمیلinfo@denaes.ir");
-  await expect(footer.locator(".dena-footer__contact-row--address")).toContainText("آدرسخیابان انقلاب، خیابان رازی، کوچه شهبازیان، پلاک ۲۲");
-  await expect(footer.locator(".dena-footer__legal")).toHaveText("حقوق پلتفرم و هویت دنا محفوظ است. حقوق محتوای آموزشی هر دوره متعلق به مؤسسه یا ارائه‌دهنده آن است.");
-  const footerLogo = brand.locator('img[src="/figma/dena-catalog/footer-logo.svg"]');
-  await expect(footerLogo).toBeAttached();
-  expect(await footerLogo.evaluate((node) => (node as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+  const box = await footer.boundingBox();
+  expect(box).not.toBeNull();
+  expect(box!.height).toBe(referenceBox!.height);
+  expect(await footer.innerText()).toBe(referenceText);
+  expect(await footer.locator(".dena-footer__main").evaluate((node) => getComputedStyle(node).gridTemplateColumns)).toBe(referenceGrid);
+  expect(await footer.locator(".dena-footer__main > div").evaluateAll(
+    (nodes) => nodes.map((node) => Math.round(node.getBoundingClientRect().width)),
+  )).toEqual(referenceColumns);
+  await expect(footer.locator(".dena-footer__brand")).toContainText("دنا، بستر آموزش، یادگیری و رشد دانش‌آموزان نوآفرین ایران.");
+  await expect(footer.locator('a[href="mailto:info@denaedu.ir"]')).toBeVisible();
+  await expect(footer.locator('a[href="tel:+982166485374"]')).toBeVisible();
+  const logo = footer.locator(".dena-brand--footer img");
+  await expect(logo).toHaveAttribute("src", "/dena-app-logo.png");
+  expect(await logo.evaluate((node) => (node as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
   const icons = footer.locator(".dena-footer__contact img");
   await expect(icons).toHaveCount(3);
   for (const icon of await icons.all()) {
     expect(await icon.evaluate((node) => (node as HTMLImageElement).naturalWidth)).toBe(16);
   }
-  await expect(footer.locator('a[href="tel:+982166485374"]')).toBeVisible();
-  await expect(footer.locator('a[href="mailto:info@denaes.ir"]')).toBeVisible();
 });
 
 test("Figma 134:37 trust cards preserve their distinct 151px and 130px heights", async ({ page }) => {
