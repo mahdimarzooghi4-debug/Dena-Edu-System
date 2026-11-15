@@ -714,6 +714,9 @@
 
 /* Figma 134:37 — exact catalog header and footer reconciliation.
    Desktop geometry is taken from the live 1440px source frame. */
+.dena-catalog-trust__grid article { height:130px; min-height:130px; }
+.dena-catalog-trust__grid article:first-child { height:151px; min-height:151px; }
+
 .dena-header__actions--catalog {
   width:247px;
   flex:0 0 247px;
