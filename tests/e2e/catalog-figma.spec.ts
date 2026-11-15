@@ -83,3 +83,46 @@ test("catalog fits mobile widths and leaves shared public footer right-aligned",
   expect(logoBox).not.toBeNull();
   expect(Math.abs(logoBox!.x + logoBox!.width - brandBox!.x - brandBox!.width)).toBeLessThanOrEqual(2);
 });
+
+
+test("Figma 134:37 footer uses the design's 119×72 brand, true contact icons and exact desktop columns", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/courses");
+  const footer = page.locator("footer.dena-footer");
+  const brand = footer.locator(".dena-footer__brand");
+  const logo = brand.locator("a.dena-brand--footer");
+  const [footerBox, brandBox, logoBox] = await Promise.all([
+    footer.boundingBox(), brand.boundingBox(), logo.boundingBox(),
+  ]);
+  expect(footerBox).not.toBeNull();
+  expect(brandBox).not.toBeNull();
+  expect(logoBox).not.toBeNull();
+  expect(footerBox!.height).toBe(378);
+  expect(brandBox!.width).toBe(340);
+  expect(logoBox!.width).toBe(119);
+  expect(logoBox!.height).toBe(72);
+  expect(Math.abs((brandBox!.x + brandBox!.width) - (logoBox!.x + logoBox!.width))).toBeLessThanOrEqual(1);
+  const legal = await footer.locator(".dena-footer__legal").boundingBox();
+  expect(legal).not.toBeNull();
+  expect(Math.abs(legal!.y - footerBox!.y - 299)).toBeLessThanOrEqual(2);
+  await expect(brand).toContainText("دنا، بستر آموزش، یادگیری و رشد دانش‌آموزان نوآفرین ایران.");
+  const icons = footer.locator(".dena-footer__contact img");
+  await expect(icons).toHaveCount(3);
+  for (const icon of await icons.all()) {
+    expect(await icon.evaluate((node) => (node as HTMLImageElement).naturalWidth)).toBe(16);
+  }
+  await expect(footer.locator('a[href="tel:+982166485374"]')).toBeVisible();
+  await expect(footer.locator('a[href="mailto:info@denaedu.ir"]')).toBeVisible();
+});
+
+test("Figma 134:37 trust cards preserve their distinct 151px and 130px heights", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/courses");
+  const cards = page.locator(".dena-catalog-trust__grid article");
+  await expect(cards).toHaveCount(3);
+  for (const [index, expected] of [151, 130, 130].entries()) {
+    const rect = await cards.nth(index).boundingBox();
+    expect(rect).not.toBeNull();
+    expect(rect!.height).toBe(expected);
+  }
+});
