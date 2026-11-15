@@ -336,3 +336,215 @@
   .dena-header__app-label { font-size:11px; }
   .dena-header__actions { gap:7px; }
 }
+
+/* Figma 59:5 home visual reconciliation. Only the public homepage is affected.
+   1440px desktop reference: Header 80 / Hero 522 / How 476 / Courses 802 /
+   Growth 819 / Elite 624 / Ecosystem 855 / Trust 478 / CTA 384 /
+   Institute 440 / Footer 378. Downloads remain exclusively in the header. */
+.dena-home .dena-hero { min-height:522px; box-sizing:border-box; display:flex; align-items:center; }
+.dena-home .dena-hero__inner { width:100%; min-height:378px; }
+.dena-home .dena-hero__copy { align-self:center; }
+.dena-home .dena-hero__copy h1 { font-size:48px; line-height:1.2; margin:24px 0; letter-spacing:0; }
+.dena-home .dena-hero__copy p { max-width:712px; }
+.dena-home .dena-hero__actions { margin-top:24px; }
+.dena-home .dena-button--purple-outline { color:#5b4ce2; background:#fff; border:1px solid #5b4ce2; }
+.dena-home .dena-hero .dena-button { min-width:143px; }
+.dena-home .dena-hero .dena-button--primary { min-width:160px; }
+.dena-home .growth-preview { width:520px; height:378px; box-sizing:border-box; }
+.dena-home .growth-preview__heading { min-height:25px; }
+.dena-home .growth-preview__heading strong { color:#2b2544; font-size:16px; }
+.dena-home .growth-preview__heading > span { font-size:14px; }
+.dena-home .growth-preview__heading small { font-size:10px; opacity:.75; margin-right:5px; }
+.dena-home .growth-chart { margin:19px 0; padding:0; }
+.dena-home .growth-preview__cards { gap:24px; }
+.dena-home .mini-course { box-sizing:border-box; min-height:0; height:155px; padding:20px; align-items:flex-end; gap:12px; }
+.dena-home .mini-course--next { height:165px; }
+.dena-home .mini-course strong { font-size:16px; }
+.dena-home .mini-course small { font-size:11px; }
+
+.dena-home .dena-how { min-height:476px; box-sizing:border-box; background:#f7f6fb; }
+.dena-home .dena-how .dena-section__heading { margin-bottom:48px; }
+.dena-home .learning-steps { min-height:191px; box-sizing:border-box; gap:24px; }
+.dena-home .learning-step { gap:24px; }
+.dena-home .learning-step h3 { font-size:20px; }
+.dena-home .learning-step p { font-size:14px; }
+
+.dena-home .dena-courses { min-height:802px; box-sizing:border-box; position:relative; }
+.dena-home .dena-courses .dena-section__heading { margin-bottom:32px; }
+.dena-home .dena-courses .dena-section__heading p { line-height:25px; }
+.dena-home .home-course-card { height:533px; box-sizing:border-box; }
+.dena-home .home-course-card .course-card__image { height:180px; background:#fff; }
+.dena-home .home-course-card .course-card__image::before,
+.dena-home .home-course-card .course-card__image::after { display:none; }
+.dena-home .home-course-card__photo { object-fit:cover; object-position:center; }
+.dena-home .home-course-card .course-card__body { height:353px; min-height:0; }
+.dena-home .home-course-card .course-card__badges { min-height:25px; }
+.dena-home .home-course-card .course-card__badges .badge-supervised { font-size:10px; }
+.dena-home .home-course-card .course-card__price { margin-top:16px; }
+.dena-home .home-course-card .dena-button { width:160px; min-width:160px; align-self:flex-start; }
+.dena-home .home-course-disclaimer { position:absolute; bottom:14px; inset-inline:80px; color:#756f83; font-size:11px; text-align:right; margin:0; }
+
+.dena-home .dena-growth { min-height:819px; box-sizing:border-box; gap:48px; }
+.dena-home .growth-intro { gap:24px; }
+.dena-home .growth-intro > .eyebrow { height:25px; box-sizing:border-box; align-items:center; padding:4px 10px; }
+.dena-home .growth-intro h2 { font-size:48px; line-height:70px; }
+.dena-home .growth-intro > p { line-height:26px; }
+.dena-home .growth-summary { gap:12px; }
+.dena-home .growth-summary p { line-height:22px; }
+.dena-home .growth-visualization { height:378px; align-items:center; }
+.dena-home .growth-report { box-sizing:border-box; }
+.dena-home .growth-visualization .growth-report { height:366px; padding:24px; }
+.dena-home .growth-chart-area__plot { height:180px; }
+.dena-home .growth-insights { height:378px; gap:24px; }
+.dena-home .growth-trend-cards { gap:12px; }
+.dena-home .growth-trend-card { min-height:57px; box-sizing:border-box; }
+.dena-home .growth-milestone { min-height:52px; box-sizing:border-box; }
+.dena-home .growth-action-card { min-height:83px; box-sizing:border-box; }
+
+.dena-home .dena-network { min-height:624px; box-sizing:border-box; grid-template-columns:580px minmax(0,1fr); gap:48px; }
+.dena-home .dena-network .network-art { position:static; display:block; width:580px; height:480px; max-width:100%; object-fit:contain; margin:0; background:none; }
+.dena-home .network-copy { max-width:652px; justify-self:stretch; }
+.dena-home .network-copy h2 { color:#352b68; font-size:48px; line-height:1.4; margin:24px 0; }
+.dena-home .network-copy p { color:#756f83; font-size:16px; line-height:1.9; margin:0; }
+.dena-home .network-copy .dena-button { margin-top:24px; }
+
+.dena-home .dena-roles { min-height:855px; box-sizing:border-box; padding-top:72px; padding-bottom:72px; }
+.dena-home .dena-roles .dena-section__heading { max-width:800px; margin-bottom:48px; }
+.dena-home .dena-roles .dena-section__heading h2 { color:#352b68; font-size:32px; line-height:56px; }
+.dena-home .dena-roles .dena-section__heading p { font-size:15px; line-height:25px; margin-top:12px; }
+.dena-home .dena-roles .role-grid { max-width:1136px; width:100%; grid-template-columns:repeat(4,minmax(0,248px)); gap:48px; direction:rtl; }
+.dena-home .dena-roles .role-card,
+.dena-home .dena-roles .role-card:last-child { height:192px; min-height:192px; max-width:none; width:auto; grid-column:auto; box-sizing:border-box; border-radius:16px; padding:24px; box-shadow:none; }
+.dena-home .dena-roles .role-card--student { border-color:#ac99e8; background:#f7f6fb; }
+.dena-home .dena-roles .role-card--institute { border-color:#99b6ff; background:#f6f8ff; }
+.dena-home .dena-roles .role-card--provider { border-color:#ffbe77; background:#fff9f3; }
+.dena-home .dena-roles .role-card--organization { border-color:#b8a8ed; background:#f8f7fb; }
+.dena-home .dena-roles .role-card__icon-image { display:block; width:48px; height:48px; margin:0 auto 12px; object-fit:contain; }
+.dena-home .dena-roles .role-card h3 { font-size:16px; line-height:28px; margin:0 0 8px; }
+.dena-home .dena-roles .role-card p { font-size:12px; line-height:22px; margin:0; }
+.dena-home .dena-roles__note { color:#9c96ac; font-size:12px; line-height:19px; text-align:center; margin:48px auto; }
+.dena-home .dena-ecosystem-hub { box-sizing:border-box; width:320px; height:213px; margin:0 auto; padding:32px; border:2px solid #8e75ff; border-radius:24px; background:#f7f6fb; display:flex; flex-direction:column; align-items:center; box-shadow:0 12px 24px #5b4ce21a; }
+.dena-home .dena-ecosystem-hub__icon { width:64px; height:64px; display:grid; place-items:center; background:#eee9ff; border-radius:50%; }
+.dena-home .dena-ecosystem-hub__icon img { width:48px; height:48px; }
+.dena-home .dena-ecosystem-hub strong { font-size:18px; margin-top:16px; color:#5b4ce2; }
+.dena-home .dena-ecosystem-hub > span { font-size:13px; color:#756f83; margin-top:12px; }
+
+.dena-home .dena-support { min-height:478px; box-sizing:border-box; background:#f7f6fb; }
+.dena-home .dena-support .dena-section__heading { max-width:1280px; margin-bottom:48px; text-align:right; }
+.dena-home .dena-support .dena-section__heading h2 { font-size:30px; line-height:49px; }
+.dena-home .dena-support .dena-section__heading p { font-size:15px; line-height:25px; margin-top:12px; }
+.dena-home .support-grid { max-width:1280px; grid-template-columns:repeat(4,minmax(0,1fr)); gap:24px; direction:rtl; }
+.dena-home .support-grid article { height:200px; box-sizing:border-box; padding:24px; border:0; border-radius:16px; background:#fff; }
+.dena-home .support-grid h3 { font-size:17px; line-height:28px; margin:0 0 12px; }
+.dena-home .support-grid p { font-size:13px; line-height:21px; }
+
+.dena-home .dena-cta { min-height:384px; box-sizing:border-box; padding:96px 24px; }
+.dena-home .dena-cta h2 { font-size:48px; line-height:70px; }
+.dena-home .dena-cta p { font-size:16px; line-height:26px; margin:16px 0 32px; }
+.dena-home .dena-cta > div { gap:16px; direction:ltr; }
+.dena-home .dena-cta .dena-button { min-width:143px; }
+.dena-home .dena-cta .dena-button--primary { min-width:160px; }
+
+.dena-home .dena-institute-section { min-height:440px; box-sizing:border-box; padding:72px max(32px,calc((100vw - 1280px)/2)); background:#f7f6fb; }
+.dena-home .dena-institute-cta { box-sizing:border-box; width:100%; max-width:1280px; height:296px; margin:0 auto; padding:32px; display:grid; grid-template-columns:520px minmax(0,1fr); gap:30px; direction:ltr; border-radius:24px; }
+.dena-home .dena-institute-benefits { box-sizing:border-box; align-self:center; width:520px; height:216px; border-radius:16px; background:#ebe7ff; padding:25px; direction:rtl; }
+.dena-home .dena-institute-benefits h3 { color:#5b4ce2; margin:0 0 18px; font-size:17px; }
+.dena-home .dena-institute-benefits p { margin:0 0 12px; display:flex; flex-direction:row; align-items:center; gap:12px; color:#352b68; font-size:13px; line-height:26px; }
+.dena-home .dena-institute-benefits p::before { content:""; flex:none; width:8px; height:8px; border-radius:50%; background:#42cfa7; }
+.dena-home .dena-institute-benefits p:nth-of-type(2)::before { background:#5b4ce2; }
+.dena-home .dena-institute-cta__copy { direction:rtl; text-align:right; min-width:0; align-self:center; }
+.dena-home .dena-institute-cta__copy .eyebrow { min-height:30px; align-items:center; }
+.dena-home .dena-institute-cta h2 { font-size:30px; line-height:44px; margin:16px 0; color:#352b68; }
+.dena-home .dena-institute-cta__copy > p { margin:0 0 16px; font-size:14px; line-height:30px; }
+.dena-home .dena-institute-cta__actions { direction:ltr; justify-content:flex-end; gap:12px; }
+.dena-home .dena-institute-cta__actions .dena-button { min-width:160px; }
+
+.dena-home .dena-footer { min-height:378px; box-sizing:border-box; padding-top:64px; padding-bottom:32px; }
+.dena-home .dena-footer__main { height:195px; grid-template-columns:340px 150px 180px 170px 216px; gap:56px; }
+.dena-home .dena-footer__main > div { gap:12px; }
+.dena-home .dena-footer h3 { height:25px; line-height:25px; font-size:16px; margin:0; }
+.dena-home .dena-brand--footer { width:119px; height:72px; }
+.dena-home .dena-brand--footer img { width:119px; height:72px; }
+.dena-home .dena-footer a,.dena-home .dena-footer span { font-size:13px; }
+.dena-home .dena-footer__brand p { max-width:340px; font-size:13px; line-height:22px; font-weight:400; text-align:right; }
+.dena-home .dena-footer__legal { font-size:13px; line-height:22px; min-height:47px; box-sizing:border-box; margin-top:40px; padding-top:24px; }
+.dena-home .dena-footer__contact > a,.dena-home .dena-footer__contact > p { width:100%; box-sizing:border-box; display:flex; flex-direction:row; align-items:flex-start; gap:8px; direction:rtl; text-align:right; color:#756f83; text-decoration:none; margin:0; font-size:13px; line-height:22px; }
+.dena-home .dena-footer__contact > a { height:22px; }
+.dena-home .dena-footer__contact > p { height:66px; }
+.dena-home .dena-footer__contact img { flex:none; width:16px; height:16px; margin-top:3px; }
+.dena-home .dena-footer__contact > a span:nth-child(3),.dena-home .dena-footer__contact > p span:nth-child(3) { flex:1; overflow-wrap:anywhere; }
+.dena-home .dena-footer__contact > a:hover { color:#5b4ce2; }
+
+@media (max-width:1100px) {
+  .dena-home .dena-hero,.dena-home .dena-how,.dena-home .dena-courses,
+  .dena-home .dena-growth,.dena-home .dena-network,.dena-home .dena-roles,
+  .dena-home .dena-support,.dena-home .dena-cta,.dena-home .dena-institute-section,
+  .dena-home .dena-footer { min-height:0; height:auto; }
+  .dena-home .dena-hero__inner { min-height:0; }
+  .dena-home .growth-preview { width:100%; height:auto; min-height:0; }
+  .dena-home .dena-footer__main { height:auto; grid-template-columns:repeat(5,minmax(0,1fr)); gap:14px; }
+  .dena-home .learning-steps { min-height:0; }
+  .dena-home .dena-network { grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+  .dena-home .dena-network .network-art { width:100%; height:auto; }
+  .dena-home .dena-roles .role-grid { grid-template-columns:repeat(2,minmax(0,248px)); justify-content:center; gap:24px; }
+  .dena-home .dena-institute-cta { height:auto; grid-template-columns:minmax(0,1fr) minmax(0,1.25fr); }
+  .dena-home .dena-institute-benefits { width:100%; height:auto; }
+  .dena-home .home-course-disclaimer { position:static; margin:16px auto 0; max-width:1280px; }
+}
+@media (max-width:760px) {
+  .dena-home .dena-hero { display:block; }
+  .dena-home .dena-hero__inner { grid-template-columns:1fr; }
+  .dena-home .dena-hero__copy h1 { font-size:30px; margin:15px 0 10px; }
+  .dena-home .dena-hero__copy p { font-size:13px; }
+  .dena-home .dena-hero__actions { gap:10px; }
+  .dena-home .growth-preview__cards { grid-template-columns:1fr; }
+  .dena-home .mini-course { min-height:130px; height:auto; }
+  .dena-home .mini-course--next { height:auto; }
+  .dena-home .dena-how .dena-section__heading,
+  .dena-home .dena-courses .dena-section__heading { margin-bottom:28px; height:auto; }
+  .dena-home .learning-steps { height:auto; grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .dena-home .home-course-card { height:auto; }
+  .dena-home .home-course-card .course-card__body { height:auto; min-height:353px; }
+  .dena-home .dena-growth { gap:30px; }
+  .dena-home .growth-intro { gap:16px; }
+  .dena-home .growth-intro h2 { font-size:30px; line-height:1.45; }
+  .dena-home .growth-intro > p { line-height:1.9; }
+  .dena-home .growth-visualization,.dena-home .growth-insights { height:auto; }
+  .dena-home .growth-visualization { grid-template-columns:1fr; }
+  .dena-home .growth-visualization .growth-report { height:auto; }
+  .dena-home .dena-network { grid-template-columns:1fr; gap:30px; }
+  .dena-home .dena-network .network-art { width:100%; max-width:580px; order:1; }
+  .dena-home .network-copy { order:0; }
+  .dena-home .network-copy h2 { font-size:30px; }
+  .dena-home .dena-roles .dena-section__heading { height:auto; margin-bottom:28px; }
+  .dena-home .dena-roles .dena-section__heading h2 { font-size:24px; line-height:1.6; }
+  .dena-home .dena-roles .dena-section__heading p { font-size:13px; line-height:1.8; }
+  .dena-home .dena-roles .role-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+  .dena-home .dena-roles .role-card,.dena-home .dena-roles .role-card:last-child { height:auto; min-height:200px; padding:15px; }
+  .dena-home .dena-roles__note { margin:24px auto; }
+  .dena-home .dena-ecosystem-hub { width:min(100%,320px); }
+  .dena-home .dena-support .dena-section__heading { height:auto; margin-bottom:28px; }
+  .dena-home .dena-support .dena-section__heading h2 { font-size:24px; line-height:1.5; }
+  .dena-home .support-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+  .dena-home .support-grid article { height:auto; min-height:200px; padding:16px; }
+  .dena-home .dena-cta { padding:54px 18px; }
+  .dena-home .dena-cta h2 { font-size:26px; line-height:1.5; }
+  .dena-home .dena-cta p { font-size:13px; line-height:1.8; margin:12px 0 22px; }
+  .dena-home .dena-institute-section { padding:32px 18px; }
+  .dena-home .dena-institute-cta { margin:0; display:flex; flex-direction:column; padding:22px; }
+  .dena-home .dena-institute-benefits { order:2; }
+  .dena-home .dena-institute-cta__copy { order:1; width:100%; }
+  .dena-home .dena-institute-cta__actions { justify-content:flex-end; flex-wrap:wrap; }
+  .dena-home .dena-footer { padding-top:38px; }
+  .dena-home .dena-footer__main { height:auto; grid-template-columns:1fr 1fr; gap:28px 20px; }
+  .dena-home .dena-footer__brand { grid-column:1/-1; }
+  .dena-home .dena-footer__contact { min-width:0; }
+}
+@media (max-width:420px) {
+  .dena-home .learning-steps { grid-template-columns:1fr; }
+  .dena-home .support-grid { grid-template-columns:1fr; }
+  .dena-home .dena-roles .role-grid { grid-template-columns:1fr 1fr; }
+  .dena-home .dena-roles .role-card h3 { font-size:13px; }
+  .dena-home .dena-roles .role-card p { font-size:11px; }
+  .dena-home .dena-institute-cta__actions .dena-button { min-width:0; padding-inline:12px; }
+}
