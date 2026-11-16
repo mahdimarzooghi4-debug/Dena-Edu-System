@@ -1,0 +1,497 @@
+/* Dena Elite Club — Figma 145:94. Uses the shared public header/footer. */
+.dena-elite-club {
+  --elite-violet: #5b4ce2;
+  --elite-deep: #352b68;
+  --elite-ink: #2b2544;
+  --elite-muted: #756f83;
+  --elite-soft: #f7f6fb;
+  --elite-lavender: #eae7ff;
+  --elite-border: #e5e1ed;
+  width: 100%;
+  color: var(--elite-ink);
+  background: #fff;
+  overflow: clip;
+}
+.dena-elite-club *,
+.dena-elite-club *::before,
+.dena-elite-club *::after { box-sizing: border-box; }
+
+.dena-elite-club__hero {
+  height: 624px;
+  padding: 72px 0;
+  background: #fff;
+}
+.dena-elite-club__hero-inner {
+  width: min(1280px, calc(100% - 64px));
+  height: 480px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 580px 580px;
+  justify-content: space-between;
+  align-items: center;
+  direction: ltr;
+}
+.dena-elite-club__art {
+  width: 580px;
+  height: 480px;
+  flex: none;
+}
+.dena-elite-club__art img {
+  display: block;
+  width: 580px;
+  height: 480px;
+  max-width: 100%;
+  object-fit: contain;
+}
+.dena-elite-club__hero-copy {
+  width: 580px;
+  height: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 32px;
+  direction: rtl;
+  text-align: right;
+}
+.dena-elite-club__titles {
+  width: 100%;
+  height: 198px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 16px;
+}
+.dena-elite-club__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 131px;
+  height: 34px;
+  flex: none;
+  padding: 6px 16px;
+  border-radius: 999px;
+  background: #f2f0ff;
+  color: var(--elite-violet);
+  font-family: "Vazirmatn Variable", Tahoma, sans-serif;
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 22px;
+  white-space: nowrap;
+}
+.dena-elite-club__hero-copy h1 {
+  width: 100%;
+  height: 148px;
+  margin: 0;
+  color: var(--elite-deep);
+  font-family: "Estedad Variable", "Vazirmatn Variable", Tahoma, sans-serif;
+  font-size: 42px;
+  font-weight: 850;
+  line-height: 74px;
+  letter-spacing: 0;
+  text-align: right;
+}
+.dena-elite-club__hero-description {
+  width: 100%;
+  height: 50px;
+  margin: 0;
+  color: var(--elite-muted);
+  font-family: "Vazirmatn Variable", Tahoma, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 25px;
+  text-align: right;
+}
+.dena-elite-club__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  min-height: 48px;
+  border-radius: 12px;
+  padding: 0 24px;
+  font-family: "Vazirmatn Variable", Tahoma, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 23px;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+.dena-elite-club__button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px #352b6818;
+}
+.dena-elite-club__button--primary {
+  width: 160px;
+  color: #fff;
+  background: var(--elite-violet);
+  border: 1px solid var(--elite-violet);
+}
+.dena-elite-club__hero-copy > .dena-elite-club__button--primary {
+  width: 134px;
+  padding-inline: 20px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.dena-elite-club__pillars {
+  height: 331px;
+  padding: 60px 0;
+  background: var(--elite-soft);
+}
+.dena-elite-club__container {
+  width: min(1280px, calc(100% - 64px));
+  margin: 0 auto;
+}
+.dena-elite-club__pillars h2 {
+  height: 49px;
+  margin: 0 0 32px;
+  color: var(--elite-deep);
+  font-family: "Estedad Variable", "Vazirmatn Variable", Tahoma, sans-serif;
+  font-size: 28px;
+  font-weight: 850;
+  line-height: 49px;
+  text-align: center;
+}
+.dena-elite-club__pillar-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  direction: ltr;
+}
+.dena-elite-club__pillar {
+  min-width: 0;
+  height: 130px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+  border-radius: 16px;
+  background: #fff;
+  direction: rtl;
+  text-align: right;
+}
+.dena-elite-club__pillar-title {
+  min-height: 28px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dena-elite-club__pillar-title h3 {
+  margin: 0;
+  color: var(--elite-ink);
+  font-family: "Vazirmatn Variable", Tahoma, sans-serif;
+  font-size: 18px;
+  font-weight: 750;
+  line-height: 28px;
+}
+.dena-elite-club__marker {
+  display: block;
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+}
+.dena-elite-club__marker--violet { background: var(--elite-violet); }
+.dena-elite-club__marker--mint { background: #42cfa7; }
+.dena-elite-club__pillar > p {
+  width: 100%;
+  margin: 0;
+  color: var(--elite-muted);
+  font-family: "Vazirmatn Variable", Tahoma, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 21px;
+  text-align: right;
+}
+
+.dena-elite-club__ecosystem {
+  height: 459px;
+  padding: 72px 0;
+  background: var(--elite-soft);
+}
+.dena-elite-club__ecosystem-inner {
+  width: min(1280px, calc(100% - 64px));
+  height: 315px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 580px 580px;
+  justify-content: space-between;
+  align-items: center;
+  direction: ltr;
+}
+.dena-elite-club__roles-card {
+  width: 580px;
+  height: 315px;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 18px;
+  border: 1px solid var(--elite-border);
+  border-radius: 24px;
+  background: #fff;
+  direction: rtl;
+  text-align: right;
+}
+.dena-elite-club__roles-card > h2 {
+  width: 100%;
+  height: 39px;
+  margin: 0;
+  color: var(--elite-deep);
+  font-family: "Estedad Variable", "Vazirmatn Variable", Tahoma, sans-serif;
+  font-size: 22px;
+  font-weight: 850;
+  line-height: 39px;
+}
+.dena-elite-club__roles-list {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.dena-elite-club__role {
+  width: 100%;
+  height: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+}
+.dena-elite-club__role h3 {
+  width: 100%;
+  height: 25px;
+  margin: 0;
+  color: var(--elite-ink);
+  font-family: "Vazirmatn Variable", Tahoma, sans-serif;
+  font-size: 16px;
+  font-weight: 750;
+  line-height: 25px;
+}
+.dena-elite-club__role p {
+  width: 100%;
+  height: 22px;
+  margin: 0;
+  color: var(--elite-muted);
+  font-family: "Vazirmatn Variable", Tahoma, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 22px;
+}
+.dena-elite-club__positioning {
+  width: 580px;
+  height: 262px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 16px;
+  direction: rtl;
+  text-align: right;
+}
+.dena-elite-club__positioning-eyebrow {
+  width: 100%;
+  height: 22px;
+  margin: 0;
+  color: var(--elite-violet);
+  font-family: "Vazirmatn Variable", Tahoma, sans-serif;
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 22px;
+}
+.dena-elite-club__positioning h2 {
+  width: 100%;
+  height: 120px;
+  margin: 0;
+  color: var(--elite-ink);
+  font-family: "Estedad Variable", "Vazirmatn Variable", Tahoma, sans-serif;
+  font-size: 34px;
+  font-weight: 850;
+  line-height: 60px;
+}
+.dena-elite-club__positioning-description {
+  width: 100%;
+  height: 50px;
+  margin: 0;
+  color: var(--elite-muted);
+  font-family: "Vazirmatn Variable", Tahoma, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 25px;
+}
+.dena-elite-club__membership-note {
+  width: 100%;
+  height: 22px;
+  margin: 0;
+  color: var(--elite-muted);
+  font-family: "Vazirmatn Variable", Tahoma, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 22px;
+}
+
+.dena-elite-club__cta {
+  height: 377px;
+  padding: 96px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+  background: var(--elite-lavender);
+  text-align: center;
+}
+.dena-elite-club__cta-copy {
+  width: min(800px, 100%);
+  height: 105px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+.dena-elite-club__cta-copy h2 {
+  width: 100%;
+  height: 63px;
+  margin: 0;
+  color: var(--elite-deep);
+  font-family: "Estedad Variable", "Vazirmatn Variable", Tahoma, sans-serif;
+  font-size: 36px;
+  font-weight: 850;
+  line-height: 63px;
+}
+.dena-elite-club__cta-copy p {
+  width: 100%;
+  height: 26px;
+  margin: 0;
+  color: var(--elite-muted);
+  font-family: "Vazirmatn Variable", Tahoma, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 26px;
+}
+.dena-elite-club__cta-actions {
+  width: 257px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  direction: ltr;
+}
+.dena-elite-club__growth-link {
+  width: 81px;
+  flex: none;
+  color: var(--elite-deep);
+  font-family: "Vazirmatn Variable", Tahoma, sans-serif;
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 23px;
+  text-align: right;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.dena-elite-club__growth-link:hover { color: var(--elite-violet); }
+
+@media (max-width: 1100px) {
+  .dena-elite-club__hero-inner,
+  .dena-elite-club__ecosystem-inner {
+    width: calc(100% - 56px);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 32px;
+  }
+  .dena-elite-club__art,
+  .dena-elite-club__art img,
+  .dena-elite-club__hero-copy,
+  .dena-elite-club__roles-card,
+  .dena-elite-club__positioning {
+    width: 100%;
+  }
+  .dena-elite-club__art,
+  .dena-elite-club__art img { height: auto; }
+  .dena-elite-club__hero-copy { height: auto; }
+  .dena-elite-club__titles { height: auto; }
+  .dena-elite-club__hero-copy h1 { height: auto; font-size: 34px; line-height: 1.65; }
+  .dena-elite-club__hero-description { height: auto; line-height: 1.8; }
+  .dena-elite-club__ecosystem-inner { height: auto; }
+  .dena-elite-club__roles-card { height: auto; min-height: 315px; }
+  .dena-elite-club__positioning { height: auto; }
+  .dena-elite-club__positioning h2 { height: auto; font-size: 29px; line-height: 1.7; }
+  .dena-elite-club__positioning-description,
+  .dena-elite-club__membership-note { height: auto; line-height: 1.8; }
+}
+@media (max-width: 900px) {
+  .dena-elite-club__hero { height: auto; padding: 56px 0; }
+  .dena-elite-club__hero-inner { height: auto; }
+  .dena-elite-club__pillar-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .dena-elite-club__pillars { height: auto; padding: 56px 0; }
+  .dena-elite-club__pillar { height: auto; min-height: 130px; }
+  .dena-elite-club__pillar:last-child { grid-column: 1 / -1; }
+  .dena-elite-club__ecosystem { height: auto; padding: 56px 0; }
+}
+@media (max-width: 760px) {
+  .dena-elite-club__hero { padding: 44px 0 48px; }
+  .dena-elite-club__hero-inner {
+    width: calc(100% - 36px);
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+  }
+  .dena-elite-club__hero-copy { order: 0; gap: 22px; }
+  .dena-elite-club__titles { gap: 14px; }
+  .dena-elite-club__eyebrow { width: auto; height: 32px; font-size: 13px; }
+  .dena-elite-club__hero-copy h1 { font-size: 30px; line-height: 1.55; }
+  .dena-elite-club__hero-description { font-size: 14px; line-height: 1.9; }
+  .dena-elite-club__art {
+    order: 1;
+    width: min(100%, 480px);
+    height: auto;
+    margin: 0 auto;
+  }
+  .dena-elite-club__art img { width: 100%; height: auto; }
+  .dena-elite-club__container,
+  .dena-elite-club__ecosystem-inner { width: calc(100% - 36px); }
+  .dena-elite-club__pillars { padding: 48px 0; }
+  .dena-elite-club__pillars h2 {
+    height: auto;
+    margin-bottom: 24px;
+    font-size: 24px;
+    line-height: 1.65;
+    text-align: right;
+  }
+  .dena-elite-club__pillar-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .dena-elite-club__pillar,
+  .dena-elite-club__pillar:last-child { grid-column: auto; min-height: 116px; padding: 20px; }
+  .dena-elite-club__pillar-title h3 { font-size: 16px; }
+  .dena-elite-club__pillar > p { font-size: 13px; line-height: 1.8; }
+  .dena-elite-club__ecosystem { padding: 48px 0; }
+  .dena-elite-club__ecosystem-inner {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+  }
+  .dena-elite-club__positioning { order: 0; gap: 12px; }
+  .dena-elite-club__positioning-eyebrow { font-size: 13px; }
+  .dena-elite-club__positioning h2 { font-size: 26px; line-height: 1.65; }
+  .dena-elite-club__positioning-description { font-size: 14px; line-height: 1.9; }
+  .dena-elite-club__membership-note { font-size: 13px; line-height: 1.8; }
+  .dena-elite-club__roles-card { order: 1; min-height: 0; height: auto; padding: 22px; gap: 18px; border-radius: 18px; }
+  .dena-elite-club__roles-card > h2 { height: auto; font-size: 20px; line-height: 1.7; }
+  .dena-elite-club__roles-list { gap: 16px; }
+  .dena-elite-club__role { height: auto; gap: 4px; }
+  .dena-elite-club__role h3 { height: auto; font-size: 15px; line-height: 1.7; }
+  .dena-elite-club__role p { height: auto; font-size: 13px; line-height: 1.8; }
+  .dena-elite-club__cta { height: auto; padding: 56px 18px; gap: 24px; }
+  .dena-elite-club__cta-copy { height: auto; gap: 12px; }
+  .dena-elite-club__cta-copy h2 { height: auto; font-size: 24px; line-height: 1.65; }
+  .dena-elite-club__cta-copy p { height: auto; font-size: 14px; line-height: 1.9; }
+  .dena-elite-club__cta-actions {
+    width: 100%;
+    height: auto;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 14px;
+  }
+}
+@media (max-width: 380px) {
+  .dena-elite-club__hero-copy h1 { font-size: 27px; }
+  .dena-elite-club__cta-actions { flex-direction: column; }
+  .dena-elite-club__growth-link { text-align: center; }
+}
