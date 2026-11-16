@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { buttonClassName } from "@/components/ui/button";
 
 const base = "/student-demo";
+const toPersianDigits = (value: string | number) => String(value).replace(/\d/g, (digit) => "۰۱۲۳۴۵۶۷۸۹"[Number(digit)]);
 
 function PageTitle({ title, subtitle }: { title: string; subtitle?: string }) {
   return <header className="space-y-1 text-right"><h2 className="text-base font-extrabold text-dena-deep md:text-2xl">{title}</h2>{subtitle && <p className="text-xs leading-6 text-dena-muted md:text-sm md:leading-7">{subtitle}</p>}</header>;
@@ -63,7 +64,7 @@ function SupportList() {
       {[
         ["13649","در انتظار پاسخ","۳ روز پیش","مشکل در پخش ویدیو"],
         ["13622","پاسخ داده شده","۱ هفته پیش","مشکل در نمایش نتیجه آزمون"],
-      ].map(([id,status,time,title])=><Link key={id} href={`${base}/support/${id}`} className="block"><Card className="space-y-3 rounded-2xl p-4"><div className="flex items-center justify-between gap-2"><span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${status==="در انتظار پاسخ"?"bg-amber-50 text-amber-800":"bg-emerald-50 text-emerald-700"}`}>{status}</span><h3 className="text-right text-sm font-bold text-dena-deep">{title}</h3></div><p className="text-right text-xs text-dena-muted">#{id} · {time}</p></Card></Link>)}
+      ].map(([id,status,time,title])=><Link key={id} href={`${base}/support/${id}`} className="block"><Card className="space-y-3 rounded-2xl p-4"><div className="flex items-center justify-between gap-2"><span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${status==="در انتظار پاسخ"?"bg-amber-50 text-amber-800":"bg-emerald-50 text-emerald-700"}`}>{status}</span><h3 className="text-right text-sm font-bold text-dena-deep">{title}</h3></div><p className="text-right text-xs text-dena-muted">#{toPersianDigits(id)} · {time}</p></Card></Link>)}
     </section>
     <DemoNote>درخواست‌ها و پاسخ‌ها نمونه‌اند و به سامانهٔ پشتیبانی واقعی متصل نیستند.</DemoNote>
   </div>;
@@ -92,7 +93,7 @@ function ChangePhone({ step }: { step: string }) {
  const steps=[["شروع",base+"/profile/change-phone"],["شماره جدید",base+"/profile/change-phone/new"],["تأیید نهایی",base+"/profile/change-phone/otp"]];
  const active=step==="intro"?0:step==="new"?1:step==="otp"?2:3;
  if(step==="success") return <div className="space-y-4"><Card className="space-y-4 rounded-2xl p-6 text-center"><div className="mx-auto grid size-14 place-items-center rounded-full bg-emerald-50 text-2xl text-emerald-700">✓</div><h2 className="text-lg font-extrabold text-dena-deep">تغییر موفقیت‌آمیز شماره</h2><p className="text-sm leading-7 text-dena-muted">از این پس با شماره جدید <b className="text-dena-deep">۰۹۳۸***۱۲۳۴</b> وارد حساب خود شوید.</p><Link href={base+"/profile"} className={buttonClassName()}>بازگشت به پروفایل</Link></Card><DemoNote>وضعیت موفق فقط نمایشی است و شمارهٔ حساب واقعی تغییر نکرده است.</DemoNote></div>;
- return <div className="space-y-4"><div className="flex flex-row-reverse justify-between gap-2">{steps.map(([label,href],i)=><Link key={href} href={href} className={`flex-1 rounded-xl px-2 py-2 text-center text-[11px] font-bold ${active===i?"bg-dena-lavender text-dena-brand":"bg-white text-dena-muted"}`}><span className="ml-1">{i+1}</span>{label}</Link>)}</div>
+ return <div className="space-y-4"><div className="flex flex-row-reverse justify-between gap-2">{steps.map(([label,href],i)=><Link key={href} href={href} className={`flex-1 rounded-xl px-2 py-2 text-center text-[11px] font-bold ${active===i?"bg-dena-lavender text-dena-brand":"bg-white text-dena-muted"}`}><span className="ml-1">{toPersianDigits(i+1)}</span>{label}</Link>)}</div>
  <Card className="space-y-4 rounded-2xl p-4">
  {step==="intro"?<><PageTitle title="تغییر شماره موبایل" subtitle="شماره موبایل شما به عنوان شناسه ورود به حساب دنا استفاده می‌شود. برای تغییر آن، مراحل تأیید هویت را طی کنید."/><div className="rounded-xl bg-dena-bg p-3 text-right"><p className="text-xs text-dena-muted">شماره فعلی شما</p><p dir="ltr" className="mt-1 text-sm font-bold text-dena-deep">۰۹۱۲***۴۵۶۷</p></div><Link href={base+"/profile/change-phone/new"} className={buttonClassName()+" w-full"}>شروع فرآیند تغییر</Link><Link href={base+"/profile"} className="block text-center text-sm text-dena-muted">بازگشت به پروفایل</Link></>:
  step==="new"?<><PageTitle title="شماره موبایل جدید" subtitle="شماره موبایل جدید خود را وارد کنید. کد تأیید به این شماره ارسال خواهد شد."/><label className="block space-y-2 text-right text-xs text-dena-muted">شماره موبایل جدید<input dir="ltr" readOnly value="۰۹۳۸۱۲۳۴۵۶۷" className="w-full rounded-xl border border-dena-border px-3 py-3 text-right text-sm text-dena-deep"/></label><Link href={base+"/profile/change-phone/otp"} className={buttonClassName()+" w-full"}>ارسال کد تأیید</Link><Link href={base+"/profile"} className="block text-center text-sm text-dena-muted">انصراف</Link></>:
