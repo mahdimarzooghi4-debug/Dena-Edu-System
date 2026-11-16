@@ -7,7 +7,11 @@ test("student mobile home follows the approved Dena V2 shell and home screen", a
   await expect(page.locator("html")).toHaveAttribute("lang", "fa");
   await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
   await expect(page.getByRole("heading", { name: "سلام محمد 👋" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "معلم هوشمند" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "معلم هوشمند" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "دوره‌های من" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "تمرین‌ها و آزمون‌ها" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "مسیر رشد من" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "باشگاه نخبگان" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "ریاضی دهم" }).first()).toBeVisible();
   await expect(page.getByText("حالت نمایش اپ دانش‌آموز")).toHaveCount(0);
   const studentNav = page.locator('nav[aria-label="منوی پایین دانش‌آموز"]');
