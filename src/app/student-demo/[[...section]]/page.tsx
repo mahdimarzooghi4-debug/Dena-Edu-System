@@ -126,12 +126,12 @@ function Home() {
         <Card className="relative overflow-hidden rounded-[24px] border-0 bg-[#f0edff] p-5 md:p-6 lg:col-span-3">
           <div aria-hidden="true" className="absolute -left-8 -top-8 size-32 rounded-full bg-white/70 blur-xl" />
           <div className="relative flex items-start justify-between gap-4">
-            <span className="shrink-0 rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-dena-brand">در حال آماده‌سازی</span>
             <div className="text-right">
               <div className="mb-3 inline-grid size-11 place-items-center rounded-2xl bg-white text-xl text-dena-brand shadow-sm" aria-hidden="true">✧</div>
               <h3 className="text-lg font-extrabold text-dena-deep">معلم هوشمند</h3>
               <p className="mt-2 max-w-lg text-sm leading-7 text-dena-muted">همراهی برای فهم بهتر درس‌ها و پیدا کردن قدم بعدی در مسیر یادگیری.</p>
             </div>
+            <span className="shrink-0 rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-dena-brand">در حال آماده‌سازی</span>
           </div>
           <div className="relative mt-4 flex flex-col justify-between gap-3 border-t border-violet-200/70 pt-4 sm:flex-row sm:items-center">
             <p className="text-xs leading-6 text-dena-muted">گفت‌وگو پس از آماده‌سازی و ارزیابی سرویس فعال می‌شود.</p>
@@ -141,11 +141,11 @@ function Home() {
 
         <Card className="rounded-[24px] border-dena-border bg-white p-5 md:p-6 lg:col-span-2">
           <div className="flex items-center justify-between gap-3">
-            <span className="rounded-full bg-amber-50 px-3 py-1.5 text-[11px] font-bold text-amber-800">امروز</span>
             <div className="text-right">
               <p className="text-xs font-semibold text-dena-muted">پیشنهاد برای ادامه</p>
               <h3 className="mt-1 font-extrabold text-dena-deep">آزمون فصل سوم ریاضی</h3>
             </div>
+            <span className="rounded-full bg-amber-50 px-3 py-1.5 text-[11px] font-bold text-amber-800">امروز</span>
           </div>
           <p className="mt-4 text-sm leading-6 text-dena-muted">آمادگی‌ات را با یک آزمون کوتاه بسنج و نتیجه را در مسیر رشدت ببین.</p>
           <Link href="/student-demo/assessments/math-7-practice" className="mt-4 flex min-h-11 items-center justify-center rounded-xl border border-dena-brand/20 bg-dena-lavender px-4 text-sm font-bold text-dena-brand transition hover:border-dena-brand">شروع آزمون</Link>
@@ -154,11 +154,11 @@ function Home() {
 
       <section className="space-y-4">
         <div className="flex items-end justify-between gap-3">
-          <Link href="/student-demo/courses" className="text-xs font-bold text-dena-brand hover:underline">همهٔ دوره‌ها ←</Link>
           <div className="text-right">
             <p className="text-xs font-semibold text-dena-muted">یادگیری را ادامه بده</p>
             <h3 className="mt-1 text-xl font-extrabold text-dena-deep">دوره‌های من</h3>
           </div>
+          <Link href="/student-demo/courses" className="text-xs font-bold text-dena-brand hover:underline">همهٔ دوره‌ها ←</Link>
         </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {courses.map(course => <Card key={course.id} className="overflow-hidden rounded-[22px] border-dena-border p-0 transition duration-200 hover:-translate-y-0.5 hover:shadow-lg">
@@ -189,24 +189,24 @@ function Home() {
       <div className="grid gap-4 lg:grid-cols-5">
         <section className="space-y-4 lg:col-span-3">
           <div className="flex items-end justify-between gap-3">
-            <Link href="/student-demo/assessments" className="text-xs font-bold text-dena-brand hover:underline">همهٔ فعالیت‌ها ←</Link>
             <div className="text-right"><p className="text-xs font-semibold text-dena-muted">برنامهٔ درسی</p><h3 className="mt-1 text-xl font-extrabold text-dena-deep">تمرین‌ها و آزمون‌ها</h3></div>
+            <Link href="/student-demo/assessments" className="text-xs font-bold text-dena-brand hover:underline">همهٔ فعالیت‌ها ←</Link>
           </div>
           <div className="space-y-2.5">
             {assessments.map(item => <Link key={item.title} href={item.href} className="group flex items-center justify-between gap-3 rounded-2xl border border-dena-border bg-white p-4 transition hover:border-dena-brand/40 hover:shadow-sm">
-              <span className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold ${item.color}`}>{item.status}</span>
               <span className="flex min-w-0 items-center gap-3 text-right">
                 <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-dena-bg text-sm font-bold text-dena-brand" aria-hidden="true">{item.icon}</span>
                 <span className="min-w-0"><span className="block truncate text-sm font-bold text-dena-deep">{item.title}</span><span className="mt-1 block text-xs text-dena-muted">{item.course}</span></span>
               </span>
+              <span className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold ${item.color}`}>{item.status}</span>
             </Link>)}
           </div>
         </section>
 
         <Card className="space-y-4 rounded-[24px] border-dena-border p-5 lg:col-span-2">
           <div className="flex items-center justify-between gap-3">
-            <Link href="/student-demo/growth" className="text-xs font-bold text-dena-brand">جزئیات ←</Link>
             <div className="text-right"><p className="text-xs font-semibold text-dena-muted">این هفته</p><h3 className="mt-1 font-extrabold text-dena-deep">مسیر رشد من</h3></div>
+            <Link href="/student-demo/growth" className="text-xs font-bold text-dena-brand">جزئیات ←</Link>
           </div>
           <p className="text-sm leading-7 text-dena-muted">۴ جلسه آموزشی تکمیل شد و ۲ تمرین انجام شد.</p>
           <div className="flex items-center gap-4">
@@ -223,11 +223,11 @@ function Home() {
       </div>
 
       <Card className="flex flex-col items-start justify-between gap-4 rounded-[22px] border-dena-border bg-white p-5 sm:flex-row sm:items-center md:p-6">
-        <Link href="/student-demo/elite-club" className="shrink-0 text-xs font-bold text-dena-brand">آشنایی با باشگاه ←</Link>
         <div className="flex items-center gap-3 text-right">
           <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-amber-50 text-lg text-amber-600" aria-hidden="true">☆</div>
           <div><h3 className="font-extrabold text-dena-deep">باشگاه نخبگان</h3><p className="mt-1 text-sm text-dena-muted">فرصت‌های تازه برای رشد استعدادهایت.</p></div>
         </div>
+        <Link href="/student-demo/elite-club" className="shrink-0 text-xs font-bold text-dena-brand">آشنایی با باشگاه ←</Link>
       </Card>
       <p className="text-center text-[11px] text-dena-muted">این صفحه با داده‌های نمونه برای نمایش امکانات پنل ساخته شده است.</p>
     </div>
