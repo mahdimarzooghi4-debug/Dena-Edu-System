@@ -1,13 +1,14 @@
 import { expect, test } from "@playwright/test";
 
-test("student mobile home follows the approved Dena V2 shell and home screen", async ({ page }) => {
+test("student mobile home shares the Dena web panel visual system", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/student-demo");
 
   await expect(page.locator("html")).toHaveAttribute("lang", "fa");
   await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
   await expect(page.getByRole("heading", { name: "سلام محمد 👋" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "معلم هوشمند" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "معلم هوشمند" })).toBeVisible();
+  await expect(page.getByText("فضای یادگیری تو در دنا")).toBeVisible();
   await expect(page.getByRole("heading", { name: "دوره‌های من" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "تمرین‌ها و آزمون‌ها" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "مسیر رشد من" })).toBeVisible();
