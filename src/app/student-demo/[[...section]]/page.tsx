@@ -116,7 +116,7 @@ function MobileHomeDashboard() {
           <span>{courses[0].lesson}</span>
         </div>
         <div className="h-1.5 overflow-hidden rounded-full bg-dena-lavender" role="progressbar" aria-label="پیشرفت دورهٔ ریاضی دهم" aria-valuemin={0} aria-valuemax={100} aria-valuenow={courses[0].progress}>
-          <div className="h-full rounded-full bg-dena-mint" style={{ width: \`\${courses[0].progress}%\` }} />
+          <div className="h-full rounded-full bg-dena-mint" style={{ width: `${courses[0].progress}%` }} />
         </div>
         <div className="flex items-center justify-between gap-2 text-[10px] text-dena-muted">
           <span>آخرین فعالیت: {courses[0].last}</span>
@@ -160,10 +160,10 @@ function MobileHomeDashboard() {
                 <span>{course.last}</span>
               </div>
               <div className="h-1 overflow-hidden rounded-full bg-dena-lavender">
-                <div className="h-full rounded-full bg-dena-mint" style={{ width: \`\${course.progress}%\` }} />
+                <div className="h-full rounded-full bg-dena-mint" style={{ width: `${course.progress}%` }} />
               </div>
               <div className="flex items-center justify-between gap-2 border-t border-dena-border pt-2 text-[9px]">
-                <Link href={\`/student-demo/courses/\${course.id}\`} className="font-bold text-dena-brand">مشاهدهٔ دوره ←</Link>
+                <Link href={`/student-demo/courses/${course.id}`} className="font-bold text-dena-brand">مشاهدهٔ دوره ←</Link>
                 <span className="truncate text-dena-muted">{course.topic}</span>
               </div>
             </Card>
@@ -182,7 +182,7 @@ function MobileHomeDashboard() {
         <div className="space-y-2">
           {assessments.map((item) => (
             <Link key={item.title} href={item.href} className="flex items-center justify-between gap-2 rounded-[14px] border border-dena-border bg-white p-3 transition hover:border-dena-brand/40">
-              <span className={\`shrink-0 rounded-full px-2.5 py-1 text-[9px] font-bold \${item.color}\`}>{item.status}</span>
+              <span className={`shrink-0 rounded-full px-2.5 py-1 text-[9px] font-bold ${item.color}`}>{item.status}</span>
               <span className="min-w-0 text-right">
                 <span className="block truncate text-xs font-bold text-dena-deep">{item.title}</span>
                 <span className="mt-0.5 block text-[9px] text-dena-muted">{item.course}</span>
