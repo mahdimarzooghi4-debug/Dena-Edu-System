@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { DenaPublicLayout } from "./dena-site-shell";
 import type { CatalogCourse } from "./dena-course-data";
@@ -186,7 +185,7 @@ export function DenaCourseDetailsPage({ course }: { course: CatalogCourse }) {
             </div>
             <div className={styles.heroAside}>
               <figure className={styles.cover}>
-                <Image src={course.cover} alt={`تصویر مفهومی و نمایشی ${course.title}`} width={640} height={440} priority={isPhysics} />
+                <div className={styles.coverImage} data-subject={course.subject} role="img" aria-label={`تصویر مفهومی نمایشی ${course.title}`} />
                 <figcaption>تصویر نمایشی دوره • پیش‌نمایش ویدئویی فعال نیست</figcaption>
               </figure>
               <div className={styles.pricing}>
