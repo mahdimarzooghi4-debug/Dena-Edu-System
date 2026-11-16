@@ -82,258 +82,164 @@ const pages: Record<string, { title: string; active: StudentSection }> = {
 
 
 
-function MobileHomeDashboard() {
+function HomeDashboard() {
   const courses = [
-    { id: "math-7", title: "ریاضی دهم", institute: "مؤسسه آموزشی البرز", progress: 33, lesson: "جلسه ۸ از ۲۴", topic: "تابع و نمودار", last: "امروز" },
-    { id: "science-7", title: "فیزیک دهم", institute: "آموزشگاه نور دانش", progress: 27, lesson: "جلسه ۵ از ۱۸", topic: "فیزیک ۱", last: "دیروز" },
-    { id: "chemistry-10", title: "شیمی دهم", institute: "مرکز علمی پژوهان", progress: 12, lesson: "جلسه ۲ از ۱۶", topic: "ساختار اتم", last: "۳ روز پیش" },
+    { id: "math-7", title: "ریاضی دهم", institute: "مؤسسه آموزشی البرز", progress: 33, lesson: "جلسه ۸ از ۲۴", topic: "تابع و نمودار", last: "امروز", icon: "∑", accent: "from-emerald-400 to-teal-500", tint: "bg-emerald-500" },
+    { id: "science-7", title: "فیزیک دهم", institute: "آموزشگاه نور دانش", progress: 27, lesson: "جلسه ۵ از ۱۸", topic: "فیزیک ۱", last: "دیروز", icon: "⚛", accent: "from-sky-400 to-cyan-500", tint: "bg-sky-500" },
+    { id: "chemistry-10", title: "شیمی دهم", institute: "مرکز علمی پژوهان", progress: 12, lesson: "جلسه ۲ از ۱۶", topic: "ساختار اتم", last: "۳ روز پیش", icon: "⚗", accent: "from-violet-500 to-indigo-500", tint: "bg-violet-500" },
   ];
   const assessments = [
-    { title: "آزمون فصل سوم ریاضی", course: "ریاضی دهم", status: "آماده انجام", color: "bg-dena-lavender text-dena-brand", href: "/student-demo/assessments/math-7-practice" },
-    { title: "تمرین فیزیک · نور", course: "فیزیک دهم", status: "در انتظار", color: "bg-amber-50 text-amber-800", href: "/student-demo/assessments?filter=pending" },
+    { title: "آزمون فصل سوم ریاضی", course: "ریاضی دهم", status: "آمادهٔ انجام", color: "bg-amber-50 text-amber-700", href: "/student-demo/assessments/math-7-practice" },
+    { title: "تمرین فیزیک · نور", course: "فیزیک دهم", status: "در انتظار", color: "bg-sky-50 text-sky-700", href: "/student-demo/assessments?filter=pending" },
     { title: "آزمون فصل دوم شیمی", course: "شیمی دهم", status: "انجام‌شده", color: "bg-emerald-50 text-emerald-700", href: "/student-demo/assessments?filter=completed" },
   ];
 
   return (
-    <div dir="rtl" className="space-y-5 text-right lg:hidden">
-      <header className="space-y-1 px-1">
-        <h2 className="text-[25px] font-extrabold leading-relaxed text-dena-deep">سلام محمد 👋</h2>
-        <p className="text-xs leading-6 text-dena-muted">آماده‌ای مسیر امروزت رو ادامه بدی؟</p>
-      </header>
-
-      <Card className="space-y-3 overflow-hidden rounded-[20px] border-dena-border p-4 shadow-sm">
-        <div className="flex items-start justify-between gap-3">
-          <span className="shrink-0 rounded-full bg-dena-lavender px-2.5 py-1 text-[10px] font-bold text-dena-brand">ادامهٔ یادگیری</span>
-          <div className="min-w-0">
-            <p className="text-[10px] text-dena-muted">دورهٔ منتخب</p>
-            <h3 className="mt-1 text-base font-extrabold text-dena-deep">{courses[0].title}</h3>
-            <p className="mt-0.5 text-xs font-semibold text-dena-deep">{courses[0].topic}</p>
-            <p className="mt-1 text-[10px] text-dena-muted">{courses[0].institute}</p>
+    <div dir="rtl" className="space-y-5 text-right md:space-y-7">
+      <section className="relative isolate overflow-hidden rounded-[26px] bg-gradient-to-l from-[#5b4ce2] via-[#4434c4] to-[#24165f] p-5 text-white shadow-[0_18px_40px_-24px_rgba(53,43,104,.65)] md:rounded-[32px] md:p-8">
+        <div aria-hidden="true" className="pointer-events-none absolute -left-10 -top-20 size-56 rounded-full border-[22px] border-white/10" />
+        <div aria-hidden="true" className="pointer-events-none absolute -left-1 top-4 size-36 rounded-full border border-white/10" />
+        <div className="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(300px,.85fr)] lg:items-center">
+          <div className="space-y-3">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[10px] font-bold text-white/90 md:text-xs">
+              <span className="size-1.5 rounded-full bg-dena-mint" />
+              فضای یادگیری تو در دنا
+            </span>
+            <h2 className="text-[25px] font-extrabold leading-relaxed md:text-[32px]">سلام محمد 👋</h2>
+            <p className="max-w-xl text-xs leading-6 text-white/80 md:text-sm md:leading-7">
+              یک قدم کوچک امروز، تو را به هدف‌های بزرگ‌تر نزدیک‌تر می‌کند.
+            </p>
+            <div className="flex flex-wrap gap-2 pt-1">
+              <Link href="/student-demo/courses/math-7/lessons/3" className="inline-flex min-h-10 items-center justify-center rounded-xl bg-white px-4 text-xs font-extrabold text-dena-deep transition hover:bg-white/90 md:min-h-11 md:px-5 md:text-sm">
+                ادامهٔ یادگیری
+              </Link>
+              <Link href="/student-demo/growth" className="inline-flex min-h-10 items-center justify-center rounded-xl border border-white/30 bg-white/10 px-4 text-xs font-bold text-white transition hover:bg-white/15 md:min-h-11 md:px-5 md:text-sm">
+                مشاهدهٔ مسیر رشد
+              </Link>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-2 md:gap-3">
+            {[
+              { value: "۳", label: "دورهٔ فعال" },
+              { value: "۱", label: "فعالیت امروز" },
+              { value: "۶۸٪", label: "پیشرفت هفته" },
+            ].map((item) => (
+              <div key={item.label} className="rounded-2xl border border-white/20 bg-white/10 px-2 py-3 text-center backdrop-blur-sm md:rounded-[20px] md:px-4 md:py-5">
+                <p className="text-lg font-extrabold md:text-2xl">{item.value}</p>
+                <p className="mt-1 text-[9px] leading-4 text-white/80 md:text-xs">{item.label}</p>
+              </div>
+            ))}
           </div>
         </div>
-        <div className="flex items-center justify-between gap-3 text-[10px] text-dena-muted">
-          <span>{courses[0].progress.toLocaleString("fa-IR")}٪ پیشرفت</span>
-          <span>{courses[0].lesson}</span>
-        </div>
-        <div className="h-1.5 overflow-hidden rounded-full bg-dena-lavender" role="progressbar" aria-label="پیشرفت دورهٔ ریاضی دهم" aria-valuemin={0} aria-valuemax={100} aria-valuenow={courses[0].progress}>
-          <div className="h-full rounded-full bg-dena-mint" style={{ width: `${courses[0].progress}%` }} />
-        </div>
-        <div className="flex items-center justify-between gap-2 text-[10px] text-dena-muted">
-          <span>آخرین فعالیت: {courses[0].last}</span>
-          <span>پیشرفت دوره</span>
-        </div>
-        <Link href="/student-demo/courses/math-7/lessons/3" className={buttonClassName() + " flex min-h-10 w-full justify-center text-xs"}>ادامهٔ یادگیری</Link>
-      </Card>
+      </section>
 
-      <Card className="space-y-3 rounded-[20px] border-dena-border p-4 shadow-sm">
-        <div className="flex items-center justify-between gap-3">
-          <span className="shrink-0 rounded-full bg-dena-lavender px-2.5 py-1 text-[10px] font-bold text-dena-brand">آمادهٔ انجام</span>
-          <div>
-            <p className="text-[10px] text-dena-muted">پیشنهاد برای امروز</p>
-            <h3 className="mt-1 text-sm font-extrabold text-dena-deep">آزمون فصل سوم ریاضی</h3>
+      <Link href="/student-demo/ai-tutor" className="group flex items-center justify-between gap-4 rounded-[22px] border border-dena-lavender bg-[#f0edff] p-4 transition hover:border-dena-brand/30 hover:bg-[#ece8ff] md:p-5">
+        <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-white text-dena-brand shadow-sm md:size-12" aria-hidden="true">
+          <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m12 3 1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7z" /><path d="m19 16 .7 2.3L22 19l-2.3.7L19 22l-.7-2.3L16 19l2.3-.7z" />
+          </svg>
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-sm font-extrabold text-dena-deep md:text-base">معلم هوشمند</h3>
+            <span className="rounded-full bg-white px-2.5 py-1 text-[9px] font-bold text-dena-brand">در حال آماده‌سازی</span>
           </div>
+          <p className="mt-1 text-[10px] leading-5 text-dena-muted md:text-xs">برای فهم بهتر درس‌ها و پیدا کردن قدم بعدی در مسیر یادگیری.</p>
         </div>
-        <p className="text-xs leading-6 text-dena-muted">آمادگی‌ات را با یک آزمون کوتاه بسنج و نتیجه را در مسیر رشدت ببین.</p>
-        <Link href="/student-demo/assessments/math-7-practice" className={buttonClassName() + " flex min-h-10 w-full justify-center text-xs"}>شروع آزمون</Link>
-      </Card>
+        <span className="shrink-0 text-sm font-bold text-dena-brand transition group-hover:-translate-x-1" aria-hidden="true">←</span>
+      </Link>
 
-      <section className="space-y-3">
+      <section className="space-y-3 md:space-y-4">
         <div className="flex items-end justify-between gap-3">
-          <Link href="/student-demo/courses" className="text-[10px] font-semibold text-dena-brand">مشاهده همهٔ دوره‌ها</Link>
+          <Link href="/student-demo/courses" className="text-[10px] font-bold text-dena-brand hover:underline md:text-xs">مشاهدهٔ همهٔ دوره‌ها</Link>
           <div>
-            <p className="text-[10px] text-dena-muted">یادگیری را ادامه بده</p>
-            <h3 className="mt-0.5 text-base font-extrabold text-dena-deep">دوره‌های من</h3>
+            <p className="text-[10px] text-dena-muted md:text-xs">یادگیری را ادامه بده</p>
+            <h3 className="mt-0.5 text-base font-extrabold text-dena-deep md:text-lg">دوره‌های من</h3>
           </div>
         </div>
-        <div className="space-y-2.5">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {courses.map((course) => (
-            <Card key={course.id} className="space-y-2.5 rounded-[16px] border-dena-border p-3 shadow-sm">
-              <div className="flex items-start justify-between gap-2">
-                <span className="shrink-0 rounded-full bg-dena-lavender px-2.5 py-1 text-[9px] font-bold text-dena-brand">ادامه</span>
-                <div className="min-w-0">
-                  <h4 className="text-xs font-extrabold text-dena-deep">{course.title}</h4>
-                  <p className="mt-0.5 truncate text-[9px] text-dena-muted">{course.lesson} · {course.institute}</p>
+            <Card key={course.id} className="overflow-hidden rounded-[20px] p-0 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md md:rounded-[22px]">
+              <div className={"relative flex min-h-[78px] items-center justify-between overflow-hidden bg-gradient-to-l " + course.accent + " px-4 py-3 text-white"}>
+                <div aria-hidden="true" className="absolute -left-4 -top-8 size-28 rounded-full border-[14px] border-white/10" />
+                <span className="relative grid size-10 place-items-center rounded-xl border border-white/40 bg-white/15 text-lg font-bold">{course.icon}</span>
+                <span className="relative rounded-full bg-black/10 px-3 py-1 text-[9px] font-bold">در حال یادگیری</span>
+              </div>
+              <div className="space-y-3 p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <h4 className="truncate text-sm font-extrabold text-dena-deep">{course.title}</h4>
+                    <p className="mt-1 truncate text-[10px] text-dena-muted">{course.institute}</p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-dena-lavender px-2.5 py-1 text-[9px] font-bold text-dena-brand">{course.progress.toLocaleString("fa-IR")}٪</span>
                 </div>
-              </div>
-              <div className="flex items-center justify-between gap-2 text-[9px] text-dena-muted">
-                <span>{course.progress.toLocaleString("fa-IR")}٪ پیشرفت</span>
-                <span>{course.last}</span>
-              </div>
-              <div className="h-1 overflow-hidden rounded-full bg-dena-lavender">
-                <div className="h-full rounded-full bg-dena-mint" style={{ width: `${course.progress}%` }} />
-              </div>
-              <div className="flex items-center justify-between gap-2 border-t border-dena-border pt-2 text-[9px]">
-                <Link href={`/student-demo/courses/${course.id}`} className="font-bold text-dena-brand">مشاهدهٔ دوره ←</Link>
-                <span className="truncate text-dena-muted">{course.topic}</span>
+                <div className="flex items-center justify-between gap-2 text-[9px] text-dena-muted">
+                  <span>{course.lesson}</span><span>آخرین فعالیت: {course.last}</span>
+                </div>
+                <div className="h-1.5 overflow-hidden rounded-full bg-dena-lavender" role="progressbar" aria-label={"پیشرفت دورهٔ " + course.title} aria-valuemin={0} aria-valuemax={100} aria-valuenow={course.progress}>
+                  <div className={"h-full rounded-full " + course.tint} style={{ width: course.progress + "%" }} />
+                </div>
+                <div className="flex items-center justify-between gap-2 border-t border-dena-border pt-2 text-[10px]">
+                  <Link href={"/student-demo/courses/" + course.id} className="font-bold text-dena-brand hover:underline">جزئیات دوره</Link>
+                  <span className="truncate text-dena-muted">{course.topic}</span>
+                </div>
               </div>
             </Card>
           ))}
         </div>
       </section>
 
-      <section className="space-y-3">
-        <div className="flex items-end justify-between gap-3">
-          <Link href="/student-demo/assessments" className="text-[10px] font-semibold text-dena-brand">مشاهدهٔ همه</Link>
-          <div>
-            <p className="text-[10px] text-dena-muted">برنامهٔ درسی</p>
-            <h3 className="mt-0.5 text-base font-extrabold text-dena-deep">تمرین‌ها و آزمون‌ها</h3>
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(300px,.9fr)]">
+        <section className="space-y-3 md:space-y-4">
+          <div className="flex items-end justify-between gap-3">
+            <Link href="/student-demo/assessments" className="text-[10px] font-bold text-dena-brand hover:underline md:text-xs">مشاهدهٔ همه</Link>
+            <div>
+              <p className="text-[10px] text-dena-muted md:text-xs">برنامهٔ درسی</p>
+              <h3 className="mt-0.5 text-base font-extrabold text-dena-deep md:text-lg">تمرین‌ها و آزمون‌ها</h3>
+            </div>
           </div>
-        </div>
-        <div className="space-y-2">
-          {assessments.map((item) => (
-            <Link key={item.title} href={item.href} className="flex items-center justify-between gap-2 rounded-[14px] border border-dena-border bg-white p-3 transition hover:border-dena-brand/40">
-              <span className={`shrink-0 rounded-full px-2.5 py-1 text-[9px] font-bold ${item.color}`}>{item.status}</span>
-              <span className="min-w-0 text-right">
-                <span className="block truncate text-xs font-bold text-dena-deep">{item.title}</span>
-                <span className="mt-0.5 block text-[9px] text-dena-muted">{item.course}</span>
-              </span>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      <Card className="space-y-3 rounded-[18px] border-dena-border p-4 shadow-sm">
-        <div className="flex items-center justify-between gap-3">
-          <Link href="/student-demo/growth" className="text-[10px] font-semibold text-dena-brand">مشاهدهٔ مسیر رشد</Link>
-          <div>
-            <p className="text-[10px] text-dena-muted">این هفته</p>
-            <h3 className="mt-0.5 text-sm font-extrabold text-dena-deep">مسیر رشد من</h3>
+          <div className="space-y-2.5">
+            {assessments.map((item) => (
+              <Link key={item.title} href={item.href} className="flex items-center justify-between gap-3 rounded-2xl border border-dena-border bg-white p-3 transition hover:border-dena-brand/40 hover:shadow-sm md:p-4">
+                <span className={"shrink-0 rounded-full px-2.5 py-1 text-[9px] font-bold md:text-[10px] " + item.color}>{item.status}</span>
+                <span className="min-w-0 text-right"><span className="block truncate text-xs font-bold text-dena-deep md:text-sm">{item.title}</span><span className="mt-0.5 block text-[9px] text-dena-muted md:text-xs">{item.course}</span></span>
+              </Link>
+            ))}
           </div>
-        </div>
-        <p className="text-xs leading-6 text-dena-muted">این هفته: ۴ جلسهٔ آموزشی تکمیل شد و ۲ تمرین انجام شد.</p>
-        <div className="h-1.5 overflow-hidden rounded-full bg-dena-lavender">
-          <div className="h-full w-[68%] rounded-full bg-dena-mint" />
-        </div>
-        <p className="text-[10px] text-dena-muted">۶۸٪ پیشرفت این هفته</p>
-      </Card>
+        </section>
 
-      <Card className="flex items-center justify-between gap-3 rounded-[18px] border-dena-border p-4 shadow-sm">
-        <Link href="/student-demo/elite-club" className="text-[10px] font-semibold text-dena-brand">مشاهدهٔ باشگاه</Link>
-        <div className="text-right">
-          <h3 className="text-sm font-extrabold text-dena-deep">باشگاه نخبگان</h3>
-          <p className="mt-1 text-xs text-dena-muted">فرصت‌ها و مسیرهای رشد بیشتر در دنا.</p>
+        <div className="space-y-4">
+          <Card className="space-y-3 rounded-[22px] bg-white p-4 md:p-5">
+            <div className="flex items-center justify-between gap-3">
+              <Link href="/student-demo/growth" className="text-[10px] font-bold text-dena-brand hover:underline md:text-xs">مشاهدهٔ مسیر رشد</Link>
+              <div>
+                <p className="text-[10px] text-dena-muted md:text-xs">این هفته</p>
+                <h3 className="mt-0.5 text-sm font-extrabold text-dena-deep md:text-base">مسیر رشد من</h3>
+              </div>
+            </div>
+            <p className="text-[10px] leading-6 text-dena-muted md:text-xs">این هفته: ۴ جلسهٔ آموزشی تکمیل شد و ۲ تمرین انجام شد.</p>
+            <div className="h-2 overflow-hidden rounded-full bg-dena-lavender">
+              <div className="h-full w-[68%] rounded-full bg-dena-mint" />
+            </div>
+            <p className="text-[10px] font-bold text-dena-brand">۶۸٪ پیشرفت این هفته</p>
+          </Card>
+          <Card className="flex items-center justify-between gap-3 rounded-[22px] border-dena-lavender bg-[#f0edff] p-4 md:p-5">
+            <Link href="/student-demo/elite-club" className="rounded-xl bg-white px-3 py-2 text-[10px] font-bold text-dena-brand shadow-sm md:text-xs">ورود به باشگاه</Link>
+            <div className="text-right">
+              <p className="text-[10px] text-dena-brand md:text-xs">فرصت‌های ویژه</p>
+              <h3 className="mt-0.5 text-sm font-extrabold text-dena-deep md:text-base">باشگاه نخبگان</h3>
+              <p className="mt-1 text-[10px] leading-5 text-dena-muted md:text-xs">مسیرهای رشد بیشتر در دنا.</p>
+            </div>
+          </Card>
         </div>
-      </Card>
-      <p className="text-center text-[9px] text-dena-muted">این صفحه با داده‌های نمونه برای نمایش امکانات اپ ساخته شده است.</p>
+      </div>
+      <p className="text-center text-[9px] text-dena-muted md:text-[10px]">این صفحه با داده‌های نمونه برای نمایش امکانات اپ ساخته شده است.</p>
     </div>
   );
 }
 
 function Home() {
-  const courses = [
-    { id: "math-7", title: "ریاضی دهم", institute: "مؤسسه آموزشی البرز", progress: 33, lesson: "جلسه ۸ از ۲۴", topic: "تابع و نمودار", last: "امروز" },
-    { id: "science-7", title: "فیزیک دهم", institute: "فیزیک ۱", progress: 27, lesson: "جلسه ۵ از ۱۸", topic: "فیزیک ۱", last: "دیروز" },
-    { id: "chemistry-10", title: "شیمی دهم", institute: "ساختار اتم", progress: 12, lesson: "جلسه ۲ از ۱۶", topic: "ساختار اتم", last: "۳ روز پیش" },
-  ];
-  const assessments = [
-    { title: "آزمون فصل سوم ریاضی", course: "ریاضی دهم", status: "آماده انجام", color: "bg-dena-lavender text-dena-brand", href: "/student-demo/assessments/math-7-practice" },
-    { title: "تمرین فیزیک - نور", course: "فیزیک دهم", status: "در انتظار", color: "bg-amber-50 text-amber-800", href: "/student-demo/assessments?filter=pending" },
-    { title: "آزمون فصل دوم شیمی", course: "شیمی دهم", status: "انجام‌شده", color: "bg-emerald-50 text-emerald-700", href: "/student-demo/assessments?filter=completed" },
-  ];
-  return (
-    <>
-      <MobileHomeDashboard />
-      <div className="hidden space-y-6 lg:block">
-      <header className="space-y-1 text-right">
-        <h2 className="text-[26px] font-extrabold leading-relaxed text-dena-deep md:text-[31px]">سلام محمد 👋</h2>
-        <p className="text-sm leading-7 text-dena-muted">آماده‌ای مسیر امروزت رو ادامه بدی؟</p>
-      </header>
-
-      <Card className="space-y-4 rounded-[20px] border-dena-border p-4 md:p-6">
-        <div className="flex items-start justify-between gap-3">
-          <span className="shrink-0 rounded-full bg-dena-lavender px-3 py-1.5 text-xs font-bold text-dena-brand">در حال آماده‌سازی</span>
-          <div className="min-w-0 text-right">
-            <h3 className="text-lg font-extrabold text-dena-deep">معلم هوشمند</h3>
-            <p className="mt-1 text-sm leading-6 text-dena-muted">با داده‌های آموزشی دنا آغاز می‌شود و بعد با ویدئوهای مجاز دوره‌های تو، برای مسیر خودت رشد می‌کند.</p>
-          </div>
-        </div>
-        <p className="border-t border-dena-border pt-3 text-xs leading-6 text-dena-muted">گفت‌وگو پس از آماده‌سازی و ارزیابی سرویس فعال می‌شود.</p>
-        <Link href="/student-demo/ai-tutor" className={buttonClassName() + " flex w-full justify-center"}>آشنایی با معلم هوشمند</Link>
-      </Card>
-
-      <Card className="space-y-4 rounded-[20px] border-dena-border p-4 md:p-6">
-        <div className="flex items-start justify-between gap-3">
-          <span className="shrink-0 rounded-full bg-dena-lavender px-3 py-1.5 text-xs font-bold text-dena-brand">در حال یادگیری</span>
-          <div className="min-w-0 text-right">
-            <h3 className="text-lg font-extrabold text-dena-deep">ریاضی دهم</h3>
-            <p className="mt-1 text-sm font-semibold text-dena-deep">تابع و نمودار</p>
-            <p className="mt-1 text-xs text-dena-muted">مؤسسه آموزشی البرز</p>
-          </div>
-        </div>
-        <div className="flex items-center justify-between gap-3 text-xs text-dena-muted">
-          <span>۳۳٪ پیشرفت</span>
-          <span>جلسه ۸ از ۲۴</span>
-        </div>
-        <div className="h-2 overflow-hidden rounded-full bg-dena-lavender">
-          <div className="h-full w-[33%] rounded-full bg-dena-mint" />
-        </div>
-        <div className="flex items-center justify-between gap-3 text-xs text-dena-muted">
-          <span>آخرین فعالیت: امروز</span>
-          <span>ادامه مسیر یادگیری</span>
-        </div>
-        <Link href="/student-demo/courses/math-7/lessons/3" className={buttonClassName() + " flex w-full justify-center"}>ادامه یادگیری</Link>
-      </Card>
-
-      <Card className="space-y-4 rounded-[20px] border-dena-border p-4 md:p-6">
-        <div className="flex items-center justify-between gap-3">
-          <span className="rounded-full bg-dena-lavender px-3 py-1.5 text-xs font-bold text-dena-brand">آماده انجام</span>
-          <h3 className="font-extrabold text-dena-deep">آزمون فصل سوم ریاضی</h3>
-        </div>
-        <p className="text-sm text-dena-muted">ریاضی دهم · زمان پیشنهادی: امروز</p>
-        <Link href="/student-demo/assessments/math-7-practice" className={buttonClassName() + " flex w-full justify-center"}>شروع آزمون</Link>
-      </Card>
-
-      <section className="space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <Link href="/student-demo/courses" className="text-xs font-semibold text-dena-brand hover:underline">مشاهده همه دوره‌ها</Link>
-          <h3 className="text-lg font-extrabold text-dena-deep">دوره‌های من</h3>
-        </div>
-        <div className="space-y-3">
-          {courses.map(course => <Card key={course.id} className="space-y-3 rounded-[18px] p-4">
-            <div className="flex items-start justify-between gap-3 text-right">
-              <div className="min-w-0">
-                <h4 className="font-extrabold text-dena-deep">{course.title}</h4>
-                <p className="mt-1 text-xs text-dena-muted">{course.lesson} · {course.institute}</p>
-              </div>
-              <span className="shrink-0 rounded-full bg-dena-lavender px-3 py-1 text-xs font-bold text-dena-brand">ادامه</span>
-            </div>
-            <div className="flex items-center justify-between text-xs text-dena-muted"><span>{course.progress}٪ پیشرفت</span><span>{course.last}</span></div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-dena-lavender"><div className="h-full rounded-full bg-dena-mint" style={{ width: `${course.progress}%` }} /></div>
-            <div className="flex items-center justify-between gap-2 text-xs"><Link href={`/student-demo/courses/${course.id}`} className="font-bold text-dena-brand">مشاهده دوره ←</Link><span className="truncate text-dena-muted">{course.topic}</span></div>
-          </Card>)}
-        </div>
-      </section>
-
-      <section className="space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <Link href="/student-demo/assessments" className="text-xs font-semibold text-dena-brand hover:underline">مشاهده همه</Link>
-          <h3 className="text-lg font-extrabold text-dena-deep">تمرین‌ها و آزمون‌ها</h3>
-        </div>
-        <div className="space-y-3">
-          {assessments.map(item => <Link key={item.title} href={item.href} className="flex items-center justify-between gap-3 rounded-xl border border-dena-border bg-white p-3 hover:border-dena-brand">
-            <span className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold ${item.color}`}>{item.status}</span>
-            <span className="min-w-0 text-right"><span className="block text-sm font-semibold text-dena-deep">{item.title}</span><span className="mt-1 block text-xs text-dena-muted">{item.course}</span></span>
-          </Link>)}
-        </div>
-      </section>
-
-      <Card className="space-y-3 rounded-[20px] p-4 md:p-6">
-        <div className="flex items-center justify-between gap-3">
-          <Link href="/student-demo/growth" className="text-xs font-semibold text-dena-brand">مشاهده مسیر رشد</Link>
-          <h3 className="font-extrabold text-dena-deep">مسیر رشد من</h3>
-        </div>
-        <p className="text-sm leading-7 text-dena-muted">این هفته: ۴ جلسه آموزشی تکمیل شد و ۲ تمرین انجام شد.</p>
-        <div className="h-2 overflow-hidden rounded-full bg-dena-lavender"><div className="h-full w-[68%] rounded-full bg-dena-mint" /></div>
-        <p className="text-xs text-dena-muted">پیشرفت این هفته</p>
-      </Card>
-
-      <Card className="flex items-center justify-between gap-4 rounded-[20px] p-4">
-        <Link href="/student-demo/elite-club" className="text-xs font-semibold text-dena-brand">مشاهده باشگاه</Link>
-        <div className="text-right"><h3 className="font-extrabold text-dena-deep">باشگاه نخبگان</h3><p className="mt-1 text-sm text-dena-muted">فرصت‌ها و مسیرهای رشد بیشتر در دنا.</p></div>
-      </Card>
-      </div>
-    </>
-  );
+  return <HomeDashboard />;
 }
 
 function CourseGlyph({ courseId }: { courseId: string }) {
