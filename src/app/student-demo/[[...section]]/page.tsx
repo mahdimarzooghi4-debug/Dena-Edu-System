@@ -1036,79 +1036,151 @@ function GrowthDemo() {
 }
 
 function ProfileDemo({ edit = false }: { edit?: boolean }) {
-  if(edit) return <div>
-    <div className="mx-auto max-w-3xl space-y-4 md:hidden">
-      <header className="flex items-center justify-between gap-3"><Link href="/student-demo/profile" className="text-sm font-semibold text-dena-brand">انصراف</Link><h2 className="text-base font-extrabold text-dena-deep">ویرایش اطلاعات</h2></header>
-      <Card className="space-y-4 rounded-2xl p-4">
-        <div className="grid grid-cols-2 gap-3">
-          <label className="space-y-2 text-right text-xs font-semibold text-dena-muted"><span>نام خانوادگی</span><input readOnly value="علوی" className="w-full rounded-xl border border-dena-border bg-white px-3 py-3 text-sm font-medium text-dena-deep outline-none"/></label>
-          <label className="space-y-2 text-right text-xs font-semibold text-dena-muted"><span>نام</span><input readOnly value="محمد" className="w-full rounded-xl border border-dena-border bg-white px-3 py-3 text-sm font-medium text-dena-deep outline-none"/></label>
-        </div>
-      </Card>
-      <Card className="space-y-4 rounded-2xl p-4">
-        <div className="text-right"><h3 className="font-extrabold text-dena-deep">اطلاعات سیستمی (غیرقابل ویرایش)</h3></div>
-        <div className="space-y-3 border-t border-dena-border pt-3">
-          <div className="flex items-center justify-between gap-4 text-right"><span className="text-sm font-semibold text-dena-deep">دهم تجربی</span><span className="text-xs text-dena-muted">پایه و رشته</span></div>
-          <div className="flex items-center justify-between gap-4 border-t border-dena-border pt-3 text-right"><span dir="ltr" className="text-sm font-semibold text-dena-deep">۰۹۱۲••••••••</span><span className="text-xs text-dena-muted">شماره ورود</span></div>
-        </div>
-      </Card>
-      <div className="space-y-3">
-        <button type="button" disabled className={buttonClassName()+" h-12 w-full opacity-60"}>ذخیره تغییرات</button>
-        <Link href="/student-demo/profile" className="flex h-11 w-full items-center justify-center rounded-xl border border-dena-border bg-white text-sm font-semibold text-dena-muted">انصراف</Link>
-        <p className="text-center text-xs leading-6 text-dena-muted">این صفحه پیش‌نمایش است؛ تغییرات در حساب واقعی ذخیره نمی‌شوند.</p>
-      </div>
-    </div>
-    <div className="mx-auto hidden max-w-3xl md:block"><Card className="space-y-5 rounded-[22px] p-6 md:p-8"><Link href="/student-demo/profile" className="text-sm font-bold text-dena-brand">بازگشت به پروفایل ←</Link><h2 className="text-2xl font-extrabold text-dena-deep">ویرایش پروفایل</h2><label className="block space-y-2 text-sm"><span>نام و نام خانوادگی</span><input readOnly value="محمد علوی" className="w-full rounded-xl border border-dena-border bg-dena-bg px-4 py-3"/></label><p className="text-xs text-dena-muted">در پیش‌نمایش امکان ذخیرهٔ اطلاعات واقعی وجود ندارد.</p><button type="button" disabled className={buttonClassName()+" opacity-60"}>ذخیرهٔ تغییرات</button></Card></div>
-  </div>;
-  return <div>
-    <div className="space-y-4 md:hidden">
-      <header className="text-right"><h2 className="text-base font-extrabold text-dena-deep">پروفایل کاربری</h2></header>
-      <Card className="flex items-center justify-between gap-3 rounded-2xl p-4">
-        <Link href="/student-demo/profile/edit" className="shrink-0 rounded-xl border border-dena-border px-3 py-2 text-sm font-bold text-dena-brand">ویرایش</Link>
-        <div className="flex min-w-0 items-center gap-3 text-right">
-          <div className="grid size-12 shrink-0 place-items-center rounded-full bg-dena-lavender text-lg font-extrabold text-dena-brand" aria-hidden="true">م</div>
-          <div><h3 className="font-extrabold text-dena-deep">محمد علوی</h3><p className="mt-1 text-xs text-dena-muted">پایه دهم تجربی</p></div>
-        </div>
-      </Card>
-      <Card className="space-y-4 rounded-2xl p-4">
-        <h3 className="text-right font-extrabold text-dena-deep">اطلاعات شخصی</h3>
-        <div className="space-y-3 border-t border-dena-border pt-3 text-right">
-          <div><p className="text-xs text-dena-muted">نام و نام خانوادگی</p><p className="mt-1 text-sm font-semibold text-dena-deep">محمد علوی</p></div>
-          <div className="flex items-center justify-between gap-3 border-t border-dena-border pt-3">
-            <Link href="/student-demo/profile/change-phone" className="shrink-0 text-sm font-semibold text-dena-brand">تغییر شماره</Link>
-            <div><p className="text-xs text-dena-muted">شماره ورود</p><p dir="ltr" className="mt-1 text-sm font-semibold text-dena-deep">۰۹۱۲••••••••</p></div>
-          </div>
-          <p className="text-xs leading-6 text-dena-muted">تغییر شماره موبایل نیاز به تأیید شماره جدید دارد</p>
-        </div>
-      </Card>
-      <Card className="space-y-4 rounded-2xl p-4">
-        <h3 className="text-right font-extrabold text-dena-deep">اطلاعات تحصیلی</h3>
-        <div className="grid grid-cols-2 gap-3 border-t border-dena-border pt-3 text-right">
-          <div><p className="text-xs text-dena-muted">رشته</p><p className="mt-1 text-sm font-semibold text-dena-deep">تجربی</p></div>
-          <div><p className="text-xs text-dena-muted">پایه</p><p className="mt-1 text-sm font-semibold text-dena-deep">دهم</p></div>
-        </div>
-      </Card>
-      <Link href="/student-demo/profile/privacy" className="flex items-center justify-between rounded-2xl border border-dena-border bg-white p-4 text-right">
-        <span className="text-lg text-dena-muted" aria-hidden="true">‹</span><span className="text-sm font-semibold text-dena-deep">حریم خصوصی و داده‌ها</span>
+  if (edit) return (
+    <div dir="rtl" className="mx-auto max-w-4xl space-y-5 text-right">
+      <Link href="/student-demo/profile" className="inline-flex items-center gap-2 text-sm font-bold text-dena-brand hover:underline">
+        <span aria-hidden="true">→</span> بازگشت به پروفایل
       </Link>
-      <button type="button" disabled className="w-full rounded-2xl border border-rose-200 bg-white px-4 py-3 text-sm font-bold text-rose-600 opacity-80">خروج از حساب کاربری</button>
-      <p className="text-xs leading-6 text-dena-muted">اطلاعات نمایشی است و به حساب دانش‌آموز متصل نیست.</p>
+      <Card className="overflow-hidden rounded-[24px] border-dena-border p-0">
+        <div className="border-b border-dena-border bg-gradient-to-l from-dena-lavender to-white px-5 py-6 md:px-7">
+          <p className="text-xs font-bold text-dena-brand">اطلاعات حساب</p>
+          <h2 className="mt-2 text-xl font-extrabold text-dena-deep md:text-2xl">ویرایش پروفایل</h2>
+          <p className="mt-1 text-sm leading-6 text-dena-muted">اطلاعات پایهٔ نمایشی حساب دانش‌آموز.</p>
+        </div>
+        <div className="space-y-5 p-5 md:p-7">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="space-y-2 text-sm font-semibold text-dena-muted">
+              <span>نام</span>
+              <input readOnly value="محمد" className="w-full rounded-xl border border-dena-border bg-dena-bg px-4 py-3 text-dena-deep outline-none" />
+            </label>
+            <label className="space-y-2 text-sm font-semibold text-dena-muted">
+              <span>نام خانوادگی</span>
+              <input readOnly value="علوی" className="w-full rounded-xl border border-dena-border bg-dena-bg px-4 py-3 text-dena-deep outline-none" />
+            </label>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="space-y-2 text-sm font-semibold text-dena-muted">
+              <span>پایه و رشته</span>
+              <input readOnly value="دهم تجربی" className="w-full rounded-xl border border-dena-border bg-dena-bg px-4 py-3 text-dena-deep outline-none" />
+            </label>
+            <label className="space-y-2 text-sm font-semibold text-dena-muted">
+              <span>شماره ورود</span>
+              <input dir="ltr" readOnly value="۰۹۱۲••••••••" className="w-full rounded-xl border border-dena-border bg-dena-bg px-4 py-3 text-left text-dena-deep outline-none" />
+            </label>
+          </div>
+          <div className="flex flex-col gap-3 border-t border-dena-border pt-5 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs leading-6 text-dena-muted">این پیش‌نمایش به حساب واقعی متصل نیست؛ تغییرات ذخیره نمی‌شوند.</p>
+            <div className="flex gap-3">
+              <Link href="/student-demo/profile" className={buttonClassName("outline") + " inline-flex min-h-10 items-center justify-center px-4"}>انصراف</Link>
+              <button type="button" disabled className={buttonClassName() + " min-h-10 opacity-50"}>ذخیرهٔ تغییرات</button>
+            </div>
+          </div>
+        </div>
+      </Card>
     </div>
-    <div className="hidden space-y-5 md:block">
-      <header className="text-right"><h2 className="text-2xl font-extrabold text-dena-deep">پروفایل کاربری</h2><p className="mt-2 text-sm text-dena-muted">اطلاعات حساب و مشخصات ثبت‌شده‌ات را مدیریت کن.</p></header>
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="space-y-4">
-          <Card className="space-y-4 p-5"><h3 className="font-extrabold text-dena-deep">محمد علوی</h3><p className="text-sm text-dena-muted">پایه دهم تجربی</p></Card>
-          <Card className="space-y-3 p-5"><h3 className="font-extrabold text-dena-deep">حریم خصوصی و داده‌ها</h3><p className="text-sm leading-7 text-dena-muted">مدیریت اطلاعات خصوصی و داده‌های مربوط به حساب شما بر اساس سیاست‌های دنا.</p><Link href="/student-demo/profile/privacy" className="inline-flex text-sm font-bold text-dena-brand">مشاهده تنظیمات حریم خصوصی ←</Link></Card>
+  );
+
+  const rows = [
+    { label: "نام و نام خانوادگی", value: "محمد علوی" },
+    { label: "شمارهٔ ورود", value: "۰۹۱۲••••••••", ltr: true },
+  ];
+
+  return (
+    <div dir="rtl" className="space-y-6 text-right md:space-y-8">
+      <h1 className="text-2xl font-extrabold text-dena-deep">پروفایل کاربری</h1>
+      <section className="relative isolate overflow-hidden rounded-[28px] bg-gradient-to-l from-[#21166f] via-[#4938c8] to-[#6251ed] px-5 py-6 text-white shadow-[0_18px_45px_-24px_rgba(69,54,200,.62)] md:px-8 md:py-8">
+        <div aria-hidden="true" className="absolute -left-12 -top-20 -z-10 size-56 rounded-full border-[34px] border-white/5" />
+        <div aria-hidden="true" className="absolute bottom-[-76px] left-[34%] -z-10 size-48 rounded-full bg-cyan-300/10 blur-2xl" />
+        <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <span className="grid size-16 shrink-0 place-items-center rounded-[22px] border border-white/20 bg-white/15 text-2xl font-extrabold text-white shadow-sm md:size-[76px]" aria-hidden="true">م</span>
+            <div>
+              <span className="inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[11px] font-bold text-indigo-50">حساب دانش‌آموز</span>
+              <h2 className="mt-2 text-2xl font-extrabold md:text-[30px]">محمد علوی</h2>
+              <p className="mt-1 text-sm text-indigo-100">پایهٔ دهم · علوم تجربی</p>
+            </div>
+          </div>
+          <Link href="/student-demo/profile/edit" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-white px-5 text-sm font-extrabold text-[#3729a8] shadow-sm transition hover:bg-indigo-50">
+            <span aria-hidden="true">✎</span> ویرایش اطلاعات
+          </Link>
         </div>
-        <div className="space-y-4">
-          <Card className="space-y-5 p-5"><div className="flex items-center justify-between gap-3"><Link href="/student-demo/profile/edit" className={buttonClassName("outline")}>ویرایش اطلاعات</Link><h3 className="font-extrabold text-dena-deep">اطلاعات شخصی</h3></div><div className="border-t border-dena-border pt-4 text-right"><p className="text-xs text-dena-muted">نام و نام خانوادگی</p><p className="mt-1 font-semibold">محمد علوی</p></div><div className="flex items-center justify-between gap-4 border-t border-dena-border pt-4"><Link href="/student-demo/profile/change-phone" className="text-sm font-semibold text-dena-brand">تغییر شماره موبایل</Link><div className="text-right"><p className="text-xs text-dena-muted">شماره ورود به حساب</p><p className="mt-1 font-semibold">۰۹۱۲••••••••</p></div></div><p className="text-xs text-dena-muted">تغییر شماره موبایل نیاز به تأیید شماره جدید دارد.</p></Card>
-          <Card className="space-y-4 p-5"><h3 className="font-extrabold text-dena-deep">اطلاعات تحصیلی</h3><div className="flex justify-start gap-12 border-t border-dena-border pt-4 text-right"><div><p className="text-xs text-dena-muted">رشته تحصیلی</p><p className="mt-1 font-semibold">علوم تجربی</p></div><div><p className="text-xs text-dena-muted">پایه تحصیلی</p><p className="mt-1 font-semibold">پایه دهم</p></div></div></Card>
-        </div>
+      </section>
+
+      <div className="grid gap-4 lg:grid-cols-[1.1fr_.9fr]">
+        <Card className="space-y-5 rounded-[24px] border-dena-border p-5 md:p-6">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold text-dena-muted">مشخصات حساب</p>
+              <h3 className="mt-1 text-lg font-extrabold text-dena-deep">اطلاعات شخصی</h3>
+            </div>
+            <span className="grid size-10 place-items-center rounded-xl bg-dena-lavender text-dena-brand" aria-hidden="true">◎</span>
+          </div>
+          <dl className="divide-y divide-dena-border">
+            {rows.map((row) => (
+              <div key={row.label} className="flex flex-wrap items-center justify-between gap-3 py-4 first:pt-1 last:pb-1">
+                <dd dir={row.ltr ? "ltr" : undefined} className={"text-sm font-bold text-dena-deep " + (row.ltr ? "text-left" : "text-right")}>{row.value}</dd>
+                <dt className="text-xs text-dena-muted">{row.label}</dt>
+              </div>
+            ))}
+          </dl>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-dena-border pt-4">
+            <Link href="/student-demo/profile/change-phone" className="text-sm font-bold text-dena-brand hover:underline">تغییر شمارهٔ ورود</Link>
+            <span className="text-xs text-dena-muted">نیازمند تأیید شمارهٔ جدید</span>
+          </div>
+        </Card>
+
+        <Card className="space-y-5 rounded-[24px] border-dena-border p-5 md:p-6">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold text-dena-muted">مشخصات تحصیلی</p>
+              <h3 className="mt-1 text-lg font-extrabold text-dena-deep">وضعیت آموزشی</h3>
+            </div>
+            <span className="grid size-10 place-items-center rounded-xl bg-cyan-50 text-cyan-700" aria-hidden="true">▤</span>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+            <div className="rounded-2xl bg-dena-bg p-4">
+              <p className="text-xs text-dena-muted">پایهٔ تحصیلی</p>
+              <p className="mt-1 font-extrabold text-dena-deep">دهم</p>
+            </div>
+            <div className="rounded-2xl bg-dena-bg p-4">
+              <p className="text-xs text-dena-muted">رشته</p>
+              <p className="mt-1 font-extrabold text-dena-deep">علوم تجربی</p>
+            </div>
+          </div>
+          <p className="text-xs leading-6 text-dena-muted">این اطلاعات در پیش‌نمایش فقط برای نمایش چیدمان پروفایل استفاده می‌شوند.</p>
+        </Card>
       </div>
-      <p className="text-xs text-dena-muted">اطلاعات نمایشی است و به حساب دانش‌آموز متصل نیست.</p>
+
+      <section className="grid gap-4 md:grid-cols-2">
+        <Link href="/student-demo/profile/privacy" className="group flex items-start gap-4 rounded-[22px] border border-dena-border bg-white p-5 text-right transition hover:-translate-y-0.5 hover:border-dena-brand/30 hover:shadow-lg md:p-6">
+          <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-violet-50 text-lg text-violet-700" aria-hidden="true">◈</span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-extrabold text-dena-deep">حریم خصوصی و داده‌ها</span>
+            <span className="mt-1 block text-sm leading-6 text-dena-muted">اطلاعات و دسترسی‌های مربوط به حساب را مرور کن.</span>
+          </span>
+          <span className="text-lg text-dena-muted transition group-hover:text-dena-brand" aria-hidden="true">←</span>
+        </Link>
+        <Link href="/student-demo/support" className="group flex items-start gap-4 rounded-[22px] border border-dena-border bg-white p-5 text-right transition hover:-translate-y-0.5 hover:border-dena-brand/30 hover:shadow-lg md:p-6">
+          <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-emerald-50 text-lg text-emerald-700" aria-hidden="true">?</span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-extrabold text-dena-deep">راهنمایی و پشتیبانی</span>
+            <span className="mt-1 block text-sm leading-6 text-dena-muted">برای پرسش‌های مربوط به حساب و یادگیری، درخواست بفرست.</span>
+          </span>
+          <span className="text-lg text-dena-muted transition group-hover:text-dena-brand" aria-hidden="true">←</span>
+        </Link>
+      </section>
+
+      <div className="flex flex-col items-start justify-between gap-3 rounded-[22px] border border-rose-100 bg-rose-50/60 p-5 sm:flex-row sm:items-center">
+        <div className="text-right">
+          <h3 className="text-sm font-extrabold text-rose-800">خروج از حساب کاربری</h3>
+          <p className="mt-1 text-xs leading-6 text-rose-700/80">در حالت پیش‌نمایش، خروج از حساب غیرفعال است.</p>
+        </div>
+        <button type="button" disabled className="inline-flex min-h-10 items-center justify-center rounded-xl border border-rose-200 bg-white px-4 text-sm font-bold text-rose-700 opacity-60">خروج از حساب</button>
+      </div>
+
+      <p className="rounded-2xl bg-dena-bg px-4 py-3 text-xs leading-6 text-dena-muted">اطلاعات نمایشی است و به حساب واقعی دانش‌آموز متصل نیست.</p>
     </div>
-  </div>;
+  );
 }
 function GenericDemo({ section }: { section: keyof typeof pages }) {
   if (section === "profile") return <ProfileDemo />;
