@@ -329,7 +329,7 @@ function CourseList({ filter = "all" }: { filter?: string }) {
                 <div className="flex flex-wrap items-center justify-between gap-3 border-t border-dena-border pt-4">
                   <span className="text-xs text-dena-muted">آخرین فعالیت: {course.lastActivity ?? "امروز"}</span>
                   <Link href={`/student-demo/courses/${course.id}`} className={buttonClassName(completed ? "outline" : undefined) + " min-h-10 px-4"}>
-                    {completed ? "مشاهدهٔ دوره" : "ادامهٔ یادگیری"}
+                    {completed ? "مشاهدهٔ دوره" : "ادامه یادگیری"}
                   </Link>
                 </div>
               </div>
