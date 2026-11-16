@@ -1,4 +1,4 @@
 import type { Metadata } from "next";
-import { DenaAboutPage } from "@/components/marketing/dena-public-pages";
+import { DenaAboutWebsitePage } from "@/components/marketing/dena-website-pages";
 export const metadata: Metadata = { title: "درباره دنا" };
-export default function AboutPage() { return <DenaAboutPage />; }
+export default function AboutPage() { return <DenaAboutWebsitePage />; }
