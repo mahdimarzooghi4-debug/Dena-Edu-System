@@ -6,12 +6,13 @@ test("student mobile home shares the Dena web panel visual system", async ({ pag
 
   await expect(page.locator("html")).toHaveAttribute("lang", "fa");
   await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
-  await expect(page.getByRole("heading", { name: "سلام محمد 👋" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "سلام محمد" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "معلم هوشمند" })).toBeVisible();
-  await expect(page.getByText("فضای یادگیری تو در دنا")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "هر روز، یک قدم جلوتر" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "یادگیری را ادامه بده" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "دوره‌های من" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "تمرین‌ها و آزمون‌ها" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "مسیر رشد من" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "قدم‌های خوبت" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "باشگاه نخبگان" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "ریاضی دهم" }).first()).toBeVisible();
   await expect(page.getByText("حالت نمایش اپ دانش‌آموز")).toHaveCount(0);

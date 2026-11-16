@@ -159,7 +159,7 @@ function MobileNavigation({ active, demo, variant = "student", serviceActive = "
   return (
     <nav
       aria-label="منوی پایین دانش‌آموز"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-dena-border bg-white px-2 pb-[max(.55rem,env(safe-area-inset-bottom))] pt-2 lg:hidden"
+      className="fixed inset-x-3 bottom-2 z-40 rounded-[24px] border border-dena-border/80 bg-white/95 px-2 pb-[max(.55rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_12px_35px_-18px_rgba(28,24,68,.35)] backdrop-blur-xl lg:hidden"
     >
       <ul className="mx-auto grid max-w-[430px] grid-cols-5 gap-1">
         {mobileItems.map((item) => {
@@ -191,7 +191,7 @@ export function StudentShell({ active, title, children, demo = false, mobileNav 
   const eliteActive = active === "elite";
   const notificationsActive = active === "notifications";
   return (
-    <div className="min-h-screen bg-dena-bg lg:flex">
+    <div className="min-h-screen bg-[#f7f6fc] lg:flex">
       <aside className="hidden h-screen w-[260px] shrink-0 border-l border-dena-border bg-white lg:sticky lg:top-0 lg:flex lg:flex-col lg:px-4 lg:py-5">
         <Link href={hrefFor("/student", demo)} aria-label="دنا، خانه دانش‌آموز" className="inline-flex px-3">
           <Image src="/dena-app-logo.png" alt="دنا" width={84} height={48} priority />
