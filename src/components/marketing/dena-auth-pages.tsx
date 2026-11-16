@@ -91,7 +91,7 @@ export function DenaAuthPage({ mode }: { mode: AuthMode }) {
           </div>)}
         </div>}
         {page.links?.map((link) => <Link className="dena-auth-preview__inline-link" href={link.href} key={link.href}>{link.label}</Link>)}
-        {mode === "signup" ? <Link className="dena-auth-preview__submit" href="/login?flow=signup">{page.action}</Link> : mode === "recovery" ? <button className="dena-auth-preview__submit" type="button" disabled>{page.action}</button> : null}
+        {mode === "signup" ? <Link className="dena-auth-preview__submit" href="/login?flow=signup">{page.action}</Link> : mode === "recovery" ? <Link className="dena-auth-preview__submit" href="/account/recovery/continue">{page.action}</Link> : null}
         {page.secondary && <Link className="dena-auth-preview__secondary" href={page.secondary.href}>{page.secondary.label}</Link>}
         {mode !== "login" && <>
           <div className="dena-auth-preview__divider dena-auth-preview__divider--lower" />

@@ -7,6 +7,7 @@ import { TicketCreateForm } from "../../components/support/ticket-create-form";
 import { SupportNotifications } from "../../components/support/support-notifications";
 import { getServerAccessContext } from "../../server/access/actor";
 import { listRequesterTechnicalSupportTickets } from "../../server/support/tickets";
+import { DenaPublicLayout } from "../../components/marketing/dena-site-shell";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,9 +21,9 @@ export default async function SupportPage({
   searchParams,
 }: { searchParams: Promise<{ cursor?: string }> }) {
   if (!process.env.DATABASE_URL || !process.env.BETTER_AUTH_SECRET ||
-      !process.env.BETTER_AUTH_URL) redirect("/login");
+      !process.env.BETTER_AUTH_URL) return <PublicSupportPage />;
   const actor = await getServerAccessContext();
-  if (!actor) redirect("/login");
+  if (!actor) return <PublicSupportPage />;
   const { cursor } = await searchParams;
   const result = await listRequesterTechnicalSupportTickets(actor.userId, cursor);
   if (!result) notFound();
@@ -81,4 +82,21 @@ export default async function SupportPage({
       </div>
     </main>
   );
+}
+
+function PublicSupportPage() {
+  return <DenaPublicLayout>
+    <section className="dena-section" aria-labelledby="public-support-title">
+      <div className="site-title-block">
+        <span className="eyebrow">راهنمای دنا</span>
+        <h1 id="public-support-title">پشتیبانی دنا</h1>
+        <p>برای پرسش‌های عمومی با ما تماس بگیر. پیگیری خصوصی درخواست‌های ثبت‌شده از داخل حساب دانش‌آموزی انجام می‌شود.</p>
+      </div>
+      <div className="trust-cards">
+        <article><h2>تماس تلفنی</h2><p>شنبه تا پنجشنبه، در ساعات کاری</p><a href="tel:+982166485374" className={buttonClassName("primary")}>تماس با ۰۲۱-۶۶۴۸۵۳۷۴</a></article>
+        <article><h2>ارسال ایمیل</h2><p>پرسش خود را برای تیم دنا بفرست.</p><a href="mailto:info@denaedu.ir" className={buttonClassName("secondary")}>info@denaedu.ir</a></article>
+        <article><h2>پیگیری درخواست</h2><p>برای ثبت یا مشاهدهٔ درخواست خصوصی، وارد حساب دانش‌آموزی شو.</p><Link href="/login?next=%2Fsupport" className={buttonClassName("secondary")}>ورود به حساب</Link></article>
+      </div>
+    </section>
+  </DenaPublicLayout>;
 }
