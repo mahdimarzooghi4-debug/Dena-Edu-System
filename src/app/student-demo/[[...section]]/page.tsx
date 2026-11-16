@@ -484,7 +484,7 @@ function LessonDetail({ course, lessonNumber, tab = "sessions" }: { course: Demo
                   <span dir="ltr">۱۸:۴۲ <span className="text-white/50">/ ۴۵:۱۰</span></span>
                 </div>
                 <div className="flex items-center gap-3 text-xs text-white/80">
-                  <span>◖))</span><span className="rounded border border-white/40 px-1.5 py-0.5 text-[10px]">CC</span><span dir="ltr">1.0x</span><span>⛶</span>
+                  <span>◖))</span><span className="rounded border border-white/40 px-1.5 py-0.5 text-[10px]">CC</span><span dir="ltr">۱٫۰×</span><span>⛶</span>
                 </div>
               </div>
             </div>
@@ -493,7 +493,7 @@ function LessonDetail({ course, lessonNumber, tab = "sessions" }: { course: Demo
           <Card className="space-y-3 rounded-2xl p-4 md:p-6">
             <div className="flex items-center justify-between gap-3">
               <span className="rounded-full bg-dena-lavender px-3 py-1.5 text-xs font-bold text-dena-brand">در حال یادگیری</span>
-              <p className="text-xs font-bold text-dena-brand">{course.title} · جلسه {currentSessionNumber}</p>
+              <p className="text-xs font-bold text-dena-brand">{course.title} · جلسه {currentSessionNumber.toLocaleString("fa-IR")}</p>
             </div>
             <h2 className="text-lg font-extrabold text-dena-deep">{lesson}</h2>
             <p className="text-sm leading-6 text-dena-muted">مدرس: استاد احمدی</p>

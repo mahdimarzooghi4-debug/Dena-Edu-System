@@ -191,7 +191,7 @@ export function StudentShell({ active, title, children, demo = false, mobileNav 
   const eliteActive = active === "elite";
   const notificationsActive = active === "notifications";
   return (
-    <div className="min-h-screen bg-dena-bg lg:flex">
+    <div dir="rtl" className="min-h-screen bg-dena-bg lg:flex">
       <aside className="hidden h-screen w-[260px] shrink-0 border-l border-dena-border bg-white lg:sticky lg:top-0 lg:flex lg:flex-col lg:px-4 lg:py-5">
         <Link href={hrefFor("/student", demo)} aria-label="دنا، خانه دانش‌آموز" className="inline-flex px-3">
           <Image src="/dena-app-logo.png" alt="دنا" width={84} height={48} priority />
