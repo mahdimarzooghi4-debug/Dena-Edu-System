@@ -52,21 +52,21 @@ test("course curriculum and FAQ accordions really open and close", async ({ page
   await expect(faq.nth(1)).toHaveAttribute("open","");
 });
 
-test("all six demo courses have local photo covers and their own titles", async ({ page }) => {
+test("all six demo courses have local illustrated covers and their own titles", async ({ page }) => {
   await page.goto("/courses");
   const cardCovers=page.locator(".dena-catalog-card__cover");
   await expect(cardCovers).toHaveCount(6);
-  const asset=await page.request.get("/course-covers/dena-course-photos.webp");
+  const asset=await page.request.get("/course-covers/dena-course-art.svg");
   expect(asset.status()).toBe(200);
   expect((await asset.body()).byteLength).toBeGreaterThan(4000);
   for(const [index,[id,title,subject]] of demoCourses.entries()){
     await expect(cardCovers.nth(index)).toHaveAttribute("data-subject",subject);
-    expect(await cardCovers.nth(index).evaluate((node)=>getComputedStyle(node).backgroundImage)).toContain("/course-covers/dena-course-photos.webp");
+    expect(await cardCovers.nth(index).evaluate((node)=>getComputedStyle(node).backgroundImage)).toContain("/course-covers/dena-course-art.svg");
     await page.goto("/courses/"+id);
     await expect(page.getByRole("heading",{level:1})).toContainText(title);
     const cover=page.locator(".dena-course-detail__cover");
     await expect(cover).toHaveAttribute("data-subject",subject);
-    expect(await cover.evaluate((node)=>getComputedStyle(node).backgroundImage)).toContain("/course-covers/dena-course-photos.webp");
+    expect(await cover.evaluate((node)=>getComputedStyle(node).backgroundImage)).toContain("/course-covers/dena-course-art.svg");
     await page.goto("/courses");
   }
 });
