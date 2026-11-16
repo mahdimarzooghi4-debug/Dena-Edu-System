@@ -61,7 +61,7 @@ export function DenaSiteFooter() {
           <div className="dena-footer__contact">
             <h3>تماس با دنا</h3>
             <a href="tel:+982166485374"><Image src="/figma/dena-home/footer-phone.svg" alt="" width={16} height={16} /><span>تلفن:</span><span>۰۲۱-۶۶۴۸۵۳۷۴</span></a>
-            <a href="mailto:info@denaedu.ir"><Image src="/figma/dena-home/footer-mail.svg" alt="" width={16} height={16} /><span>ایمیل:</span><span>info@denaedu.ir</span></a>
+            <a href="mailto:info@denaes.ir"><Image src="/figma/dena-home/footer-mail.svg" alt="" width={16} height={16} /><span>ایمیل:</span><span>info@denaes.ir</span></a>
             <p><Image src="/figma/dena-home/footer-map-pin.svg" alt="" width={16} height={16} /><span>آدرس:</span><span>خیابان انقلاب، خیابان رازی، کوچه شهبازیان، پلاک ۲۲</span></p>
           </div>
         </div>
