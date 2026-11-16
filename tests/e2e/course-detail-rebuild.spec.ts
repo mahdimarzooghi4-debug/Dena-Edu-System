@@ -59,6 +59,13 @@ test("all six demo courses have local illustrated covers and their own titles", 
   const asset=await page.request.get("/course-covers/dena-course-art.svg");
   expect(asset.status()).toBe(200);
   expect((await asset.body()).byteLength).toBeGreaterThan(4000);
+  const loaded = await page.evaluate(async () => {
+    const illustration = new Image();
+    illustration.src = "/course-covers/dena-course-art.svg";
+    await illustration.decode();
+    return { width: illustration.naturalWidth, height: illustration.naturalHeight };
+  });
+  expect(loaded).toEqual({ width: 1200, height: 800 });
   for(const [index,[id,title,subject]] of demoCourses.entries()){
     await expect(cardCovers.nth(index)).toHaveAttribute("data-subject",subject);
     expect(await cardCovers.nth(index).evaluate((node)=>getComputedStyle(node).backgroundImage)).toContain("/course-covers/dena-course-art.svg");
