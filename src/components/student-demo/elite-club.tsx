@@ -15,22 +15,79 @@ const categories = [
 const demoBanner = <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold leading-7 text-amber-900">پیش‌نمایش فیگما · اطلاعات و وضعیت‌ها نمایشی‌اند؛ چیزی در پروندهٔ واقعی ثبت نمی‌شود.</div>;
 
 function ClubHome() {
-  return <div className="mx-auto max-w-3xl space-y-5">
-    <header className="space-y-2 text-right">
-      <h2 className="text-xl font-extrabold text-dena-deep md:text-2xl">باشگاه نخبگان</h2>
-      <p className="text-sm leading-7 text-dena-muted">فضایی ویژه برای فرصت‌ها و مسیرهای رشد بیشتر در دنا.</p>
-    </header>
-    <Card className="space-y-4 rounded-[20px] p-5 md:p-6">
-      <p className="text-center text-sm leading-7 text-dena-muted">شما هنوز در باشگاه نخبگان ثبت‌نام نکرده‌اید.</p>
-      <Link href="/student-demo/elite-club/registration" className={buttonClassName()+" mx-auto flex min-h-12 w-full max-w-[220px] items-center justify-center"}>
-        ثبت‌نام در باشگاه
-      </Link>
-    </Card>
-    <Card className="space-y-2 rounded-[20px] bg-dena-lavender/70 p-5 text-right md:p-6">
-      <h3 className="font-extrabold text-dena-deep">باشگاه نخبگان چه فضایی است؟</h3>
-      <p className="text-sm leading-7 text-dena-muted">باشگاه نخبگان فضایی برای دسترسی به فرصت‌ها و برنامه‌هایی است که در چارچوب دنا تعریف می‌شوند.</p>
-    </Card>
-  </div>;
+  const pillars = [
+    { number: "۰۱", title: "رشد آموزشی", text: "فرصت‌های یادگیری و تقویت مهارت‌های درسی برای اعضای باشگاه.", tone: "bg-indigo-100 text-indigo-700", icon: "✦" },
+    { number: "۰۲", title: "همراهی در تدریس", text: "آشنایی با مسیرهای مشارکت آموزشی در مدارس و مؤسسه‌های همکار.", tone: "bg-cyan-100 text-cyan-700", icon: "◉" },
+    { number: "۰۳", title: "حمایت رفاهی", text: "دسترسی به حمایت‌هایی که در چارچوب باشگاه تعریف و اعلام می‌شوند.", tone: "bg-emerald-100 text-emerald-700", icon: "♡" },
+  ];
+
+  return (
+    <div dir="rtl" className="space-y-6 text-right md:space-y-8">
+      <section className="relative isolate overflow-hidden rounded-[28px] bg-gradient-to-l from-[#21166f] via-[#4938c8] to-[#6251ed] px-5 py-6 text-white shadow-[0_18px_45px_-24px_rgba(69,54,200,.62)] md:px-8 md:py-8">
+        <div aria-hidden="true" className="absolute -left-12 -top-20 -z-10 size-56 rounded-full border-[34px] border-white/5" />
+        <div aria-hidden="true" className="absolute bottom-[-76px] left-[34%] -z-10 size-48 rounded-full bg-cyan-300/10 blur-2xl" />
+        <div className="relative grid gap-7 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-center">
+          <div className="max-w-2xl">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-indigo-50">
+              <span className="size-1.5 rounded-full bg-emerald-300" />
+              فرصت برای رشد استعدادها
+            </span>
+            <h2 className="mt-4 text-2xl font-extrabold leading-relaxed md:text-[32px]">باشگاه نخبگان دنا</h2>
+            <p className="mt-1 text-sm leading-7 text-indigo-100 md:text-base">مسیرهای آموزشی، حمایتی و مشارکتی را بشناس و برای عضویت در باشگاه اقدام کن.</p>
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <Link href="/student-demo/elite-club/registration" className="inline-flex min-h-11 items-center justify-center rounded-xl bg-white px-5 text-sm font-extrabold text-[#3729a8] shadow-sm transition hover:bg-indigo-50">
+                شروع فرایند عضویت
+              </Link>
+              <Link href="/student-demo/courses" className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/25 bg-white/10 px-5 text-sm font-bold text-white transition hover:bg-white/15">
+                دیدن دوره‌های من
+              </Link>
+            </div>
+          </div>
+          <div className="rounded-[22px] border border-white/15 bg-white/10 p-5 text-right backdrop-blur-sm">
+            <p className="text-sm font-bold text-indigo-100">فرایند عضویت</p>
+            <ol className="mt-4 space-y-3">
+              {["ثبت درخواست عضویت", "پاسخ به پرسش‌های ارزیابی", "پیگیری نتیجهٔ بررسی"].map((step, index) => (
+                <li key={step} className="flex items-center gap-3">
+                  <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-white/15 text-xs font-extrabold">{(index + 1).toLocaleString("fa-IR")}</span>
+                  <span className="text-sm font-semibold text-white">{step}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <div>
+          <p className="text-xs font-semibold text-dena-muted">حوزه‌های باشگاه</p>
+          <h3 className="mt-1 text-xl font-extrabold text-dena-deep">فرصت‌هایی برای رشد و مشارکت</h3>
+        </div>
+        <div className="grid gap-4 md:grid-cols-3">
+          {pillars.map((item) => (
+            <Card key={item.number} className="space-y-4 rounded-[22px] border-dena-border p-5 transition duration-200 hover:-translate-y-0.5 hover:shadow-lg md:p-6">
+              <div className="flex items-center justify-between">
+                <span className={"grid size-12 place-items-center rounded-2xl text-xl font-bold " + item.tone} aria-hidden="true">{item.icon}</span>
+                <span className="text-xs font-bold text-dena-muted">{item.number}</span>
+              </div>
+              <div>
+                <h4 className="font-extrabold text-dena-deep">{item.title}</h4>
+                <p className="mt-2 text-sm leading-7 text-dena-muted">{item.text}</p>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      <Card className="flex flex-col items-start justify-between gap-4 rounded-[24px] border-dena-brand/15 bg-dena-lavender/60 p-5 sm:flex-row sm:items-center md:p-6">
+        <div>
+          <p className="text-xs font-bold text-dena-brand">هنوز عضو باشگاه نیستی</p>
+          <h3 className="mt-1 font-extrabold text-dena-deep">برای شروع، درخواست عضویتت را ثبت کن</h3>
+          <p className="mt-1 text-sm leading-6 text-dena-muted">ارزیابی و وضعیت‌های این صفحه نمایشی هستند و در حساب واقعی ذخیره نمی‌شوند.</p>
+        </div>
+        <Link href="/student-demo/elite-club/registration" className={buttonClassName() + " inline-flex min-h-11 shrink-0 items-center justify-center px-5"}>ثبت‌نام در باشگاه</Link>
+      </Card>
+    </div>
+  );
 }
 
 function MemberHome() {
@@ -40,45 +97,73 @@ function MemberHome() {
     business: "/icons/elite-club/briefcase.svg",
     welfare: "/icons/elite-club/heart.svg",
   };
-  return <div className="space-y-4">
-    <header className="space-y-1.5 text-right">
-      <h2 className="text-xl font-extrabold text-dena-deep md:text-2xl">باشگاه نخبگان</h2>
-      <p className="text-sm leading-7 text-dena-muted">فضایی ویژه برای فرصت‌ها و مسیرهای رشد بیشتر در دنا.</p>
-    </header>
-    <Card className="flex flex-wrap items-center justify-between gap-3 rounded-[20px] p-4 md:p-5">
-      <div className="text-right">
-        <h3 className="font-extrabold text-dena-deep">وضعیت من در باشگاه</h3>
-        <p className="mt-2 text-sm text-dena-muted">شما عضو باشگاه نخبگان دنا هستید.</p>
-      </div>
-      <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">عضو باشگاه · نمونه</span>
-    </Card>
-    <section className="space-y-3" aria-labelledby="club-supports">
-      <SectionHeading id="club-supports">حمایت‌های باشگاه</SectionHeading>
-      <div className="space-y-3">
-        {categories.map((item) => (
-          <Card key={item.slug} className="space-y-3 rounded-[20px] p-4 md:p-5">
-            <div className="flex items-start justify-between gap-3">
-              <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-dena-bg">
-                <img src={iconByCategory[item.slug]} width={22} height={22} alt="" />
-              </span>
-              <div className="min-w-0 flex-1 text-right">
-                <h3 className="font-extrabold text-dena-deep">{item.title}</h3>
-                <p className="mt-2 text-sm leading-7 text-dena-muted">{item.description}</p>
+
+  return (
+    <div dir="rtl" className="space-y-6 text-right md:space-y-8">
+      <section className="relative isolate overflow-hidden rounded-[28px] bg-gradient-to-l from-[#21166f] via-[#4938c8] to-[#6251ed] px-5 py-6 text-white shadow-[0_18px_45px_-24px_rgba(69,54,200,.62)] md:px-8 md:py-8">
+        <div aria-hidden="true" className="absolute -left-12 -top-20 -z-10 size-52 rounded-full border-[30px] border-white/5" />
+        <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-indigo-50">
+              <span className="size-1.5 rounded-full bg-emerald-300" />
+              وضعیت نمونهٔ عضویت
+            </span>
+            <h2 className="mt-4 text-2xl font-extrabold md:text-[30px]">باشگاه نخبگان</h2>
+            <p className="mt-1 text-sm leading-7 text-indigo-100">فرصت‌های قابل دسترس و مسیرهای حمایتی را دنبال کن.</p>
+          </div>
+          <span className="inline-flex w-fit items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-extrabold text-emerald-700">
+            <span className="size-2 rounded-full bg-emerald-500" />
+            عضو باشگاه · نمونه
+          </span>
+        </div>
+      </section>
+
+      <section className="space-y-4" aria-labelledby="club-supports">
+        <div>
+          <p className="text-xs font-semibold text-dena-muted">فرصت‌ها و حمایت‌ها</p>
+          <SectionHeading id="club-supports">حوزه‌های باشگاه</SectionHeading>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          {categories.map((item) => (
+            <Card key={item.slug} className="flex h-full flex-col gap-4 rounded-[22px] border-dena-border p-5 transition duration-200 hover:-translate-y-0.5 hover:border-dena-brand/30 hover:shadow-lg md:p-6">
+              <div className="flex items-start gap-4">
+                <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-dena-lavender">
+                  <img src={iconByCategory[item.slug]} width={24} height={24} alt="" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="font-extrabold text-dena-deep">{item.title}</h3>
+                    <span className={"rounded-full px-3 py-1.5 text-[11px] font-bold " + (item.active ? "bg-emerald-50 text-emerald-700" : "bg-dena-bg text-dena-muted")}>
+                      {item.active ? "فرصت فعال · نمونه" : "در حال تعریف"}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm leading-7 text-dena-muted">{item.description}</p>
+                </div>
               </div>
-            </div>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <span className="inline-flex items-center gap-2 text-xs font-bold text-emerald-700">
-                <span className="size-2 rounded-full bg-emerald-500" aria-hidden="true" />
-                {item.active ? "فعال · نمونه" : "بدون فرصت فعال"}
-              </span>
-              <Link href={`/student-demo/elite-club/${item.slug}`} className="text-sm font-bold text-dena-brand hover:underline">مشاهده فرصت‌ها</Link>
-            </div>
-          </Card>
-        ))}
+              <div className="mt-auto flex items-center justify-between gap-3 border-t border-dena-border pt-4">
+                <span className="text-xs text-dena-muted">{item.active ? "مشاهدهٔ جزئیات و مسیر اقدام" : "هنوز فرصتی برای نمایش نیست"}</span>
+                <Link href={"/student-demo/elite-club/" + item.slug} className="shrink-0 text-sm font-bold text-dena-brand hover:underline">
+                  {item.active ? "مشاهده فرصت‌ها" : "مشاهده"}
+                </Link>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      <Card className="flex flex-col items-start justify-between gap-4 rounded-[22px] border-dena-border bg-white p-5 sm:flex-row sm:items-center md:p-6">
+        <div>
+          <p className="text-xs font-semibold text-dena-muted">یادگیری را ادامه بده</p>
+          <h3 className="mt-1 font-extrabold text-dena-deep">دوره‌های فعال خودت را دنبال کن</h3>
+        </div>
+        <Link href="/student-demo/courses" className={buttonClassName("outline") + " inline-flex min-h-10 items-center justify-center px-4"}>رفتن به دوره‌های من</Link>
+      </Card>
+
+      <div className="flex flex-wrap gap-2">
+        <Link href="/student-demo/elite-club" className="text-xs font-semibold text-dena-muted hover:text-dena-brand">نمایش حالت ثبت‌نام‌نشده</Link>
       </div>
-    </section>
-    <Link href="/student-demo/elite-club" className="inline-flex text-sm font-bold text-dena-brand">نمایش حالت ثبت‌نام‌نشده</Link>
-  </div>;
+    </div>
+  );
 }
 
 function Registration() {
