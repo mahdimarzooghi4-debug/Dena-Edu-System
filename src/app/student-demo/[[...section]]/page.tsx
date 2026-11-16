@@ -143,7 +143,7 @@ function HomeDashboard() {
       </section>
 
       <section aria-labelledby="next-lesson-title" className="space-y-3">
-        <div className="flex items-end justify-between gap-3">
+        <div className="flex flex-row-reverse items-end justify-between gap-3">
           <span className="text-[10px] font-semibold text-dena-muted md:text-xs">ادامه از جایی که ماندی</span>
           <div><p className="text-[10px] text-dena-brand md:text-xs">درس بعدی</p><h3 id="next-lesson-title" className="mt-0.5 text-base font-extrabold text-dena-deep md:text-lg">یادگیری را ادامه بده</h3></div>
         </div>
@@ -174,7 +174,7 @@ function HomeDashboard() {
       </Link>
 
       <section className="space-y-3 md:space-y-4">
-        <div className="flex items-end justify-between gap-3"><Link href="/student-demo/courses" className="text-[10px] font-bold text-dena-brand hover:underline md:text-xs">همهٔ دوره‌ها</Link><div><p className="text-[10px] text-dena-muted md:text-xs">برنامهٔ یادگیری</p><h3 className="mt-0.5 text-base font-extrabold text-dena-deep md:text-lg">دوره‌های من</h3></div></div>
+        <div className="flex flex-row-reverse items-end justify-between gap-3"><Link href="/student-demo/courses" className="text-[10px] font-bold text-dena-brand hover:underline md:text-xs">همهٔ دوره‌ها</Link><div><p className="text-[10px] text-dena-muted md:text-xs">برنامهٔ یادگیری</p><h3 className="mt-0.5 text-base font-extrabold text-dena-deep md:text-lg">دوره‌های من</h3></div></div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {courses.slice(1).map((course) => (
             <Link key={course.id} href={"/student-demo/courses/" + course.id} className="group flex items-center gap-3 rounded-[20px] border border-dena-border bg-white p-3.5 text-right shadow-sm transition hover:-translate-y-0.5 hover:border-dena-brand/25 hover:shadow-md md:p-4">
@@ -188,17 +188,17 @@ function HomeDashboard() {
 
       <div className="grid gap-4 xl:grid-cols-2">
         <section className="space-y-3 md:space-y-4">
-          <div className="flex items-end justify-between gap-3"><Link href="/student-demo/assessments" className="text-[10px] font-bold text-dena-brand hover:underline md:text-xs">همهٔ فعالیت‌ها</Link><div><p className="text-[10px] text-dena-muted md:text-xs">قدم بعدی</p><h3 className="mt-0.5 text-base font-extrabold text-dena-deep md:text-lg">تمرین‌ها و آزمون‌ها</h3></div></div>
+          <div className="flex flex-row-reverse items-end justify-between gap-3"><Link href="/student-demo/assessments" className="text-[10px] font-bold text-dena-brand hover:underline md:text-xs">همهٔ فعالیت‌ها</Link><div><p className="text-[10px] text-dena-muted md:text-xs">قدم بعدی</p><h3 className="mt-0.5 text-base font-extrabold text-dena-deep md:text-lg">تمرین‌ها و آزمون‌ها</h3></div></div>
           <div className="space-y-2.5">{assessments.slice(0, 2).map((item) => <Link key={item.title} href={item.href} className="flex items-center justify-between gap-3 rounded-2xl border border-dena-border bg-white p-3.5 text-right transition hover:border-dena-brand/30 hover:shadow-sm md:p-4"><span className={"shrink-0 rounded-full px-2.5 py-1 text-[9px] font-bold " + item.color}>{item.status}</span><span className="min-w-0 flex-1"><span className="block truncate text-xs font-bold text-dena-deep md:text-sm">{item.title}</span><span className="mt-0.5 block text-[9px] text-dena-muted md:text-xs">{item.course}</span></span><span aria-hidden="true" className="text-xs text-dena-muted">←</span></Link>)}</div>
         </section>
         <Card className="space-y-3 rounded-[22px] bg-white p-4 md:p-5">
-          <div className="flex items-center justify-between gap-3"><Link href="/student-demo/growth" className="text-[10px] font-bold text-dena-brand hover:underline md:text-xs">جزئیات رشد</Link><div><p className="text-[10px] text-dena-muted md:text-xs">این هفته</p><h3 className="mt-0.5 text-sm font-extrabold text-dena-deep md:text-base">قدم‌های خوبت</h3></div></div>
+          <div className="flex flex-row-reverse items-center justify-between gap-3"><Link href="/student-demo/growth" className="text-[10px] font-bold text-dena-brand hover:underline md:text-xs">جزئیات رشد</Link><div><p className="text-[10px] text-dena-muted md:text-xs">این هفته</p><h3 className="mt-0.5 text-sm font-extrabold text-dena-deep md:text-base">قدم‌های خوبت</h3></div></div>
           <p className="text-[10px] leading-6 text-dena-muted md:text-xs">۴ جلسهٔ آموزشی را تکمیل کردی و ۲ تمرین انجام دادی.</p>
           <div className="flex items-center gap-3"><div className="h-2 flex-1 overflow-hidden rounded-full bg-dena-lavender"><div className="h-full rounded-full bg-dena-mint" style={{ width: "68%" }} /></div><span className="text-[10px] font-extrabold text-dena-brand">۶۸٪</span></div>
         </Card>
       </div>
 
-      <Card className="flex items-center justify-between gap-3 rounded-[22px] border-dena-lavender bg-[#f0edff] p-4 md:p-5"><Link href="/student-demo/elite-club" className="rounded-xl bg-white px-3 py-2 text-[10px] font-bold text-dena-brand shadow-sm md:text-xs">دیدن فرصت‌ها</Link><div className="text-right"><p className="text-[10px] text-dena-brand md:text-xs">برای رشد بیشتر</p><h3 className="mt-0.5 text-sm font-extrabold text-dena-deep md:text-base">باشگاه نخبگان</h3><p className="mt-1 text-[10px] leading-5 text-dena-muted md:text-xs">فرصت‌های ویژهٔ یادگیری و پیشرفت.</p></div></Card>
+      <Card className="flex flex-row-reverse items-center justify-between gap-3 rounded-[22px] border-dena-lavender bg-[#f0edff] p-4 md:p-5"><Link href="/student-demo/elite-club" className="rounded-xl bg-white px-3 py-2 text-[10px] font-bold text-dena-brand shadow-sm md:text-xs">دیدن فرصت‌ها</Link><div className="text-right"><p className="text-[10px] text-dena-brand md:text-xs">برای رشد بیشتر</p><h3 className="mt-0.5 text-sm font-extrabold text-dena-deep md:text-base">باشگاه نخبگان</h3><p className="mt-1 text-[10px] leading-5 text-dena-muted md:text-xs">فرصت‌های ویژهٔ یادگیری و پیشرفت.</p></div></Card>
       <p className="text-center text-[9px] text-dena-muted md:text-[10px]">این صفحه با داده‌های نمونه برای نمایش امکانات اپ ساخته شده است.</p>
     </div>
   );
