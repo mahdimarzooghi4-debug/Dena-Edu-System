@@ -1,12 +1,12 @@
 /* Dena Elite Club — Figma 145:94. Uses the shared public header/footer. */
 .dena-elite-club {
-  --elite-violet: #5b4ce2;
-  --elite-deep: #352b68;
-  --elite-ink: #2b2544;
-  --elite-muted: #756f83;
-  --elite-soft: #f7f6fb;
-  --elite-lavender: #eae7ff;
-  --elite-border: #e5e1ed;
+  --elite-violet: var(--dena-purple, #5b4ce2);
+  --elite-deep: var(--dena-deepviolet, #352b68);
+  --elite-ink: var(--dena-ink, #2b2544);
+  --elite-muted: var(--dena-muted, #756f83);
+  --elite-soft: var(--dena-bg, #f7f6fb);
+  --elite-lavender: var(--dena-lavender, #eae7ff);
+  --elite-border: var(--dena-border, #e5e1ed);
   width: 100%;
   color: var(--elite-ink);
   background: #fff;
@@ -199,7 +199,7 @@
   border-radius: 50%;
 }
 .dena-elite-club__marker--violet { background: var(--elite-violet); }
-.dena-elite-club__marker--mint { background: #42cfa7; }
+.dena-elite-club__marker--mint { background: var(--dena-mint, #42cfa7); }
 .dena-elite-club__pillar > p {
   width: 100%;
   margin: 0;
