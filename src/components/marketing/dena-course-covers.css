@@ -1,0 +1,17 @@
+/* One locally hosted atlas of six original Dena course illustrations.
+   All six preview images are selected by subject; no remote runtime dependency. */
+.dena-course-cover {
+  background-image:url("/course-covers/dena-course-art.svg")!important;
+  background-repeat:no-repeat!important;
+  background-size:300% auto!important;
+  background-color:#e9e3f4!important;
+}
+.dena-course-cover[data-subject="chemistry"] { background-position:0% 0%!important; }
+.dena-course-cover[data-subject="physics"] { background-position:50% 0%!important; }
+.dena-course-cover[data-subject="math"] { background-position:100% 0%!important; }
+.dena-course-cover[data-subject="biology"] { background-position:0% 100%!important; }
+.dena-course-cover[data-subject="arabic"] { background-position:50% 100%!important; }
+.dena-course-cover[data-subject="literature"] { background-position:100% 100%!important; }
+.dena-catalog-card__cover.dena-course-cover { height:179px; width:100%; display:block; border:0; }
+.dena-catalog-card__cover.dena-course-cover::before,
+.dena-catalog-card__cover.dena-course-cover::after { content:none!important; display:none!important; }
