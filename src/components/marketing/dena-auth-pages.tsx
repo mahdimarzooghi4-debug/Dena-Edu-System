@@ -84,6 +84,10 @@ export function DenaAuthPage({ mode }: { mode: AuthMode }) {
         <div className="dena-auth-preview__divider" />
         {mode === "login" ? <>
           <MobileSignIn enabled={smsEnabled} />
+          <div className="mt-4">
+            <Link className="dena-auth-preview__submit" href="/student-demo">ورود آزمایشی به پنل دانش‌آموز (بدون پیامک یا پرداخت)</Link>
+            <p className="dena-auth-preview__disclaimer">این پنل با داده‌های نمونه نمایش داده می‌شود و به حساب واقعی دسترسی ندارد.</p>
+          </div>
         </> : <div className="dena-auth-preview__fields">
           {page.fields.map((field) => <div className="dena-auth-preview__field" key={field.label}>
             <label>{field.label}{field.required !== false && <> <span>*</span></>}</label>
