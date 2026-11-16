@@ -95,26 +95,26 @@ function HomeDashboard() {
   ];
 
   return (
-    <div dir="rtl" className="space-y-5 text-right md:space-y-7">
-      <section className="relative isolate overflow-hidden rounded-[26px] bg-gradient-to-l from-[#5b4ce2] via-[#4434c4] to-[#24165f] p-5 text-white shadow-[0_18px_40px_-24px_rgba(53,43,104,.65)] md:rounded-[32px] md:p-8">
+    <div dir="rtl" className="space-y-4 text-right md:space-y-7">
+      <section className="relative isolate overflow-hidden rounded-[24px] bg-gradient-to-l from-[#5b4ce2] via-[#4434c4] to-[#24165f] p-4 text-white shadow-[0_18px_40px_-24px_rgba(53,43,104,.65)] md:rounded-[32px] md:p-8">
         <div aria-hidden="true" className="pointer-events-none absolute -left-10 -top-20 size-56 rounded-full border-[22px] border-white/10" />
         <div aria-hidden="true" className="pointer-events-none absolute -left-1 top-4 size-36 rounded-full border border-white/10" />
-        <div className="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(300px,.85fr)] lg:items-center">
-          <div className="space-y-3">
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[10px] font-bold text-white/90 md:text-xs">
+        <div className="relative grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(300px,.85fr)] lg:items-center lg:gap-6">
+          <div className="space-y-2 md:space-y-3">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[9px] font-bold text-white/90 md:py-1.5 md:text-xs">
               <span className="size-1.5 rounded-full bg-dena-mint" />
               فضای یادگیری تو در دنا
             </span>
-            <h2 className="text-[25px] font-extrabold leading-relaxed md:text-[32px]">سلام محمد 👋</h2>
-            <p className="max-w-xl text-xs leading-6 text-white/80 md:text-sm md:leading-7">
+            <h2 className="text-[23px] font-extrabold leading-relaxed md:text-[32px]">سلام محمد 👋</h2>
+            <p className="max-w-xl text-[11px] leading-5 text-white/80 md:text-sm md:leading-7">
               یک قدم کوچک امروز، تو را به هدف‌های بزرگ‌تر نزدیک‌تر می‌کند.
             </p>
-            <div className="flex flex-wrap gap-2 pt-1">
-              <Link href="/student-demo/courses/math-7/lessons/3" className="inline-flex min-h-10 items-center justify-center rounded-xl bg-white px-4 text-xs font-extrabold text-dena-deep transition hover:bg-white/90 md:min-h-11 md:px-5 md:text-sm">
+            <div className="flex flex-wrap items-center gap-3 pt-1">
+              <Link href="/student-demo/courses/math-7/lessons/3" className="inline-flex min-h-10 items-center justify-center rounded-xl bg-white px-4 text-[11px] font-extrabold text-dena-deep transition hover:bg-white/90 md:min-h-11 md:px-5 md:text-sm">
                 ادامهٔ یادگیری
               </Link>
-              <Link href="/student-demo/growth" className="inline-flex min-h-10 items-center justify-center rounded-xl border border-white/30 bg-white/10 px-4 text-xs font-bold text-white transition hover:bg-white/15 md:min-h-11 md:px-5 md:text-sm">
-                مشاهدهٔ مسیر رشد
+              <Link href="/student-demo/growth" className="text-[10px] font-bold text-white/90 underline decoration-white/40 underline-offset-4 md:text-sm">
+                مسیر رشد من
               </Link>
             </div>
           </div>
@@ -124,17 +124,17 @@ function HomeDashboard() {
               { value: "۱", label: "فعالیت امروز" },
               { value: "۶۸٪", label: "پیشرفت هفته" },
             ].map((item) => (
-              <div key={item.label} className="rounded-2xl border border-white/20 bg-white/10 px-2 py-3 text-center backdrop-blur-sm md:rounded-[20px] md:px-4 md:py-5">
-                <p className="text-lg font-extrabold md:text-2xl">{item.value}</p>
-                <p className="mt-1 text-[9px] leading-4 text-white/80 md:text-xs">{item.label}</p>
+              <div key={item.label} className="rounded-2xl border border-white/20 bg-white/10 px-2 py-2.5 text-center backdrop-blur-sm md:rounded-[20px] md:px-4 md:py-5">
+                <p className="text-base font-extrabold md:text-2xl">{item.value}</p>
+                <p className="mt-0.5 text-[8px] leading-4 text-white/80 md:mt-1 md:text-xs">{item.label}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <Link href="/student-demo/ai-tutor" className="group flex items-center justify-between gap-4 rounded-[22px] border border-dena-lavender bg-[#f0edff] p-4 transition hover:border-dena-brand/30 hover:bg-[#ece8ff] md:p-5">
-        <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-white text-dena-brand shadow-sm md:size-12" aria-hidden="true">
+      <Link href="/student-demo/ai-tutor" className="group flex items-center justify-between gap-3 rounded-[20px] border border-dena-lavender bg-[#f0edff] p-3.5 transition hover:border-dena-brand/30 hover:bg-[#ece8ff] md:gap-4 md:rounded-[22px] md:p-5">
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white text-dena-brand shadow-sm md:size-12 md:rounded-2xl" aria-hidden="true">
           <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
             <path d="m12 3 1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7z" /><path d="m19 16 .7 2.3L22 19l-2.3.7L19 22l-.7-2.3L16 19l2.3-.7z" />
           </svg>
@@ -160,12 +160,14 @@ function HomeDashboard() {
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {courses.map((course) => (
             <Card key={course.id} className="overflow-hidden rounded-[20px] p-0 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md md:rounded-[22px]">
-              <div className={"relative flex min-h-[78px] items-center justify-between overflow-hidden bg-gradient-to-l " + course.accent + " px-4 py-3 text-white"}>
+              <div className={"relative flex min-h-[68px] items-center justify-between overflow-hidden bg-gradient-to-l " + course.accent + " px-4 py-3 text-white md:min-h-[78px]"}>
                 <div aria-hidden="true" className="absolute -left-4 -top-8 size-28 rounded-full border-[14px] border-white/10" />
-                <span className="relative grid size-10 place-items-center rounded-xl border border-white/40 bg-white/15 text-lg font-bold">{course.icon}</span>
+                <span className="relative grid size-9 place-items-center rounded-xl border border-white/40 bg-white/15 md:size-10">
+                  <CourseGlyph courseId={course.id} />
+                </span>
                 <span className="relative rounded-full bg-black/10 px-3 py-1 text-[9px] font-bold">در حال یادگیری</span>
               </div>
-              <div className="space-y-3 p-4">
+              <div className="space-y-2.5 p-3.5 text-right md:space-y-3 md:p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <h4 className="truncate text-sm font-extrabold text-dena-deep">{course.title}</h4>
