@@ -150,7 +150,7 @@ export function DenaInstituteRequestWebsitePage() {
       <div className="dena-next dena-next--request" data-figma-node="149:229">
         <section className="dena-next__request-intro">
           <Eyebrow>همکاری با دنا / درخواست اولیه</Eyebrow>
-          <h1>درخواست همکاری مؤسسه آموزشی</h1>
+          <h1>درخواست همکاری مؤسسهٔ آموزشی</h1>
           <p>اطلاعات اولیه مؤسسه و راه ارتباطی نماینده آن را ثبت کنید تا امکان بررسی همکاری آموزشی با دنا فراهم شود. ارسال درخواست به معنای تأیید همکاری یا ایجاد حساب مؤسسه نیست.</p>
         </section>
         <section className="dena-next__request-layout">
