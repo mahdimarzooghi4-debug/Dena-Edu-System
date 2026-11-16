@@ -1,7 +1,7 @@
-/* One locally hosted photographic atlas. Source imagery produced for Dena course mockups.
+/* One locally hosted atlas of six original Dena course illustrations.
    All six preview images are selected by subject; no remote runtime dependency. */
 .dena-course-cover {
-  background-image:url("/course-covers/dena-course-photos.webp")!important;
+  background-image:url("/course-covers/dena-course-art.svg")!important;
   background-repeat:no-repeat!important;
   background-size:300% auto!important;
   background-color:#e9e3f4!important;
