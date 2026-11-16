@@ -616,8 +616,8 @@ function AiTutor() {
         </Card>
       </section>
 
-      <section id="demo-ai-growth" className="space-y-4 scroll-mt-6">
-        <SectionHeading note="بر اساس وضعیت فعلی معلم دنا">
+      <section className="space-y-4 scroll-mt-6">
+        <SectionHeading id="demo-ai-growth" note="بر اساس وضعیت فعلی معلم دنا">
           مسیر یادگیری معلم هوشمند
         </SectionHeading>
         <ol className="grid gap-4 lg:grid-cols-3">
