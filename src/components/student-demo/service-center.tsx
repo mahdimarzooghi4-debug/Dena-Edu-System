@@ -129,7 +129,7 @@ export function StudentDemoServiceCenter() {
           <div className="grid grid-cols-3 gap-2 md:min-w-[350px] md:gap-3">
             {[
               [services.length.toLocaleString("fa-IR"), "خدمت نمونه"],
-              [categories.length - 1, "دستهٔ خدمات"],
+              [(categories.length - 1).toLocaleString("fa-IR"), "دستهٔ خدمات"],
               [openOrders.length.toLocaleString("fa-IR"), "درخواست باز"],
             ].map(([value, label]) => (
               <div key={label} className="rounded-2xl border border-white/10 bg-white/10 px-2 py-3 text-center backdrop-blur-sm md:px-4 md:py-4">
