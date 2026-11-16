@@ -866,71 +866,173 @@ function AssessmentsDemo({ filter = "all", detail }: { filter?: string; detail?:
   );
 }
 function GrowthDemo() {
-  const courses=[{name:"ریاضی دهم",progress:33,detail:"جلسه ۸ از ۲۴ · در حال پیشرفت"},{name:"فیزیک دهم",progress:27,detail:"جلسه ۵ از ۱۸ · در حال پیشرفت"},{name:"شیمی دهم",progress:12,detail:"جلسه ۲ از ۱۶ · شروع‌شده"}];
-  const activity=[{when:"امروز",text:"جلسه ۷ ریاضی دهم تکمیل شد"},{when:"دیروز",text:"آزمون یادگیری تابع با موفقیت انجام شد"},{when:"۳ روز پیش",text:"مرور مجدد یک جلسه تکمیل شد"}];
-  return <div>
-    <div className="space-y-4 md:hidden">
-      <header className="space-y-1 text-right"><h2 className="text-base font-extrabold text-dena-deep">مسیر رشد من</h2><p className="text-xs leading-6 text-dena-muted">پیشرفت یادگیری و قدم‌های بعدی‌ات را ببین.</p></header>
-      <Card className="space-y-4 rounded-2xl border-dena-brand p-5">
-        <div className="flex items-center justify-between gap-3"><span className="rounded-full bg-dena-lavender px-2.5 py-1 text-[11px] font-bold text-dena-brand">پیشنهادی امروز</span><h3 className="text-[13px] font-semibold text-dena-muted">قدم بعدی شما</h3></div>
-        <div className="space-y-1 text-right"><p className="text-lg font-extrabold text-dena-deep">ادامه جلسه ۸ — تابع و نمودار</p><p className="text-xs text-dena-muted">ریاضی دهم</p></div>
-        <Link href="/student-demo/courses/math-7/lessons/3" className={buttonClassName()+" h-12 w-full"}>ادامه مسیر یادگیری</Link>
-      </Card>
-      <Card className="space-y-4 rounded-2xl p-4">
-        <div className="flex items-center justify-between gap-2"><span className="rounded-full border border-dena-border bg-dena-bg px-3 py-1.5 text-xs font-bold text-dena-brand">ریاضی دهم ▼</span><h3 className="text-base font-extrabold text-dena-deep">روند رشد من</h3></div>
-        <div className="space-y-3 rounded-xl border border-dena-border bg-dena-bg p-3">
-          <p className="text-right text-[11px] font-semibold text-dena-muted">روند عملکرد آموزشی</p>
-          <div className="relative h-[200px] overflow-hidden rounded-xl border border-dena-border bg-dena-bg">
-            <svg viewBox="0 0 300 200" role="img" aria-label="روند نمونهٔ عملکرد آموزشی از ۴۲ به ۶۸" className="h-full w-full">
-              {[35,75,115,155].map(y=><line key={y} x1="4" y1={y} x2="296" y2={y} stroke="#e5e1ed" strokeWidth="1"/>)}
-              <polyline points="10,150 57,120 104,95 151,125 198,75 245,98 290,58" fill="none" stroke="#5b4ce2" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-              {[[10,150],[57,120],[104,95],[151,125],[198,75],[245,98],[290,58]].map(([x,y],i)=><circle key={i} cx={x} cy={y} r="5" fill={i===3?"#f0a34a":"#42cfa7"} stroke="white" strokeWidth="2"/>)}
-              <text x="7" y="46" fontSize="10" fill="#42cfa7">مرور درس تکمیل شد</text><text x="130" y="145" fontSize="10" fill="#c46500">نیاز به مرور</text>
-              <text x="10" y="188" fontSize="9" fill="#5b4ce2">شروع دوره</text><text x="64" y="188" fontSize="9" fill="#756f83">ارزیابی</text><text x="120" y="188" fontSize="9" fill="#756f83">فصل اول</text><text x="175" y="188" fontSize="9" fill="#756f83">فصل دوم</text><text x="224" y="188" fontSize="9" fill="#756f83">مرور مجدد</text><text x="270" y="188" fontSize="9" fill="#5b4ce2">اکنون</text>
-            </svg>
+  const courses = [
+    { id: "math-7", name: "ریاضی دهم", provider: "مؤسسه آموزشی البرز", progress: 75, detail: "۱۸ جلسه از ۲۴ جلسه", tone: "bg-indigo-500" },
+    { id: "science-7", name: "فیزیک دهم", provider: "آموزشگاه نور دانش", progress: 60, detail: "۱۲ جلسه از ۲۰ جلسه", tone: "bg-cyan-500" },
+    { id: "chemistry-10", name: "شیمی دهم", provider: "مرکز علمی پژوهان", progress: 45, detail: "۸ جلسه از ۱۸ جلسه", tone: "bg-emerald-500" },
+  ];
+  const activity = [
+    { day: "امروز", title: "جلسهٔ تابع و نمودار را دیدی", detail: "ریاضی دهم", icon: "✓", tone: "bg-emerald-50 text-emerald-700" },
+    { day: "دیروز", title: "تمرین نور را مرور کردی", detail: "فیزیک دهم", icon: "↻", tone: "bg-cyan-50 text-cyan-700" },
+    { day: "۳ روز پیش", title: "جلسهٔ ساختار اتم را تکمیل کردی", detail: "شیمی دهم", icon: "✓", tone: "bg-violet-50 text-violet-700" },
+  ];
+
+  return (
+    <div dir="rtl" className="space-y-6 text-right md:space-y-8">
+      <section className="relative isolate overflow-hidden rounded-[28px] bg-gradient-to-l from-[#21166f] via-[#4938c8] to-[#6251ed] px-5 py-6 text-white shadow-[0_18px_45px_-24px_rgba(69,54,200,.62)] md:px-8 md:py-8">
+        <div aria-hidden="true" className="absolute -left-12 -top-20 -z-10 size-56 rounded-full border-[34px] border-white/5" />
+        <div aria-hidden="true" className="absolute bottom-[-76px] left-[34%] -z-10 size-48 rounded-full bg-cyan-300/10 blur-2xl" />
+        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="max-w-2xl">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-indigo-50">
+              <span className="size-1.5 rounded-full bg-emerald-300" />
+              گزارش یادگیری تو · دادهٔ نمونه
+            </span>
+            <h2 className="mt-4 text-2xl font-extrabold leading-relaxed md:text-[32px]">مسیر رشد من</h2>
+            <p className="mt-1 text-sm leading-7 text-indigo-100 md:text-base">پیشرفت دوره‌ها، فعالیت‌های اخیر و قدم بعدی یادگیری‌ات را یک‌جا ببین.</p>
           </div>
-          <div className="grid grid-cols-3 divide-x divide-x-reverse divide-dena-border rounded-xl border border-dena-border bg-white px-2 py-3 text-right">
-            {[["شروع دوره","۴۲","text-dena-deep"],["تغییر","+۲۶","text-emerald-600"],["اکنون","۶۸","text-dena-brand"]].map(([label,value,tone])=><div key={label} className="px-2"><p className="text-[11px] text-dena-muted">{label}</p><p className={`mt-1 text-base font-extrabold ${tone}`}>{value}</p></div>)}
+          <div className="grid grid-cols-3 gap-2.5 sm:min-w-[390px] md:gap-3">
+            {[
+              ["۳", "دورهٔ فعال"],
+              ["۴", "جلسهٔ این هفته"],
+              ["۶۸٪", "هدف هفتگی"],
+            ].map(([value, label]) => (
+              <div key={label} className="rounded-2xl border border-white/10 bg-white/10 px-2 py-4 text-center backdrop-blur-sm md:px-4">
+                <p className="text-xl font-extrabold md:text-2xl">{value}</p>
+                <p className="mt-1 text-[10px] leading-5 text-indigo-100 md:text-xs">{label}</p>
+              </div>
+            ))}
           </div>
         </div>
-        <div className="rounded-xl border border-dena-border bg-white p-3 text-right">
-          <p className="text-xs text-dena-muted">دوره‌های من</p><div className="mt-2 flex items-center justify-between gap-3"><span className="text-xs text-dena-muted">جلسه ۸ از ۲۴ · ۳۳٪ پیشرفت</span><span className="text-sm font-extrabold text-dena-deep">ریاضی دهم</span></div>
-          <div className="mt-2 h-2 rounded-full bg-dena-lavender"><div className="h-2 w-[33%] rounded-full bg-dena-mint"/></div>
-          <Link href="/student-demo/courses/math-7" className="mt-3 inline-block text-xs font-bold text-dena-brand">ادامه ←</Link>
-        </div>
-      </Card>
-      <Card className="space-y-4 rounded-2xl p-4">
-        <div className="flex items-center justify-between gap-3"><Link href="/student-demo/courses/math-7" className="text-xs font-bold text-dena-brand">مشاهده دوره ←</Link><h3 className="font-extrabold text-dena-deep">مسیر یادگیری ریاضی</h3></div>
-        <ol className="space-y-2">{[{title:"دامنه تابع",session:"جلسه ۶",done:true},{title:"مفهوم تابع",session:"جلسه ۷",done:true},{title:"تابع و نمودار",session:"جلسه ۸",active:true},{title:"انواع نمودار",session:"جلسه ۹"}].map((item,i)=><li key={item.title} className="flex items-center gap-3 rounded-xl border border-dena-border p-3"><span className={`grid size-8 shrink-0 place-items-center rounded-full text-xs font-bold ${item.done?"bg-emerald-50 text-emerald-700":item.active?"bg-dena-lavender text-dena-brand":"bg-dena-bg text-dena-muted"}`}>{item.done?"✓":i+6}</span><span className="flex-1 text-right"><span className="block text-sm font-semibold text-dena-deep">{item.title}</span><span className="text-xs text-dena-muted">{item.session}</span></span></li>)}</ol>
-      </Card>
-      <Card className="space-y-3 rounded-2xl p-4"><h3 className="text-right font-extrabold text-dena-deep">دستاوردهای اخیر</h3>{activity.map(a=><div key={a.text} className="flex justify-between gap-3 border-t border-dena-border pt-3"><p className="text-right text-sm">{a.text}</p><span className="shrink-0 text-xs text-dena-muted">{a.when}</span></div>)}</Card>
-      <p className="text-xs leading-6 text-dena-muted">اعداد و فعالیت‌ها نمونه هستند و به حساب واقعی متصل نیستند.</p>
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-[1.2fr_.8fr]">
+        <Card className="relative overflow-hidden rounded-[24px] border-0 bg-[#f0edff] p-5 md:p-6">
+          <div aria-hidden="true" className="absolute -left-8 -top-8 size-32 rounded-full bg-white/70 blur-xl" />
+          <div className="relative flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
+            <div>
+              <span className="inline-flex rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-dena-brand">قدم بعدی پیشنهادی</span>
+              <h3 className="mt-3 text-lg font-extrabold text-dena-deep">ادامهٔ جلسهٔ تابع و نمودار</h3>
+              <p className="mt-1 text-sm text-dena-muted">ریاضی دهم · جلسهٔ ۸ از ۲۴</p>
+            </div>
+            <Link href="/student-demo/courses/math-7/lessons/3" className={buttonClassName() + " inline-flex min-h-11 shrink-0 items-center justify-center gap-2 px-5"}>
+              ادامهٔ یادگیری <span aria-hidden="true">←</span>
+            </Link>
+          </div>
+        </Card>
+        <Card className="flex items-center gap-4 rounded-[24px] border-dena-border p-5 md:p-6">
+          <div className="grid size-[76px] shrink-0 place-items-center rounded-full" style={{ background: "conic-gradient(#27c9a4 0 68%, #eeeaff 68% 100%)" }}>
+            <div className="grid size-[58px] place-items-center rounded-full bg-white text-sm font-extrabold text-dena-deep">۶۸٪</div>
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-dena-muted">پیشرفت هفتگی</p>
+            <h3 className="mt-1 font-extrabold text-dena-deep">ریتم خوبی داری!</h3>
+            <p className="mt-1 text-xs leading-6 text-dena-muted">۴ جلسه و ۲ تمرین در این هفته تکمیل شده است.</p>
+          </div>
+        </Card>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(300px,.65fr)]">
+        <Card className="space-y-5 rounded-[24px] border-dena-border p-5 md:p-6">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold text-dena-muted">بر پایهٔ فعالیت‌های ثبت‌شده در دمو</p>
+              <h3 className="mt-1 text-lg font-extrabold text-dena-deep">روند یادگیری</h3>
+            </div>
+            <span className="rounded-full bg-dena-bg px-3 py-1.5 text-xs font-bold text-dena-muted">ریاضی دهم</span>
+          </div>
+          <div className="rounded-2xl bg-dena-bg p-4">
+            <div className="flex items-center justify-between text-[11px] text-dena-muted"><span>شاخص نمونه</span><span>شروع دوره تا امروز</span></div>
+            <div className="mt-4 grid grid-cols-6 items-end gap-2" role="img" aria-label="روند نمونهٔ شاخص یادگیری در شش مقطع">
+              {[42, 48, 56, 53, 62, 68].map((value, index) => (
+                <div key={index} className="flex flex-col items-center gap-2">
+                  <span className="text-[10px] font-bold text-dena-muted">{value.toLocaleString("fa-IR")}</span>
+                  <div className="flex h-32 w-full items-end rounded-t-lg bg-white">
+                    <div className={"w-full rounded-t-lg " + (index === 5 ? "bg-dena-brand" : "bg-dena-mint")} style={{ height: value + "%" }} />
+                  </div>
+                  <span className="text-center text-[9px] leading-4 text-dena-muted">{["شروع", "ارزیابی", "فصل ۱", "مرور", "فصل ۲", "اکنون"][index]}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="grid grid-cols-3 divide-x divide-x-reverse divide-dena-border rounded-2xl border border-dena-border bg-white px-2 py-3 text-right">
+            {[["شروع دوره", "۴۲", "text-dena-deep"], ["تغییر", "+۲۶", "text-emerald-600"], ["اکنون", "۶۸", "text-dena-brand"]].map(([label, value, tone]) => (
+              <div key={label} className="px-3">
+                <p className="text-[11px] text-dena-muted">{label}</p>
+                <p className={"mt-1 text-lg font-extrabold " + tone}>{value}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs leading-6 text-dena-muted">این شاخص‌ها نمونه‌اند و نمرهٔ رسمی یا اثبات یادگیری محسوب نمی‌شوند.</p>
+        </Card>
+
+        <Card className="space-y-5 rounded-[24px] border-dena-border p-5 md:p-6">
+          <div>
+            <p className="text-xs font-semibold text-dena-muted">نمای کلی</p>
+            <h3 className="mt-1 text-lg font-extrabold text-dena-deep">دوره‌های من</h3>
+          </div>
+          <div className="space-y-5">
+            {courses.map((course) => (
+              <div key={course.id} className="space-y-2">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="text-right">
+                    <Link href={"/student-demo/courses/" + course.id} className="text-sm font-extrabold text-dena-deep hover:text-dena-brand">{course.name}</Link>
+                    <p className="mt-1 text-[11px] text-dena-muted">{course.provider}</p>
+                  </div>
+                  <span className="shrink-0 text-sm font-extrabold text-dena-brand">{course.progress.toLocaleString("fa-IR")}٪</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-dena-lavender">
+                  <div className={"h-full rounded-full " + course.tone} style={{ width: course.progress + "%" }} />
+                </div>
+                <p className="text-[11px] text-dena-muted">{course.detail}</p>
+              </div>
+            ))}
+          </div>
+          <Link href="/student-demo/courses" className="flex min-h-10 items-center justify-center rounded-xl border border-dena-border text-xs font-bold text-dena-brand transition hover:bg-dena-lavender">رفتن به دوره‌های من</Link>
+        </Card>
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-[1.1fr_.9fr]">
+        <Card className="space-y-4 rounded-[24px] border-dena-border p-5 md:p-6">
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold text-dena-muted">به‌تازگی</p>
+              <h3 className="mt-1 text-lg font-extrabold text-dena-deep">فعالیت‌های یادگیری</h3>
+            </div>
+            <Link href="/student-demo/assessments" className="text-xs font-bold text-dena-brand hover:underline">تمرین‌ها و آزمون‌ها ←</Link>
+          </div>
+          <ol className="space-y-3">
+            {activity.map((item) => (
+              <li key={item.title} className="flex items-center gap-3 rounded-2xl border border-dena-border bg-white p-3.5">
+                <span className={"grid size-10 shrink-0 place-items-center rounded-xl text-sm font-extrabold " + item.tone} aria-hidden="true">{item.icon}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold text-dena-deep">{item.title}</p>
+                  <p className="mt-1 text-xs text-dena-muted">{item.detail}</p>
+                </div>
+                <span className="shrink-0 text-[11px] text-dena-muted">{item.day}</span>
+              </li>
+            ))}
+          </ol>
+        </Card>
+
+        <Card className="flex flex-col justify-between gap-5 rounded-[24px] border-dena-border bg-gradient-to-bl from-white to-dena-lavender/60 p-5 md:p-6">
+          <div>
+            <span className="inline-flex rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-dena-brand">نشان این هفته</span>
+            <div className="mt-4 flex items-center gap-4">
+              <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-amber-100 text-2xl text-amber-600" aria-hidden="true">✦</span>
+              <div>
+                <h3 className="font-extrabold text-dena-deep">پیوستگی در یادگیری</h3>
+                <p className="mt-1 text-sm leading-6 text-dena-muted">چند روز پیاپی برای یادگیری وقت گذاشتی.</p>
+              </div>
+            </div>
+          </div>
+          <Link href="/student-demo/elite-club" className="inline-flex min-h-10 items-center justify-center rounded-xl border border-dena-brand/20 bg-white px-4 text-xs font-bold text-dena-brand transition hover:border-dena-brand">دیدن فرصت‌های باشگاه نخبگان</Link>
+        </Card>
+      </section>
+
+      <p className="rounded-2xl bg-dena-bg px-4 py-3 text-xs leading-6 text-dena-muted">تمام داده‌های این صفحه برای پیش‌نمایش رابط هستند و به حساب واقعی وصل نیستند.</p>
     </div>
-    <div className="hidden space-y-6 md:block">
-      <header className="space-y-2 text-right"><h2 className="text-2xl font-extrabold text-dena-deep">مسیر رشد من</h2><p className="text-sm text-dena-muted">پیشرفت یادگیری و قدم‌های بعدی‌ات را در یک مسیر ببین.</p></header>
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="space-y-5 p-5 md:p-6"><div className="flex items-center justify-between gap-3"><span className="rounded-full bg-dena-lavender px-3 py-1.5 text-xs font-bold text-dena-brand">پیشنهادی امروز</span><h3 className="font-extrabold text-dena-deep">قدم بعدی یادگیری</h3></div><div className="text-right"><p className="text-lg font-extrabold text-dena-deep">ادامه جلسه ۸ — تابع و نمودار</p><p className="mt-2 text-sm text-dena-muted">دوره مرتبط: ریاضی دهم</p></div><Link href="/student-demo/courses/math-7/lessons/3" className={buttonClassName()}>ادامه یادگیری</Link></Card>
-        <Card className="space-y-5 p-5 md:p-6"><div className="flex items-center justify-between gap-3"><span className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">در حال پیشرفت</span><h3 className="font-extrabold text-dena-deep">وضعیت فعلی شما</h3></div><div className="space-y-2 text-right"><p className="text-lg font-extrabold">ریاضی دهم</p><p className="text-sm text-dena-muted">مرحله فعلی: تابع و نمودار</p><p className="text-sm text-dena-muted">جلسه فعال: جلسه ۸ از ۲۴</p></div></Card>
-      </div>
-      <Card className="space-y-5 p-5 md:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3"><span className="rounded-lg border border-dena-border px-3 py-2 text-sm">ریاضی دهم⌄</span><h3 className="font-extrabold text-dena-deep">روند رشد من</h3></div>
-        <div className="overflow-x-auto"><svg viewBox="0 0 700 250" role="img" aria-label="روند نمونهٔ عملکرد آموزشی از امتیاز ۴۲ به ۶۸" className="min-w-[560px] w-full">
-          {[50,100,150,200].map(y=><line key={y} x1="28" y1={y} x2="680" y2={y} className="stroke-dena-border" strokeDasharray="4 6"/>)}
-          <polyline points="40,177 170,105 300,125 430,75 560,98 660,58" fill="none" stroke="currentColor" className="text-dena-brand" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
-          {[[40,177],[170,105],[300,125],[430,75],[560,98],[660,58]].map(([x,y],i)=><circle key={i} cx={x} cy={y} r="7" className="fill-dena-mint stroke-white" strokeWidth="3"/>)}
-          <text x="40" y="235" className="fill-dena-muted text-[11px]">شروع دوره</text><text x="190" y="235" className="fill-dena-muted text-[11px]">مرور مجدد</text><text x="365" y="235" className="fill-dena-muted text-[11px]">فصل دوم</text><text x="600" y="235" className="fill-dena-muted text-[11px]">اکنون</text>
-        </svg></div>
-        <div className="grid gap-3 rounded-xl bg-dena-bg p-4 sm:grid-cols-3 text-right">{[["شروع دوره","۴۲"],["تغییر","+۲۶"],["اکنون","۶۸"]].map(([a,b])=><div key={a}><p className="text-xs text-dena-muted">{a}</p><p className="mt-1 text-xl font-extrabold text-dena-brand">{b}</p></div>)}</div>
-        <p className="text-xs leading-6 text-dena-muted">اعداد نمونه‌اند و برای نمایش روند هستند؛ نمرهٔ رسمی یا اثبات یادگیری نیستند.</p>
-      </Card>
-      <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
-        <Card className="space-y-5 p-5 md:p-6"><div className="flex items-center justify-between"><Link href="/student-demo/courses/math-7" className="text-sm font-bold text-dena-brand">مشاهده دوره ←</Link><h3 className="font-extrabold text-dena-deep">مسیر یادگیری دوره</h3></div><ol className="space-y-3">{["دامنه تابع · جلسه ۶","مفهوم تابع · جلسه ۷","تابع و نمودار · جلسه ۸","آزمون یادگیری فصل سوم · جلسه آزمون","انواع نمودار · جلسه ۹"].map((x,i)=><li key={x} className="flex items-center gap-3 rounded-xl border border-dena-border p-3"><span className={`grid size-8 place-items-center rounded-full text-xs font-bold ${i<2?"bg-emerald-50 text-emerald-700":i===2?"bg-dena-lavender text-dena-brand":"bg-dena-bg text-dena-muted"}`}>{i<2?"✓":i+6}</span><span className="text-sm font-semibold">{x}</span></li>)}</ol></Card>
-        <div className="space-y-4"><Card className="space-y-4 p-5"><h3 className="font-extrabold text-dena-deep">دوره‌های در حال رشد</h3>{courses.map(c=><div key={c.name} className="space-y-2 border-t border-dena-border pt-3"><div className="flex justify-between gap-2"><span className="text-xs text-dena-muted">{c.progress}٪ پیشرفت</span><span className="text-sm font-bold">{c.name}</span></div><p className="text-xs text-dena-muted">{c.detail}</p><div className="h-2 rounded-full bg-dena-lavender"><div className="h-2 rounded-full bg-dena-mint" style={{width:`${c.progress}%`}}/></div></div>)}</Card>
-        <Card className="space-y-3 p-5"><h3 className="font-extrabold text-dena-deep">دستاوردهای اخیر</h3>{activity.map(a=><div key={a.text} className="flex justify-between gap-3 border-t border-dena-border pt-3"><p className="text-sm">{a.text}</p><span className="shrink-0 text-xs text-dena-muted">{a.when}</span></div>)}</Card></div>
-      </div>
-      <p className="text-xs leading-6 text-dena-muted">تمام داده‌های این صفحه برای پیش‌نمایش رابط هستند.</p>
-    </div>
-  </div>;
+  );
 }
 
 function ProfileDemo({ edit = false }: { edit?: boolean }) {
