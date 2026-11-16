@@ -335,7 +335,7 @@
 .dena-next__preview-note { color: var(--next-purple); }
 .dena-next__form-actions { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--next-border); }
 .dena-next__form-actions > span { color: var(--next-muted); font-size: 11px; line-height: 1.7; }
-.dena-next__form-actions button { cursor: pointer; }
+.dena-next__form-actions a { flex-shrink: 0; }
 .dena-next__request-guidance { padding: 4px 0; text-align: right; }
 .dena-next__request-guidance h2 { margin: 0 0 10px; color: var(--next-deep); font-size: 21px; }
 .dena-next__request-guidance > p { margin: 0 0 20px; color: var(--next-muted); font-size: 13px; line-height: 1.9; }
@@ -396,7 +396,7 @@
   .dena-next__fields { grid-template-columns: 1fr; gap: 14px; }
   .dena-next__field--wide { grid-column: auto; }
   .dena-next__form-actions { align-items: stretch; flex-direction: column; }
-  .dena-next__form-actions button { width: 100%; }
+  .dena-next__form-actions a { width: 100%; }
   .dena-next__request-guidance { padding: 0 4px; }
   .dena-next--confirmation { min-height: 520px; padding: 56px 20px; }
 }
