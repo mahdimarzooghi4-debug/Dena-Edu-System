@@ -1,4 +1,4 @@
 import type { Metadata } from "next";
-import { DenaInstituteCollaborationPage } from "@/components/marketing/dena-public-pages";
+import { DenaInstituteCollaborationWebsitePage } from "@/components/marketing/dena-website-pages";
 export const metadata: Metadata = { title: "همکاری مؤسسات با دنا" };
-export default function InstituteCollaborationPage() { return <DenaInstituteCollaborationPage />; }
+export default function InstituteCollaborationPage() { return <DenaInstituteCollaborationWebsitePage />; }
