@@ -46,7 +46,7 @@ export function DenaCourseCatalogPage({ filters = {} }: { filters?: DenaCatalogF
               {visibleCourses.map((course) => (
                 <article className="course-card dena-catalog-card" key={course.id}>
                   <div className="course-card__image dena-catalog-card__cover">
-                    <Image src={course.cover} alt={`کاور تصویری نمایشی ${course.title}`} fill sizes="(max-width:680px) 90vw, (max-width:900px) 45vw, 405px" />
+                    <div className="dena-catalog-card__cover-art" data-subject={course.subject} role="img" aria-label={`تصویر نمایشی ${course.title}`} />
                     <span className="dena-catalog-card__cover-note">کاور تصویری نمایشی</span>
                   </div>
                   <div className="course-card__body dena-catalog-card__body">
