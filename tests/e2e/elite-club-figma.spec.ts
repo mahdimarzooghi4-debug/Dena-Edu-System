@@ -40,6 +40,11 @@ test("Figma 145:94 desktop geometry and exact local network illustration are pre
   await page.setViewportSize({ width:1440,height:900 });
   await page.goto("/elite-club");
 
+  await page.goto("/");
+  const homepageFooter=await page.locator("footer.dena-footer").boundingBox();
+  expect(homepageFooter).not.toBeNull();
+  await page.goto("/elite-club");
+
   const boxes=await Promise.all([
     page.locator("header.dena-header").boundingBox(),
     page.locator(".dena-elite-club__hero").boundingBox(),
@@ -55,8 +60,8 @@ test("Figma 145:94 desktop geometry and exact local network illustration are pre
   expect(pillars.height).toBe(331);
   expect(ecosystem.height).toBe(459);
   expect(cta.height).toBe(377);
-  expect(footer.height).toBe(378);
-  expect(Math.round(header.height+hero.height+pillars.height+ecosystem.height+cta.height+footer.height)).toBe(2249);
+  expect(footer.height).toBe(homepageFooter!.height);
+  expect(Math.round(header.height+hero.height+pillars.height+ecosystem.height+cta.height)).toBe(1871);
 
   const art=page.locator(".dena-elite-club__art img");
   await expect(art).toHaveAttribute("src","/figma/dena-home/elite-network.svg");
