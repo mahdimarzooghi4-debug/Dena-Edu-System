@@ -141,7 +141,7 @@ test("catalog footer is the exact shared homepage footer on desktop", async ({ p
     (nodes) => nodes.map((node) => Math.round(node.getBoundingClientRect().width)),
   )).toEqual(referenceColumns);
   await expect(footer.locator(".dena-footer__brand")).toContainText("دنا، بستر آموزش، یادگیری و رشد دانش‌آموزان نوآفرین ایران.");
-  await expect(footer.locator('a[href="mailto:info@denaedu.ir"]')).toBeVisible();
+  await expect(footer.locator('a[href="mailto:info@denaes.ir"]')).toBeVisible();
   await expect(footer.locator('a[href="tel:+982166485374"]')).toBeVisible();
   const logo = footer.locator(".dena-brand--footer img");
   await expect(logo).toHaveAttribute("src", /dena-app-logo\.png/);
