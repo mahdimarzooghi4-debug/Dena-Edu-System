@@ -10,7 +10,14 @@ const base = "/student-demo";
 const toPersianDigits = (value: string | number) => String(value).replace(/\d/g, (digit) => "۰۱۲۳۴۵۶۷۸۹"[Number(digit)]);
 
 function PageTitle({ title, subtitle }: { title: string; subtitle?: string }) {
-  return <header className="space-y-1 text-right"><h2 className="text-base font-extrabold text-dena-deep md:text-2xl">{title}</h2>{subtitle && <p className="text-xs leading-6 text-dena-muted md:text-sm md:leading-7">{subtitle}</p>}</header>;
+  return (
+    <header className="relative isolate overflow-hidden rounded-[24px] border border-dena-border bg-gradient-to-l from-dena-lavender via-white to-white px-5 py-5 text-right shadow-sm md:px-7 md:py-6">
+      <span aria-hidden="true" className="absolute inset-y-4 right-0 w-1 rounded-l-full bg-gradient-to-b from-dena-brand to-indigo-300" />
+      <p className="text-xs font-bold text-dena-brand">فضای دانش‌آموزی دنا</p>
+      <h2 className="mt-2 text-xl font-extrabold leading-9 text-dena-deep md:text-2xl">{title}</h2>
+      {subtitle && <p className="mt-1 max-w-3xl text-xs leading-6 text-dena-muted md:text-sm md:leading-7">{subtitle}</p>}
+    </header>
+  );
 }
 function SectionTitle({ children }: { children: ReactNode }) {
   return <h3 className="text-right text-sm font-extrabold text-dena-deep md:text-base">{children}</h3>;
@@ -57,14 +64,26 @@ function NotificationsPage({ empty = false }: { empty?: boolean }) {
 }
 
 function SupportList() {
-  return <div className="space-y-4">
+  return <div className="space-y-5">
     <PageTitle title="پشتیبانی آنلاین دنا" subtitle="برای مسائل فنی و استفاده از دنا می‌توانی از این بخش با پشتیبانی در ارتباط باشی." />
-    <Link href={`${base}/support/new`} className={buttonClassName()+" h-11 w-full md:w-auto"}>درخواست جدید</Link>
-    <section className="space-y-3"><SectionTitle>درخواست‌های من</SectionTitle>
+    <div className="flex flex-col gap-4 rounded-[22px] border border-dena-border bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-5">
+      <div className="text-right">
+        <p className="text-sm font-extrabold text-dena-deep">همراهت هستیم</p>
+        <p className="mt-1 text-xs leading-6 text-dena-muted">درخواستت را ثبت کن تا بتوانی روند پیگیری را از همین‌جا ببینی.</p>
+      </div>
+      <Link href={`${base}/support/new`} className={buttonClassName()+" h-11 w-full shrink-0 sm:w-auto"}>ثبت درخواست جدید</Link>
+    </div>
+    <section className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <SectionTitle>درخواست‌های من</SectionTitle>
+        <span className="rounded-full bg-dena-lavender px-3 py-1.5 text-xs font-bold text-dena-brand">۲ درخواست</span>
+      </div>
+      <div className="grid gap-3 lg:grid-cols-2">
       {[
         ["13649","در انتظار پاسخ","۳ روز پیش","مشکل در پخش ویدیو"],
         ["13622","پاسخ داده شده","۱ هفته پیش","مشکل در نمایش نتیجه آزمون"],
-      ].map(([id,status,time,title])=><Link key={id} href={`${base}/support/${id}`} className="block"><Card className="space-y-3 rounded-2xl p-4"><div className="flex items-center justify-between gap-2"><span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${status==="در انتظار پاسخ"?"bg-amber-50 text-amber-800":"bg-emerald-50 text-emerald-700"}`}>{status}</span><h3 className="text-right text-sm font-bold text-dena-deep">{title}</h3></div><p className="text-right text-xs text-dena-muted">#{toPersianDigits(id)} · {time}</p></Card></Link>)}
+      ].map(([id,status,time,title])=><Link key={id} href={`${base}/support/${id}`} className="block rounded-[20px] outline-none transition hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-dena-brand"><Card className="h-full space-y-4 rounded-[20px] border-dena-border p-4 text-right shadow-sm transition hover:border-dena-brand/40 hover:shadow-md md:p-5"><div className="flex items-start justify-between gap-3"><span className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold ${status==="در انتظار پاسخ"?"bg-amber-50 text-amber-800":"bg-emerald-50 text-emerald-700"}`}>{status}</span><div><span className="mb-2 block text-xs font-semibold text-dena-brand">درخواست پشتیبانی</span><h3 className="text-sm font-extrabold leading-6 text-dena-deep">{title}</h3></div></div><div className="flex items-center justify-between border-t border-dena-border pt-3 text-xs text-dena-muted"><span>{time}</span><span>شناسهٔ #{toPersianDigits(id)}</span></div></Card></Link>)}
+      </div>
     </section>
     <DemoNote>درخواست‌ها و پاسخ‌ها نمونه‌اند و به سامانهٔ پشتیبانی واقعی متصل نیستند.</DemoNote>
   </div>;
