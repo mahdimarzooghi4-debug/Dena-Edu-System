@@ -94,7 +94,7 @@ function Home() {
     { title: "آزمون فصل دوم شیمی", course: "شیمی دهم", status: "انجام‌شده", color: "bg-emerald-50 text-emerald-700", href: "/student-demo/assessments?filter=completed", icon: "✓" },
   ];
   return (
-    <div className="space-y-7 md:space-y-8">
+    <div dir="rtl" className="space-y-7 text-right md:space-y-8">
       <section className="relative isolate overflow-hidden rounded-[28px] bg-gradient-to-l from-[#21166f] via-[#4938c8] to-[#6251ed] px-5 py-6 text-white shadow-[0_18px_45px_-24px_rgba(69,54,200,.62)] md:px-8 md:py-8">
         <div aria-hidden="true" className="absolute -left-12 -top-20 -z-10 size-56 rounded-full border-[34px] border-white/5" />
         <div aria-hidden="true" className="absolute bottom-[-76px] left-[34%] -z-10 size-48 rounded-full bg-cyan-300/10 blur-2xl" />
