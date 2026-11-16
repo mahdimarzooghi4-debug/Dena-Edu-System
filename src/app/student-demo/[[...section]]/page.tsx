@@ -247,64 +247,100 @@ function CourseGlyph({ courseId }: { courseId: string }) {
 
 function CourseList({ filter = "all" }: { filter?: string }) {
   const catalog = [
-    { ...demoCourses[0], title: "ریاضی دهم", provider: "مؤسسه آموزشی البرز", teacher: "استاد احمدی", done: 18, total: 24, currentSession: 8, progressOverride: 75, lastActivity: "امروز", topic: "تابع و نمودار" },
-    { ...demoCourses[1], title: "فیزیک دهم", provider: "آموزشگاه نور دانش", teacher: "استاد محمدی", done: 12, total: 20, currentSession: 5, progressOverride: 60, lastActivity: "دیروز", topic: "نیرو و حرکت" },
-    { id: "chemistry-10", title: "شیمی دهم", provider: "مرکز علمی پژوهان", teacher: "استاد رضایی", done: 8, total: 18, currentSession: 2, progressOverride: 45, lastActivity: "۳ روز پیش", lessons: ["ساختار اتم", "جدول تناوبی", "پیوند شیمیایی"], topic: "ساختار اتم" },
-    { id: "science-9", title: "علوم نهم", provider: "دبیرستان فرزانگان", teacher: "استاد کریمی", done: 16, total: 16, currentSession: 16, progressOverride: 100, lastActivity: "۱ هفته پیش", lessons: ["علوم پایه", "مرور فصل‌ها"], topic: "تکمیل دوره" },
+    { ...demoCourses[0], title: "ریاضی دهم", provider: "مؤسسه آموزشی البرز", teacher: "استاد احمدی", done: 18, total: 24, currentSession: 8, progressOverride: 75, lastActivity: "امروز", topic: "تابع و نمودار", tone: "from-indigo-500 to-violet-600" },
+    { ...demoCourses[1], title: "فیزیک دهم", provider: "آموزشگاه نور دانش", teacher: "استاد محمدی", done: 12, total: 20, currentSession: 5, progressOverride: 60, lastActivity: "دیروز", topic: "نیرو و حرکت", tone: "from-sky-500 to-cyan-500" },
+    { id: "chemistry-10", title: "شیمی دهم", provider: "مرکز علمی پژوهان", teacher: "استاد رضایی", done: 8, total: 18, currentSession: 2, progressOverride: 45, lastActivity: "۳ روز پیش", lessons: ["ساختار اتم", "جدول تناوبی", "پیوند شیمیایی"], topic: "ساختار اتم", tone: "from-emerald-500 to-teal-500" },
+    { id: "science-9", title: "علوم نهم", provider: "دبیرستان فرزانگان", teacher: "استاد کریمی", done: 16, total: 16, currentSession: 16, progressOverride: 100, lastActivity: "۱ هفته پیش", lessons: ["علوم پایه", "مرور فصل‌ها"], topic: "تکمیل دوره", tone: "from-amber-500 to-orange-500" },
   ];
   const visibleCatalog = catalog.filter(course => filter === "all" || (filter === "completed" ? course.done === course.total : course.done < course.total));
+  const completedCount = catalog.filter(course => course.done === course.total).length;
+  const activeCount = catalog.length - completedCount;
+  const averageProgress = Math.round(catalog.reduce((sum, course) => sum + (course.progressOverride ?? 0), 0) / catalog.length);
+
   return (
-    <div className="space-y-5">
-      <header className="space-y-2 text-right">
-        <h2 className="text-2xl font-extrabold text-dena-deep">دوره‌های من</h2>
-        <p className="text-sm leading-6 text-dena-muted">دوره‌هایی که در آن‌ها ثبت‌نام کرده‌ای</p>
-      </header>
-      <nav aria-label="فیلتر دوره‌ها" className="flex flex-wrap justify-start gap-2">
-        {[[ "all", "همه" ], [ "learning", "در حال یادگیری" ], [ "completed", "تکمیل‌شده" ]].map(([key, label]) => (
-          <Link key={key} href={key === "all" ? "/student-demo/courses" : `/student-demo/courses?filter=${key}`} aria-current={filter === key ? "page" : undefined}
-            className={`rounded-full border px-4 py-2 text-xs font-bold transition-colors ${filter === key ? "border-dena-brand bg-dena-brand text-white" : "border-dena-border bg-white text-dena-muted hover:border-dena-brand hover:text-dena-brand"}`}>
-            {label}
-          </Link>
-        ))}
-      </nav>
-      <div className="space-y-3">
+    <div dir="rtl" className="space-y-6 text-right md:space-y-8">
+      <section className="relative isolate overflow-hidden rounded-[28px] bg-gradient-to-l from-[#21166f] via-[#4938c8] to-[#6251ed] px-5 py-6 text-white shadow-[0_18px_45px_-24px_rgba(69,54,200,.62)] md:px-8 md:py-8">
+        <div aria-hidden="true" className="absolute -left-12 -top-20 -z-10 size-56 rounded-full border-[34px] border-white/5" />
+        <div aria-hidden="true" className="absolute bottom-[-76px] left-[34%] -z-10 size-48 rounded-full bg-cyan-300/10 blur-2xl" />
+        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="max-w-2xl">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-indigo-50">
+              <span className="size-1.5 rounded-full bg-emerald-300" />
+              مسیر یادگیری تو
+            </span>
+            <h2 className="mt-4 text-2xl font-extrabold leading-relaxed md:text-[32px]">دوره‌های من</h2>
+            <p className="mt-1 text-sm leading-7 text-indigo-100 md:text-base">پیشرفتت را دنبال کن و از همان‌جایی که مانده‌ای، یادگیری را ادامه بده.</p>
+          </div>
+          <div className="grid grid-cols-3 gap-2.5 sm:min-w-[390px] md:gap-3">
+            {[[catalog.length.toLocaleString("fa-IR"), "همهٔ دوره‌ها"], [activeCount.toLocaleString("fa-IR"), "در حال یادگیری"], [averageProgress.toLocaleString("fa-IR") + "٪", "میانگین پیشرفت"]].map(([value, label]) => (
+              <div key={label} className="rounded-2xl border border-white/10 bg-white/10 px-2 py-4 text-center backdrop-blur-sm md:px-4">
+                <p className="text-xl font-extrabold md:text-2xl">{value}</p>
+                <p className="mt-1 text-[10px] leading-5 text-indigo-100 md:text-xs">{label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-dena-muted">دوره‌هایی که در آن‌ها ثبت‌نام کرده‌ای</p>
+        <nav aria-label="فیلتر دوره‌ها" className="flex w-fit flex-wrap justify-start gap-1 rounded-2xl bg-dena-bg p-1.5">
+          {[["all", "همه"], ["learning", "در حال یادگیری"], ["completed", "تکمیل‌شده"]].map(([key, label]) => (
+            <Link key={key} href={key === "all" ? "/student-demo/courses" : `/student-demo/courses?filter=${key}`} aria-current={filter === key ? "page" : undefined}
+              className={`rounded-xl px-4 py-2.5 text-xs font-bold transition-colors ${filter === key ? "bg-white text-dena-brand shadow-sm" : "text-dena-muted hover:text-dena-brand"}`}>
+              {label}
+              {key === "completed" && <span className="mr-1.5 text-[10px] opacity-75">{completedCount.toLocaleString("fa-IR")}</span>}
+            </Link>
+          ))}
+        </nav>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
         {visibleCatalog.map(course => {
           const progress = course.progressOverride ?? Math.round(course.done / course.total * 100);
           const completed = progress === 100;
           return (
-            <Card key={course.id} className="space-y-3 rounded-[20px] p-4 md:p-5">
-              <div className="flex items-center gap-3">
-                <div className="min-w-0 flex-1 text-right">
-                  <h3 className="font-extrabold text-dena-deep">{course.title}</h3>
-                  <p className="mt-1 text-xs leading-5 text-dena-muted">{course.topic} · جلسه {(course.currentSession ?? course.done).toLocaleString("fa-IR")} از {course.total.toLocaleString("fa-IR")}</p>
-                  <p className="mt-1 text-xs text-dena-muted">{course.provider}</p>
+            <Card key={course.id} className="group overflow-hidden rounded-[24px] border-dena-border p-0 transition duration-200 hover:-translate-y-0.5 hover:border-dena-brand/25 hover:shadow-lg">
+              <div className={`relative flex min-h-32 items-center justify-between overflow-hidden bg-gradient-to-l ${course.tone} px-5 py-5 text-white md:px-6`}>
+                <div aria-hidden="true" className="absolute -left-6 -top-12 size-36 rounded-full border-[22px] border-white/10" />
+                <div className="relative text-right">
+                  <span className="inline-flex rounded-full border border-white/20 bg-white/15 px-3 py-1 text-[11px] font-bold backdrop-blur-sm">{completed ? "تکمیل‌شده" : "در حال یادگیری"}</span>
+                  <h3 className="mt-3 text-xl font-extrabold">{course.title}</h3>
+                  <p className="mt-1 text-xs text-white/85">{course.provider}</p>
                 </div>
-                <div className="grid size-12 shrink-0 place-items-center rounded-xl bg-dena-lavender text-dena-brand">
+                <div className="relative grid size-14 shrink-0 place-items-center rounded-2xl border border-white/20 bg-white/15 text-white shadow-sm backdrop-blur-sm">
                   <CourseGlyph courseId={course.id} />
                 </div>
               </div>
-              <div className="flex items-center justify-between gap-3 text-xs text-dena-muted">
-                <span>{progress.toLocaleString("fa-IR")}٪ پیشرفت</span>
-                <span>آخرین فعالیت: {course.lastActivity ?? "امروز"}</span>
-              </div>
-              <div className="h-1.5 overflow-hidden rounded-full bg-dena-lavender">
-                <div className="h-full rounded-full bg-dena-mint" style={{ width: `${progress}%` }} />
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <Link href={`/student-demo/courses/${course.id}`} className={buttonClassName(completed ? "outline" : undefined) + " min-h-10 px-4"}>
-                  {completed ? "مشاهده دوره" : "ادامه یادگیری"}
-                </Link>
-                <span className="text-xs text-dena-muted">{completed ? "تکمیل‌شده" : "آخرین فعالیت: امروز"}</span>
+              <div className="space-y-4 p-5 md:p-6">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-bold text-dena-ink">{course.topic}</p>
+                  <p className="text-xs text-dena-muted">مدرس: {course.teacher}</p>
+                </div>
+                <div>
+                  <div className="mb-2 flex items-center justify-between gap-3 text-xs">
+                    <span className="font-extrabold text-dena-brand">{progress.toLocaleString("fa-IR")}٪</span>
+                    <span className="text-dena-muted">جلسهٔ {(course.currentSession ?? course.done).toLocaleString("fa-IR")} از {course.total.toLocaleString("fa-IR")}</span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-dena-lavender" role="progressbar" aria-label={`پیشرفت ${course.title}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}>
+                    <div className="h-full rounded-full bg-dena-mint transition-all duration-500" style={{ width: `${progress}%` }} />
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-dena-border pt-4">
+                  <span className="text-xs text-dena-muted">آخرین فعالیت: {course.lastActivity ?? "امروز"}</span>
+                  <Link href={`/student-demo/courses/${course.id}`} className={buttonClassName(completed ? "outline" : undefined) + " min-h-10 px-4"}>
+                    {completed ? "مشاهدهٔ دوره" : "ادامهٔ یادگیری"}
+                  </Link>
+                </div>
               </div>
             </Card>
           );
         })}
       </div>
-      {visibleCatalog.length === 0 && <Card className="p-8 text-center text-sm text-dena-muted">در این وضعیت دوره‌ای برای نمایش نیست.</Card>}
+      {visibleCatalog.length === 0 && <Card className="rounded-[24px] border-dena-border p-8 text-center text-sm text-dena-muted">در این وضعیت دوره‌ای برای نمایش نیست.</Card>}
     </div>
   );
 }
-
 function CourseDetail({ course }: { course: DemoCourse }) {
   const progress = course.id === "math-7" ? 29 : (course.progressOverride ?? Math.round(course.done / course.total * 100));
   const currentSession = course.currentSession ?? course.done;
