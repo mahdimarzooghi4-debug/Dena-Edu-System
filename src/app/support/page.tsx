@@ -93,8 +93,8 @@ function PublicSupportPage() {
         <p>برای پرسش‌های عمومی با ما تماس بگیر. پیگیری خصوصی درخواست‌های ثبت‌شده از داخل حساب دانش‌آموزی انجام می‌شود.</p>
       </div>
       <div className="trust-cards">
-        <article><h2>تماس تلفنی</h2><p>شنبه تا پنجشنبه، در ساعات کاری</p><a href="tel:+982166485374" className={buttonClassName("primary")}>تماس با ۰۲۱-۶۶۴۸۵۳۷۴</a></article>
-        <article><h2>ارسال ایمیل</h2><p>پرسش خود را برای تیم دنا بفرست.</p><a href="mailto:info@denaedu.ir" className={buttonClassName("secondary")}>info@denaedu.ir</a></article>
+        <article><h2>تماس تلفنی</h2><p>شنبه تا پنجشنبه، در ساعات کاری</p><a href="tel:+982166485374" className={buttonClassName("primary")}><span>تماس با </span><bdi dir="ltr">۰۲۱-۶۶۴۸۵۳۷۴</bdi></a></article>
+        <article><h2>ارسال ایمیل</h2><p>پرسش خود را برای تیم دنا بفرست.</p><a href="mailto:info@denaes.ir" className={buttonClassName("secondary")}>info@denaes.ir</a></article>
         <article><h2>پیگیری درخواست</h2><p>برای ثبت یا مشاهدهٔ درخواست خصوصی، وارد حساب دانش‌آموزی شو.</p><Link href="/login?next=%2Fsupport" className={buttonClassName("secondary")}>ورود به حساب</Link></article>
       </div>
     </section>
