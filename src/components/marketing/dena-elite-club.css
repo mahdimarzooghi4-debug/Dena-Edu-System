@@ -416,8 +416,13 @@
   .dena-elite-club__titles { height: auto; }
   .dena-elite-club__hero-copy h1 { height: auto; font-size: 34px; line-height: 1.65; }
   .dena-elite-club__hero-description { height: auto; line-height: 1.8; }
+  .dena-elite-club__pillars { height: auto; padding: 56px 0; }
+  .dena-elite-club__pillar { height: auto; min-height: 130px; }
+  .dena-elite-club__ecosystem { height: auto; padding: 56px 0; }
   .dena-elite-club__ecosystem-inner { height: auto; }
   .dena-elite-club__roles-card { height: auto; min-height: 315px; }
+  .dena-elite-club__role { height: auto; min-height: 52px; }
+  .dena-elite-club__role p { height: auto; }
   .dena-elite-club__positioning { height: auto; }
   .dena-elite-club__positioning h2 { height: auto; font-size: 29px; line-height: 1.7; }
   .dena-elite-club__positioning-description,
