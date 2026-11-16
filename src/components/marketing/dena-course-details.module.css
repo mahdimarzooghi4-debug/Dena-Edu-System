@@ -33,7 +33,13 @@
 .heroProvider p { font-size:13px; color:#77718c; margin:0; }
 .heroAside { min-width:0; align-self:stretch; display:flex; flex-direction:column; gap:20px; }
 .cover { margin:0 auto; width:min(520px,100%); height:320px; border-radius:20px; overflow:hidden; position:relative; background:linear-gradient(120deg,#e9e1ff,#aaa2d8); border:1px solid #e8e3f5; box-shadow:0 15px 28px #39277111; }
-.cover img { display:block; width:100%; height:100%; object-fit:cover; }
+.coverImage { width:100%; height:100%; background-image:url("/images/dena-course-covers/mosaic.webp"); background-repeat:no-repeat; background-size:300% auto; background-position:50% 14%; }
+.coverImage[data-subject="chemistry"] { background-position:0% 14%; }
+.coverImage[data-subject="physics"] { background-position:50% 14%; }
+.coverImage[data-subject="math"] { background-position:100% 14%; }
+.coverImage[data-subject="biology"] { background-position:0% 86%; }
+.coverImage[data-subject="arabic"] { background-position:50% 86%; }
+.coverImage[data-subject="literature"] { background-position:100% 86%; }
 .cover figcaption { position:absolute; bottom:12px; right:12px; max-width:calc(100% - 24px); border-radius:9px; padding:7px 10px; color:#fff; font-size:11px; background:#281a4fb9; backdrop-filter:blur(6px); }
 .pricing { background:#fff; border:1px solid #e7e2ef; border-radius:16px; min-height:275px; padding:30px 32px 22px; box-shadow:0 12px 30px #2915520a; }
 .pricingTop { display:flex; justify-content:space-between; gap:12px; align-items:center; }
