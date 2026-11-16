@@ -537,51 +537,98 @@ function AiTutor() {
   ] as const;
 
   return (
-    <div className="space-y-6">
-      <Card className="space-y-4 rounded-[20px] border-dena-border p-5 md:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <span className="rounded-full bg-dena-bg px-3 py-2 text-[13px] font-bold text-dena-brand">در حال آماده‌سازی</span>
+    <div dir="rtl" className="space-y-7 text-right md:space-y-9">
+      <section className="relative isolate overflow-hidden rounded-[28px] bg-gradient-to-l from-[#21166f] via-[#4938c8] to-[#6251ed] p-6 text-white shadow-[0_18px_45px_-24px_rgba(69,54,200,.62)] md:p-9">
+        <div aria-hidden="true" className="absolute -left-12 -top-20 -z-10 size-56 rounded-full border-[34px] border-white/5" />
+        <div aria-hidden="true" className="absolute bottom-[-76px] left-[34%] -z-10 size-48 rounded-full bg-cyan-300/10 blur-2xl" />
+        <div className="relative grid gap-7 lg:grid-cols-[minmax(0,1fr)_250px] lg:items-center">
           <div className="text-right">
-            <h2 className="text-2xl font-bold text-dena-deep">معلم هوشمند</h2>
-            <p className="mt-1 max-w-3xl text-sm leading-7 text-dena-muted">با داده‌های آموزشی دنا آغاز می‌شود و بعد با ویدئوهای مجاز دوره‌های تو، برای مسیر خودت رشد می‌کند.</p>
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-bold text-indigo-50">
+              <span className="size-1.5 rounded-full bg-amber-300" />
+              در حال آماده‌سازی
+            </span>
+            <h2 className="mt-4 text-2xl font-extrabold leading-relaxed md:text-[32px]">معلم هوشمند دنا</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-7 text-indigo-100 md:text-base">
+              همراهی برای فهم بهتر درس‌ها و پیدا کردن قدم بعدی در مسیر یادگیری؛ متناسب با دوره‌هایی که دنبال می‌کنی.
+            </p>
+            <div className="mt-5 flex flex-wrap justify-start gap-3">
+              <Link href="#demo-ai-growth" className="inline-flex min-h-11 items-center justify-center rounded-xl bg-white px-5 text-sm font-extrabold text-[#3729a8] shadow-sm transition hover:bg-indigo-50">آشنایی با مسیر یادگیری</Link>
+              <Link href="/student-demo/courses" className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/25 bg-white/10 px-5 text-sm font-bold text-white transition hover:bg-white/15">دیدن دوره‌های من</Link>
+            </div>
+          </div>
+          <div className="rounded-[22px] border border-white/15 bg-white/10 p-5 text-right backdrop-blur-sm">
+            <div className="mb-4 grid size-12 place-items-center rounded-2xl bg-white/15 text-2xl" aria-hidden="true">✦</div>
+            <p className="text-sm font-bold text-indigo-100">یادگیری قدم‌به‌قدم</p>
+            <p className="mt-2 text-2xl font-extrabold">از پرسش تا تمرین</p>
+            <div className="mt-5 flex items-center gap-2">
+              <span className="h-1.5 flex-1 rounded-full bg-white/20"><span className="block h-full w-1/3 rounded-full bg-emerald-300" /></span>
+              <span className="text-xs font-semibold text-indigo-100">۳ گام</span>
+            </div>
           </div>
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-dena-border pt-4">
-          <p className="text-xs leading-6 text-dena-muted">گفت‌وگو پس از آماده‌سازی و ارزیابی سرویس فعال می‌شود.</p>
-          <Link href="#demo-ai-growth" className={buttonClassName()}>آشنایی با معلم هوشمند</Link>
-        </div>
-      </Card>
+      </section>
 
-      <Card className="space-y-4 rounded-[22px] p-6">
-        <h3 className="font-extrabold text-dena-deep">نمونهٔ گفت‌وگو</h3>
-        <p className="w-fit max-w-[90%] rounded-2xl bg-dena-bg p-4 text-sm leading-7">
-          چطور عدد منفی را در عدد منفی ضرب کنم؟
-        </p>
-        <p className="mr-auto w-fit max-w-[90%] rounded-2xl bg-dena-lavender p-4 text-sm leading-7">
-          در ضرب دو عدد منفی، حاصل مثبت می‌شود. برای نمونه، (−۳) × (−۲) = ۶.
-        </p>
-        <p className="border-t border-dena-border pt-3 text-xs leading-6 text-dena-muted">
-          این گفت‌وگو نمونهٔ رابط است و در وضعیت فعلی پرسشی به مدل ارسال یا سابقه‌ای ذخیره نمی‌شود.
-        </p>
-      </Card>
+      <section className="grid gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(280px,.75fr)]">
+        <Card className="overflow-hidden rounded-[24px] border-dena-border p-0">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-dena-border px-5 py-4 md:px-6">
+            <span className="rounded-full bg-dena-lavender px-3 py-1.5 text-[11px] font-bold text-dena-brand">پیش‌نمایش</span>
+            <div className="text-right">
+              <h3 className="font-extrabold text-dena-deep">نمونهٔ گفت‌وگو</h3>
+              <p className="mt-1 text-xs text-dena-muted">یک نمونهٔ کوتاه از راهنمایی درسی</p>
+            </div>
+          </div>
+          <div className="space-y-5 bg-gradient-to-b from-white to-[#faf9ff] p-5 md:p-6">
+            <div className="flex items-end gap-3">
+              <span className="grid size-9 shrink-0 place-items-center rounded-full bg-dena-bg text-sm font-extrabold text-dena-brand" aria-hidden="true">م</span>
+              <div className="max-w-[85%] rounded-2xl rounded-br-md bg-dena-bg px-4 py-3 text-sm leading-7 text-dena-ink">
+                چطور عدد منفی را در عدد منفی ضرب کنم؟
+              </div>
+            </div>
+            <div className="flex items-end justify-end gap-3">
+              <div className="max-w-[88%] rounded-2xl rounded-bl-md bg-dena-lavender px-4 py-3 text-sm leading-7 text-dena-deep">
+                در ضرب دو عدد منفی، حاصل مثبت می‌شود. برای نمونه:
+                <span dir="ltr" className="mx-1 inline-block rounded-lg bg-white/80 px-2 py-0.5 font-bold">(−۳) × (−۲) = ۶</span>
+                پس جواب مثبت است.
+              </div>
+              <span className="grid size-9 shrink-0 place-items-center rounded-full bg-dena-brand text-lg text-white" aria-hidden="true">✦</span>
+            </div>
+            <div className="flex items-center gap-2 border-t border-dena-border pt-4 text-xs leading-6 text-dena-muted">
+              <span className="text-dena-brand" aria-hidden="true">ⓘ</span>
+              این گفت‌وگو نمونهٔ رابط است؛ در وضعیت فعلی پرسشی به مدل ارسال یا سابقه‌ای ذخیره نمی‌شود.
+            </div>
+          </div>
+        </Card>
 
-      <section className="space-y-4">
-        <SectionHeading id="demo-ai-growth" note="بر اساس وضعیت فعلی معلم دنا">
-          معلم هوشمند چطور پاسخ می‌دهد و رشد می‌کند؟
+        <Card className="rounded-[24px] border-dena-border bg-white p-5 md:p-6">
+          <div className="flex items-start gap-3">
+            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-dena-lavender text-lg text-dena-brand" aria-hidden="true">◈</span>
+            <div>
+              <h3 className="font-extrabold text-dena-deep">یادگیری با حریم خصوصی</h3>
+              <p className="mt-2 text-sm leading-7 text-dena-muted">محتوای در دسترس معلم به دوره‌های مجاز تو محدود می‌ماند و کنترل ثبت موضوع و نتیجه با رضایت تو انجام می‌شود.</p>
+            </div>
+          </div>
+          <ul className="mt-5 space-y-3 border-t border-dena-border pt-4 text-sm leading-6 text-dena-ink">
+            <li className="flex items-start gap-2"><span className="mt-1 text-emerald-500" aria-hidden="true">✓</span><span>پاسخ‌گویی بر پایهٔ داده‌های آموزشی دنا</span></li>
+            <li className="flex items-start gap-2"><span className="mt-1 text-emerald-500" aria-hidden="true">✓</span><span>استفاده از محتوای مجاز دوره‌های خودت</span></li>
+            <li className="flex items-start gap-2"><span className="mt-1 text-emerald-500" aria-hidden="true">✓</span><span>ذخیرهٔ نتیجه با رضایت جداگانه</span></li>
+          </ul>
+          <p className="mt-5 rounded-xl bg-dena-bg px-4 py-3 text-xs leading-6 text-dena-muted">گفت‌وگو پس از آماده‌سازی و ارزیابی سرویس فعال می‌شود.</p>
+        </Card>
+      </section>
+
+      <section id="demo-ai-growth" className="space-y-4 scroll-mt-6">
+        <SectionHeading note="بر اساس وضعیت فعلی معلم دنا">
+          مسیر یادگیری معلم هوشمند
         </SectionHeading>
         <ol className="grid gap-4 lg:grid-cols-3">
           {learningStages.map((stage) => (
             <li key={stage.number}>
-              <Card className="h-full space-y-4 p-5">
+              <Card className="group h-full rounded-[22px] border-dena-border p-5 transition duration-200 hover:-translate-y-0.5 hover:border-dena-brand/30 hover:shadow-lg">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="grid size-9 place-items-center rounded-full bg-dena-lavender text-sm font-extrabold text-dena-brand">
-                    {stage.number}
-                  </span>
-                  <span className="rounded-full bg-dena-bg px-3 py-1.5 text-xs font-semibold text-dena-muted">
-                    {stage.status}
-                  </span>
+                  <span className="grid size-10 place-items-center rounded-2xl bg-dena-lavender text-sm font-extrabold text-dena-brand">{stage.number}</span>
+                  <span className="rounded-full bg-dena-bg px-3 py-1.5 text-xs font-semibold text-dena-muted">{stage.status}</span>
                 </div>
-                <div>
+                <div className="mt-5">
                   <h3 className="font-extrabold leading-7 text-dena-ink">{stage.title}</h3>
                   <p className="mt-2 text-sm leading-7 text-dena-muted">{stage.description}</p>
                 </div>
