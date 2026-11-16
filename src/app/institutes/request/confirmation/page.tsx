@@ -1,4 +1,4 @@
 import type { Metadata } from "next";
-import { DenaInstituteConfirmationPage } from "@/components/marketing/dena-public-pages";
+import { DenaInstituteConfirmationWebsitePage } from "@/components/marketing/dena-website-pages";
 export const metadata: Metadata = { title: "وضعیت درخواست | دنا" };
-export default function InstituteRequestConfirmationPage() { return <DenaInstituteConfirmationPage />; }
+export default function InstituteRequestConfirmationPage() { return <DenaInstituteConfirmationWebsitePage />; }
