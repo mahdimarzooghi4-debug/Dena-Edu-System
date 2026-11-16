@@ -131,7 +131,7 @@ jobs:
         if: matrix.shard == 'operations'
         run: |
           sudo apt-get update
-          sudo apt-get install --yes postgresql-client-16
+          sudo apt-get install --yes postgresql-client
           pg_dump --version
           node scripts/test-postgres-backup-restore.mjs
       - name: Switch integration tests to least-privilege database role
