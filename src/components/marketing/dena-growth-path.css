@@ -128,7 +128,8 @@
   line-height: 1.6;
   text-align: right;
   direction: rtl;
-  justify-content: flex-start;
+  flex-direction: row-reverse;
+  justify-content: flex-end;
 }
 
 .growth-path__observations strong { color: var(--growth-ink); font-weight: 700; }
