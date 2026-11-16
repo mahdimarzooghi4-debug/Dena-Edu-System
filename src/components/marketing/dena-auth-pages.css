@@ -1,0 +1,191 @@
+.dena-auth-preview {
+  --auth-brand: #5b4ce2;
+  --auth-ink: #2b2544;
+  --auth-muted: #756f83;
+  --auth-deep: #352b68;
+  --auth-line: #e5e1ed;
+  display: grid;
+  grid-template-columns: minmax(0, 580px) minmax(0, 580px);
+  justify-content: center;
+  align-items: center;
+  gap: 80px;
+  min-height: 640px;
+  padding: 48px 32px;
+  color: var(--auth-ink);
+  background: #f7f6fb;
+  direction: ltr;
+}
+
+.dena-auth-preview__visual {
+  min-width: 0;
+  color: var(--auth-ink);
+  direction: rtl;
+  text-align: right;
+}
+
+.dena-auth-preview__visual > span,
+.dena-auth-preview__eyebrow {
+  display: block;
+  color: var(--auth-brand);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.dena-auth-preview__visual h2 {
+  margin: 24px 0 12px;
+  color: var(--auth-deep);
+  font-size: clamp(27px, 2.35vw, 34px);
+  font-weight: 850;
+  line-height: 1.5;
+}
+
+.dena-auth-preview__visual p {
+  margin: 0 0 24px;
+  color: var(--auth-muted);
+  font-size: 15px;
+  line-height: 1.9;
+}
+
+.dena-auth-preview__visual img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+.dena-auth-preview__card {
+  width: 100%;
+  max-width: 580px;
+  justify-self: center;
+  padding: 38px 40px 30px;
+  border: 1px solid var(--auth-line);
+  border-radius: 22px;
+  background: #fff;
+  direction: rtl;
+  text-align: right;
+}
+
+.dena-auth-preview__card h1 {
+  margin: 12px 0 8px;
+  color: var(--auth-deep);
+  font-size: clamp(23px, 2vw, 30px);
+  font-weight: 850;
+  line-height: 1.55;
+}
+
+.dena-auth-preview__description {
+  margin: 0;
+  color: var(--auth-muted);
+  font-size: 14px;
+  line-height: 1.9;
+}
+
+.dena-auth-preview__divider {
+  width: 100%;
+  height: 1px;
+  margin: 22px 0;
+  background: #eeeaf4;
+}
+
+.dena-auth-preview__fields {
+  display: grid;
+  gap: 14px;
+}
+
+.dena-auth-preview__field label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--auth-ink);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.dena-auth-preview__field label span { color: var(--auth-brand); }
+
+.dena-auth-preview__field input {
+  display: block;
+  width: 100%;
+  height: 48px;
+  padding: 0 16px;
+  border: 1px solid var(--auth-line);
+  border-radius: 12px;
+  outline: 0;
+  background: #fff;
+  color: var(--auth-muted);
+  font: inherit;
+  font-size: 12px;
+  text-align: right;
+}
+
+.dena-auth-preview__field input[dir="ltr"] { text-align: left; }
+.dena-auth-preview__field input::placeholder { color: #8e899b; opacity: 1; }
+
+.dena-auth-preview__inline-link,
+.dena-auth-preview__secondary {
+  display: block;
+  color: var(--auth-brand);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.8;
+  text-align: center;
+  text-decoration: none;
+}
+
+.dena-auth-preview__inline-link { margin-top: 14px; text-align: right; }
+
+.dena-auth-preview__submit {
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 18px;
+  border: 1px solid var(--auth-brand);
+  border-radius: 12px;
+  background: var(--auth-brand);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.dena-auth-preview__submit:disabled { cursor: not-allowed; }
+.dena-auth-preview__secondary { margin-top: 16px; }
+.dena-auth-preview__divider--lower { margin: 22px 0 14px; }
+
+.dena-auth-preview__note,
+.dena-auth-preview__disclaimer {
+  margin: 0;
+  color: var(--auth-muted);
+  font-size: 11px;
+  line-height: 1.9;
+}
+
+.dena-auth-preview__disclaimer { margin-top: 12px; }
+
+.dena-auth-preview--signup .dena-auth-preview__card { padding-top: 32px; }
+.dena-auth-preview--signup .dena-auth-preview__divider { margin: 16px 0; }
+.dena-auth-preview--signup .dena-auth-preview__fields { gap: 11px; }
+.dena-auth-preview--signup .dena-auth-preview__field input { height: 44px; }
+.dena-auth-preview--signup .dena-auth-preview__submit { margin-top: 14px; }
+
+@media (max-width: 900px) {
+  .dena-auth-preview { gap: 36px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .dena-auth-preview__card { padding: 30px 26px 24px; }
+}
+
+@media (max-width: 700px) {
+  .dena-auth-preview {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+    min-height: auto;
+    padding: 28px 18px 40px;
+  }
+  .dena-auth-preview__card { order: 0; max-width: 560px; padding: 26px 22px 22px; }
+  .dena-auth-preview__visual { order: 1; max-width: 560px; justify-self: center; }
+  .dena-auth-preview__visual h2 { margin-top: 12px; font-size: 26px; }
+  .dena-auth-preview__visual p { font-size: 13px; }
+  .dena-auth-preview__visual img { max-width: 100%; }
+  .dena-auth-preview__card h1 { font-size: 24px; }
+}
