@@ -72,7 +72,7 @@ test("catalog filtering and search affect demo cards without creating real order
   await expect(page.locator(".dena-catalog-card")).toContainText("عربی دهم");
 });
 
-test("Figma 134:37 desktop geometry and intentionally blank course cover fills", async ({ page }) => {
+test("catalog retains Figma geometry while adding requested illustrated course covers", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/courses");
   for (const [selector, expected] of [
@@ -91,7 +91,7 @@ test("Figma 134:37 desktop geometry and intentionally blank course cover fills",
   expect(Math.abs(cardBox!.height - 559)).toBeLessThanOrEqual(3);
   expect(Math.abs(cardBox!.width - 405.33)).toBeLessThanOrEqual(3);
   const cover = page.locator(".dena-catalog-card__cover").first();
-  await expect(cover).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await expect(cover).toHaveCSS("background-image", /dena-course-art\.svg/);
   const pseudo = await cover.evaluate((node) => getComputedStyle(node, "::before").display);
   expect(pseudo).toBe("none");
   for (const asset of ["search.svg", "chevron-down.svg"]) {
