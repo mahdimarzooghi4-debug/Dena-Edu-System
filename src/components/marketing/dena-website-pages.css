@@ -325,6 +325,8 @@
 .dena-next__fields input,
 .dena-next__fields textarea { box-sizing: border-box; width: 100%; min-height: 48px; padding: 12px; border: 1px solid var(--next-border); border-radius: 10px; outline: none; background: #fff; color: var(--next-ink); font-size: 12px; font-weight: 400; }
 .dena-next__fields textarea { min-height: 88px; resize: vertical; }
+.dena-next__fields input[readonly],
+.dena-next__fields textarea[readonly] { cursor: default; color: var(--next-ink); }
 .dena-next__fields input::placeholder,
 .dena-next__fields textarea::placeholder { color: #a29cad; }
 .dena-next__fields input:focus,
