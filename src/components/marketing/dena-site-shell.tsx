@@ -1,15 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import "./dena-homepage.css";
-
-const siteLinks = [
-  ["درباره دنا", "/about"],
-  ["باشگاه نخبگان", "/elite-club"],
-  ["آزمون‌ها", "/assessments"],
-  ["مسیر رشد", "/growth"],
-  ["دوره‌ها", "/courses"],
-  ["خانه", "/"],
-];
+import { DenaSiteNavigation } from "./dena-site-navigation";
 
 /** Shared public header action: Android download icon and visible label. */
 export function DenaAndroidHeaderLink() {
@@ -48,9 +40,7 @@ export function DenaSiteHeader() {
         <DenaAndroidHeaderLink />
       </div>
       <div className="dena-header__right">
-        <nav className="dena-nav" aria-label="ناوبری اصلی">
-          {siteLinks.map(([label, href]) => <Link className={href === "/" ? "is-active" : undefined} href={href} key={href}>{label}</Link>)}
-        </nav>
+        <DenaSiteNavigation />
         <Link className="dena-brand" href="/" aria-label="دنا، صفحهٔ اصلی">
           <Image src="/dena-app-logo.png" alt="دنا" width={83} height={48} priority />
         </Link>
