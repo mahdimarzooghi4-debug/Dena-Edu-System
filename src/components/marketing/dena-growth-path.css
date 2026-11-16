@@ -82,7 +82,7 @@
 .growth-path__sample-intro {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 24px;
   direction: rtl;
   text-align: right;
@@ -103,16 +103,19 @@
 }
 
 .growth-path__sample-intro > p {
+  align-self: stretch;
   margin: 0;
   color: var(--growth-muted);
   font-size: 16px;
   line-height: 1.6;
+  text-align: right;
 }
 
 .growth-path__observations {
   display: grid;
+  width: 100%;
   gap: 12px;
-  justify-items: end;
+  justify-items: stretch;
 }
 
 .growth-path__observations p {
@@ -124,6 +127,8 @@
   font-size: 13px;
   line-height: 1.6;
   text-align: right;
+  direction: rtl;
+  justify-content: flex-start;
 }
 
 .growth-path__observations strong { color: var(--growth-ink); font-weight: 700; }
