@@ -1,0 +1,157 @@
+/* Isolated course-details layout: Figma Dena Ecosystem 139:68 */
+.dena-course-detail { --cd-ink:#27214e; --cd-violet:#5b4ce2; --cd-soft:#f7f6fb; --cd-line:#e6e2ef; --cd-muted:#746e87; color:var(--cd-ink); background:#fff; width:100%; overflow:clip; font-family:inherit; }
+.dena-course-detail *, .dena-course-detail *::before, .dena-course-detail *::after { box-sizing:border-box; }
+.dena-course-detail__container { width:min(1280px,calc(100% - 64px)); margin-inline:auto; }
+.dena-course-detail__breadcrumbs { max-width:1280px; width:calc(100% - 64px); margin:0 auto; display:flex; align-items:center; gap:9px; padding-top:20px; height:44px; font-size:13px; color:#8b8799; }
+.dena-course-detail__breadcrumbs a { color:#777188; text-decoration:none; }
+.dena-course-detail__breadcrumbs span[aria-current] { color:var(--cd-violet); white-space:nowrap; text-overflow:ellipsis; overflow:hidden; }
+.dena-course-detail__hero { background:var(--cd-soft); padding:48px 0 72px; min-height:735px; }
+.dena-course-detail__hero-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); align-items:center; gap:48px; }
+.dena-course-detail__hero-copy { min-width:0; text-align:right; padding:14px 0; }
+.dena-course-detail__hero-copy h1 { font-size:40px; font-weight:850; line-height:1.55; letter-spacing:-.4px; color:var(--cd-ink); margin:22px 0 14px; }
+.dena-course-detail__hero-copy > p { font-size:16px; line-height:2; color:var(--cd-muted); margin:0; max-width:616px; }
+.dena-course-detail__pill { display:inline-flex; padding:5px 12px; border-radius:999px; width:max-content; font-size:12px; font-weight:700; line-height:1.5; }
+.dena-course-detail__pill--soft { background:#eee9ff; color:var(--cd-violet); }
+.dena-course-detail__pill--orange { color:#bf7b10; background:#fff3dd; }
+.dena-course-detail__tags { display:flex; gap:8px; flex-wrap:wrap; margin-top:24px; }
+.dena-course-detail__tags span { background:#fff; color:#625b7c; border:1px solid var(--cd-line); padding:6px 12px; border-radius:8px; font-size:13px; }
+.dena-course-detail__provider-short { display:flex; flex-direction:column; gap:10px; align-items:flex-start; margin-top:26px; }
+.dena-course-detail__provider-short p { margin:0; font-size:13px; color:#655e79; line-height:1.5; }
+.dena-course-detail__media-column { display:flex; flex-direction:column; gap:20px; min-width:0; }
+.dena-course-detail__cover { position:relative; height:320px; border-radius:20px; background-color:#e6e0fa; overflow:hidden; border:1px solid #e0dced; box-shadow:0 15px 34px #3c2a7310; }
+.dena-course-detail__cover::after { content:""; position:absolute; inset:0; pointer-events:none; background:linear-gradient(180deg,transparent 65%,#1c15385c 100%); }
+.dena-course-detail__cover-label { position:absolute; bottom:18px; right:20px; color:white; z-index:2; background:#2b21496e; font-size:12px; border-radius:999px; padding:5px 12px; }
+.dena-course-detail__registration { background:white; border:1px solid var(--cd-line); border-radius:18px; padding:30px 32px 28px; box-shadow:0 10px 26px #42308a0b; }
+.dena-course-detail__pricing { display:flex; justify-content:space-between; gap:14px; align-items:center; min-height:115px; }
+.dena-course-detail__pricing > div:first-child { display:flex; flex-direction:column; gap:12px; }
+.dena-course-detail__pricing b { font-size:21px; color:#32265c; }
+.dena-course-detail__pricing small { color:#958ea1; font-size:11px; line-height:1.7; }
+.dena-course-detail__price { display:flex; align-items:flex-start; flex-direction:column; gap:4px; text-align:right; }
+.dena-course-detail__price strong { white-space:nowrap; color:var(--cd-violet); font-size:27px; font-weight:850; }
+.dena-course-detail__price span { color:#27a777; font-size:12px; line-height:1.5; }
+.dena-course-detail__registration-actions { display:flex; flex-wrap:wrap; align-items:center; gap:14px; border-top:1px solid var(--cd-line); margin-top:22px; padding-top:22px; }
+.dena-course-detail__button { display:inline-flex; align-items:center; justify-content:center; min-height:46px; min-width:140px; padding:0 22px; font-size:14px; font-weight:750; border-radius:10px; text-align:center; text-decoration:none; transition:filter .2s; }
+.dena-course-detail__button:hover { filter:brightness(.94); }
+.dena-course-detail__button--primary { color:#fff; background:var(--cd-violet); border:1px solid var(--cd-violet); }
+.dena-course-detail__button--outline { color:var(--cd-violet); background:#fff; border:1px solid var(--cd-violet); }
+.dena-course-detail__section { padding:72px 0; }
+.dena-course-detail__section--white { background:#fff; }
+.dena-course-detail__section--tinted { background:#faf9ff; }
+.dena-course-detail__section-heading { text-align:right; margin-bottom:40px; }
+.dena-course-detail__section-heading > span { color:#6f63df; font-weight:650; font-size:14px; }
+.dena-course-detail__section-heading h2 { font-size:30px; line-height:1.65; color:var(--cd-ink); margin:8px 0 0; font-weight:850; }
+.dena-course-detail__section-heading p { margin:20px 0 0; font-size:15px; line-height:1.9; color:var(--cd-muted); }
+.dena-course-detail__outcomes { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:24px; }
+.dena-course-detail__outcome { min-width:0; min-height:72px; border:1px solid #ebe8f2; background:#f8f7fc; border-radius:12px; display:flex; align-items:center; gap:14px; padding:16px 20px; }
+.dena-course-detail__outcome span { flex:0 0 32px; width:32px; height:32px; border-radius:10px; background:#e9e4ff; display:grid; place-items:center; font-size:17px; color:var(--cd-violet); font-weight:800; }
+.dena-course-detail__outcome p { margin:0; font-size:14px; line-height:1.7; }
+.dena-course-detail__chapters { display:grid; gap:16px; }
+.dena-course-detail__chapter { background:white; border:1px solid var(--cd-line); border-radius:16px; overflow:hidden; }
+.dena-course-detail__chapter summary { list-style:none; cursor:pointer; display:flex; justify-content:space-between; flex-direction:row; align-items:center; gap:16px; padding:28px 24px; min-height:109px; }
+.dena-course-detail__chapter summary::-webkit-details-marker { display:none; }
+.dena-course-detail__chapter summary strong { font-size:18px; color:#33285d; font-weight:800; }
+.dena-course-detail__chevron { font-size:25px; color:#5543ce; display:inline-block; transition:transform .2s; }
+.dena-course-detail__chapter[open] .dena-course-detail__chevron { transform:rotate(180deg); }
+.dena-course-detail__lessons { border-top:1px solid var(--cd-line); margin:0 24px 24px; }
+.dena-course-detail__lesson { display:flex; justify-content:space-between; align-items:center; min-height:57px; border-bottom:1px solid #f0edf6; gap:14px; padding:8px 0; }
+.dena-course-detail__lesson:last-child { border:0; }
+.dena-course-detail__lesson > div { display:flex; align-items:center; gap:12px; font-size:14px; color:#5d5772; min-width:0; }
+.dena-course-detail__lesson-icon { flex:0 0 20px; font-size:20px; color:#5547c5; }
+.dena-course-detail__lesson-type { white-space:nowrap; font-size:11px; color:var(--cd-violet); background:#eeebff; border-radius:8px; padding:6px 10px; }
+.dena-course-detail__features { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:24px; }
+.dena-course-detail__features > div { background:#fff; border-radius:16px; border:1px solid var(--cd-line); min-height:202px; padding:24px; text-align:right; }
+.dena-course-detail__feature-icon { width:48px; height:48px; background:#f0ecff; color:#6252d8; font-size:27px; border-radius:14px; display:grid; place-items:center; }
+.dena-course-detail__features h3 { margin:12px 0 8px; font-size:18px; color:#2d244f; font-weight:800; }
+.dena-course-detail__features p { font-size:14px; color:var(--cd-muted); line-height:1.8; margin:0; }
+.dena-course-detail__growth { display:flex; align-items:center; padding:32px; gap:24px; background:#fff; border-radius:16px; border:1px solid #ebe8f3; }
+.dena-course-detail__growth > div { flex:1 1 0; min-width:0; background:#f8f7fd; border-radius:12px; text-align:center; padding:20px 16px; }
+.dena-course-detail__growth > div b { display:block; font-size:23px; color:var(--cd-violet); }
+.dena-course-detail__growth h3 { font-size:16px; margin:6px 0; color:#302655; }
+.dena-course-detail__growth p { font-size:12px; line-height:1.8; color:var(--cd-muted); margin:0; }
+.dena-course-detail__growth > span { font-size:24px; color:#847af0; }
+.dena-course-detail__responsibility { background:#fff; border:1px solid var(--cd-line); border-radius:16px; padding:32px; }
+.dena-course-detail__responsibility-head { display:flex; flex-wrap:wrap; gap:16px; align-items:center; border-bottom:1px solid var(--cd-line); padding-bottom:24px; }
+.dena-course-detail__provider-avatar { background:#f1edff; color:var(--cd-violet); font-size:24px; border-radius:14px; width:52px; height:52px; display:grid; place-items:center; }
+.dena-course-detail__responsibility-head > div:nth-child(2) { flex:1; }
+.dena-course-detail__responsibility h3 { font-size:18px; margin:0 0 7px; color:#332858; }
+.dena-course-detail__responsibility-head p { margin:0; color:var(--cd-muted); font-size:13px; }
+.dena-course-detail__responsibility > p { margin:24px 0; font-size:14px; color:#6e667b; line-height:1.9; }
+.dena-course-detail__responsibility-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; }
+.dena-course-detail__responsibility-grid > div { border-radius:10px; background:#f9f8fe; padding:20px; }
+.dena-course-detail__responsibility-grid h4 { color:#352b5c; font-size:16px; margin:0 0 10px; }
+.dena-course-detail__responsibility-grid p { color:#706983; font-size:13px; margin:0; }
+.dena-course-detail__faqs { display:grid; gap:12px; }
+.dena-course-detail__faqs details { background:#fff; border:1px solid var(--cd-line); border-radius:12px; overflow:hidden; }
+.dena-course-detail__faqs summary { padding:18px 22px; min-height:62px; display:flex; justify-content:space-between; gap:15px; align-items:center; cursor:pointer; list-style:none; color:#332958; }
+.dena-course-detail__faqs summary::-webkit-details-marker { display:none; }
+.dena-course-detail__faqs summary strong { font-size:14px; font-weight:750; }
+.dena-course-detail__faqs summary span { color:#6b59d8; font-size:18px; }
+.dena-course-detail__faqs details[open] summary span { transform:rotate(45deg); }
+.dena-course-detail__faqs details > p { color:#766e86; border-top:1px solid #f1edf6; margin:0; padding:16px 24px 24px; font-size:13px; line-height:2; }
+.dena-course-detail__bottom-cta { padding:84px 0 68px; text-align:center; color:#30265a; background:#ebe7ff; }
+.dena-course-detail__bottom-cta h2 { font-size:31px; line-height:1.6; margin:0; }
+.dena-course-detail__bottom-cta p { margin:8px 0 28px; font-size:15px; line-height:1.8; }
+.dena-course-detail__bottom-cta .dena-course-detail__container > div { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:16px; }
+.dena-course-detail__bottom-cta a:not(.dena-course-detail__button) { color:#6555c7; font-size:14px; text-decoration:none; }
+.dena-course-detail__demo-notice { margin:0; padding:12px 24px; text-align:center; color:#837e90; background:#faf9ff; font-size:11px; line-height:1.8; }
+.dena-course-detail__missing { text-align:center; padding:100px 24px; }
+.dena-course-detail__missing h1 { font-size:28px; margin:0 0 20px; }
+.dena-course-detail__missing a { color:#5b4ce2; }
+
+@media (min-width:1200px) {
+  .dena-course-detail__section:nth-of-type(2) { min-height:456px; }
+  .dena-course-detail__section:nth-of-type(3) { min-height:941px; }
+  .dena-course-detail__section:nth-of-type(4) { min-height:542px; }
+  .dena-course-detail__section:nth-of-type(5) { min-height:531px; }
+  .dena-course-detail__section:nth-of-type(6) { min-height:586px; }
+  .dena-course-detail__section:nth-of-type(7) { min-height:695px; }
+  .dena-course-detail__bottom-cta { min-height:377px; }
+}
+@media (max-width:1000px) {
+  .dena-course-detail__hero-grid { gap:28px; }
+  .dena-course-detail__hero-copy h1 { font-size:30px; }
+  .dena-course-detail__pricing { align-items:flex-start; }
+  .dena-course-detail__pricing b { font-size:16px; }
+  .dena-course-detail__price strong { font-size:20px; }
+  .dena-course-detail__outcomes { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media (max-width:760px) {
+  .dena-course-detail__container { width:calc(100% - 36px); }
+  .dena-course-detail__breadcrumbs { width:calc(100% - 36px); padding-top:12px; font-size:11px; }
+  .dena-course-detail__hero { padding:28px 0 48px; min-height:0; }
+  .dena-course-detail__hero-grid { grid-template-columns:minmax(0,1fr); gap:26px; }
+  .dena-course-detail__hero-copy { padding:0; }
+  .dena-course-detail__hero-copy h1 { font-size:28px; margin:12px 0; line-height:1.45; }
+  .dena-course-detail__hero-copy > p { font-size:14px; }
+  .dena-course-detail__media-column { gap:16px; }
+  .dena-course-detail__cover { height:auto; aspect-ratio:1.6; }
+  .dena-course-detail__registration { padding:18px; }
+  .dena-course-detail__pricing { min-height:0; }
+  .dena-course-detail__pricing b { font-size:14px; }
+  .dena-course-detail__price strong { font-size:19px; }
+  .dena-course-detail__registration-actions { gap:10px; }
+  .dena-course-detail__button { flex:1; min-width:110px; font-size:13px; padding:0 12px; }
+  .dena-course-detail__section { padding:46px 0; }
+  .dena-course-detail__section-heading { margin-bottom:28px; }
+  .dena-course-detail__section-heading h2 { font-size:24px; }
+  .dena-course-detail__outcomes,.dena-course-detail__features,.dena-course-detail__responsibility-grid { grid-template-columns:minmax(0,1fr); gap:12px; }
+  .dena-course-detail__outcome { padding:12px; min-height:64px; }
+  .dena-course-detail__chapter summary { padding:18px; min-height:70px; }
+  .dena-course-detail__chapter summary strong { font-size:14px; }
+  .dena-course-detail__lessons { margin:0 14px 14px; }
+  .dena-course-detail__lesson > div { font-size:12px; }
+  .dena-course-detail__lesson-type { font-size:10px; }
+  .dena-course-detail__growth { flex-direction:column; padding:16px; gap:6px; }
+  .dena-course-detail__growth > div { width:100%; }
+  .dena-course-detail__growth > span { transform:rotate(-90deg); }
+  .dena-course-detail__responsibility { padding:18px; }
+  .dena-course-detail__responsibility-head { align-items:flex-start; }
+  .dena-course-detail__responsibility-head .dena-course-detail__pill { margin-right:64px; }
+  .dena-course-detail__bottom-cta { padding:48px 0; }
+  .dena-course-detail__bottom-cta h2 { font-size:23px; }
+  .dena-course-detail__bottom-cta p { font-size:13px; }
+}
+@media (max-width:380px) {
+  .dena-course-detail__pricing { flex-direction:column; }
+  .dena-course-detail__price strong { font-size:20px; }
+}
