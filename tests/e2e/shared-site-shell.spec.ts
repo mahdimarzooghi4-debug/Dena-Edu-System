@@ -37,7 +37,7 @@ test("all public-site pages render the homepage footer with the same content and
 
 test("homepage footer, signup and download remain usable without horizontal overflow on mobile", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
-  for (const path of ["/", "/courses", "/courses/physics-tenth", "/about", "/growth"]) {
+  for (const path of ["/", "/courses", "/courses/physics-tenth", "/about", "/growth", "/elite-club"]) {
     await page.goto(path);
     await expect(page.locator("footer.dena-footer .dena-footer__brand")).toContainText("دنا، بستر آموزش، یادگیری و رشد دانش‌آموزان نوآفرین ایران.");
     await expect(page.locator('header.dena-header a[href="/signup"]')).toBeVisible();
@@ -92,6 +92,7 @@ test("header highlights current public section rather than always highlighting h
     ["/courses", "دوره‌ها"],
     ["/courses/physics-tenth", "دوره‌ها"],
     ["/growth", "مسیر رشد"],
+    ["/elite-club", "باشگاه نخبگان"],
   ]) {
     await page.goto(path);
     const nav = page.getByRole("navigation", { name: "ناوبری اصلی" });
