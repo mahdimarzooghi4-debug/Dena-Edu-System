@@ -1,18 +1,10 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export function DenaInstituteRequestPreviewForm() {
-  const router = useRouter();
-
-  function previewSuccess(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    // Figma specifies this as a design-only flow. No form values leave the browser.
-    router.push("/institutes/request/confirmation");
-  }
-
   return (
-    <form className="dena-next__request-form" onSubmit={previewSuccess}>
+    <form className="dena-next__request-form">
       <div className="dena-next__form-heading">
         <h2>اطلاعات مؤسسه و نماینده</h2>
         <p>موارد ستاره‌دار برای ثبت درخواست اولیه لازم‌اند؛ سایر اطلاعات را می‌توان بعداً تکمیل کرد.</p>
@@ -29,10 +21,10 @@ export function DenaInstituteRequestPreviewForm() {
         <label className="dena-next__field--wide">درباره دوره‌ها و همکاری موردنظر (اختیاری)<textarea name="details" rows={4} placeholder="اگر نکته‌ای درباره دوره‌های ضبط‌شده یا نوع همکاری مدنظر دارید، اینجا بنویسید." /></label>
       </div>
       <p className="dena-next__privacy-copy">در نسخهٔ فعال، اطلاعات درج‌شده برای بررسی اولیه همکاری و ارتباط با نماینده مؤسسه در اختیار دنا قرار می‌گیرد.</p>
-      <p className="dena-next__preview-note">پیش‌نمایش طراحی در Figma؛ ارسال واقعی پس از پیاده‌سازی فعال می‌شود. اطلاعات این فرم ارسال یا ذخیره نمی‌شوند.</p>
+      <p className="dena-next__preview-note">این فرم پیش‌نمایش طراحی است و اطلاعات آن ارسال یا ذخیره نمی‌شوند. برای ثبت درخواست واقعی از مسیر امن حساب کاربری اقدام کنید.</p>
       <div className="dena-next__form-actions">
         <span>ثبت درخواست، به‌معنای تأیید همکاری یا ایجاد حساب مؤسسه نیست.</span>
-        <button className="dena-next__button dena-next__button--primary" type="submit">ارسال درخواست همکاری</button>
+        <Link className="dena-next__button dena-next__button--primary" href="/login?next=%2Faccount%2Frole-applications">ورود و ثبت درخواست مؤسسه</Link>
       </div>
     </form>
   );
