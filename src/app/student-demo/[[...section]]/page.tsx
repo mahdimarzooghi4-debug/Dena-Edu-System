@@ -314,13 +314,13 @@ function CourseList({ filter = "all" }: { filter?: string }) {
               </div>
               <div className="space-y-4 p-5 md:p-6">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-sm font-bold text-dena-ink">{course.topic}</p>
+                  <p className="text-sm font-bold text-dena-ink">{course.topic} · جلسه {(course.currentSession ?? course.done).toLocaleString("fa-IR")} از {course.total.toLocaleString("fa-IR")}</p>
                   <p className="text-xs text-dena-muted">مدرس: {course.teacher}</p>
                 </div>
                 <div>
                   <div className="mb-2 flex items-center justify-between gap-3 text-xs">
-                    <span className="font-extrabold text-dena-brand">{progress.toLocaleString("fa-IR")}٪</span>
-                    <span className="text-dena-muted">جلسهٔ {(course.currentSession ?? course.done).toLocaleString("fa-IR")} از {course.total.toLocaleString("fa-IR")}</span>
+                    <span className="font-extrabold text-dena-brand">{progress.toLocaleString("fa-IR")}٪ پیشرفت</span>
+                    
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-dena-lavender" role="progressbar" aria-label={`پیشرفت ${course.title}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}>
                     <div className="h-full rounded-full bg-dena-mint transition-all duration-500" style={{ width: `${progress}%` }} />
