@@ -126,7 +126,7 @@ export function MobileSignIn({ enabled }: { enabled: boolean }) {
       </div>
       {!enabled && (
         <div role="status" className="rounded-xl border border-dena-border bg-dena-bg p-4 text-sm leading-7 text-dena-muted">
-          ورود با پیامک در این محیط هنوز فعال نشده است. این صفحه برای آماده‌سازی و آزمون رابط کاربری در دسترس است.
+          ورود با پیامک در این محیط هنوز فعال نشده است. برای دیدن پنل از دکمهٔ ورود آزمایشی و داده‌های نمونه استفاده کنید.
         </div>
       )}
       {stage === "phone" ? (
