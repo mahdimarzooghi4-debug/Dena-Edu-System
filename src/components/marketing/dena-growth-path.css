@@ -95,9 +95,11 @@
 }
 
 .growth-path__sample h2 {
+  align-self: center;
   color: var(--growth-deep);
   font-size: 40px;
   line-height: 1.5;
+  text-align: center;
 }
 
 .growth-path__sample-intro > p {
