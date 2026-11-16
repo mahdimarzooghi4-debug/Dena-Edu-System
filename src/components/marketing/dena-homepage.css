@@ -719,3 +719,16 @@
   .dena-catalog-trust__grid article,
   .dena-catalog-trust__grid article:first-child { height:auto; min-height:0; }
 }
+
+
+/* Generated original six-panel course artwork. Each class crops one subject from
+   a single local WebP; avoids external image hosts and preserves card geometry. */
+.dena-catalog-grid .dena-catalog-card__cover { position:relative; overflow:hidden; background:#ede8f9; }
+.dena-catalog-card__cover-art { position:absolute; inset:0; background:url("/images/dena-course-covers/mosaic.webp") no-repeat; background-size:300% auto; background-position:0% 18%; }
+.dena-catalog-card__cover-art[data-subject="chemistry"] { background-position:0% 18%; }
+.dena-catalog-card__cover-art[data-subject="physics"] { background-position:50% 18%; }
+.dena-catalog-card__cover-art[data-subject="math"] { background-position:100% 18%; }
+.dena-catalog-card__cover-art[data-subject="biology"] { background-position:0% 82%; }
+.dena-catalog-card__cover-art[data-subject="arabic"] { background-position:50% 82%; }
+.dena-catalog-card__cover-art[data-subject="literature"] { background-position:100% 82%; }
+.dena-catalog-card__cover-note { position:absolute; bottom:10px; right:10px; font-size:10px; font-weight:500; color:#fff; background:#281a4fcf; border-radius:6px; padding:4px 8px; }
