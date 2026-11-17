@@ -209,6 +209,32 @@ export function DenaHomepage() {
         </div>
       </section>
 
+      <section className="dena-app-downloads" id="download-app" aria-labelledby="dena-app-downloads-title">
+        <div className="dena-app-downloads__heading">
+          <span className="eyebrow">دنا همیشه همراه تو</span>
+          <h2 id="dena-app-downloads-title">اپ دانش‌آموز دنا را دریافت کن</h2>
+          <p>از گوشی اندرویدی‌ات دانلود کن یا نسخهٔ وب را بدون نصب از فروشگاه، روی صفحهٔ اصلی گوشی اضافه کن.</p>
+        </div>
+        <div className="dena-app-downloads__grid">
+          <article className="dena-app-download-card dena-app-download-card--android">
+            <span className="dena-app-download-card__icon" aria-hidden="true">اندروید</span>
+            <div>
+              <h3>نسخهٔ اندروید</h3>
+              <p>فایل نصب اپ دنا برای گوشی‌ها و تبلت‌های اندرویدی.</p>
+            </div>
+            <a className="dena-button dena-button--primary" href="/download/android/apk" download="dena-student.apk">دانلود اپ اندروید</a>
+          </article>
+          <article className="dena-app-download-card dena-app-download-card--pwa">
+            <span className="dena-app-download-card__icon" aria-hidden="true">وب‌اپ</span>
+            <div>
+              <h3>نسخهٔ وب (PWA)</h3>
+              <p>بدون دانلود فایل، اپ را در مرورگر باز و به صفحهٔ اصلی اضافه کن.</p>
+            </div>
+            <a className="dena-button dena-button--outline" href="https://dena-student-demo.onrender.com/student-demo/install">نصب وب‌اپ دنا</a>
+          </article>
+        </div>
+      </section>
+
       <section className="dena-institute-section">
         <div className="dena-institute-cta">
           <aside className="dena-institute-benefits">
