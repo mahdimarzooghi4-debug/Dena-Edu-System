@@ -117,7 +117,7 @@ test.describe("course-scoped provider requests and independent institute decisio
     )).status()).toBe(401);
     const anonymousInstitute = await anonymous.get("/institute", { maxRedirects: 0 });
     expect(anonymousInstitute.status()).toBe(307);
-    expect(anonymousInstitute.headers().location).toBe("/login");
+    expect(anonymousInstitute.headers().location).toBe("/institute/demo");
     expect((await anonymous.get(
       `/api/institute/courses/${randomUUID()}/overview`,
     )).status()).toBe(401);
@@ -596,7 +596,7 @@ test.describe("course-scoped provider requests and independent institute decisio
       maxRedirects: 0,
     });
     expect(suspendedInstitute.status()).toBe(307);
-    expect(suspendedInstitute.headers().location).toBe("/login");
+    expect(suspendedInstitute.headers().location).toBe("/institute/demo");
     expect((await decide(institute, a, revoke)).status()).toBe(401);
     expect((await create(provider, {
       ...requestBody, clientRequestId: randomUUID(),

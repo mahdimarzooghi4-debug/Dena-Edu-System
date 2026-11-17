@@ -144,7 +144,10 @@ export function DenaInstituteRequestPage() {
       <div className="institute-request-form">
         <h2>ثبت درخواست از پنل امن</h2>
         <p>در حساب دنا، نوع درخواست را «مؤسسه» انتخاب کنید. وضعیت درخواست نیز در همان بخش قابل پیگیری است.</p>
-        <Link className="dena-button dena-button--primary" href="/login?next=%2Faccount%2Frole-applications">ورود و ثبت درخواست مؤسسه</Link>
+          <div className="flex flex-wrap gap-3">
+            <Link className="dena-button dena-button--primary" href="/login?next=%2Faccount%2Frole-applications">ورود و ثبت درخواست مؤسسه</Link>
+            <Link className="dena-button dena-button--outline" href="/institute/demo">مشاهدهٔ پنل نمونهٔ مؤسسه</Link>
+          </div>
       </div>
     </section>
   </DenaPublicLayout>;

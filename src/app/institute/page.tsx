@@ -31,9 +31,9 @@ const practiceLabels = {
 
 export default async function InstituteHomePage() {
   if (!process.env.DATABASE_URL || !process.env.BETTER_AUTH_SECRET ||
-      !process.env.BETTER_AUTH_URL) redirect("/login");
+      !process.env.BETTER_AUTH_URL) redirect("/institute/demo");
   const actor = await getServerAccessContext();
-  if (!actor) redirect("/login");
+  if (!actor) redirect("/institute/demo");
   const instituteIds = [...new Set(actor.memberships.flatMap((item) =>
     item.role === "institute" ? [item.instituteId] : []))];
   if (!instituteIds.length) notFound();
