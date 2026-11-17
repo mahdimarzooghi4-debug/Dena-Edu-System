@@ -35,8 +35,13 @@ describe("approved Dena design map", () => {
         return entry.isFile() && entry.name.endsWith(".tsx") ? [entryPath] : [];
       });
     const appRoot = resolve(process.cwd(), "src/app");
-    const routes = sourceFiles(appRoot)
-      .filter((file) => ["page.tsx", "route.ts"].includes(file.split(sep).at(-1) ?? ""))
+    const appRouteFiles = (directory: string): string[] =>
+      readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+        const entryPath = resolve(directory, entry.name);
+        if (entry.isDirectory()) return appRouteFiles(entryPath);
+        return entry.isFile() && ["page.tsx", "route.ts"].includes(entry.name) ? [entryPath] : [];
+      });
+    const routes = appRouteFiles(appRoot)
       .map((file) => {
         const routeParts = relative(appRoot, file).split(sep).slice(0, -1);
         return routeParts.length ? `/${routeParts.join("/")}` : "/";
