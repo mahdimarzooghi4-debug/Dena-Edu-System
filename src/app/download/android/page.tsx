@@ -29,7 +29,7 @@ export default function AndroidDownloadPage() {
               <li>برای نمایش درس‌ها اتصال اینترنت لازم است.</li>
             </ul>
             <a href={denaAndroidPreview.href} download={denaAndroidPreview.name} className="mt-7 inline-flex min-h-12 items-center justify-center rounded-xl bg-[#5b4ce2] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#4838be] focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-[#5b4ce2]">
-              دانلود فایل اندروید
+              دانلود اپ اندروید دنا
             </a>
             <p className="mt-3 text-xs leading-6 text-[#827c91]">این فایل نسخهٔ آزمایشی است و از فروشگاه رسمی منتشر نشده است.</p>
           </article>
