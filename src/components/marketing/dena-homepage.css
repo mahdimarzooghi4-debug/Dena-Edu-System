@@ -201,6 +201,18 @@
 .support-grid article > span { color:var(--mint); font-size:12px; font-weight:900; }.support-grid h3 { margin:12px 0 6px; font-size:14px; }.support-grid p { margin:0; color:var(--muted); font-size:11px; line-height:1.9; }
 .dena-cta { padding:54px 24px; text-align:center; color:#fff; background:var(--deep); }
 .dena-cta h2 { margin:0; font-size:30px; }.dena-cta p { margin:8px 0 20px; color:#d9d3f0; font-size:13px; }.dena-cta > div { display:flex; justify-content:center; gap:12px; }
+.dena-app-downloads { padding:64px 24px; background:#f7f6fb; direction:rtl; }
+.dena-app-downloads__heading { max-width:780px; margin:0 auto 30px; text-align:center; }
+.dena-app-downloads__heading h2 { margin:12px 0; color:#352b68; font-size:30px; }
+.dena-app-downloads__heading p { margin:0; color:#756f83; font-size:14px; line-height:1.9; }
+.dena-app-downloads__grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; max-width:900px; margin:0 auto; }
+.dena-app-download-card { display:grid; grid-template-columns:auto minmax(0,1fr); align-items:center; gap:18px; min-height:148px; padding:24px; border:1px solid #e5e1ed; border-radius:20px; background:#fff; box-shadow:0 8px 24px #2820520b; }
+.dena-app-download-card__icon { display:grid; place-items:center; width:58px; height:58px; border-radius:18px; color:#5b4ce2; background:#eeeaff; font-size:12px; font-weight:800; }
+.dena-app-download-card--android .dena-app-download-card__icon { color:#14815d; background:#e7f8f1; }
+.dena-app-download-card h3 { margin:0 0 6px; color:#282052; font-size:17px; }
+.dena-app-download-card p { margin:0; color:#756f83; font-size:12px; line-height:1.9; }
+.dena-app-download-card .dena-button { grid-column:1/-1; justify-self:stretch; }
+.dena-app-download-card .dena-button--outline { color:#5141d8; border-color:#c9c1ff; background:#f7f5ff; }
 .dena-institute-cta { max-width:1280px; margin:40px auto; padding:30px; display:flex; align-items:center; justify-content:space-between; gap:30px; border:1px solid var(--line); border-radius:18px; background:#fff; }
 .dena-institute-cta h2 { margin:12px 0 6px; font-size:24px; }.dena-institute-cta p { margin:0; color:var(--muted); font-size:12px; line-height:2; }.dena-institute-cta__actions { display:flex; gap:10px; flex:none; }
 .dena-footer { --brand:#5b4ce2; --muted:#756f83; --line:#e5e1ed; padding:56px max(32px, calc((100vw - 1280px) / 2)) 24px; background:#fff; }
@@ -227,6 +239,8 @@
   .dena-growth,.dena-network { grid-template-columns:1fr; gap:30px; }.growth-intro h2 { font-size:30px; }.growth-visualization { grid-template-columns:minmax(0,1fr); gap:18px; }.dena-growth .growth-report { padding:20px; }.growth-trend-card { padding:13px; }.growth-trend-card b { font-size:14px; }.growth-trend-card > span { font-size:11px; }.dena-network { text-align:center; }.network-art { width:90%;height:190px;order:1; }.network-copy { order:0; }
   .role-grid { grid-template-columns:1fr 1fr; gap:12px; }.role-card:last-child { grid-column:1/3; }.support-grid { grid-template-columns:1fr 1fr; gap:10px; }.support-grid article { padding:15px; }
   .dena-cta { padding:42px 18px; }.dena-cta h2 { font-size:23px; }.dena-cta > div { flex-wrap:wrap; }
+  .dena-app-downloads { padding:48px 18px; }.dena-app-downloads__heading h2 { font-size:24px; }
+  .dena-app-downloads__grid { grid-template-columns:1fr; max-width:460px; }.dena-app-download-card { padding:20px; gap:14px; }
   .dena-institute-cta { margin:22px 18px; padding:22px; flex-direction:column; align-items:stretch; }.dena-institute-cta h2 { font-size:21px; }.dena-institute-cta__actions { flex-wrap:wrap; }
   .dena-footer { padding:38px 18px 20px; }.dena-footer__main { grid-template-columns:1fr 1fr; gap:28px 20px; }.dena-footer__brand { grid-column:1/-1; align-items:flex-start!important; }.dena-brand--footer { justify-content:flex-start; }.dena-footer__legal { margin-top:28px; }
 }

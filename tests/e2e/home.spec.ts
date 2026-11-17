@@ -20,14 +20,15 @@ test("institute application uses the protected role review workflow", async ({ p
   await expect(page.locator('input[name="phone"]')).toHaveCount(0);
 });
 
-test("homepage keeps Android download only in the labeled header action", async ({ page }) => {
+test("homepage links directly to the Android app and PWA install", async ({ page }) => {
   await page.goto("/");
   const download = page.locator("header.dena-header a.dena-header__app-icon");
   await expect(download).toHaveAttribute("href", "/download/android");
   await expect(download).toContainText("دانلود اپلیکیشن");
   await expect(download.locator("svg")).toBeVisible();
-  await expect(page.locator(".dena-hero a[href='/download/android']")).toHaveCount(0);
-  await expect(page.locator(".dena-android-strip")).toHaveCount(0);
+  await expect(page.locator("#download-app")).toBeVisible();
+  await expect(page.locator("#download-app a[href='/download/android/apk']")).toContainText("دانلود اپ اندروید");
+  await expect(page.locator("#download-app a[href='https://dena-student-demo.onrender.com/student-demo/install']")).toContainText("نصب وب‌اپ دنا");
   await expect(page.locator("main a[href='/download/android']")).toHaveCount(1);
   await expect(page.locator(".dena-footer__brand")).toContainText("دنا، بستر آموزش، یادگیری و رشد دانش‌آموزان نوآفرین ایران.");
   await expect(page.locator(".dena-footer a[href='/download/android']")).toHaveCount(0);
@@ -55,10 +56,10 @@ test("Figma 59:5 homepage restores original imagery, section order and transpare
   const sectionClasses = await page.locator("main.dena-home > section").evaluateAll(
     (nodes) => nodes.map((node) => node.className),
   );
-  expect(sectionClasses).toHaveLength(9);
+  expect(sectionClasses).toHaveLength(10);
   for (const section of [
     "dena-hero", "dena-how", "dena-courses", "dena-growth", "dena-network",
-    "dena-roles", "dena-support", "dena-cta", "dena-institute-section",
+    "dena-roles", "dena-support", "dena-cta", "dena-app-downloads", "dena-institute-section",
   ]) {
     expect(sectionClasses.some((value) => typeof value === "string" && value.includes(section))).toBe(true);
   }
