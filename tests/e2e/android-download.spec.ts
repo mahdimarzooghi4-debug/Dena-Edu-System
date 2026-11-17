@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { denaAndroidPreview as preview } from "../../src/lib/dena-android-download";
 import { expect, test } from "@playwright/test";
 
-test("site header's last icon links to a single Android APK download button", async ({ page }) => {
+test("site header links to Android and PWA download choices", async ({ page }) => {
   await page.goto("/");
   const icon = page.locator(".dena-header__actions > a").last();
   await expect(icon).toHaveAttribute("href", "/download/android");
@@ -11,20 +11,25 @@ test("site header's last icon links to a single Android APK download button", as
 
   await icon.click();
   await expect(page).toHaveURL(/\/download\/android$/);
-  const button = page.getByRole("link", { name: "دانلود اپ اندروید دنا" });
-  await expect(button).toBeVisible();
-  await expect(button).toHaveAttribute("href", "/download/android/apk");
-  await expect(button).toHaveAttribute("download", "dena-student-android-v0.1.4-preview.apk");
-  await expect(page.locator("main a")).toHaveCount(1);
+  const android = page.getByRole("link", { name: "دانلود اپ اندروید دنا" });
+  await expect(android).toBeVisible();
+  await expect(android).toHaveAttribute("href", "/download/android/apk");
+  await expect(android).toHaveAttribute("download", "dena-student-android-v0.1.4-preview.apk");
+  const pwa = page.getByRole("link", { name: "نصب نسخهٔ وب‌اپ" });
+  await expect(pwa).toBeVisible();
+  await expect(pwa).toHaveAttribute("href", "https://dena-student-demo.onrender.com/student-demo/install");
+  await expect(page.locator("main a")).toHaveCount(3);
   await expect(page.locator("main button")).toHaveCount(0);
-  await expect(page.locator("main h1, main h2, main p, main ul, main ol")).toHaveCount(0);
+  await expect(page.locator("main h1, main h2, main p, main ul, main ol").first()).toBeVisible();
 });
 
-test("single download button is visible and tappable on a narrow Android phone", async ({ page }) => {
+test("Android and PWA choices are visible and tappable on a narrow Android phone", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 740 });
   await page.goto("/download/android");
   const button = page.getByRole("link", { name: "دانلود اپ اندروید دنا" });
+  const pwa = page.getByRole("link", { name: "نصب نسخهٔ وب‌اپ" });
   await expect(button).toBeVisible();
+  await expect(pwa).toBeVisible();
   const box = await button.boundingBox();
   expect(box).not.toBeNull();
   expect(box!.width).toBeGreaterThanOrEqual(220);
@@ -43,13 +48,14 @@ test("Android download is the last header action on every public-site page", asy
   }
 });
 
-test("download endpoint serves the exact bundled preview APK",async({request})=>{
-  const response=await request.get("/download/android/apk");
+test("download endpoint serves the exact bundled preview APK", async ({ request }) => {
+  const response = await request.get("/download/android/apk");
   expect(response.status()).toBe(200);
   expect(response.headers()["content-type"]).toBe("application/vnd.android.package-archive");
   expect(response.headers()["content-disposition"]).toContain(preview.name);
-  const bytes=await response.body();expect(bytes.byteLength).toBe(preview.size);
+  const bytes = await response.body();
+  expect(bytes.byteLength).toBe(preview.size);
   expect(createHash("sha256").update(bytes).digest("hex")).toBe(preview.sha256);
-  const checksum=await request.get("/download/android/checksum");
+  const checksum = await request.get("/download/android/checksum");
   expect(await checksum.text()).toBe(`${preview.sha256}  ${preview.name}\n`);
 });
