@@ -36,7 +36,7 @@ describe("approved Dena design map", () => {
       });
     const appRoot = resolve(process.cwd(), "src/app");
     const routes = sourceFiles(appRoot)
-      .filter((file) => file.split(sep).at(-1) === "page.tsx")
+      .filter((file) => ["page.tsx", "route.ts"].includes(file.split(sep).at(-1) ?? ""))
       .map((file) => {
         const routeParts = relative(appRoot, file).split(sep).slice(0, -1);
         return routeParts.length ? `/${routeParts.join("/")}` : "/";
