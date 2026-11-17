@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { buttonClassName } from "../../components/ui/button";
 import { getServerAccessContext } from "../../server/access/actor";
 import { getInstituteDashboardCourses } from "../../server/institute/dashboard";
@@ -36,7 +36,7 @@ export default async function InstituteHomePage() {
   if (!actor) redirect("/institute/demo");
   const instituteIds = [...new Set(actor.memberships.flatMap((item) =>
     item.role === "institute" ? [item.instituteId] : []))];
-  if (!instituteIds.length) redirect("/institute/demo");
+  if (!instituteIds.length) notFound();
 
   const { courses, hasMore } = await getInstituteDashboardCourses(instituteIds);
   // Only within the same visible, currently institute-scoped 20-course slice.
