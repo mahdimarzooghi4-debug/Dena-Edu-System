@@ -1,0 +1,18 @@
+{
+  "id": "/student-demo",
+  "name": "دنا | اپ دانش‌آموز",
+  "short_name": "دنا",
+  "description": "اپ دانش‌آموز دنا برای ادامهٔ مسیر یادگیری",
+  "lang": "fa",
+  "dir": "rtl",
+  "start_url": "/student-demo",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f7f6fb",
+  "theme_color": "#5b4ce2",
+  "icons": [
+    { "src": "/app-icons/dena-student-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/app-icons/dena-student-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
