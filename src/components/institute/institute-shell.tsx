@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
 
 const sections = [
@@ -23,16 +23,25 @@ const sections = [
 function Navigation({ currentPath, mobile = false }: {
   currentPath: string; mobile?: boolean;
 }) {
+  const searchParams = useSearchParams();
+  const demoSection = searchParams.get("section") ?? "dashboard";
+  const demoMode = currentPath === "/institute/demo";
   return (
     <nav aria-label={mobile ? "منوی موبایل مؤسسه" : "منوی مؤسسه"}>
       <ul className="space-y-1">
         {sections.map((section) => {
-          const selected = section.href === "/institute"
-            ? currentPath === section.href
-            : currentPath === section.href || currentPath.startsWith(`${section.href}/`);
+          const sectionKey = section.href === "/institute"
+            ? "dashboard"
+            : section.href.replace(/^\/institute\//, "").replaceAll("/", "-");
+          const selected = demoMode
+            ? demoSection === sectionKey
+            : section.href === "/institute"
+              ? currentPath === section.href
+              : currentPath === section.href || currentPath.startsWith(`${section.href}/`);
+          const href = demoMode ? `/institute/demo?section=${sectionKey}` : section.href;
           return (
             <li key={section.href}>
-              <Link href={section.href} aria-current={selected ? "page" : undefined}
+              <Link href={href} aria-current={selected ? "page" : undefined}
                 className={
                   "flex min-h-11 items-center rounded-lg px-4 text-sm transition-colors " +
                   (selected
@@ -51,11 +60,12 @@ function Navigation({ currentPath, mobile = false }: {
 
 export function InstituteShell({ children }: { children: ReactNode }) {
   const currentPath = usePathname();
+  const demoMode = currentPath === "/institute/demo";
   return (
-    <div className="min-h-screen min-w-0 bg-dena-bg lg:flex">
+    <div dir="rtl" className="min-h-screen min-w-0 bg-dena-bg lg:flex">
       <aside className="hidden h-screen w-[260px] shrink-0 flex-col justify-between bg-[#1d124e] p-6 text-white lg:sticky lg:top-0 lg:flex">
         <div>
-          <Link href="/institute" aria-label="خانهٔ پنل مؤسسه"
+          <Link href={demoMode ? "/institute/demo" : "/institute"} aria-label="خانهٔ پنل مؤسسه"
             className="flex items-center justify-end gap-3 text-base font-extrabold">
             پنل آموزشگاه
             <span className="grid size-8 place-items-center rounded-lg bg-dena-brand">د</span>
@@ -65,21 +75,23 @@ export function InstituteShell({ children }: { children: ReactNode }) {
           </div>
         </div>
         <div className="space-y-1 border-t border-white/15 pt-4">
-          <Link href="/support" className="flex min-h-11 items-center rounded-lg px-4 text-sm text-[#e5e1ed] hover:bg-[#382973]">
+          <Link href={demoMode ? "/institute/demo?section=support" : "/support"} className="flex min-h-11 items-center rounded-lg px-4 text-sm text-[#e5e1ed] hover:bg-[#382973]">
             پشتیبانی آنلاین
           </Link>
-          <Link href="/account" className="flex min-h-11 items-center rounded-lg px-4 text-sm text-[#e5e1ed] hover:bg-[#382973]">
-            خروج از حساب
+          <Link href={demoMode ? "/institutes/request" : "/account"} className="flex min-h-11 items-center rounded-lg px-4 text-sm text-[#e5e1ed] hover:bg-[#382973]">
+            {demoMode ? "درخواست همکاری مؤسسه" : "خروج از حساب"}
           </Link>
         </div>
       </aside>
       <div className="min-w-0 flex-1">
         <div className="border-b border-dena-border bg-white px-5 py-3 lg:hidden">
           <div className="flex items-center justify-between">
-            <Link href="/institute" aria-label="دنا، خانهٔ مؤسسه" className="inline-flex">
+            <Link href={demoMode ? "/institute/demo" : "/institute"} aria-label="دنا، خانهٔ مؤسسه" className="inline-flex">
               <Image src="/dena-app-logo.png" alt="دنا" width={72} height={40} priority />
             </Link>
-            <Link href="/account" className="text-sm font-semibold text-dena-brand">حساب من</Link>
+            <Link href={demoMode ? "/institutes/request" : "/account"} className="text-sm font-semibold text-dena-brand">
+              {demoMode ? "ثبت درخواست مؤسسه" : "حساب من"}
+            </Link>
           </div>
           <details className="mt-3 rounded-xl border border-dena-border">
             <summary className="flex min-h-11 cursor-pointer items-center justify-between px-4 text-sm font-bold text-dena-deep">
