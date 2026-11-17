@@ -6,7 +6,7 @@
   "lang": "fa",
   "dir": "rtl",
   "start_url": "/student-demo",
-  "scope": "/",
+  "scope": "/student-demo",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#f7f6fb",
